@@ -126,6 +126,13 @@ Les versions packagées de Kheops 2 sont distribuées via Google Cloud Storage :
 C'est aussi l'URL de mise à jour automatique (`electron-updater`) configurée dans
 [`electron-builder.json`](electron-builder.json) (`publish.url`).
 
+La **page web publique de téléchargement** (bouton « Télécharger », numéro de
+version, somme de contrôle) a son code source dans le dossier [`site/`](site/).
+Elle est déployée sur un bucket Google Cloud Storage dédié et pointe vers
+l'installeur ci-dessus. Le script [`scripts/release.js`](scripts/release.js)
+met à jour cette page et téléverse l'installeur en une seule commande après
+`npm run package`.
+
 ---
 
 ## Structure du projet
@@ -136,7 +143,8 @@ Kheops_2/
 ├── client/            Front React (src/, build/ généré)
 ├── server/            API Express (index.js, router.js, contrôleurs, modèles)
 ├── e2e/               Tests end-to-end Playwright
-├── scripts/           Scripts de build (manifeste, etc.)
+├── scripts/           Scripts de build et de release (manifeste, upload GCS)
+├── site/              Page web publique de téléchargement (déployée sur GCS)
 ├── electron-builder.json   Configuration de packaging Windows
 └── package.json       Scripts npm (start, build, package)
 ```
