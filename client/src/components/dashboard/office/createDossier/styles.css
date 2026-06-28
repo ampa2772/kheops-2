@@ -1,0 +1,509 @@
+/* ==========================================================================
+   Formulaire Creation de Dossier — Design System Kheops 2 (Premium Flashy)
+   Tokens: _variables.css  --k-form-*
+   ========================================================================== */
+
+/* -------------------------------------------------------
+   Header horizontal : [← Accueil] + onglets
+   Conteneur unifié qui porte le fond / blur / border-bottom
+   (auparavant sur .createDossierSideBar). Permet d'aligner
+   le bouton retour et les onglets sur la même ligne sans
+   chevauchement (cf. anciennement position: absolute).
+   ------------------------------------------------------- */
+.createDossier-header {
+  display: flex;
+  align-items: stretch;
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(138, 180, 248, 0.12);
+  flex-shrink: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 1;
+}
+
+/* Bouton "Retour à l'accueil" en mode création — préserve la saisie.
+   Look : pilule cyan distincte des onglets, centrée verticalement
+   dans le header avec une marge cohérente.
+   `width: auto` override la règle globale `button { width: 100% }`
+   définie au niveau du reset CSS du projet. */
+.createDossier-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  margin: 8px 10px 8px 12px;
+  padding: 7px 14px 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 180, 240, 0.35);
+  background: rgba(15, 32, 56, 0.55);
+  color: #a5d8ff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  flex-grow: 0;
+  align-self: center;
+  transition: background 0.18s ease, border-color 0.18s ease,
+              color 0.18s ease, transform 0.12s ease;
+}
+
+.createDossier-header__back:hover {
+  background: rgba(77, 201, 255, 0.18);
+  border-color: rgba(77, 201, 255, 0.6);
+  color: #fff;
+  transform: translateX(-1px);
+}
+
+.createDossier-header__back:active {
+  transform: translateX(0);
+}
+
+.createDossier-header__back:focus-visible {
+  outline: 2px solid rgba(147, 197, 253, 0.9);
+  outline-offset: 2px;
+}
+
+.createDossier-header__back-arrow {
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: transform 0.18s ease;
+}
+
+.createDossier-header__back:hover .createDossier-header__back-arrow {
+  transform: translateX(-2px);
+}
+
+.createDossier-header__back-label {
+  letter-spacing: 0.02em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .createDossier-header__back,
+  .createDossier-header__back:hover,
+  .createDossier-header__back:active,
+  .createDossier-header__back-arrow,
+  .createDossier-header__back:hover .createDossier-header__back-arrow {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* -------------------------------------------------------
+   0. KEYFRAMES ANIMATIONS
+   ------------------------------------------------------- */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 4px 16px rgba(0,120,74,0.3); }
+  50%      { box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 4px 16px rgba(0,120,74,0.3), 0 0 28px rgba(0,168,94,0.3); }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* -------------------------------------------------------
+   1. CONTENEUR PRINCIPAL
+   ------------------------------------------------------- */
+.createDosMain {
+  padding: 5px;
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.create_DossierMainForm {
+  width: 90%;
+  height: 95%;
+  display: flex;
+  flex-direction: column;
+  background: var(--k-form-gradient);
+  background-size: 200% 200%;
+  animation: gradient-shift 12s ease infinite;
+  border-radius: var(--k-form-radius-container, 16px);
+  box-sizing: border-box;
+  margin: auto;
+  border: 1px solid rgba(138, 180, 248, 0.15);
+  box-shadow: var(--k-form-container-shadow);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Shimmer overlay */
+.create_DossierMainForm::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--k-form-shimmer-gradient);
+  background-size: 200% 100%;
+  animation: shimmer 8s linear infinite;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+@media screen and (min-width: 768px) {
+  .create_DossierMainForm {
+    width: 70%;
+  }
+}
+
+/* -------------------------------------------------------
+   2. ONGLETS (Dossier / Parties / Contacts)
+   La sidebar est désormais imbriquée dans .createDossier-header,
+   qui porte le fond / blur / border-bottom. La sidebar prend tout
+   l'espace restant (flex: 1) à droite du bouton "← Accueil".
+   ------------------------------------------------------- */
+.createDossierSideBar {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.createDossierSideBar span {
+  text-decoration: none;
+  padding: 13px 0;
+  color: var(--k-form-text-tertiary, rgba(255, 255, 255, 0.50));
+  width: 100%;
+  cursor: pointer;
+  text-align: center;
+  box-sizing: border-box;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  letter-spacing: 0.03em;
+  transition: color 200ms ease,
+              background-color 200ms ease,
+              text-shadow 200ms ease;
+  position: relative;
+  background: transparent;
+}
+
+.createDossierSideBar span:not(:last-child) {
+  border-right: 1px solid rgba(138, 180, 248, 0.06);
+}
+
+/* Onglet actif */
+.createDossierSideBar span.active {
+  color: var(--k-form-text-primary, rgba(255, 255, 255, 0.95));
+  background: rgba(138, 180, 248, 0.12);
+  font-weight: var(--k-font-weight-semibold, 600);
+  text-shadow: 0 0 12px rgba(138, 180, 248, 0.4);
+}
+
+/* Indicateur actif — degrade lumineux */
+.createDossierSideBar span.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  right: 15%;
+  height: 3px;
+  background: linear-gradient(90deg, #8ab4f8, #0ea5d1, #8ab4f8);
+  border-radius: 3px 3px 0 0;
+  box-shadow: 0 0 10px rgba(138, 180, 248, 0.5),
+              0 0 20px rgba(14, 165, 209, 0.2);
+}
+
+/* Survol */
+.createDossierSideBar span:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(138, 180, 248, 0.08);
+}
+
+/* Override des anciens styles is-hovering-child */
+.createDossierSideBar.is-hovering-child span {
+  color: var(--k-form-text-tertiary, rgba(255, 255, 255, 0.50));
+}
+.createDossierSideBar.is-hovering-child span.active {
+  color: var(--k-form-text-primary, rgba(255, 255, 255, 0.95));
+  background: rgba(138, 180, 248, 0.12);
+}
+.createDossierSideBar.is-hovering-child span:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(138, 180, 248, 0.08);
+}
+
+/* Arrondis geres par overflow: hidden du parent */
+.createDossierSideBar span:first-child,
+.createDossierSideBar span:last-child {
+  border-radius: 0;
+}
+
+/* -------------------------------------------------------
+   3. ZONE CONTENU (formulaire)
+   ------------------------------------------------------- */
+.formDossier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 22px 28px;
+  gap: var(--k-form-section-gap, 18px);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+/* -------------------------------------------------------
+   4. BOUTON "Creer le dossier" / "Mettre a jour"
+   ------------------------------------------------------- */
+.create_DossierMainForm .bottom {
+  border: 1px solid rgba(0, 168, 94, 0.3);
+  padding: 14px 24px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--k-form-cta-bg);
+  display: block;
+  width: 65%;
+  box-sizing: border-box;
+  border-radius: var(--k-form-radius-cta, 12px);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: var(--k-font-weight-semibold, 600);
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  margin: 0 auto 16px;
+  transition: all 200ms var(--k-form-ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  box-shadow: var(--k-form-cta-shadow);
+  animation: pulse-glow 3s ease-in-out infinite;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* Conteneur HoverToSpeak autour du bouton — centre le bouton inline-block */
+.create_DossierMainForm > div:has(> .bottom) {
+  text-align: center;
+  width: 100%;
+}
+
+.create_DossierMainForm .bottom:hover {
+  background: var(--k-form-cta-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--k-form-cta-shadow-hover);
+}
+
+.create_DossierMainForm .bottom:active {
+  transform: translateY(0);
+  transition-duration: 80ms;
+}
+
+.create_DossierMainForm .bottom:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  animation: none;
+}
+
+/* -------------------------------------------------------
+   5. MODALES (overlay contact)
+   ------------------------------------------------------- */
+.modal-overlay-for-create-contact {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3020;
+}
+
+.modal-content-for-create-contact {
+  background-color: white;
+  padding: 10px;
+  z-index: 3030;
+  border-radius: var(--k-radius-lg, 12px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 847px;
+  min-height: 450px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* -------------------------------------------------------
+   6. CONTEXTE MODALE D'EDITION
+   ------------------------------------------------------- */
+.edit-modal__content .create_DossierMainForm {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  position: static;
+  left: auto;
+  transform: none;
+}
+
+/* ==========================================================================
+   RESPONSIVE — DOSSIER FORM
+   ========================================================================== */
+
+@media (max-width: 767px) {
+  .create_DossierMainForm {
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .formDossier {
+    padding: 12px 14px;
+  }
+
+  .modal-content-for-create-contact {
+    width: 95%;
+    left: 0;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 6px;
+  }
+}
+
+@media (max-height: 700px) {
+  .create_DossierMainForm {
+    height: 98%;
+  }
+
+  .formDossier {
+    padding: 10px 18px;
+    gap: 10px;
+  }
+
+  .create_DossierMainForm .bottom {
+    padding: 11px 18px;
+    margin-bottom: 10px;
+  }
+}
+
+/* ==========================================================================
+   MODE MALVOYANT (HIGH-CONTRAST) — Formulaire Creation de Dossier
+   Palette : jaune vif (#FFE500) sur fond noir, avec degrade jaune/noir
+   ========================================================================== */
+
+/* Conteneur principal — degrade jaune/noir et bordure jaune */
+body.high-contrast-mode .create_DossierMainForm {
+  background: linear-gradient(170deg, #FFE500 0%, #8a7a00 18%, #000000 45%, #000000 100%) !important;
+  background-size: 200% 200% !important;
+  border: 2px solid #FFE500 !important;
+  box-shadow: 0 0 30px rgba(255, 229, 0, 0.35), 0 12px 28px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Desactive le shimmer (reflets trop subtils sur fond high-contrast) */
+body.high-contrast-mode .create_DossierMainForm::before {
+  display: none !important;
+}
+
+/* Header (conteneur) — porte désormais le fond / la border-bottom */
+body.high-contrast-mode .createDossier-header {
+  background: #000 !important;
+  border-bottom: 2px solid #FFE500 !important;
+  backdrop-filter: none !important;
+}
+
+/* Bouton "← Accueil" — pilule jaune sur noir, contour épais */
+body.high-contrast-mode .createDossier-header__back {
+  background: #000 !important;
+  color: #FFE500 !important;
+  border: 2px solid #FFE500 !important;
+}
+body.high-contrast-mode .createDossier-header__back:hover {
+  background: #FFE500 !important;
+  color: #000 !important;
+}
+
+/* Barre d'onglets — transparente (parent porte le fond) */
+body.high-contrast-mode .createDossierSideBar {
+  background: transparent !important;
+  border-bottom: 0 !important;
+  backdrop-filter: none !important;
+}
+
+body.high-contrast-mode .createDossierSideBar span {
+  color: #FFE500 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+  background: transparent !important;
+}
+
+body.high-contrast-mode .createDossierSideBar span:not(:last-child) {
+  border-right: 1px solid rgba(255, 229, 0, 0.35) !important;
+}
+
+body.high-contrast-mode .createDossierSideBar span:hover {
+  color: #000 !important;
+  background: #FFE500 !important;
+}
+
+body.high-contrast-mode .createDossierSideBar span.active {
+  color: #000 !important;
+  background: #FFE500 !important;
+  font-weight: 700 !important;
+  text-shadow: none !important;
+}
+
+body.high-contrast-mode .createDossierSideBar span.active::after {
+  background: #000 !important;
+  box-shadow: none !important;
+}
+
+body.high-contrast-mode .createDossierSideBar.is-hovering-child span {
+  color: #FFE500 !important;
+}
+body.high-contrast-mode .createDossierSideBar.is-hovering-child span.active {
+  color: #000 !important;
+  background: #FFE500 !important;
+}
+body.high-contrast-mode .createDossierSideBar.is-hovering-child span:hover {
+  color: #000 !important;
+  background: #FFE500 !important;
+}
+
+/* Zone de contenu — fond noir translucide pour laisser le degrade respirer */
+body.high-contrast-mode .formDossier {
+  background: rgba(0, 0, 0, 0.55) !important;
+  color: #FFE500 !important;
+}
+
+/* Bouton "Creer le dossier" — jaune vif sur noir */
+body.high-contrast-mode .create_DossierMainForm .bottom {
+  background: #FFE500 !important;
+  color: #000 !important;
+  border: 2px solid #000 !important;
+  text-shadow: none !important;
+  box-shadow: 0 0 18px rgba(255, 229, 0, 0.6) !important;
+  animation: none !important;
+  font-weight: 700 !important;
+}
+
+body.high-contrast-mode .create_DossierMainForm .bottom:hover {
+  background: #000 !important;
+  color: #FFE500 !important;
+  border-color: #FFE500 !important;
+  box-shadow: 0 0 24px rgba(255, 229, 0, 0.8) !important;
+}
+
+body.high-contrast-mode .create_DossierMainForm .bottom:disabled {
+  opacity: 0.55;
+}

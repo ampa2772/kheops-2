@@ -1,0 +1,458 @@
+/* client/src/components/cabinet/cabinet.css
+ * Module Cabinet : depenses, bilan, recurrences, rentabilite.
+ * Tous prefixes en .k-cab-*.
+ */
+
+.k-cab-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  font-family: inherit;
+  color: #1f2937;
+  box-sizing: border-box;
+}
+
+.k-cab-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.k-cab-section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  margin: 0 0 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.k-cab-section-subtitle {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin: -0.4rem 0 0.75rem 0;
+}
+
+/* ============================================================
+ * KPI cards (synthese bilan)
+ * ============================================================ */
+.k-cab-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.k-cab-kpi-card {
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.k-cab-kpi-card.recettes { background: linear-gradient(135deg, #047857 0%, #065f46 100%); }
+.k-cab-kpi-card.depenses { background: linear-gradient(135deg, #b45309 0%, #92400e 100%); }
+.k-cab-kpi-card.resultat-positif { background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); }
+.k-cab-kpi-card.resultat-negatif { background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%); }
+.k-cab-kpi-card.tva { background: linear-gradient(135deg, #6b21a8 0%, #581c87 100%); }
+.k-cab-kpi-card.neutre { background: linear-gradient(135deg, #475569 0%, #334155 100%); }
+
+.k-cab-kpi-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.85;
+}
+.k-cab-kpi-value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.k-cab-kpi-sub {
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+/* ============================================================
+ * Tabs
+ * ============================================================ */
+.k-cab-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.k-cab-tab {
+  /* FIX-S4-6 : sans width auto, button{width:100%} global combine avec
+     flex-wrap: wrap du parent .k-cab-tabs fait que chaque onglet prend
+     toute la largeur et wrap → 5 tabs empilees sur 5 lignes a 1920. */
+  width: auto;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  font-size: 0.85rem;
+  color: #4b5563;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+}
+.k-cab-tab.active {
+  background: #fff;
+  color: #1e3a8a;
+  border-color: #e5e7eb;
+  font-weight: 600;
+}
+.k-cab-tab:hover:not(.active) { background: #f3f4f6; }
+
+/* ============================================================
+ * Tableaux
+ * ============================================================ */
+.k-cab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+/* FIX-S4-7 : sous 900px, les tables denses (Depenses 9 col, Recurrences,
+   Rentabilite) debordent de leur section et poussent .k-cab-root en
+   scroll-x global (~400px a 600). On cantonne le scroll-x dans la
+   section qui contient la table grace a :has() (CSS moderne, supporte
+   par Chromium → OK Electron). */
+@media (max-width: 900px) {
+  .k-cab-section:has(> .k-cab-table),
+  .k-cab-section:has(.k-cab-table) {
+    overflow-x: auto;
+  }
+}
+.k-cab-table thead th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-weight: 600;
+}
+.k-cab-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.1s ease;
+}
+.k-cab-table tbody tr:hover { background: #f9fafb; }
+.k-cab-table td {
+  padding: 0.6rem 0.5rem;
+  vertical-align: middle;
+}
+.k-cab-table .col-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.k-cab-empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem 1rem;
+  font-style: italic;
+}
+
+/* ============================================================
+ * Pastilles
+ * ============================================================ */
+.k-cab-pastille {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+.k-cab-pastille.actif { background: #d1fae5; color: #065f46; border-color: #34d399; }
+.k-cab-pastille.inactif { background: #f3f4f6; color: #6b7280; border-color: #d1d5db; }
+.k-cab-pastille.auto { background: #dbeafe; color: #1e40af; border-color: #60a5fa; }
+.k-cab-pastille.manuel { background: #fef3c7; color: #92400e; border-color: #f59e0b; }
+
+/* ============================================================
+ * Toolbar
+ * ============================================================ */
+.k-cab-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.k-cab-toolbar .filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.k-cab-toolbar select,
+.k-cab-toolbar input {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #fff;
+}
+
+/* ============================================================
+ * Boutons
+ * ============================================================ */
+.k-cab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.k-cab-btn-primary { background: #1e40af; color: #fff; border-color: #1e40af; }
+.k-cab-btn-primary:hover { background: #1e3a8a; border-color: #1e3a8a; }
+.k-cab-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+.k-cab-btn-secondary { background: #fff; color: #1e40af; border-color: #c7d2fe; }
+.k-cab-btn-secondary:hover { background: #eef2ff; }
+.k-cab-btn-ghost { background: transparent; color: #4b5563; border-color: transparent; }
+.k-cab-btn-ghost:hover { background: #f3f4f6; }
+.k-cab-btn-danger { background: #fff; color: #b91c1c; border-color: #fecaca; }
+.k-cab-btn-danger:hover { background: #fee2e2; }
+.k-cab-btn-success { background: #047857; color: #fff; border-color: #047857; }
+.k-cab-btn-success:hover { background: #065f46; border-color: #065f46; }
+
+/* ============================================================
+ * Modale
+ * ============================================================ */
+.k-cab-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 9000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 3rem 1rem 1rem;
+  overflow: auto;
+}
+.k-cab-modal {
+  background: #fff;
+  border-radius: 14px;
+  width: min(720px, 100%);
+  max-height: calc(100vh - 4rem);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+}
+.k-cab-modal-header {
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #1e3a8a, #1e40af);
+  color: #fff;
+}
+.k-cab-modal-title { font-size: 1rem; font-weight: 600; margin: 0; }
+.k-cab-modal-close {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.k-cab-modal-close:hover { background: rgba(255, 255, 255, 0.3); }
+.k-cab-modal-body {
+  padding: 1rem 1.25rem;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.k-cab-modal-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  background: #f9fafb;
+}
+
+/* ============================================================
+ * Form fields
+ * ============================================================ */
+.k-cab-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+}
+.k-cab-form-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.k-cab-form-grid.full { grid-template-columns: 1fr; }
+.k-cab-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.k-cab-field label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #374151;
+}
+.k-cab-field input,
+.k-cab-field select,
+.k-cab-field textarea {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  font-family: inherit;
+  color: inherit;
+}
+.k-cab-field input:focus,
+.k-cab-field select:focus,
+.k-cab-field textarea:focus {
+  outline: none;
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.15);
+}
+.k-cab-field textarea { min-height: 60px; resize: vertical; }
+.k-cab-field .help { font-size: 0.7rem; color: #6b7280; }
+
+.k-cab-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 0.85rem;
+}
+
+/* ============================================================
+ * Bar chart simple (repartition par categorie / mois)
+ * ============================================================ */
+.k-cab-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.k-cab-bar-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+.k-cab-bar-label {
+  font-size: 0.85rem;
+  color: #1f2937;
+}
+.k-cab-bar-value {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #1e40af;
+}
+.k-cab-bar-track {
+  grid-column: 1 / -1;
+  height: 8px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+.k-cab-bar-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #1e40af, #2563eb);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.k-cab-bar-fill.recettes { background: linear-gradient(135deg, #047857, #059669); }
+.k-cab-bar-fill.depenses { background: linear-gradient(135deg, #b45309, #d97706); }
+
+/* ============================================================
+ * Mois (timeline mensuelle)
+ * ============================================================ */
+.k-cab-month-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+.k-cab-month-cell {
+  text-align: center;
+  font-size: 0.72rem;
+  padding: 0.4rem 0.25rem;
+  border-radius: 6px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.k-cab-month-cell .nom { font-weight: 600; color: #4b5563; text-transform: uppercase; }
+.k-cab-month-cell .recettes { color: #047857; font-variant-numeric: tabular-nums; }
+.k-cab-month-cell .depenses { color: #b45309; font-variant-numeric: tabular-nums; }
+.k-cab-month-cell .resultat { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+ * Item card (recurrence / depense en mode liste-card)
+ * ============================================================ */
+.k-cab-item-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+.k-cab-item-card:hover { background: #fafbff; border-color: #c7d2fe; }
+.k-cab-item-card .icon-cell {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #eef2ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+}
+.k-cab-item-card .meta { display: flex; flex-direction: column; gap: 0.15rem; }
+.k-cab-item-card .meta-line { display: flex; gap: 0.4rem; font-size: 0.78rem; color: #4b5563; align-items: center; }
+.k-cab-item-card .montant {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #b45309;
+}

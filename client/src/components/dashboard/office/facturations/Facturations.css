@@ -1,0 +1,1025 @@
+/* ============================================================
+   Facturations — Tableau de bord financier
+   Layout : topbar / 3 colonnes / récap / bar chart 12 mois
+   Préfixe .fac-* pour toutes les nouvelles règles.
+   ============================================================ */
+
+.facturations-container.fac-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  padding: 14px 18px 14px;
+  gap: 14px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  color: #e8eef3;
+}
+
+.facturations-container.fac-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.facturations-loading {
+  text-align: center;
+  color: #e8eaed;
+  padding: 32px;
+  font-style: italic;
+}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.fac-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.fac-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.fac-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+}
+.fac-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.fac-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* FIX-S4-8 : le bouton "Exporter" est wrappe dans HoverToSpeak (div
+   inline-block; width: 100%) directement dans .fac-actions (flex-wrap:
+   wrap) → il prend 100% et wrap sur sa propre ligne (579px au lieu de
+   96 intrinsequement). On neutralise sur les wrappers HoverToSpeak
+   enfants directs uniquement. */
+.fac-actions > div[style*="inline-block"] {
+  width: auto !important;
+  flex: 0 0 auto;
+}
+
+/* --- Search --- */
+.fac-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  width: 240px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  transition: background-color 0.18s, border-color 0.18s;
+}
+.fac-search:focus-within {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(128, 198, 218, 0.4);
+}
+.fac-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+  display: flex;
+  line-height: 0;
+}
+.fac-search input {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  padding: 0 32px 0 32px;
+  font-family: inherit;
+}
+.fac-search input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+.fac-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 0;
+}
+.fac-search-clear:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+/* --- Buttons --- */
+.fac-btn-secondary,
+.fac-btn-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.18s, color 0.18s, border-color 0.18s, transform 0.1s;
+}
+.fac-btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+.fac-btn-secondary:hover,
+.fac-btn-secondary.is-active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+.fac-btn-primary {
+  background: linear-gradient(135deg, #0a8abf 0%, #0977a5 100%);
+  border: none;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(9, 119, 165, 0.32);
+}
+.fac-btn-primary:hover,
+.fac-btn-primary.is-active {
+  background: linear-gradient(135deg, #0977a5 0%, #08658c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(9, 119, 165, 0.42);
+}
+.fac-btn-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  background: rgba(0, 200, 83, 0.85);
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+/* --- Popovers (Filtre / Picker dossier) --- */
+.fac-popover-wrap {
+  position: relative;
+}
+.fac-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 240px;
+  background: #0a253a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 11px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 50;
+}
+.fac-popover-wide { min-width: 320px; }
+
+.fac-popover-title {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 4px 6px 6px;
+}
+.fac-popover-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: #e8eef3;
+}
+.fac-popover-check:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.fac-popover-check input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  flex-shrink: 0;
+}
+.fac-popover-check input[type="checkbox"]:checked {
+  background: #0a8abf;
+  border-color: #0a8abf;
+}
+.fac-popover-check input[type="checkbox"]:checked::after {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 7px;
+  border-right: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.fac-popover-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.fac-popover-reset {
+  margin-top: 4px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+  height: 30px;
+  border-radius: 7px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fac-popover-reset:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.fac-popover-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.fac-popover-search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-family: inherit;
+}
+.fac-popover-search input::placeholder { color: rgba(255, 255, 255, 0.4); }
+
+.fac-popover-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 4px -2px;
+}
+.fac-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  color: #e8eef3;
+  font-size: 0.8125rem;
+  text-align: left;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.fac-popover-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.fac-popover-item span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fac-popover-empty {
+  padding: 8px 10px;
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+.fac-popover-hint {
+  margin: 4px 6px 0;
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+/* ============================================================
+   3 COLONNES
+   ============================================================ */
+.fac-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 240px;
+}
+
+/* Sur tablette et mobile, empiler les 3 colonnes verticalement
+   pour eviter que titres et cards soient compresses au point d'etre
+   illisibles. Chaque colonne devient pleine largeur. */
+@media (max-width: 900px) {
+  .fac-columns {
+    grid-template-columns: 1fr;
+  }
+  /* Limiter la hauteur de chaque colonne pour qu'on les voie toutes */
+  .fac-col {
+    max-height: 360px;
+  }
+}
+
+.fac-col {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* En-tête de colonne (gradient coloré + icône + titre + count) */
+.fac-col-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  flex-shrink: 0;
+}
+.fac-col-icon {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+.fac-col-titles {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.1;
+}
+.fac-col-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+.fac-col-sub {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 3px;
+}
+.fac-col-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #043a4f;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.fac-col-green .fac-col-header {
+  background: linear-gradient(90deg, #00a86b 0%, #00855a 100%);
+}
+.fac-col-orange .fac-col-header {
+  background: linear-gradient(90deg, #d97706 0%, #b45309 100%);
+}
+.fac-col-red .fac-col-header {
+  background: linear-gradient(90deg, #c0392b 0%, #962d22 100%);
+}
+
+/* Liste scrollable de cartes */
+.fac-col-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fac-col-list::-webkit-scrollbar { width: 6px; }
+.fac-col-list::-webkit-scrollbar-track { background: transparent; }
+.fac-col-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+.fac-col-list::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+.fac-col-empty {
+  padding: 18px 8px;
+  margin: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-style: italic;
+}
+
+/* --- Carte dossier --- */
+.fac-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-left: 3px solid currentColor;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s, border-color 0.15s;
+  user-select: none;
+  outline: none;
+  color: #00a86b;
+}
+.fac-card[data-status="orange"] { color: #d97706; }
+.fac-card[data-status="red"] { color: #c0392b; }
+.fac-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(1px);
+}
+.fac-card:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+.fac-card-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+.fac-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fac-card-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #ffffff;
+  min-width: 0;
+}
+.fac-card-pour,
+.fac-card-contre {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.fac-card-sep {
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.fac-card-pill {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 1px 7px;
+  background: rgba(0, 0, 0, 0.32);
+  color: rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  letter-spacing: 0.03em;
+}
+.fac-card-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: currentColor;
+}
+.fac-card-amount-num {
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+.fac-card-amount-cur {
+  font-size: 0.6875rem;
+  vertical-align: super;
+  margin-left: 1px;
+  opacity: 0.85;
+}
+.fac-card-amount-empty {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 500;
+}
+
+/* ============================================================
+   PANNEAU RÉCAP
+   ============================================================ */
+.fac-summary {
+  flex-shrink: 0;
+  padding: 14px 16px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fac-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.fac-summary-title-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.fac-summary-glyph {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(10, 138, 191, 0.25), rgba(128, 198, 218, 0.12));
+  border: 1px solid rgba(128, 198, 218, 0.3);
+  color: #80c6da;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.fac-summary-eyebrow {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  margin-bottom: 1px;
+}
+.fac-summary-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.1;
+}
+
+/* --- Sélecteur période --- */
+.fac-period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+}
+/* Neutralise le width:100% inline appliqué par HoverToSpeak afin que les
+   boutons restent alignés horizontalement sur une rangée. */
+.fac-period > div {
+  width: auto !important;
+}
+@media (max-width: 960px) {
+  .fac-period {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .fac-period > div {
+    width: 100% !important;
+  }
+  .fac-period-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+.fac-period-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.fac-period-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+.fac-period-btn.is-active {
+  background: rgba(10, 138, 191, 0.65);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(10, 138, 191, 0.35);
+}
+.fac-period-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.fac-period-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
+}
+.fac-period-range-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.fac-period-range-field input[type="date"] {
+  height: 28px;
+  padding: 0 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-family: inherit;
+  outline: none;
+  color-scheme: dark;
+}
+.fac-period-range-field input[type="date"]:focus {
+  border-color: rgba(128, 198, 218, 0.5);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+/* --- Stats grid --- */
+.fac-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 1100px) {
+  .fac-stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 540px) {
+  .fac-stats { grid-template-columns: 1fr; }
+}
+
+.fac-stat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.fac-stat-encaisse { color: #00c853; }
+.fac-stat-restant  { color: #f87171; }
+.fac-stat-facture  { color: #80c6da; }
+.fac-stat-taux     { color: #fbbf24; }
+
+.fac-stat-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fac-stat-glyph {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  color: currentColor;
+  flex-shrink: 0;
+}
+.fac-stat-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fac-stat-value {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  color: #ffffff;
+  line-height: 1.1;
+}
+.fac-stat-encaisse .fac-stat-value { color: #4ade80; }
+.fac-stat-restant  .fac-stat-value { color: #f87171; }
+.fac-stat-num {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fac-stat-cur {
+  font-size: 0.75rem;
+  vertical-align: super;
+  opacity: 0.8;
+  font-weight: 700;
+}
+.fac-stat-sub {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fac-stat-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  margin-top: 4px;
+  overflow: hidden;
+}
+.fac-stat-bar > span {
+  display: block;
+  height: 100%;
+  background: currentColor;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Sparkline */
+.fac-spark {
+  display: block;
+  width: 100%;
+  height: 28px;
+  margin-top: 4px;
+  color: currentColor;
+  pointer-events: none;
+}
+
+/* ============================================================
+   BAR CHART 12 MOIS
+   ============================================================ */
+.fac-monthly {
+  flex-shrink: 0;
+  padding: 12px 16px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fac-monthly-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fac-monthly-eyebrow {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+}
+.fac-monthly-legend {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.fac-monthly-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+}
+.fac-monthly-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.fac-monthly-legend-fact .fac-monthly-legend-dot { background: #80c6da; }
+.fac-monthly-legend-enc  .fac-monthly-legend-dot { background: #4ade80; }
+
+.fac-monthly-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 2px;
+  height: 90px;
+}
+.fac-monthly-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  height: 100%;
+  padding: 4px 2px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.fac-monthly-col:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.fac-monthly-col:focus-visible {
+  outline: none;
+  border-color: rgba(128, 198, 218, 0.5);
+}
+.fac-monthly-col.is-active {
+  background: rgba(10, 138, 191, 0.18);
+  border-color: rgba(128, 198, 218, 0.55);
+  box-shadow: 0 1px 6px rgba(10, 138, 191, 0.25);
+}
+.fac-monthly-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+.fac-monthly-bar {
+  width: 8px;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.fac-monthly-bar-fact { background: linear-gradient(to top, #80c6da, #5fa9c0); }
+.fac-monthly-bar-enc  { background: linear-gradient(to top, #4ade80, #22c55e); }
+.fac-monthly-col:hover .fac-monthly-bar {
+  opacity: 0.85;
+  transform: scaleY(1.04);
+  transform-origin: bottom;
+}
+.fac-monthly-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.fac-monthly-label-month {
+  font-size: 0.6875rem;
+}
+.fac-monthly-label-year {
+  font-size: 0.5625rem;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.35);
+}
+.fac-monthly-col.is-active .fac-monthly-label {
+  color: #ffffff;
+}
+.fac-monthly-col.is-active .fac-monthly-label-year {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Responsive : sur petits écrans, scroll horizontal pour le chart */
+@media (max-width: 640px) {
+  .fac-monthly-grid {
+    overflow-x: auto;
+    grid-template-columns: repeat(12, 56px);
+  }
+}
+
+/* ============================================================
+   High contrast mode
+   ============================================================ */
+body.high-contrast-mode .facturations-container.fac-page {
+  background: #000000;
+  color: #ffff00;
+}
+body.high-contrast-mode .fac-summary,
+body.high-contrast-mode .fac-monthly,
+body.high-contrast-mode .fac-col,
+body.high-contrast-mode .fac-stat,
+body.high-contrast-mode .fac-search,
+body.high-contrast-mode .fac-period,
+body.high-contrast-mode .fac-popover {
+  background: #000000;
+  border-color: #ffff00;
+}
+body.high-contrast-mode .fac-title,
+body.high-contrast-mode .fac-summary-title,
+body.high-contrast-mode .fac-stat-num,
+body.high-contrast-mode .fac-card-name,
+body.high-contrast-mode .fac-col-title {
+  color: #ffff00;
+}
+body.high-contrast-mode .fac-btn-primary {
+  background: #ffff00;
+  color: #000000;
+}
+body.high-contrast-mode .fac-btn-secondary {
+  background: #000000;
+  color: #ffff00;
+  border-color: #ffff00;
+}
+body.high-contrast-mode .fac-period-btn.is-active {
+  background: #ffff00;
+  color: #000000;
+}
+body.high-contrast-mode .fac-card {
+  background: #000000;
+  border-color: #ffff00;
+}

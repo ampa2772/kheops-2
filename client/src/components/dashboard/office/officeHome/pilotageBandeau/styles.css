@@ -1,0 +1,165 @@
+/* ==========================================================
+   PilotageBandeau — bandeau "Mode pilotage" en tête du Bureau
+   4 cartes stats cliquables sur fond glassmorphism
+   ========================================================== */
+
+.k-pilotage-bandeau {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: var(--k2-radius-md, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px;
+}
+
+.k-pilotage-bandeau__header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.k-pilotage-bandeau__title {
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-sm, 13px);
+  font-weight: var(--k2-font-weight-semibold, 600);
+  color: var(--k2-text-on-gradient, rgba(255, 255, 255, 0.92));
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.k-pilotage-bandeau__subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+.k-pilotage-bandeau__cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.k-pilotage-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--k2-radius-sm, 6px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid var(--k-pilotage-accent, rgba(255, 255, 255, 0.3));
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.k-pilotage-card:hover {
+  background: rgba(255, 255, 255, 0.10);
+  transform: translateY(-1px);
+}
+
+.k-pilotage-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(102, 199, 255, 0.5);
+}
+
+.k-pilotage-card__icon {
+  grid-row: 1 / span 2;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.k-pilotage-card__value {
+  font-size: 26px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.96);
+  line-height: 1.1;
+}
+
+.k-pilotage-card__label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Tons par carte ─── */
+.k-pilotage-card--blue { --k-pilotage-accent: #66c7ff; }
+.k-pilotage-card--red { --k-pilotage-accent: #ff6b6b; }
+.k-pilotage-card--orange { --k-pilotage-accent: #ffa94d; }
+.k-pilotage-card--purple { --k-pilotage-accent: #b197fc; }
+
+/* ─── État : indicateur à 0 (rien à signaler) ─── */
+.k-pilotage-card--zero {
+  opacity: 0.55;
+}
+
+.k-pilotage-card--zero .k-pilotage-card__value {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ─── État : indicateur > 0 (action attendue) ─── */
+.k-pilotage-card--active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.k-pilotage-card--active.k-pilotage-card--red {
+  background: rgba(255, 107, 107, 0.10);
+  border-color: rgba(255, 107, 107, 0.25);
+}
+
+.k-pilotage-card--active.k-pilotage-card--orange {
+  background: rgba(255, 169, 77, 0.10);
+  border-color: rgba(255, 169, 77, 0.25);
+}
+
+.k-pilotage-card--active.k-pilotage-card--purple {
+  background: rgba(177, 151, 252, 0.10);
+  border-color: rgba(177, 151, 252, 0.25);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1100px) {
+  .k-pilotage-bandeau__cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .k-pilotage-bandeau__cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═══════════════════════════════════════
+   HIGH-CONTRAST MODE
+   ═══════════════════════════════════════ */
+
+body.high-contrast-mode .k-pilotage-bandeau {
+  background-color: #000;
+  border-color: yellow;
+  backdrop-filter: none;
+}
+
+body.high-contrast-mode .k-pilotage-card {
+  background-color: #000;
+  border-color: yellow;
+  border-left-color: yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .k-pilotage-card__value,
+body.high-contrast-mode .k-pilotage-card__label,
+body.high-contrast-mode .k-pilotage-bandeau__title,
+body.high-contrast-mode .k-pilotage-bandeau__subtitle {
+  color: yellow;
+}

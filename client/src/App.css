@@ -1,0 +1,399 @@
+/* Reset CSS */
+*,
+*::before,
+*::after {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	font-family: inherit;
+	font-size: 100%;
+	line-height: 1;
+	border: 0;
+	vertical-align: baseline;
+}
+
+/* === Filet de sécurité SVG/Images ===
+   Empêche toute image importée (SVG, PNG…) de dépasser son conteneur.
+   Exclut les images ayant déjà une classe CSS (qui gèrent leur propre taille). */
+img[src$=".svg"]:not([class]),
+img[src*="/static/media/"]:not([class]) {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+/* Images sans classe ET sans style inline : contraindre à 24px max
+   (empêche les icônes oubliées de devenir géantes) */
+img:not([class]):not([style]) {
+	max-width: 32px;
+	max-height: 32px;
+	object-fit: contain;
+}
+
+/* Boutons contenant une icône sans className : contraindre l'image */
+button img:not([class]) {
+	max-width: 24px;
+	max-height: 24px;
+	object-fit: contain;
+}
+
+/* Liste non ordonnée */
+ul {
+	list-style: none;
+}
+
+/* Cotes pour les éléments de citation */
+blockquote,
+q {
+	quotes: none;
+}
+
+blockquote::before,
+blockquote::after,
+q::before,
+q::after {
+	content: '';
+	content: none;
+}
+
+/* Table */
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+html,
+body,
+#root {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	font-family: var(--k2-font-family, var(--k-font-family-base));
+	font-size: var(--k2-font-size-base, var(--k-font-size-base));
+	line-height: var(--k2-line-height-base, var(--k-line-height-base));
+}
+
+:root {
+  /* === THÈME PAR DÉFAUT (aligné sur le Design System _variables.css) === */
+  --color-main-bg: var(--k-primary-800, #043a4f);
+  --color-header-footer: var(--k-primary-900, #032b3b);
+  --side-bar-color: var(--k-sidebar-bg, var(--k-primary-800, #043a4f));
+  --color-link: var(--k-primary, #0977a5);
+  --text-color-light: var(--k-text-light, #e8eaed);
+  --text-color-dark: var(--k-dossier-navy, navy);
+  --border-color-default: var(--k-border-medium, #ccc);
+  --icon-filter: none;
+  --highlight-color: var(--k-dossier-highlight, springgreen);
+}
+
+.main_container {
+	background-color: var(--color-header-footer);
+	height: 100%;
+	overflow: hidden;
+}
+
+/* --- NOUVEAUX STYLES POUR LE MODE MALVOYANT --- */
+body.high-contrast-mode {
+  /* === THÈME À FORT CONTRASTE === */
+  --color-main-bg: black;
+  --color-header-footer: black;
+  --side-bar-color: black;
+  --color-link: yellow;
+  --text-color-light: yellow;
+  --text-color-dark: yellow;
+  --border-color-default: yellow;
+  --highlight-color: #33ff33; /* Vert vif */
+  --icon-filter: brightness(0) saturate(100%) invert(93%) sepia(94%) saturate(545%) hue-rotate(352deg) brightness(105%) contrast(102%); /* Filtre CSS pour rendre les SVG noirs en JAUNE VIF */
+
+  /* Surcharge des couleurs de base */
+  background-color: black !important;
+  color: white !important;
+}
+
+/* Surcharge des composants spécifiques */
+body.high-contrast-mode .dashboard-header {
+  border-bottom: 2px solid var(--highlight-color);
+}
+
+/* === NOUVEAU : Bordure pour le footer === */
+body.high-contrast-mode .dashboard-footer {
+  border-top: 2px solid var(--highlight-color);
+}
+
+
+body.high-contrast-mode .dashboard-main {
+    background-color: var(--color-main-bg);
+}
+
+body.high-contrast-mode .dashboard-sidebar,
+body.high-contrast-mode .dashboard-sidebar-close {
+  background-color: var(--k-sidebar-bg, var(--side-bar-color));
+  border-right: 2px solid var(--highlight-color);
+}
+
+body.high-contrast-mode a {
+  color: var(--color-link);
+  text-decoration: underline;
+}
+
+body.high-contrast-mode button,
+body.high-contrast-mode input,
+body.high-contrast-mode .toggle-switch-slider {
+  /* border: 1px solid var(--border-color-default) !important; */
+  background-color: black !important;
+  color: yellow !important;
+}
+
+body.high-contrast-mode input::placeholder {
+    color: #ffff00aa !important;
+}
+
+body.high-contrast-mode .toggle-switch input:checked + .toggle-switch-slider {
+    background-color: var(--highlight-color) !important;
+}
+
+/* Assure que les icônes sont visibles (jaunes sur fond noir) */
+body.high-contrast-mode .boutonSideBar,
+body.high-contrast-mode .current-user-change-icon,
+body.high-contrast-mode .currents-users-change-icon,
+body.high-contrast-mode .create-icon,
+body.high-contrast-mode .notifications-logo {
+    filter: var(--icon-filter);
+}
+
+body.high-contrast-mode .main-user-icon {
+  background-color: yellow;
+  color: black;
+  border: 1px solid black;
+}
+
+body.high-contrast-mode .title,
+body.high-contrast-mode .main-user-infos,
+body.high-contrast-mode .current-user-affiche {
+  color: var(--text-color-light);
+  text-shadow: 1px 1px 2px black;
+}
+
+body.high-contrast-mode .logo-wrapper {
+  border: 2px solid yellow;
+}
+
+body.high-contrast-mode .parametres-container h2 {
+    color: yellow;
+}
+
+body.high-contrast-mode .setting-item {
+    background-color: #1a1a1a;
+    border: 1px solid yellow;
+}
+
+body.high-contrast-mode .setting-item .setting-label {
+    color: white;
+}
+
+/* Surcharge pour la page d'accueil (OfficeHome) */
+body.high-contrast-mode .dossierItemContainer,
+body.high-contrast-mode .agenda-item,
+body.high-contrast-mode .todo-item {
+  background-color: black;
+  color: yellow;
+  border: 1px solid yellow;
+}
+
+body.high-contrast-mode .DossierListe,
+body.high-contrast-mode .AgnendaListe,
+body.high-contrast-mode .Todoliste {
+  border-color: yellow;
+}
+
+body.high-contrast-mode .agenda-item-dossier-link,
+body.high-contrast-mode .todo-item-dossier-link {
+  color: lightgreen;
+}
+
+body.high-contrast-mode .dossierNameTitle {
+    background-color: black;
+    color: yellow;
+    border-bottom: 2px solid yellow;
+}
+
+/* === MODIFICATION: Surcharge pour les onglets de la vue Dossier === */
+/* Style de base pour les onglets en mode contraste élevé. */
+body.high-contrast-mode .DocsDossier,
+body.high-contrast-mode .AgendaDossier,
+body.high-contrast-mode .TodoListeDossier,
+body.high-contrast-mode .FacturationDossier { /* Ajout du nouvel onglet */
+  background-color: black;
+  color: yellow;
+  border-top: 1px solid yellow;
+  border-bottom: 2px solid yellow;
+  border-left: none; /* Simplification: on ne gère que la bordure droite */
+  border-right: none;
+}
+
+/* Ajout d'une bordure droite à chaque onglet sauf le dernier */
+body.high-contrast-mode .DocsDossier,
+body.high-contrast-mode .AgendaDossier,
+body.high-contrast-mode .TodoListeDossier {
+  border-right: 1px solid yellow;
+}
+
+/* Style pour l'onglet ACTIF, qui est prioritaire */
+body.high-contrast-mode .options .active {
+  background-color: yellow; /* Fond jaune vif */
+  color: black; /* Texte noir pour contraste maximal */
+  font-weight: bold;
+  /* La bordure inférieure ne doit pas disparaître et reste jaune */
+  border-bottom-color: yellow;
+}
+
+/* Style au survol d'un onglet INACTIF (non actif) */
+body.high-contrast-mode .options div:not(.active):hover {
+  background-color: #333300; /* Jaune très foncé/olive pour le survol */
+  color: white;
+}
+
+/* === CORRECTION: Surcharge pour la barre de recherche des documents === */
+body.high-contrast-mode .SearchTemplates {
+  border-bottom: 2px solid var(--border-color-default); /* Bordure jaune en bas */
+}
+
+/* Styles .selectedInSideBar deplacees dans sidebar/styles.css (Phase 1 Redesign) */
+
+/* Visibilité pour les icônes spécifiques de la modale "Lier un contact" */
+body.high-contrast-mode .deletePartie img,
+body.high-contrast-mode .modifPartie img,
+body.high-contrast-mode .ajoutContactLie img {
+    filter: invert(1);
+}
+
+/* === MODIFICATION : RÈGLE POUR LES DOCUMENTS STOCKÉS === */
+/* Le `!important` a été retiré de `background-color` pour permettre la coloration dynamique */
+body.high-contrast-mode .docListItem {
+  background-color: #000033; /* Couleur de fond par défaut, peut être surchargée par le style inline */
+  color: yellow !important;
+  border: 1px solid yellow !important;
+  border-radius: 3px;
+  margin-bottom: 2px;
+}
+/* Change la couleur de fond au survol pour un meilleur retour visuel */
+body.high-contrast-mode .docListItem:hover {
+  background-color: #000055 !important; /* Un bleu légèrement plus clair, également forcé */
+}
+
+body.high-contrast-mode .threeDotsIcon {
+  background: transparent !important;
+  color: yellow !important;
+}
+
+body.high-contrast-mode .threeDotsIcon.activeDot {
+  background: yellow !important;
+  color: black !important;
+}
+
+/* === RÈGLES CORRIGÉES ET RENFORCÉES POUR LA MODALE AGENDA EN MODE CONTRASTE ÉLEVÉ === */
+
+/* Assure que les icônes SVG (modifier, supprimer) sont blanches */
+body.high-contrast-mode .event-detail-modal-overlay-kheops .supprEvent img,
+body.high-contrast-mode .event-detail-modal-overlay-kheops .modifEvent img {
+    filter: brightness(0) invert(1) !important; /* Force la couleur blanche */
+    opacity: 1 !important; 
+}
+
+/* Assure que la croix de fermeture et son conteneur sont blancs */
+body.high-contrast-mode .event-detail-modal-overlay-kheops .event-detail-close-main-btn-kheops {
+    color: white !important;
+}
+
+/* Cible le span interne pour une robustesse maximale */
+body.high-contrast-mode .event-detail-modal-overlay-kheops .event-detail-close-main-btn-kheops .icon-event-detail {
+    color: white !important; 
+}
+
+/* -- NOUVELLES RÈGLES POUR LE CONTENU DE L'ONGLET FACTURATION -- */
+body.high-contrast-mode .facturation-dossier-container {
+  color: yellow;
+}
+
+body.high-contrast-mode .facturation-dossier-container h2 {
+  color: yellow;
+}
+
+/* === AJOUT : Styles pour les SOUS-ONGLETS de facturation en mode contraste élevé === */
+body.high-contrast-mode .facturation-sub-tabs {
+  background-color: black;
+}
+
+body.high-contrast-mode .facturation-sub-tabs .sub-tab {
+  background-color: black;
+  color: yellow;
+  border-bottom: 2px solid yellow;
+  border-right: 1px solid yellow;
+}
+
+body.high-contrast-mode .facturation-sub-tabs .sub-tab:last-child {
+  border-right: none;
+}
+
+body.high-contrast-mode .facturation-sub-tabs .sub-tab:not(.active):hover {
+  background-color: #333300;
+  color: white;
+}
+
+body.high-contrast-mode .facturation-sub-tabs .sub-tab.active {
+  background-color: yellow;
+  color: black;
+  font-weight: bold;
+}
+
+body.high-contrast-mode .facturation-sub-tab-content {
+  background-color: black;
+  border: 1px solid yellow;
+  border-top: none; /* La bordure est déjà gérée par les onglets */
+}
+
+/* Styles pour le composant Bilan Facturation */
+body.high-contrast-mode .bilan-facturation-container h3 {
+    color: yellow;
+}
+
+body.high-contrast-mode .bilan-item.header {
+    background-color: #333;
+    color: yellow;
+    border-color: yellow;
+}
+
+body.high-contrast-mode .bilan-item {
+    background-color: black;
+    color: yellow;
+    border-color: yellow;
+}
+
+body.high-contrast-mode .bilan-item.document {
+    border-left-color: var(--highlight-color);
+}
+
+body.high-contrast-mode .bilan-item.événement {
+    border-left-color: #ff9800; /* Orange pour se différencier */
+}
+
+/* === NOUVEAU : Styles pour les sous-dossiers en mode contraste élevé === */
+/* Le `!important` a été retiré de `background-color` pour permettre la coloration dynamique */
+body.high-contrast-mode .docListItem.is-subfolder {
+    background-color: transparent;
+    border: 1px solid yellow !important;
+    border-left: 5px solid yellow !important;
+}
+
+body.high-contrast-mode .docListItem.is-subfolder:hover {
+  background-color: rgba(255, 255, 0, 0.1) !important; /* Léger surlignage jaune au survol */
+  border-left: 5px solid navy !important;
+}
+
+body.high-contrast-mode .docListItem.is-subfolder .subfolder-icon {
+  filter: var(--icon-filter); /* Applique le filtre jaune */
+}
+
+body.high-contrast-mode .docListItem.is-subfolder .subfolder-item-count {
+  color: yellow !important; /* S'assurer que le compteur est jaune */
+}

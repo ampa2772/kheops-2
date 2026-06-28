@@ -1,0 +1,412 @@
+/* =========================================================
+   Office User Item — design 2026 « Dark Card »
+   Card user avec avatar, nom, badge rôle, check/chevron.
+   ========================================================= */
+
+.cu-user-card,
+.user-display-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 11px 12px 11px 11px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.cu-user-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px -3px rgba(0, 0, 0, 0.4);
+}
+
+.cu-user-card.is-actions-open {
+  cursor: default;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+li:last-of-type .cu-user-card { margin-bottom: 0; }
+
+/* ---------- Utilisateur principal ---------- */
+.main-office-user-item {
+  background: rgba(99, 102, 241, 0.06);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.main-office-user-item:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.32);
+}
+
+/* ---------- Card sélectionnée — bordure verte glow ---------- */
+.cu-user-card.is-selected,
+.cu-user-card.selected-office-user-item,
+.user-display-name.is-selected,
+.user-display-name.selected-office-user-item {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(16, 185, 129, 0.06) 100%);
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(16, 185, 129, 0.32),
+    0 6px 18px -3px rgba(16, 185, 129, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  cursor: default;
+}
+
+.cu-user-card.is-selected:hover,
+.cu-user-card.selected-office-user-item:hover {
+  transform: none;
+  box-shadow:
+    0 0 0 1px rgba(16, 185, 129, 0.4),
+    0 8px 22px -3px rgba(16, 185, 129, 0.4);
+}
+
+/* ---------- Avatar (initiales) ---------- */
+.cu-user-card__avatar,
+.user-initials {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  background:
+    radial-gradient(ellipse at 30% 25%, rgba(255, 255, 255, 0.4) 0%, transparent 60%),
+    linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  box-shadow:
+    0 2px 4px rgba(99, 102, 241, 0.4),
+    0 6px 14px -2px rgba(99, 102, 241, 0.4),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1.5px 0 rgba(0, 0, 0, 0.15);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  margin: 0;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+
+.cu-user-card:hover .cu-user-card__avatar { transform: scale(1.05); }
+
+/* Avatar du main user — dégradé légèrement différent (rose/violet pop) */
+.main-office-user-item .cu-user-card__avatar,
+.main-office-user-item .user-initials {
+  background:
+    radial-gradient(ellipse at 30% 25%, rgba(255, 255, 255, 0.4) 0%, transparent 60%),
+    linear-gradient(135deg, #5b6cf6 0%, #7c5fec 50%, #6366f1 100%);
+  box-shadow:
+    0 2px 4px rgba(99, 102, 241, 0.45),
+    0 6px 14px -2px rgba(99, 102, 241, 0.45),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.28);
+}
+
+/* Avatar des autres users — couleur distinctive (violet plus chaud) */
+.cu-user-card:not(.main-office-user-item) .cu-user-card__avatar,
+.cu-user-card:not(.main-office-user-item) .user-initials {
+  background:
+    radial-gradient(ellipse at 30% 25%, rgba(255, 255, 255, 0.4) 0%, transparent 60%),
+    linear-gradient(135deg, #c026d3 0%, #a855f7 50%, #8b5cf6 100%);
+  box-shadow:
+    0 2px 4px rgba(168, 85, 247, 0.4),
+    0 6px 14px -2px rgba(168, 85, 247, 0.4),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* ---------- Info (nom + rôle pill) ---------- */
+.cu-user-card__info,
+.user-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  letter-spacing: normal;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  background: transparent;
+}
+
+.cu-user-card__name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cu-user-card.is-selected .cu-user-card__name { color: #d1fae5; }
+
+.cu-user-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cu-role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.cu-role-pill svg { stroke: currentColor; opacity: 0.85; flex-shrink: 0; }
+
+.cu-user-card.is-selected .cu-role-pill {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+}
+
+.cu-user-card__connected {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #10b981;
+  letter-spacing: 0.02em;
+}
+
+.cu-user-card__connected::before {
+  content: "•";
+  margin-right: 4px;
+  color: #94a3b8;
+}
+
+/* ---------- Right side (check / chevron / actions) ---------- */
+.cu-user-card__right,
+.initial-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.cu-user-card__check {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 30% 25%, rgba(255, 255, 255, 0.45) 0%, transparent 60%),
+    linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%);
+  color: #ffffff;
+  box-shadow:
+    0 2px 4px rgba(16, 185, 129, 0.4),
+    0 6px 14px -2px rgba(16, 185, 129, 0.45),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+.cu-user-card__chevron,
+.cu-modal .cu-user-card__chevron,
+.cu-modal .cu-user-card__chevron:first-of-type,
+.cu-modal .cu-user-card__chevron:last-of-type {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+}
+
+.cu-user-card__chevron:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #cbd5e1;
+  transform: translateX(2px);
+}
+
+/* ---------- Actions menu (Modifier / Supprimer) ---------- */
+.modal-officeUser-modifSuppr-container,
+.cu-actions {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(15, 23, 42, 0.95);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  animation: cuActionsIn 0.2s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  z-index: 2;
+  margin: 0;
+  left: auto;
+  margin-right: 0;
+}
+
+@keyframes cuActionsIn {
+  from { opacity: 0; transform: translateY(-50%) scale(0.85); }
+  to   { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+.modal-officeUser-modifSuppr,
+.cu-action {
+  padding: 6px;
+  font-size: 80%;
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cu-action-edit:hover {
+  background: rgba(59, 130, 246, 0.18);
+  transform: scale(1.08);
+}
+
+.cu-action-delete:hover {
+  background: rgba(239, 68, 68, 0.18);
+  transform: scale(1.08);
+}
+
+.modal-officeUser-modifSuppr img,
+.cu-action img {
+  height: 16px;
+  width: 16px;
+  filter: brightness(0) invert(0.78);
+  transition: filter 0.15s ease;
+}
+
+.cu-action-edit:hover img { filter: brightness(0) invert(1) sepia(1) saturate(8) hue-rotate(190deg); }
+.cu-action-delete:hover img { filter: brightness(0) invert(0.65) sepia(1) saturate(8) hue-rotate(330deg); }
+
+/* =========================================================
+   High-contrast mode
+   ========================================================= */
+body.high-contrast-mode .cu-user-card,
+body.high-contrast-mode .user-display-name {
+  background: #000 !important;
+  border: 1px solid yellow;
+  box-shadow: none;
+}
+
+body.high-contrast-mode .cu-user-card:hover {
+  background: #1a1a00 !important;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .cu-user-card__name,
+body.high-contrast-mode .user-name { color: yellow !important; }
+
+body.high-contrast-mode .cu-role-pill {
+  background: #000 !important;
+  border: 1px solid yellow !important;
+  color: yellow !important;
+}
+
+body.high-contrast-mode .cu-user-card__connected { color: #33ff33 !important; }
+
+/* Card sélectionnée HC = vert */
+body.high-contrast-mode .cu-user-card.is-selected,
+body.high-contrast-mode .cu-user-card.selected-office-user-item {
+  background: #001a0c !important;
+  border-color: #33ff33 !important;
+  box-shadow: 0 0 0 2px #33ff33 !important;
+}
+
+body.high-contrast-mode .cu-user-card.is-selected .cu-user-card__name { color: #33ff33 !important; }
+body.high-contrast-mode .cu-user-card.is-selected .cu-role-pill {
+  background: #000 !important;
+  border-color: #33ff33 !important;
+  color: #33ff33 !important;
+}
+
+body.high-contrast-mode .main-office-user-item {
+  background: #1a1a00 !important;
+  border: 1px solid #ffaa00 !important;
+}
+
+/* Avatars HC */
+body.high-contrast-mode .cu-user-card__avatar,
+body.high-contrast-mode .user-initials {
+  background: yellow !important;
+  color: #000 !important;
+  text-shadow: none;
+  box-shadow: 0 0 0 2px yellow !important;
+}
+
+body.high-contrast-mode .cu-user-card.is-selected .cu-user-card__avatar,
+body.high-contrast-mode .cu-user-card.is-selected .user-initials {
+  background: #33ff33 !important;
+  color: #000 !important;
+  box-shadow: 0 0 0 2px #33ff33 !important;
+}
+
+body.high-contrast-mode .main-office-user-item .cu-user-card__avatar,
+body.high-contrast-mode .main-office-user-item .user-initials {
+  background: #ffaa00 !important;
+  color: #000 !important;
+  box-shadow: 0 0 0 2px #ffaa00 !important;
+}
+
+/* Check / chevron HC */
+body.high-contrast-mode .cu-user-card__check {
+  background: #006838 !important;
+  color: #33ff33 !important;
+  box-shadow: 0 0 0 2px #33ff33 !important;
+}
+
+body.high-contrast-mode .cu-user-card__chevron {
+  background: #000 !important;
+  border: 1px solid yellow !important;
+  color: yellow !important;
+}
+
+body.high-contrast-mode .cu-user-card__chevron:hover {
+  background: #1a1a00 !important;
+}
+
+/* Actions menu HC */
+body.high-contrast-mode .modal-officeUser-modifSuppr-container,
+body.high-contrast-mode .cu-actions {
+  background: #000 !important;
+  border: 1px solid yellow !important;
+  box-shadow: none !important;
+}
+
+body.high-contrast-mode .cu-action img {
+  filter: brightness(0) invert(1) sepia(1) saturate(20) hue-rotate(0deg) !important;
+}

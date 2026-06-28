@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 313.8 326.3">
+  <!-- Generator: Adobe Illustrator 29.0.1, SVG Export Plug-In . SVG Version: 2.1.0 Build 192)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: #fff;
+        stroke: #6eb965;
+        stroke-miterlimit: 10;
+      }
+
+      .st1 {
+        fill: #00ff7f;
+      }
+    </style>
+  </defs>
+  <circle class="st1" cx="156.9" cy="80.6" r="80.6"/>
+  <path class="st1" d="M168.4,184.5l27.4,86.3-38.9,44-38.9-44,27.4-86.3C72.5,189.7,13.1,244,.2,314.5c-1.1,6.2,3.6,11.8,9.8,11.8h293.7c6.3,0,11-5.6,9.8-11.8-12.9-70.5-72.3-124.8-145.2-130h0Z"/>
+  <polygon class="st0" points="145.4 184.5 118 270.8 156.9 314.8 195.8 270.8 168.4 184.5 145.4 184.5"/>
+</svg>

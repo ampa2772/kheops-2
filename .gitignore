@@ -1,0 +1,76 @@
+# =============================================================================
+# .gitignore — Kheops 2
+# Empêche que les credentials, builds, node_modules, logs et notes internes
+# ne partent sur le dépôt public. Les fichiers *.example (placeholders) restent
+# versionnés pour documenter les clés attendues.
+# =============================================================================
+
+# --- Variables d'environnement (vraies clés : Atlas, JWT, OAuth, Gmail) -------
+.env
+.env.*
+# ... mais on GARDE les modèles placeholder :
+!.env.example
+!.env*.example
+!**/*.env.example
+!**/.env.example
+!**/*.example
+
+# --- Credentials / secrets en fichiers dédiés --------------------------------
+electron-app/google_credentials.json
+**/google_credentials.json
+server/token.txt
+server/user.json
+server/search_results.txt
+*.pem
+*.key
+
+# --- Dépendances Node ---------------------------------------------------------
+node_modules/
+**/node_modules/
+
+# --- Builds -------------------------------------------------------------------
+dist/
+dist*/
+dist-rollback*/
+client/build/
+server/build-manifest.json
+# Artefacts d'installeur (volumineux ET contiennent le .env embarqué) :
+*.exe
+*.dmg
+*.blockmap
+*.nupkg
+*.AppImage
+*.deb
+*.zip
+
+# --- Logs et fichiers générés -------------------------------------------------
+server/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.deps-install-marker
+
+# --- Fichiers de travail / résidus de la copie de test -----------------------
+task*_fix*.txt
+*.lnk
+.kheops2-tmp/
+
+# --- Notes internes de développement (non destinées au public) ---------------
+HOSTING.md
+DEBUG_JOURNAL.md
+e2e/test-results/
+e2e/playwright-report/
+# Notes de session, audits, prompts internes et fichiers de test contenant
+# des identifiants/passphrases. On garde le code de test (.js) et e2e/README.md.
+e2e/*.md
+!e2e/README.md
+
+# --- Fichiers OS / IDE --------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo

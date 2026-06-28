@@ -1,0 +1,13 @@
+{
+  "name": "@kheops/crypto",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Module de chiffrement de bout en bout partage entre le client React, le serveur Express et l'agent Electron de Kheops 2.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test __tests__/"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

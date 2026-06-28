@@ -1,0 +1,300 @@
+/* ==========================================================
+   OfficeHome — Dashboard Home (Navy → Spring Green context)
+   Colonnes glassmorphism sur fond gradient
+   ========================================================== */
+
+.OfficeHome {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  /* align-content: start → toutes les rows collent en haut, l'espace excedentaire
+     reste vide en bas plutot que d'etre reparti entre les rows (= plus de "trou"
+     central quand le contenu est plus court que la fenetre). */
+  align-content: start;
+  gap: 20px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--k2-space-3, 12px);
+  box-sizing: border-box;
+}
+
+/* ─── Colonne wrapper avec glassmorphism ─── */
+.officeHome-column {
+  display: flex;
+  flex-direction: column;
+  /* max-height plutot que height:100% : la colonne grandit jusqu'a 400px
+     selon son contenu, puis active un scroll interne sur DossierListe /
+     agenda-liste-container / Todoliste si depasse. Avec 1 dossier la
+     colonne reste compacte (~120px). */
+  max-height: 400px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: var(--k2-radius-md, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── En-tête de colonne ─── */
+.officeHome-column-header {
+  display: flex;
+  align-items: center;
+  padding: var(--k2-space-3, 12px) var(--k2-space-4, 16px);
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.officeHome-column-title {
+  margin: 0;
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-sm, 13px);
+  font-weight: var(--k2-font-weight-semibold, 600);
+  color: var(--k2-text-on-gradient, rgba(255, 255, 255, 0.92));
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ─── Enfants : scroll internes sans glassmorphism ─── */
+.DossierListe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k2-space-3, 12px);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: var(--k2-space-3, 12px);
+}
+
+.agenda-liste-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.Todoliste {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 900px) {
+  .OfficeHome {
+    grid-template-columns: 1fr 1fr;
+  }
+  /* Cache la derniere colonne (Taches) sur ecran moyen.
+     :last-child plutot que :nth-child(N) pour ne pas dependre de la position
+     de la banniere CTA dans le grid. */
+  .officeHome-column:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .OfficeHome {
+    grid-template-columns: 1fr;
+    /* En empile vertical (1 col), la regle parente grid-template-rows: auto 1fr
+       et height/overflow: hidden ecrasent les 3 colonnes Bureau a 67px chacune
+       (illisibles). On laisse l'espace s'auto-determiner et on autorise le
+       scroll vertical. */
+    grid-template-rows: none;
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+    gap: var(--k2-space-2, 8px);
+    padding: var(--k2-space-2, 8px);
+  }
+  /* En 1 colonne, toutes les sections s'empilent : on reaffiche Taches. */
+  .officeHome-column:last-child {
+    display: flex;
+  }
+  /* Hauteur utile minimale pour que chaque section soit lisible. */
+  .officeHome-column {
+    min-height: 240px;
+  }
+}
+
+/* ═══════════════════════════════════════
+   HIGH-CONTRAST MODE
+   ═══════════════════════════════════════ */
+
+body.high-contrast-mode .officeHome-column {
+  background-color: #000;
+  border-color: yellow;
+  backdrop-filter: none;
+}
+
+body.high-contrast-mode .officeHome-column-header {
+  background-color: #000;
+  border-bottom-color: yellow;
+}
+
+body.high-contrast-mode .officeHome-column-title {
+  color: yellow;
+}
+
+/* ---------- État vide : aucun dossier ---------- */
+.dossier-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.dossier-empty-state-message {
+  color: var(--k-text-muted, #5f6368);
+  font-size: var(--k-font-size-lg, 1.125rem);
+  font-style: italic;
+  text-align: center;
+  padding: var(--k-space-5, 20px);
+}
+
+/* ============================================================
+ * Row 2 CTAs côte à côte (DCM | Nouveau dossier)
+ *
+ * `align-self: start` : la row ne se laisse pas étirer par le 1fr du
+ * grid parent (.OfficeHome utilise grid-template-rows: auto 1fr ; sans
+ * align-self, la row tomberait dans la track 1fr et ferait 500+ px en
+ * fenêtre Electron full-height).
+ * `align-items: stretch` (à l'intérieur) : uniformise la hauteur des
+ * deux boutons entre eux — utile quand DCM bascule en mode "Reprendre"
+ * (banner qui passe de ~70 à ~110 px).
+ * ============================================================ */
+.officeHome-cta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--k2-space-3, 12px);
+  align-items: stretch;
+  align-self: start;
+  min-width: 0;
+}
+
+.officeHome-cta-row > * {
+  min-width: 0;
+}
+
+/* Override DCM CTA : matcher exactement les dimensions et la
+   profondeur d'ombre du Nouveau dossier CTA (sans toucher au fichier
+   divorceCM.css partagé). */
+.officeHome-cta-row .k-dcm-cta-banner {
+  padding: 0.85rem 1.1rem;
+  box-shadow: 0 4px 14px rgba(91, 33, 182, 0.22);
+  transition: transform 0.12s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.officeHome-cta-row .k-dcm-cta-banner:hover {
+  box-shadow: 0 6px 18px rgba(91, 33, 182, 0.32);
+  filter: brightness(1.04);
+}
+.officeHome-cta-row .k-dcm-cta-banner-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+}
+
+/* ─── CTA "Nouveau dossier" (pendant du CTA DCM) ───
+   Gradient indigo → royal blue : se distingue nettement du violet
+   DCM tout en restant dans la palette navy de l'app. */
+.k-new-dossier-cta-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1.1rem;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%);
+  color: #fff;
+  border-radius: 12px;
+  border: 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  font-family: inherit;
+  box-shadow: 0 4px 14px rgba(29, 78, 216, 0.22);
+  transition: transform 0.12s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.k-new-dossier-cta-banner:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(29, 78, 216, 0.34);
+  filter: brightness(1.04);
+}
+
+.k-new-dossier-cta-banner:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px rgba(29, 78, 216, 0.26);
+}
+
+.k-new-dossier-cta-banner:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.k-new-dossier-cta-banner__icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.k-new-dossier-cta-banner__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.k-new-dossier-cta-banner__text strong {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.k-new-dossier-cta-banner__sub {
+  font-size: 0.78rem;
+  opacity: 0.88;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+/* Reduced motion : on supprime les transforms / brightness */
+@media (prefers-reduced-motion: reduce) {
+  .k-new-dossier-cta-banner,
+  .k-new-dossier-cta-banner:hover,
+  .k-new-dossier-cta-banner:active,
+  .officeHome-cta-row .k-dcm-cta-banner,
+  .officeHome-cta-row .k-dcm-cta-banner:hover {
+    transition: none;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* High-contrast */
+body.high-contrast-mode .k-new-dossier-cta-banner {
+  background: #000;
+  border: 1px solid yellow;
+  color: yellow;
+  box-shadow: none;
+}
+body.high-contrast-mode .k-new-dossier-cta-banner__icon {
+  background: rgba(255, 255, 0, 0.15);
+}
+
+/* Responsive : stack vertical sous 700px (aligné sur k-dcm-resume-banner) */
+@media (max-width: 700px) {
+  .officeHome-cta-row {
+    grid-template-columns: 1fr;
+  }
+}

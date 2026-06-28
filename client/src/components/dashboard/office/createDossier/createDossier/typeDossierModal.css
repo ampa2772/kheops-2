@@ -1,0 +1,603 @@
+/* ============================================================
+ * typeDossierModal.css — Refonte dark navy capture-perfect de la
+ * modale de selection du tribunal competent (rc63).
+ *
+ * 3 etapes sequentielles avec bouton Retour. Style coherent avec
+ * carpaOperationDetail/Modal (mêmes variables --kdn-*, mêmes
+ * patterns badge teal carré / eyebrow orange / glass-morphism).
+ * ============================================================ */
+
+.k-tdm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 12, 24, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: k-tdm-fade-in 0.2s ease-out;
+
+  /* Variables dark navy locales (independantes du theme global) */
+  --kdn-bg-deep: #0a1828;
+  --kdn-bg-surface: rgba(15, 32, 56, 0.7);
+  --kdn-input-bg: rgba(8, 22, 42, 0.65);
+  --kdn-input-border: rgba(120, 180, 240, 0.18);
+  --kdn-input-border-focus: #4dc9ff;
+  --kdn-text-primary: #e8f1ff;
+  --kdn-text-secondary: rgba(195, 215, 240, 0.85);
+  --kdn-text-muted: rgba(165, 195, 230, 0.72);
+  --kdn-accent: #4dc9ff;
+}
+
+@keyframes k-tdm-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes k-tdm-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.k-tdm-modal {
+  width: min(660px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at top left, rgba(45, 80, 130, 0.4) 0%, transparent 60%),
+    linear-gradient(160deg, #0a1828 0%, #0d2138 55%, #0a1c34 100%);
+  border: 1px solid rgba(120, 180, 240, 0.18);
+  box-shadow:
+    0 28px 60px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: var(--kdn-text-primary);
+  overflow: hidden;
+  animation: k-tdm-pop-in 0.18s ease-out;
+}
+
+/* ─── Header ───────────────────────────────────────────────── */
+.k-tdm-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.2rem 1.1rem;
+  border-bottom: 1px solid rgba(120, 180, 240, 0.1);
+}
+
+.k-tdm-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(77, 201, 255, 0.95), rgba(37, 99, 235, 0.85));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0a1828;
+  box-shadow: 0 0 0 1px rgba(77, 201, 255, 0.35),
+              0 6px 16px rgba(77, 201, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.k-tdm-badge svg {
+  width: 20px;
+  height: 20px;
+  stroke: #0a1828;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.k-tdm-header-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.k-tdm-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fb923c;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  line-height: 1.1;
+}
+
+.k-tdm-eyebrow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7dd3fc;
+  box-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
+}
+
+.k-tdm-title {
+  margin: 0;
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--kdn-text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.k-tdm-sub {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--kdn-text-muted);
+  line-height: 1.35;
+}
+
+.k-tdm-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(120, 180, 240, 0.22);
+  background: rgba(15, 32, 56, 0.7);
+  color: var(--kdn-text-secondary);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.k-tdm-close:hover {
+  background: rgba(20, 42, 72, 0.95);
+  color: var(--kdn-text-primary);
+}
+
+/* ─── Body ─────────────────────────────────────────────────── */
+.k-tdm-body {
+  padding: 1rem 1.2rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* ─── Champ recherche / contexte ───────────────────────────── */
+.k-tdm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.k-tdm-field-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.k-tdm-field-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--kdn-text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.k-tdm-field-required {
+  color: #fb923c;
+  margin-left: 0.1rem;
+}
+
+.k-tdm-field-count {
+  font-size: 0.72rem;
+  color: var(--kdn-text-muted);
+}
+
+.k-tdm-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.k-tdm-search-icon,
+.k-tdm-search-chevron {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--kdn-text-muted);
+  pointer-events: none;
+}
+
+.k-tdm-search-icon { left: 12px; }
+.k-tdm-search-chevron { right: 12px; }
+
+.k-tdm-search-icon svg,
+.k-tdm-search-chevron svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.k-tdm-overlay .k-tdm-search input,
+.k-tdm-modal .k-tdm-search input {
+  width: 100%;
+  background: var(--kdn-input-bg) !important;
+  border: 1px solid var(--kdn-input-border) !important;
+  color: var(--kdn-text-primary) !important;
+  border-radius: 10px !important;
+  padding: 0.65rem 2.5rem 0.65rem 2.4rem !important;
+  font-size: 0.92rem !important;
+  font-family: inherit !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.k-tdm-search input::placeholder {
+  color: var(--kdn-text-muted);
+}
+
+.k-tdm-search input:focus {
+  border-color: var(--kdn-input-border-focus);
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.15);
+}
+
+.k-tdm-search.is-readonly input {
+  cursor: default;
+  color: var(--kdn-text-secondary);
+}
+
+/* ─── Liste ────────────────────────────────────────────────── */
+.k-tdm-list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(8, 22, 42, 0.45);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  border-radius: 12px;
+  padding: 0.55rem;
+  min-height: 220px;
+}
+
+.k-tdm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.k-tdm-list-cities .k-tdm-city-item,
+.k-tdm-list-tribunals .k-tdm-row,
+.k-tdm-list-chambres .k-tdm-row {
+  background: rgba(15, 32, 56, 0.7);
+  border: 1px solid rgba(120, 180, 240, 0.15);
+  color: var(--kdn-text-primary);
+  font-family: inherit;
+}
+
+.k-tdm-empty {
+  padding: 1.2rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--kdn-text-muted);
+  font-style: italic;
+}
+
+/* Ville item (etape 1) */
+.k-tdm-city-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.k-tdm-city-item:hover,
+.k-tdm-city-item.is-active {
+  background: rgba(77, 201, 255, 0.12);
+  border-color: rgba(77, 201, 255, 0.4);
+  color: #e8f1ff;
+}
+
+.k-tdm-city-count {
+  font-size: 0.72rem;
+  color: var(--kdn-text-muted);
+  font-feature-settings: "tnum";
+}
+
+/* Group header (etape 3) */
+.k-tdm-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(8, 22, 42, 0.7);
+  border: 1px solid rgba(120, 180, 240, 0.1);
+  margin-bottom: 0.45rem;
+}
+
+.k-tdm-group-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7dd3fc;
+  box-shadow: 0 0 6px rgba(125, 211, 252, 0.55);
+  flex-shrink: 0;
+}
+
+.k-tdm-group-title {
+  flex: 1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--kdn-text-primary);
+  text-transform: uppercase;
+  line-height: 1.25;
+}
+
+.k-tdm-group-count {
+  font-size: 0.72rem;
+  color: var(--kdn-text-muted);
+  font-feature-settings: "tnum";
+}
+
+.k-tdm-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Row (tribunal etape 2 & chambre etape 3) */
+.k-tdm-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.75rem 0.45rem 0.45rem;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-size: 0.9rem;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.k-tdm-row:hover,
+.k-tdm-row.is-active {
+  background: rgba(20, 42, 72, 0.85);
+  border-color: rgba(120, 180, 240, 0.3);
+}
+
+.k-tdm-row.is-selected {
+  background: rgba(77, 201, 255, 0.16);
+  border-color: rgba(77, 201, 255, 0.55);
+  color: #d4eeff;
+}
+
+.k-tdm-row.is-selected.is-active {
+  background: rgba(77, 201, 255, 0.22);
+}
+
+.k-tdm-row-badge {
+  width: 38px;
+  height: 28px;
+  border-radius: 7px;
+  background: rgba(77, 201, 255, 0.16);
+  border: 1px solid rgba(77, 201, 255, 0.4);
+  color: #7dd3fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+.k-tdm-row.is-selected .k-tdm-row-badge {
+  background: rgba(77, 201, 255, 0.3);
+  border-color: rgba(77, 201, 255, 0.7);
+  color: #e8f7ff;
+}
+
+.k-tdm-row-label {
+  flex: 1;
+  line-height: 1.3;
+}
+
+.k-tdm-row-check {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7dd3fc;
+  flex-shrink: 0;
+}
+
+.k-tdm-row-check svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Bandeau raccourcis clavier */
+.k-tdm-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  border-top: 1px solid rgba(120, 180, 240, 0.08);
+  font-size: 0.7rem;
+  color: var(--kdn-text-muted);
+  flex-wrap: wrap;
+}
+
+.k-tdm-shortcuts kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 0.3rem;
+  margin: 0 0.15rem 0 0;
+  background: rgba(15, 32, 56, 0.85);
+  border: 1px solid rgba(120, 180, 240, 0.22);
+  border-radius: 4px;
+  color: var(--kdn-text-secondary);
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.k-tdm-shortcuts-sep {
+  opacity: 0.55;
+}
+
+.k-tdm-shortcuts-right {
+  margin-left: auto;
+}
+
+/* ─── Footer ──────────────────────────────────────────────── */
+.k-tdm-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem 1.2rem;
+  border-top: 1px solid rgba(120, 180, 240, 0.12);
+  background: rgba(10, 24, 42, 0.5);
+}
+
+.k-tdm-footer-hint {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--kdn-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 1.2em;
+}
+
+.k-tdm-footer-hint-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.4px solid var(--kdn-text-muted);
+}
+
+.k-tdm-footer-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.k-tdm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  width: auto;
+}
+
+.k-tdm-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.k-tdm-btn-back {
+  background: rgba(15, 32, 56, 0.7);
+  border-color: rgba(120, 180, 240, 0.25);
+  color: var(--kdn-text-secondary);
+}
+.k-tdm-btn-back:hover {
+  background: rgba(20, 42, 72, 0.95);
+  color: var(--kdn-text-primary);
+  border-color: rgba(120, 180, 240, 0.4);
+}
+
+.k-tdm-btn-ghost {
+  background: transparent;
+  border-color: rgba(120, 180, 240, 0.25);
+  color: var(--kdn-text-secondary);
+}
+.k-tdm-btn-ghost:hover {
+  background: rgba(20, 42, 72, 0.65);
+  color: var(--kdn-text-primary);
+}
+
+.k-tdm-btn-primary {
+  background: linear-gradient(135deg, #4dc9ff, #2563eb);
+  border-color: rgba(77, 201, 255, 0.6);
+  color: #0a1828;
+}
+.k-tdm-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.k-tdm-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+
+/* ─── Responsive ──────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .k-tdm-modal {
+    width: 100%;
+    max-height: 95vh;
+  }
+  .k-tdm-header {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .k-tdm-footer {
+    flex-wrap: wrap;
+  }
+  .k-tdm-footer-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<g>
+  <!-- Document page -->
+  <path d="M352,0H96C78.3,0,64,14.3,64,32v448c0,17.7,14.3,32,32,32h320c17.7,0,32-14.3,32-32V96L352,0z M416,480H96V32h224v96h96V480z"/>
+  <!-- Text lines on document -->
+  <rect x="144" y="192" width="224" height="24"/>
+  <rect x="144" y="256" width="224" height="24"/>
+  <rect x="144" y="320" width="160" height="24"/>
+  <!-- Export arrow (bottom-right) -->
+  <polygon points="432,320 432,400 480,360"/>
+  <rect x="368" y="348" width="64" height="24"/>
+</g>
+</svg>

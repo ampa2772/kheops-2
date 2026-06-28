@@ -1,0 +1,188 @@
+/* ==========================================================
+   createModal.css
+   Styles premium pour le menu "Creer un nouveau..." (CreateModal)
+   ========================================================== */
+
+/* --- Overlay --- */
+.create-modal-overlay {
+  z-index: var(--k-z-modal-high, 10000);
+}
+
+/* --- Boite modale --- */
+.create-modal-box {
+  width: 460px;
+  max-width: 90vw;
+  border-radius: var(--k2-radius-lg, 12px);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  background: rgba(15, 27, 45, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: visible;
+}
+
+/* --- Header --- */
+.create-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--k2-space-4, 16px) var(--k2-space-5, 20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.create-modal-header h2 {
+  margin: 0;
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-lg, 1.125rem);
+  font-weight: var(--k2-font-weight-semibold, 600);
+  color: var(--k2-text-on-gradient, rgba(255, 255, 255, 0.92));
+  white-space: nowrap;
+}
+
+/* --- Body / Grille --- */
+.create-modal-body {
+  padding: var(--k-space-5, 20px) var(--k-space-5, 20px) var(--k-space-6, 24px);
+}
+
+.create-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--k-space-4, 16px);
+}
+
+/* Le composant Tooltip enveloppe chaque carte dans un .k-tooltip-wrapper.
+   On force ce wrapper a remplir la cellule de grid et a etre carre,
+   ce qui rend les boutons enfants carres aussi. */
+.create-modal-grid > * {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: block;
+}
+
+/* --- Cartes options --- */
+.create-option-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--k2-space-3, 12px);
+  padding: var(--k2-space-4, 16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--k2-radius-md, 8px);
+  background-color: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: transform var(--k2-duration-normal, 200ms) var(--k2-ease-out, ease),
+              box-shadow var(--k2-duration-normal, 200ms) var(--k2-ease-out, ease),
+              border-color var(--k2-duration-normal, 200ms) var(--k2-ease-out, ease),
+              background-color var(--k2-duration-normal, 200ms) ease;
+  font-family: var(--k2-font-family);
+  font-size: inherit;
+  line-height: inherit;
+  outline: none;
+}
+
+.create-option-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: var(--k2-accent-spring, #00dc82);
+  background-color: rgba(0, 220, 130, 0.06);
+}
+
+.create-option-card:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: var(--k-shadow-sm);
+}
+
+.create-option-card:focus-visible {
+  box-shadow: var(--k-focus-ring);
+  border-color: var(--k-primary, #0977a5);
+}
+
+/* --- Conteneur icone --- */
+.create-option-card__icon-wrapper {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 220, 130, 0.1);
+  border-radius: var(--k2-radius-lg, 12px);
+  transition: background-color var(--k2-duration-normal, 200ms) ease;
+}
+
+.create-option-card:hover .create-option-card__icon-wrapper {
+  background-color: rgba(0, 220, 130, 0.2);
+}
+
+.create-option-card__icon {
+  width: 28px;
+  height: 28px;
+  filter: brightness(0) invert(1) opacity(0.85);
+}
+
+/* --- Label texte --- */
+.create-option-card__label {
+  font-size: var(--k2-font-size-sm, 0.8125rem);
+  font-weight: var(--k2-font-weight-medium, 500);
+  color: var(--k2-text-on-gradient, rgba(255, 255, 255, 0.92));
+}
+
+/* ==========================================================
+   MODE HIGH-CONTRAST (malvoyant)
+   ========================================================== */
+
+body.high-contrast-mode .create-modal-box {
+  background-color: #000000;
+  border: 2px solid var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .create-modal-header {
+  border-bottom-color: var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .create-modal-header h2 {
+  color: yellow;
+}
+
+body.high-contrast-mode .create-modal-header .k-modal-close {
+  color: yellow;
+}
+
+body.high-contrast-mode .create-modal-header .k-modal-close:hover {
+  background-color: #333;
+}
+
+body.high-contrast-mode .create-option-card {
+  background-color: #000000;
+  border-color: yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .create-option-card:hover {
+  border-color: var(--highlight-color, #33ff33);
+  box-shadow: 0 0 0 1px var(--highlight-color, #33ff33);
+  transform: translateY(-2px);
+}
+
+body.high-contrast-mode .create-option-card:focus-visible {
+  box-shadow: var(--k-focus-ring);
+  border-color: var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .create-option-card__icon-wrapper {
+  background-color: #1a1a00;
+}
+
+body.high-contrast-mode .create-option-card:hover .create-option-card__icon-wrapper {
+  background-color: #333300;
+}
+
+body.high-contrast-mode .create-option-card__icon {
+  filter: var(--icon-filter);
+}
+
+body.high-contrast-mode .create-option-card__label {
+  color: yellow;
+}

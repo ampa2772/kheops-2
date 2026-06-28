@@ -1,0 +1,112 @@
+/* ============================================================================
+   DualTimePicker — champ HH:MM + bouton "horloge" qui ouvre un ClockPicker
+   ============================================================================ */
+
+.dual-time {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dual-time__label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  margin-left: 2px;
+}
+
+.dual-time__field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 0 12px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #fff;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dual-time__field:hover {
+  border-color: rgba(77, 155, 255, 0.4);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.dual-time__field:focus-within {
+  border-color: rgba(77, 155, 255, 0.6);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 0 0 3px rgba(77, 155, 255, 0.2);
+}
+
+.dual-time__icon {
+  display: inline-flex;
+  align-items: center;
+  color: #4d9bff;
+}
+
+.dual-time__input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #4d9bff;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  width: 64px;
+  letter-spacing: 0.04em;
+  text-align: center;
+  /* Reset des paddings par defaut du navigateur pour vrai centrage vertical */
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  height: 30px;
+  box-sizing: border-box;
+}
+
+.dual-time__input::placeholder {
+  color: rgba(77, 155, 255, 0.45);
+}
+
+.dual-time__clock-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(77, 155, 255, 0.08);
+  border: 1px solid rgba(77, 155, 255, 0.18);
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  margin-left: auto;
+}
+
+.dual-time__clock-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.dual-time__clock-toggle:hover {
+  background: rgba(77, 155, 255, 0.1);
+  color: #4d9bff;
+  border-color: rgba(77, 155, 255, 0.25);
+}
+
+.dual-time__clock-toggle.is-active {
+  background: rgba(77, 155, 255, 0.18);
+  color: #4d9bff;
+  border-color: rgba(77, 155, 255, 0.45);
+}
+
+/* Popover : positionne sous le champ */
+.dual-time__popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1100;
+}

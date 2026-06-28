@@ -1,0 +1,397 @@
+/* ============================================================
+   TodoListeGeneral.css — Vue generale taches (3 colonnes urgence)
+   ============================================================ */
+
+/* --- Wrapper : header + container (F-003) --- */
+.todoGeneral-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* --- Header de page : titre + bouton creation (F-003) --- */
+.todoGeneral-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--k-space-3, 12px) var(--k-space-4, 16px);
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: var(--k-space-3, 12px);
+}
+
+.todoGeneral-page-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.todoGeneral-page-title {
+  margin: 0;
+  font-size: var(--k-font-size-lg, 1.0625rem);
+  font-weight: var(--k-font-weight-bold, 700);
+  color: var(--k-text-light, #e8eaed);
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.todoGeneral-page-subtitle {
+  font-size: var(--k-font-size-xs, 0.75rem);
+  color: var(--k-text-secondary, #9aa0a6);
+  font-weight: var(--k-font-weight-regular, 400);
+}
+
+/* Bouton "Nouvelle tache" — aligne sur le style .agenda-new-btn pour
+   coherence visuelle inter-pages. width: auto pour neutraliser une regle
+   globale `button { width: 100% }` qui sinon stretch le bouton. */
+.todoGeneral-new-task-btn {
+  width: auto;
+  background: linear-gradient(135deg, #22d3ee 0%, #0ea5b7 100%);
+  color: #06222b;
+  border: none;
+  font-weight: 700;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  transition: filter var(--k-duration-fast, 0.15s) ease,
+              box-shadow var(--k-duration-fast, 0.15s) ease,
+              transform var(--k-duration-fast, 0.1s) ease;
+}
+
+.todoGeneral-new-task-btn:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 6px 16px rgba(34, 211, 238, 0.4);
+}
+.todoGeneral-new-task-btn:active {
+  transform: translateY(1px);
+}
+.todoGeneral-new-task-btn:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
+}
+
+.todoGeneral-new-task-btn__icon {
+  flex-shrink: 0;
+}
+
+/* High contrast — bouton noir/jaune au lieu du gradient cyan */
+body.high-contrast-mode .todoGeneral-new-task-btn {
+  background: #000;
+  color: #ffeb3b;
+  border: 2px solid #ffeb3b;
+}
+body.high-contrast-mode .todoGeneral-new-task-btn:hover {
+  background: #ffeb3b;
+  color: #000;
+}
+
+/* --- Container : layout 3 colonnes --- */
+.todoGeneral-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  padding: var(--k-space-1, 4px) 0;
+  gap: 1px;
+}
+
+.todoGeneral-loading {
+  text-align: center;
+  color: var(--k-text-light, #e8eaed);
+  padding: var(--k-space-8, 32px);
+  font-style: italic;
+  width: 100%;
+}
+
+/* --- Colonne (style commun) --- */
+.todoGeneral-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Separateur entre colonnes */
+.todoGeneral-column + .todoGeneral-column {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* --- En-tete de colonne --- */
+.todoGeneral-column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--k-space-2, 8px) var(--k-space-3, 12px);
+  flex-shrink: 0;
+  border-bottom: 2px solid;
+}
+
+.todoGeneral-column-title {
+  margin: 0;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-semibold, 600);
+  color: var(--k-text-light, #e8eaed);
+}
+
+.todoGeneral-column-count {
+  font-size: var(--k-font-size-xs, 0.75rem);
+  font-weight: var(--k-font-weight-bold, 700);
+  padding: 2px var(--k-space-2, 8px);
+  border-radius: var(--k-radius-full, 9999px);
+  min-width: 20px;
+  text-align: center;
+}
+
+/* --- Variantes de couleur --- */
+
+/* Colonne rouge (urgent < 1 semaine) */
+.todoGeneral-column.column-red .todoGeneral-column-header {
+  border-bottom-color: var(--k-danger, #dc3545);
+  background-color: rgba(220, 53, 69, 0.15);
+}
+.todoGeneral-column.column-red .todoGeneral-column-count {
+  background-color: var(--k-danger, #dc3545);
+  color: #fff;
+}
+
+/* Colonne orange (moyen 1 sem - 1 mois) */
+.todoGeneral-column.column-orange .todoGeneral-column-header {
+  border-bottom-color: var(--k-warning, #ff9800);
+  background-color: rgba(255, 152, 0, 0.15);
+}
+.todoGeneral-column.column-orange .todoGeneral-column-count {
+  background-color: var(--k-warning, #ff9800);
+  color: #000;
+}
+
+/* Colonne verte (non urgent > 1 mois) */
+.todoGeneral-column.column-green .todoGeneral-column-header {
+  border-bottom-color: var(--k-success, #008047);
+  background-color: rgba(0, 128, 71, 0.15);
+}
+.todoGeneral-column.column-green .todoGeneral-column-count {
+  background-color: var(--k-success, #008047);
+  color: #fff;
+}
+
+/* --- Liste scrollable de cartes --- */
+.todoGeneral-column-list {
+  flex-grow: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--k-space-1, 4px) 0;
+}
+
+/* --- Carte tache --- */
+.todoGeneral-task-card {
+  position: relative;
+  display: flex;
+  color: var(--k-text-light, #e8eaed);
+  font-size: var(--k-font-size-xs, 0.75rem);
+  align-items: center;
+  gap: var(--k-space-2, 8px);
+  padding: 6px var(--k-space-2, 8px) 6px 12px;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.08);
+  margin: 0 var(--k-space-1, 4px);
+  border-radius: var(--k-radius-sm, 4px);
+  transition: background-color var(--k-duration-fast, 0.1s) ease,
+              transform var(--k-duration-fast, 0.1s) ease;
+  overflow: hidden;
+  /* F-004 : animation au mount pour rendre visible le reclassement
+     temps reel. Quand une tache franchit un seuil et se deplace dans une
+     nouvelle colonne, React la demonte de l'ancienne et la remonte ici, ce
+     qui declenche cette animation de fade-in + translation. */
+  animation: todoGeneral-task-fade-in var(--k-duration-base, 0.3s) ease both;
+}
+
+@keyframes todoGeneral-task-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Respect de prefers-reduced-motion : pas d'animation pour les utilisateurs
+   sensibles au mouvement. */
+@media (prefers-reduced-motion: reduce) {
+  .todoGeneral-task-card {
+    animation: none;
+  }
+}
+
+.todoGeneral-task-card:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  transform: translateX(2px);
+}
+
+.todoGeneral-task-card:focus-visible {
+  outline: 2px solid var(--k-accent, #8ab4f8);
+  outline-offset: 1px;
+}
+
+/* Trait de priorite a gauche, visible en permanence.
+   La couleur est portee par data-priority pour etre independante du contexte
+   (utile si la carte est reutilisee hors des 3 colonnes). */
+.todoGeneral-task-priority-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: transparent;
+  border-top-left-radius: var(--k-radius-sm, 4px);
+  border-bottom-left-radius: var(--k-radius-sm, 4px);
+}
+
+.todoGeneral-task-card[data-priority="red"] .todoGeneral-task-priority-bar {
+  background-color: var(--k-danger, #dc3545);
+}
+.todoGeneral-task-card[data-priority="orange"] .todoGeneral-task-priority-bar {
+  background-color: var(--k-warning, #ff9800);
+}
+.todoGeneral-task-card[data-priority="green"] .todoGeneral-task-priority-bar {
+  background-color: var(--k-success, #008047);
+}
+
+/* Container de la date (a gauche de la carte) */
+.todoGeneral-task-date-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.06);
+  padding: var(--k-space-1, 4px) 6px;
+  border-radius: var(--k-radius-xs, 2px);
+  flex-shrink: 0;
+}
+
+.todoGeneral-task-date {
+  font-size: var(--k-font-size-xs, 0.75rem);
+  /* Date mise en avant : graisse + couleur claire (contraste ~8:1) */
+  font-weight: var(--k-font-weight-bold, 700);
+  text-transform: capitalize;
+  color: #e8eaed;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* Details de la tache (titre + dossier) */
+.todoGeneral-task-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  flex-grow: 1;
+}
+
+.todoGeneral-task-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.todoGeneral-task-dossier {
+  font-size: var(--k-font-size-xs, 0.75rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 3px;
+  padding: 1px 6px;
+  border-radius: var(--k-radius-sm, 4px);
+  background-color: rgba(138, 180, 248, 0.14);
+  align-self: flex-start;
+  max-width: 100%;
+  transition: color var(--k-duration-fast, 0.15s) ease,
+              background-color var(--k-duration-fast, 0.15s) ease;
+  color: var(--k-accent, #8ab4f8);
+}
+
+/* Couleur du nom du dossier selon la colonne */
+.todoGeneral-column.column-red .todoGeneral-task-dossier {
+  color: var(--k-danger, #dc3545);
+}
+.todoGeneral-column.column-orange .todoGeneral-task-dossier {
+  color: var(--k-warning, #ff9800);
+}
+.todoGeneral-column.column-green .todoGeneral-task-dossier {
+  color: var(--k-success, #008047);
+}
+
+/* Hover sur la carte -> accent du dossier */
+.todoGeneral-task-card:hover .todoGeneral-task-dossier {
+  color: var(--k-accent, #8ab4f8);
+}
+
+/* Message colonne vide */
+.todoGeneral-column-empty {
+  text-align: center;
+  color: var(--k-text-secondary, #9aa0a6);
+  font-size: var(--k-font-size-xs, 0.75rem);
+  font-style: italic;
+  padding: var(--k-space-4, 16px);
+}
+
+/* --- Scrollbar personnalisee --- */
+.todoGeneral-column-list::-webkit-scrollbar {
+  width: 6px;
+}
+.todoGeneral-column-list::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: var(--k-radius-base, 6px);
+}
+.todoGeneral-column-list::-webkit-scrollbar-thumb {
+  background: var(--k-scroll-thumb, #0977a5);
+  border-radius: var(--k-radius-base, 6px);
+}
+.todoGeneral-column-list::-webkit-scrollbar-thumb:hover {
+  background: var(--k-scroll-thumb-hover, #555);
+}
+
+/* ──────────────────────────────────────────────────────────
+   Responsive — Empiler les colonnes sur écrans étroits
+   (préserve le design des 3 niveaux d'urgence, change la
+   direction de lecture pour une meilleure lisibilité mobile)
+   ────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .todoGeneral-container {
+    flex-direction: column;
+    gap: var(--k-space-2, 8px);
+    overflow-y: auto;
+    padding: var(--k-space-2, 8px);
+  }
+  .todoGeneral-column {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 120px;
+    max-height: 40vh;
+    border-radius: var(--k-radius-sm, 4px);
+  }
+  .todoGeneral-column + .todoGeneral-column {
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}

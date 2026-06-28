@@ -1,0 +1,291 @@
+/* ==============================================================
+   Thème des Modales pour l'Agenda du Dossier
+   Ce fichier contient les surcharges CSS pour appliquer un thème
+   clair et cohérent aux modales EventCreationModal,
+   EventDetailModal, et ConfirmDeleteEventModal lorsqu'elles
+   sont affichées dans la vue du dossier.
+   ============================================================== */
+
+/* -- Contexte général du thème -- */
+.agenda-dossier-modal-theme {
+    /* Ce conteneur ne nécessite pas de styles propres, 
+       il sert uniquement de scope pour les règles ci-dessous. */
+}
+
+
+/* =============================================
+   1. Thème pour la Modale de Création/Édition
+   (EventCreationModal.js)
+   ============================================= */
+
+/* On augmente le z-index pour qu'elle s'affiche par-dessus la modale de détails (qui est à 1070) */
+.agenda-dossier-modal-theme .event-modal-overlay-kheops {
+    z-index: 1075; 
+}
+
+/* Fond et texte de la modale */
+.agenda-dossier-modal-theme .event-modal-kheops {
+    background-color: #add8e6;
+    color: var(--k-primary-800, #043a4f);
+    border: 1px solid var(--k-primary-800, #043a4f);
+}
+
+/* Bouton fermer (X) */
+.agenda-dossier-modal-theme .event-modal-close-btn-kheops {
+    color: var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .event-modal-close-btn-kheops:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: #000;
+}
+
+/* Champ de titre */
+.agenda-dossier-modal-theme .event-modal-title-input-kheops {
+    border-bottom-color: var(--k-primary-800, #043a4f);
+    color: var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .event-modal-title-input-kheops::placeholder {
+    color: var(--k-primary-800, #043a4f);
+    opacity: 0.7;
+}
+.agenda-dossier-modal-theme .event-modal-title-input-kheops:focus {
+    border-bottom-color: var(--k-bg-white, #fff);
+}
+
+/* Affichage de la date */
+.agenda-dossier-modal-theme .event-modal-date-display-kheops {
+    color: var(--k-primary-800, #043a4f);
+    padding: 8px; /* Padding pour une zone de clic plus grande */
+}
+/* MODIFICATION: Ajout du survol pour la date */
+.agenda-dossier-modal-theme .event-modal-date-display-kheops:hover {
+    background-color: #cfe8fc;
+}
+
+
+/* Sélecteurs d'heure */
+.agenda-dossier-modal-theme .event-modal-time-input-kheops {
+    background-color: white;
+    color: var(--k-primary-800, #043a4f);
+    border-color: #a0b4c8;
+}
+.agenda-dossier-modal-theme .event-modal-time-input-kheops:focus {
+    border-color: var(--k-primary-800, #043a4f);
+}
+
+/* Dropdown des heures */
+.agenda-dossier-modal-theme .time-dropdown-kheops {
+    background-color: #ffffff;
+    border-color: #a0b4c8;
+}
+.agenda-dossier-modal-theme .time-slot-kheops {
+    color: var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .time-slot-kheops:hover {
+    background-color: #d4eaf7;
+}
+
+/* Dossier lié */
+.agenda-dossier-modal-theme .event-modal-linked-dossier-display-kheops {
+    background-color: #cfe8fc;
+    border: 1px solid #a0b4c8;
+}
+.agenda-dossier-modal-theme .linked-dossier-label-kheops {
+    color: var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .linked-dossier-name-kheops {
+    color: #0056b3;
+}
+
+/* Thème pour la section description */
+.agenda-dossier-modal-theme .event-modal-description-section-kheops {
+    margin-bottom: 20px;
+    position: relative;
+}
+.agenda-dossier-modal-theme .event-modal-description-textarea-kheops {
+    width: 100%;
+    background-color: #e9f2f9;
+    color: var(--k-primary-800, #043a4f);
+    border: 1px solid #a0b4c8;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 60px;
+    outline: none;
+}
+.agenda-dossier-modal-theme .event-modal-description-textarea-kheops:focus {
+    border-color: var(--k-primary-800, #043a4f);
+    background-color: white;
+}
+.agenda-dossier-modal-theme .event-modal-description-textarea-kheops::placeholder {
+    color: var(--k-primary-800, #043a4f);
+    opacity: 0.6;
+}
+
+/* Boutons */
+.agenda-dossier-modal-theme .event-modal-save-btn-kheops {
+    background-color: var(--k-primary-800, #043a4f);
+    color: var(--k-bg-white, #fff);
+    border: 1px solid var(--k-primary, #0977a5);
+}
+.agenda-dossier-modal-theme .event-modal-save-btn-kheops:hover {
+    background-color: var(--k-bg-white, #fff);
+    color: var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .event-modal-cancel-btn-kheops {
+    background-color: transparent;
+    color: var(--k-primary-800, #043a4f);
+    border-color: var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .event-modal-cancel-btn-kheops:hover {
+    background-color: rgba(0, 0, 128, 0.1);
+}
+
+/* --- NOUVEAU: Styles pour le DatePicker dans ce thème --- */
+.agenda-dossier-modal-theme .react-datepicker {
+    font-family: Arial, sans-serif;
+    background-color: white;
+    color: var(--k-primary-800, #043a4f);
+    border: 1px solid var(--k-primary-800, #043a4f);
+    border-radius: 4px;
+}
+.agenda-dossier-modal-theme .react-datepicker__header {
+    background-color: #cfe8fc;
+    border-bottom: 1px solid var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .react-datepicker__current-month,
+.agenda-dossier-modal-theme .react-datepicker__day-name {
+    color: var(--k-primary-800, #043a4f);
+    font-weight: bold;
+}
+.agenda-dossier-modal-theme .react-datepicker__day {
+    color: var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .react-datepicker__day:hover {
+    background-color: #e6f7ff;
+}
+.agenda-dossier-modal-theme .react-datepicker__day--selected,
+.agenda-dossier-modal-theme .react-datepicker__day--keyboard-selected {
+    background-color: var(--k-primary-800, #043a4f);
+    color: var(--k-bg-white, #fff);
+}
+.agenda-dossier-modal-theme .react-datepicker__day--today {
+    font-weight: bold;
+    border: 1px solid var(--k-primary, #0977a5);
+    border-radius: 50%;
+}
+.agenda-dossier-modal-theme .react-datepicker__day--outside-month {
+    color: #b0c4de;
+    opacity: 0.7;
+}
+.agenda-dossier-modal-theme .react-datepicker__navigation--previous,
+.agenda-dossier-modal-theme .react-datepicker__navigation--next {
+    top: 12px;
+}
+/* --- FIN NOUVEAU --- */
+
+
+/* =============================================
+   2. Thème pour la Modale de Détails
+   (EventDetailModal.js)
+   ============================================= */
+
+/* L'overlay doit être à un z-index élevé */
+.agenda-dossier-modal-theme .event-detail-modal-overlay-kheops {
+    z-index: 1070;
+}
+
+/* Fond et texte de la modale */
+.agenda-dossier-modal-theme .event-detail-modal-kheops {
+    background-color: #add8e6; 
+    color: var(--k-primary-800, #043a4f);
+    border: 1px solid #0977a5; /* Bleu Kheops */
+}
+
+/* Boutons d'action de l'en-tête */
+.agenda-dossier-modal-theme .event-detail-action-btn-kheops {
+    color: var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .event-detail-action-btn-kheops:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+.agenda-dossier-modal-theme .icon-event-detail {
+    color: var(--k-primary-800, #043a4f); /* S'assure que les icônes texte (×) sont de la bonne couleur */
+}
+
+/* Surcharge de la couleur des icônes SVG pour le thème clair */
+.agenda-dossier-modal-theme .event-detail-modal-overlay-kheops .supprEvent img,
+.agenda-dossier-modal-theme .event-detail-modal-overlay-kheops .modifEvent img {
+    /* Annule le `filter: invert(100%)` du thème sombre et applique une nouvelle couleur */
+    /* Cette chaîne de filtres convertit le noir (#000) en navy (#000080) */
+    filter: brightness(0) saturate(100%) invert(8%) sepia(87%) saturate(5418%) hue-rotate(215deg) brightness(85%) contrast(101%);
+    opacity: 0.85; /* Légère opacité pour mieux s'intégrer */
+    height: 18px;
+}
+.agenda-dossier-modal-theme .event-detail-action-btn-kheops:hover .supprEvent img,
+.agenda-dossier-modal-theme .event-detail-action-btn-kheops:hover .modifEvent img {
+    opacity: 1; /* Opacité complète au survol */
+}
+
+
+/* Titre, date, description */
+.agenda-dossier-modal-theme .event-detail-title-kheops {
+    color: var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .event-detail-datetime-kheops {
+    color: var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .event-detail-description-kheops {
+    color: var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .event-detail-description-kheops strong {
+    color: var(--k-primary, #0977a5);
+}
+.agenda-dossier-modal-theme .icon-event-detail-body {
+    filter: none; /* Annule le filtre 'invert' du thème sombre */
+}
+
+
+/* =============================================
+   3. Thème pour la Modale de Confirmation
+   (ConfirmDeleteEventModal.js)
+   ============================================= */
+
+/* Overlay encore plus élevé car il est par-dessus la modale de détails */
+.agenda-dossier-modal-theme .confirm-delete-modal-overlay-kheops {
+    z-index: 1080;
+}
+
+/* Fond et texte de la modale */
+.agenda-dossier-modal-theme .confirm-delete-modal-kheops {
+    background-color: #f0f7ff;
+    color: var(--k-primary-800, #043a4f);
+    border: 1px solid #c82333; /* Rouge pour alerter */
+}
+
+/* Texte */
+.agenda-dossier-modal-theme .confirm-delete-modal-kheops h4,
+.agenda-dossier-modal-theme .confirm-delete-modal-kheops p {
+    color: var(--k-primary-800, #043a4f);
+}
+
+/* Boutons */
+.agenda-dossier-modal-theme .confirm-delete-modal-btn-kheops.cancel-btn-kheops {
+    background-color: transparent;
+    color: var(--k-primary-800, #043a4f);
+    border: 1px solid var(--k-primary-800, #043a4f);
+}
+.agenda-dossier-modal-theme .confirm-delete-modal-btn-kheops.cancel-btn-kheops:hover {
+    background-color: rgba(0, 0, 128, 0.1);
+}
+
+/* On conserve le rouge pour le bouton de suppression, c'est une bonne pratique UI */
+.agenda-dossier-modal-theme .confirm-delete-modal-btn-kheops.delete-btn-kheops {
+    background-color: #c82333;
+    color: white;
+}
+.agenda-dossier-modal-theme .confirm-delete-modal-btn-kheops.delete-btn-kheops:hover {
+    background-color: #a51e2a;
+}

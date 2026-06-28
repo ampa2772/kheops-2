@@ -1,0 +1,1718 @@
+/* ============================================================================
+   AriaPartiesView V2 — Design moderne (theme sombre, banneres gradient,
+   cartes parties avec avatar + tags + score badges)
+   ============================================================================ */
+
+.aria-v2-view {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  background: linear-gradient(160deg, #0a1628 0%, #122740 100%);
+  color: #e8eaed;
+}
+
+/* === HEADER === */
+.aria-v2-header {
+  flex-shrink: 0;
+  padding: 24px 28px 18px 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(10, 22, 40, 0.55);
+}
+
+.aria-v2-header__breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #6ea3e8;
+  margin-bottom: 8px;
+}
+
+.aria-v2-header__breadcrumb-sep {
+  color: rgba(110, 163, 232, 0.5);
+}
+
+.aria-v2-header__titlerow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.aria-v2-header__title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.005em;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.aria-v2-header__search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 280px;
+  max-width: 100%;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  height: 36px;
+  color: rgba(255, 255, 255, 0.6);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.aria-v2-header__search:focus-within {
+  border-color: rgba(77, 155, 255, 0.6);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.aria-v2-header__search svg {
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.aria-v2-header__search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.86rem;
+  height: 100%;
+  font-family: inherit;
+}
+
+.aria-v2-header__search-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* === BODY === */
+.aria-v2-body {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 18px 28px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 0;
+}
+
+.aria-v2-body::-webkit-scrollbar {
+  width: 6px;
+}
+.aria-v2-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.aria-v2-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+.aria-v2-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* === BANNIERE DE SECTION === */
+.aria-v2-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.aria-v2-banner--pour {
+  background: linear-gradient(120deg, #0e3450 0%, #1f5d8a 60%, #2c7faf 100%);
+  color: #fff;
+}
+
+.aria-v2-banner--contre {
+  background: linear-gradient(120deg, #4a1f6b 0%, #6f3aa1 60%, #913fc4 100%);
+  color: #fff;
+}
+
+.aria-v2-banner--other {
+  background: linear-gradient(120deg, #2a3a4f 0%, #4a5b75 100%);
+  color: #fff;
+}
+
+.aria-v2-banner__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.aria-v2-banner__titles {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.aria-v2-banner__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aria-v2-banner__subtitle {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.aria-v2-banner__add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.aria-v2-banner__add-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.aria-v2-banner__add-btn span:first-child {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.aria-v2-banner__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 9px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* === BLOC PARTIE === */
+.aria-v2-partie-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aria-v2-empty {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  font-size: 0.86rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+/* === LIES (avocats / contacts) === */
+.aria-v2-linked {
+  position: relative;
+  margin-left: 18px;
+  padding-left: 14px;
+  border-left: 2px dashed rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aria-v2-linked__label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aria-v2-linked__bar {
+  width: 10px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* === CARTE ENTITE === */
+.aria-v2-card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.aria-v2-card:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.aria-v2-card.is-expanded {
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
+}
+
+/* En-tete : avatar + nom + tags + actions */
+.aria-v2-card__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: #fff;
+  border-bottom: 1px solid transparent;
+}
+
+.aria-v2-card.is-expanded .aria-v2-card__header {
+  border-bottom-color: #eef2f6;
+}
+
+.aria-v2-card__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.aria-v2-card__avatar--pour {
+  background: linear-gradient(135deg, #1a8a4a, #2ecc71);
+}
+
+.aria-v2-card__avatar--contre {
+  background: linear-gradient(135deg, #6b1ea8, #b860ff);
+}
+
+.aria-v2-card__avatar--other {
+  background: linear-gradient(135deg, #4a5b75, #6e85a8);
+}
+
+.aria-v2-card__main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.aria-v2-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.aria-v2-card__name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0c1f33;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.aria-v2-card__pn {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #eef2f6;
+  color: #6b8aa6;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.aria-v2-card__tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.aria-v2-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: #f3f5f8;
+  color: #5b7591;
+  font-size: 0.72rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.aria-v2-tag svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.aria-v2-tag--main {
+  background: rgba(77, 155, 255, 0.14);
+  color: #2a6dca;
+  font-weight: 600;
+  border-color: rgba(77, 155, 255, 0.25);
+}
+
+.aria-v2-tag--main.aria-v2-tag--contre {
+  background: rgba(184, 96, 255, 0.14);
+  color: #7e3cc8;
+  border-color: rgba(184, 96, 255, 0.25);
+}
+
+.aria-v2-tag--country {
+  background: #eef2f6;
+  color: #2c4a6b;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Actions header */
+.aria-v2-card__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.aria-v2-card__action-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #6b8aa6;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.aria-v2-card__action-btn:hover {
+  background: #eef2f6;
+  color: #0c1f33;
+}
+
+/* === BODY DE LA CARTE (groupes) === */
+.aria-v2-card__body {
+  background: #fafbfd;
+  display: flex;
+  flex-direction: column;
+}
+
+.aria-v2-group {
+  border-bottom: 1px solid #eef2f6;
+}
+
+.aria-v2-group:last-child {
+  border-bottom: none;
+}
+
+.aria-v2-group__toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.1s ease;
+  text-align: left;
+}
+
+.aria-v2-group__toggle:hover {
+  background: rgba(77, 155, 255, 0.04);
+}
+
+.aria-v2-group.is-open .aria-v2-group__toggle {
+  background: #eff4f9;
+}
+
+.aria-v2-group__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(46, 204, 113, 0.14);
+  color: #1ca85a;
+  flex-shrink: 0;
+}
+
+.aria-v2-group__title {
+  flex: 1 1 auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4a6280;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aria-v2-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 1.5px solid currentColor;
+}
+
+.aria-v2-score--full {
+  background: rgba(46, 204, 113, 0.12);
+  color: #1ca85a;
+  border-color: rgba(28, 168, 90, 0.5);
+}
+
+.aria-v2-score--partial {
+  background: rgba(255, 187, 51, 0.12);
+  color: #c8851a;
+  border-color: rgba(200, 133, 26, 0.4);
+}
+
+.aria-v2-score--empty {
+  background: rgba(180, 191, 207, 0.18);
+  color: #8090a8;
+  border-color: rgba(128, 144, 168, 0.4);
+}
+
+.aria-v2-score--neutral {
+  background: rgba(77, 155, 255, 0.1);
+  color: #2a6dca;
+  border-color: rgba(77, 155, 255, 0.35);
+}
+
+/* Champs */
+.aria-v2-group__fields {
+  padding: 8px 16px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Personnes a charge */
+.aria-v2-pch-card {
+  background: #f3f6fa;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.aria-v2-pch-card__header-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.aria-v2-pch-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.aria-v2-pch-card__name {
+  flex: 1 1 auto;
+  text-align: left;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #0c1f33;
+}
+
+.aria-v2-pch-card__type {
+  font-size: 0.72rem;
+  color: #6b8aa6;
+}
+
+.aria-v2-pch-card__delete {
+  background: transparent;
+  border: none;
+  border-left: 1px solid #e2e8f0;
+  color: #c43030;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 14px;
+  transition: background-color 0.15s ease;
+}
+
+.aria-v2-pch-card__delete:hover {
+  background: rgba(196, 48, 48, 0.08);
+}
+
+.aria-v2-pch-card__fields {
+  padding: 8px 12px 12px 12px;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.aria-v2-pch-empty {
+  padding: 10px;
+  text-align: center;
+  color: #8090a8;
+  font-style: italic;
+  font-size: 0.82rem;
+}
+
+.aria-v2-pch-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  margin-top: 4px;
+  background: rgba(77, 155, 255, 0.06);
+  color: #2a6dca;
+  border: 1px dashed rgba(77, 155, 255, 0.5);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.aria-v2-pch-add-btn:hover {
+  background: rgba(77, 155, 255, 0.14);
+  border-style: solid;
+}
+
+/* === FOOTER === */
+.aria-v2-footer {
+  flex-shrink: 0;
+  padding: 12px 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.aria-v2-footer__sep {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 760px) {
+  .aria-v2-header,
+  .aria-v2-body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .aria-v2-header__titlerow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .aria-v2-header__search {
+    width: 100%;
+  }
+  .aria-v2-banner__add-btn span:last-child {
+    display: none;
+  }
+  .aria-v2-card__tags {
+    gap: 4px;
+  }
+  .aria-v2-tag {
+    font-size: 0.68rem;
+  }
+}
+
+/* Mode contraste eleve */
+body.high-contrast-mode .aria-v2-view {
+  background: #000;
+}
+body.high-contrast-mode .aria-v2-banner {
+  background: #1a1a1a !important;
+  border: 2px solid yellow;
+}
+body.high-contrast-mode .aria-v2-banner__title,
+body.high-contrast-mode .aria-v2-banner__subtitle,
+body.high-contrast-mode .aria-v2-banner__count,
+body.high-contrast-mode .aria-v2-banner__icon {
+  color: yellow;
+}
+body.high-contrast-mode .aria-v2-card {
+  background: #111;
+  border-color: yellow;
+}
+body.high-contrast-mode .aria-v2-card__header {
+  background: #111;
+}
+body.high-contrast-mode .aria-v2-card__name,
+body.high-contrast-mode .aria-v2-tag,
+body.high-contrast-mode .aria-v2-group__title,
+body.high-contrast-mode .aria-v2-score {
+  color: yellow;
+}
+
+/* ============================================================================
+   AriaPartiesView.css (legacy classes)
+   Conservees pour AriaInlineField et la modale d'ajout PCH (utilisees ailleurs).
+   ============================================================================ */
+
+/* === CONTENEUR PRINCIPAL === */
+.aria-parties-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-6, 24px);
+  overflow-y: auto;
+  flex-grow: 1;
+  min-height: 0;
+  padding: var(--k-space-2, 8px) var(--k-space-1, 4px);
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar custom */
+.aria-parties-view::-webkit-scrollbar {
+  width: 6px;
+}
+.aria-parties-view::-webkit-scrollbar-track {
+  background: var(--k-scroll-track, #f1f1f1);
+  border-radius: 3px;
+}
+.aria-parties-view::-webkit-scrollbar-thumb {
+  background: var(--k-scroll-thumb, #0977a5);
+  border-radius: 3px;
+}
+.aria-parties-view::-webkit-scrollbar-thumb:hover {
+  background: var(--k-scroll-thumb-hover, #555);
+}
+
+/* === SECTION POUR / CONTRE === */
+.aria-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-3, 12px);
+}
+
+.aria-side__header {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-3, 12px);
+  padding: var(--k-space-3, 12px) var(--k-space-4, 16px);
+  border-radius: var(--k-radius-md, 8px);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.aria-side__header--pour {
+  background: linear-gradient(135deg, var(--k-primary-50, #e6f4f9) 0%, var(--k-primary-100, #b3dde9) 100%);
+  border-left: 4px solid var(--k-primary, #0977a5);
+}
+
+.aria-side__header--contre {
+  background: linear-gradient(135deg, var(--k-warning-light, #fff3e0) 0%, #ffe0b2 100%);
+  border-left: 4px solid var(--k-warning, #ff9800);
+}
+
+.aria-side__header--other {
+  background: linear-gradient(135deg, var(--k-gray-100, #f5f5f5) 0%, var(--k-gray-200, #eeeeee) 100%);
+  border-left: 4px solid var(--k-gray-500, #9e9e9e);
+}
+
+.aria-side__title {
+  margin: 0;
+  font-size: var(--k-font-size-md, 1rem);
+  font-weight: var(--k-font-weight-bold, 700);
+  color: var(--k-primary-800, #043a4f);
+  flex-grow: 1;
+}
+
+.aria-side__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 var(--k-space-2, 8px);
+  border-radius: var(--k-radius-full, 9999px);
+  background: var(--k-primary-800, #043a4f);
+  color: white;
+  font-size: var(--k-font-size-xs, 0.75rem);
+  font-weight: var(--k-font-weight-bold, 700);
+}
+
+.aria-side__empty {
+  padding: var(--k-space-4, 16px);
+  color: var(--k-text-muted, #5f6368);
+  font-style: italic;
+  text-align: center;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+}
+
+/* === BLOC PARTIE (contient carte + sous-sections) === */
+.aria-partie-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-2, 8px);
+  padding-left: var(--k-space-3, 12px);
+}
+
+.aria-partie-block__label {
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-semibold, 600);
+  color: var(--k-text-muted, #5f6368);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: var(--k-space-1, 4px) 0;
+}
+
+/* === SECTION LIES (avocats, contacts) === */
+.aria-linked-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-2, 8px);
+  padding-left: var(--k-space-4, 16px);
+  border-left: 2px dashed var(--k-border-light, #e0e0e0);
+  margin-left: var(--k-space-2, 8px);
+}
+
+.aria-linked-section__label {
+  font-size: var(--k-font-size-xs, 0.75rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  color: var(--k-text-secondary, #9aa0a6);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding-top: var(--k-space-1, 4px);
+}
+
+/* === CARTE ENTITE === */
+.aria-card {
+  background: var(--k-bg-white, #ffffff);
+  border-radius: var(--k-radius-md, 8px);
+  box-shadow: var(--k-shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
+  overflow: hidden;
+  transition: box-shadow var(--k-duration-normal, 200ms) var(--k-ease-out),
+              transform var(--k-duration-normal, 200ms) var(--k-ease-out);
+}
+
+.aria-card:hover {
+  box-shadow: var(--k-shadow-md, 0 10px 15px rgba(0,0,0,0.1));
+  transform: translateY(-1px);
+}
+
+/* Variantes de couleur de carte */
+.aria-card--pour {
+  border-left: 3px solid var(--k-primary, #0977a5);
+}
+
+.aria-card--contre {
+  border-left: 3px solid var(--k-warning, #ff9800);
+}
+
+.aria-card--other {
+  border-left: 3px solid var(--k-gray-400, #bdbdbd);
+}
+
+/* En-tete de carte */
+.aria-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-3, 12px);
+  padding: var(--k-space-3, 12px) var(--k-space-4, 16px);
+  border-bottom: 1px solid var(--k-border-light, #e0e0e0);
+}
+
+.aria-card--pour .aria-card__header {
+  background: var(--k-primary-50, #e6f4f9);
+}
+
+.aria-card--contre .aria-card__header {
+  background: var(--k-warning-light, #fff3e0);
+}
+
+.aria-card--other .aria-card__header {
+  background: var(--k-gray-50, #fafafa);
+}
+
+.aria-card__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.aria-card__header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex-grow: 1;
+}
+
+.aria-card__name {
+  font-size: var(--k-font-size-base, 0.875rem);
+  font-weight: var(--k-font-weight-bold, 700);
+  color: var(--k-primary-800, #043a4f);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aria-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.aria-card__role-badge,
+.aria-card__type-badge {
+  display: inline-block;
+  font-size: var(--k-font-size-xs, 0.75rem);
+  padding: 1px var(--k-space-2, 8px);
+  border-radius: var(--k-radius-full, 9999px);
+  font-weight: var(--k-font-weight-medium, 500);
+}
+
+.aria-card__role-badge {
+  background: var(--k-primary-100, #b3dde9);
+  color: var(--k-primary-800, #043a4f);
+}
+
+.aria-card__type-badge {
+  background: var(--k-gray-200, #eeeeee);
+  color: var(--k-text-muted, #5f6368);
+}
+
+/* Corps de la carte (groupes) */
+.aria-card__body {
+  padding: 0;
+}
+
+/* === GROUPE DE CHAMPS (ACCORDEON) === */
+.aria-group {
+  border-bottom: 1px solid var(--k-border-light, #e0e0e0);
+}
+
+.aria-group:last-child {
+  border-bottom: none;
+}
+
+.aria-group__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2, 8px);
+  width: 100%;
+  padding: var(--k-space-2, 8px) var(--k-space-4, 16px);
+  background: var(--k-gray-50, #fafafa);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color var(--k-duration-fast, 100ms) ease;
+}
+
+.aria-group__toggle:hover {
+  background: var(--k-gray-100, #f5f5f5);
+}
+
+.aria-group__chevron {
+  font-size: 0.6rem;
+  color: var(--k-text-muted, #5f6368);
+  width: 12px;
+  text-align: center;
+  transition: transform var(--k-duration-fast, 100ms) ease;
+}
+
+.aria-group__title {
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-semibold, 600);
+  color: var(--k-primary-700, #064963);
+  flex-grow: 1;
+  text-align: left;
+}
+
+.aria-group__count {
+  font-size: var(--k-font-size-xs, 0.75rem);
+  color: var(--k-text-secondary, #9aa0a6);
+  font-weight: var(--k-font-weight-normal, 400);
+}
+
+/* Zone des champs */
+.aria-group__fields {
+  padding: var(--k-space-1, 4px) var(--k-space-4, 16px) var(--k-space-2, 8px);
+}
+
+/* === CHAMP INLINE === */
+.aria-field {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  align-items: center;
+  min-height: 32px;
+  gap: var(--k-space-2, 8px);
+  padding: 2px 0;
+}
+
+@media (max-width: 600px) {
+  .aria-field {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+.aria-field__label {
+  font-size: var(--k-font-size-xs, 0.75rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  color: var(--k-text-muted, #5f6368);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+
+/* Valeur en mode lecture — bordure transparente pour reserver l'espace */
+.aria-field__value {
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  color: var(--k-text-dark, #202124);
+  padding: 3px var(--k-space-2, 8px);
+  border: 2px solid transparent;
+  border-radius: var(--k-radius-sm, 4px);
+  cursor: pointer;
+  transition: border-color var(--k-duration-fast, 100ms) ease,
+              background-color var(--k-duration-fast, 100ms) ease;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  word-break: break-word;
+}
+
+.aria-field__value:hover {
+  border-color: var(--k-primary-200, #80c6da);
+  background-color: var(--k-primary-50, #e6f4f9);
+}
+
+.aria-field__value--empty {
+  color: var(--k-text-secondary, #9aa0a6);
+  font-style: italic;
+}
+
+/* Input en mode edition */
+.aria-field__input-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.aria-field__input,
+.aria-field__select {
+  width: 100%;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-family: inherit;
+  color: var(--k-text-dark, #202124);
+  padding: 3px var(--k-space-2, 8px);
+  border: 2px solid var(--k-primary, #0977a5);
+  border-radius: var(--k-radius-sm, 4px);
+  outline: none;
+  background: var(--k-bg-white, #ffffff);
+  min-height: 28px;
+  box-sizing: border-box;
+  transition: border-color var(--k-duration-fast, 100ms) ease,
+              box-shadow var(--k-duration-fast, 100ms) ease;
+}
+
+.aria-field__input:focus,
+.aria-field__select:focus {
+  border-color: var(--k-primary-500, #0977a5);
+  box-shadow: 0 0 0 3px var(--k-focus-ring-color, rgba(9, 119, 165, 0.25));
+}
+
+/* ----------------------------------------------------------
+   Dropdown custom (remplace <select>) — items role="option"
+   ---------------------------------------------------------- */
+.aria-field__select-popup {
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--k-bg-white, #ffffff);
+  border: 2px solid var(--k-primary, #0977a5);
+  border-radius: var(--k-radius-sm, 4px);
+  padding: 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  outline: none;
+  z-index: 50;
+}
+
+.aria-field__select-option {
+  padding: 6px 10px;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  color: var(--k-text-dark, #202124);
+  cursor: pointer;
+  border-radius: 3px;
+  user-select: none;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+
+.aria-field__select-option:hover,
+.aria-field__select-option--active {
+  background: var(--k-primary, #0977a5);
+  color: #fff;
+}
+
+.aria-field__select-option--none {
+  font-style: italic;
+  color: var(--k-text-medium, #5f6368);
+}
+
+.aria-field__select-option--none:hover,
+.aria-field__select-option--none.aria-field__select-option--active {
+  color: #fff;
+  font-style: italic;
+}
+
+/* Indicateur de sauvegarde */
+.aria-field--saving .aria-field__value {
+  opacity: 0.6;
+}
+
+.aria-field__saving-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--k-primary-200, #80c6da);
+  border-top-color: var(--k-primary, #0977a5);
+  border-radius: 50%;
+  animation: aria-spin 0.6s linear infinite;
+  margin-right: var(--k-space-2, 8px);
+  flex-shrink: 0;
+}
+
+@keyframes aria-spin {
+  to { transform: rotate(360deg); }
+}
+
+
+/* === PERSONNES A CHARGE (mini-cartes dans AriaEntityCard) === */
+.aria-pch-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-2, 8px);
+}
+
+.aria-pch-card {
+  background: var(--k-gray-50, #fafafa);
+  border: 1px solid var(--k-border-light, #e0e0e0);
+  border-radius: var(--k-radius-sm, 4px);
+  overflow: hidden;
+}
+
+.aria-pch-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2, 8px);
+  width: 100%;
+  padding: var(--k-space-2, 8px) var(--k-space-3, 12px);
+  background: var(--k-gray-100, #f5f5f5);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color var(--k-duration-fast, 100ms) ease;
+}
+
+.aria-pch-card__header:hover {
+  background: var(--k-gray-200, #eeeeee);
+}
+
+.aria-pch-card__name {
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-semibold, 600);
+  color: var(--k-primary-700, #064963);
+  flex-grow: 1;
+  text-align: left;
+}
+
+.aria-pch-card__type {
+  font-size: var(--k-font-size-xs, 0.75rem);
+  color: var(--k-text-secondary, #9aa0a6);
+  font-weight: var(--k-font-weight-normal, 400);
+  white-space: nowrap;
+}
+
+.aria-pch-card__fields {
+  padding: var(--k-space-1, 4px) var(--k-space-3, 12px) var(--k-space-2, 8px);
+}
+
+.aria-field--readonly {
+  cursor: default;
+}
+
+.aria-field--readonly .aria-field__value {
+  cursor: default;
+  border-color: transparent;
+}
+
+.aria-field--readonly .aria-field__value:hover {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+/* === Header row : header (clic toggle) + bouton supprimer === */
+.aria-pch-card__header-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.aria-pch-card__header-row .aria-pch-card__header {
+  flex: 1 1 auto;
+}
+
+.aria-pch-card__delete {
+  flex: 0 0 auto;
+  background: var(--k-gray-100, #f5f5f5);
+  color: var(--k-warning, #c62828);
+  border: none;
+  border-left: 1px solid var(--k-border-light, #e0e0e0);
+  cursor: pointer;
+  padding: 0 var(--k-space-3, 12px);
+  font-size: 1.25rem;
+  font-weight: bold;
+  line-height: 1;
+  transition: background-color var(--k-duration-fast, 100ms) ease,
+              color var(--k-duration-fast, 100ms) ease;
+}
+
+.aria-pch-card__delete:hover {
+  background: #ffebee;
+  color: #b71c1c;
+}
+
+/* === Empty state pour le bloc personnes à charge === */
+.aria-pch-empty {
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  color: var(--k-text-secondary, #9aa0a6);
+  font-style: italic;
+  text-align: center;
+  padding: var(--k-space-2, 8px);
+}
+
+/* === Bouton + Ajouter une personne à charge === */
+.aria-pch-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--k-space-1, 4px);
+  padding: var(--k-space-2, 8px) var(--k-space-3, 12px);
+  margin-top: var(--k-space-2, 8px);
+  background: var(--k-primary-50, #e6f4f9);
+  color: var(--k-primary, #0977a5);
+  border: 1px dashed var(--k-primary, #0977a5);
+  border-radius: var(--k-radius-sm, 4px);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-semibold, 600);
+  cursor: pointer;
+  transition: background-color var(--k-duration-fast, 100ms) ease,
+              border-style var(--k-duration-fast, 100ms) ease;
+  font-family: inherit;
+}
+
+.aria-pch-add-btn:hover {
+  background: var(--k-primary-100, #b3dde9);
+  border-style: solid;
+}
+
+/* ============================================================================
+   MODALE D'AJOUT D'UNE PERSONNE À CHARGE (depuis ARIA)
+   ============================================================================ */
+
+.aria-add-pc-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 16000;
+  padding: var(--k-space-4, 16px);
+}
+
+.aria-add-pc-modal {
+  background: var(--k-bg-white, #ffffff);
+  border-radius: var(--k-radius-md, 8px);
+  box-shadow: var(--k-shadow-lg, 0 20px 40px rgba(0,0,0,0.25));
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.aria-add-pc-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--k-space-3, 12px) var(--k-space-4, 16px);
+  border-bottom: 1px solid var(--k-border-light, #e0e0e0);
+}
+
+.aria-add-pc-modal__header h3 {
+  margin: 0;
+  font-size: var(--k-font-size-md, 1rem);
+  font-weight: var(--k-font-weight-bold, 700);
+  color: var(--k-primary-800, #043a4f);
+}
+
+.aria-add-pc-modal__close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--k-text-muted, #5f6368);
+  padding: 0 var(--k-space-2, 8px);
+}
+
+.aria-add-pc-modal__close:hover {
+  color: var(--k-text-dark, #202124);
+}
+
+.aria-add-pc-modal__body {
+  padding: var(--k-space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-3, 12px);
+}
+
+.aria-add-pc-modal__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--k-space-3, 12px);
+}
+
+@media (max-width: 480px) {
+  .aria-add-pc-modal__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.aria-add-pc-modal__row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--k-font-size-xs, 0.75rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  color: var(--k-text-muted, #5f6368);
+}
+
+.aria-add-pc-modal__row input,
+.aria-add-pc-modal__row select {
+  font-family: inherit;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  padding: 6px var(--k-space-2, 8px);
+  border: 1px solid var(--k-border-light, #e0e0e0);
+  border-radius: var(--k-radius-sm, 4px);
+  outline: none;
+  background: var(--k-bg-white, #ffffff);
+  color: var(--k-text-dark, #202124);
+  transition: border-color var(--k-duration-fast, 100ms) ease,
+              box-shadow var(--k-duration-fast, 100ms) ease;
+}
+
+.aria-add-pc-modal__row input:focus,
+.aria-add-pc-modal__row select:focus {
+  border-color: var(--k-primary, #0977a5);
+  box-shadow: 0 0 0 3px var(--k-focus-ring-color, rgba(9, 119, 165, 0.25));
+}
+
+.aria-add-pc-modal__error {
+  background: #ffebee;
+  color: #b71c1c;
+  padding: var(--k-space-2, 8px) var(--k-space-3, 12px);
+  border-radius: var(--k-radius-sm, 4px);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+}
+
+.aria-add-pc-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--k-space-2, 8px);
+  margin-top: var(--k-space-2, 8px);
+}
+
+.aria-add-pc-modal__btn-cancel,
+.aria-add-pc-modal__btn-submit {
+  font-family: inherit;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-semibold, 600);
+  padding: var(--k-space-2, 8px) var(--k-space-4, 16px);
+  border-radius: var(--k-radius-sm, 4px);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color var(--k-duration-fast, 100ms) ease;
+}
+
+.aria-add-pc-modal__btn-cancel {
+  background: transparent;
+  color: var(--k-text-muted, #5f6368);
+  border-color: var(--k-border-light, #e0e0e0);
+}
+
+.aria-add-pc-modal__btn-cancel:hover {
+  background: var(--k-gray-100, #f5f5f5);
+}
+
+.aria-add-pc-modal__btn-submit {
+  background: var(--k-primary, #0977a5);
+  color: white;
+}
+
+.aria-add-pc-modal__btn-submit:hover {
+  background: var(--k-primary-700, #064963);
+}
+
+.aria-add-pc-modal__btn-submit:disabled,
+.aria-add-pc-modal__btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* High contrast */
+body.high-contrast-mode .aria-pch-empty {
+  color: #888;
+}
+
+body.high-contrast-mode .aria-pch-add-btn {
+  background: #0d0d0d;
+  color: yellow;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .aria-pch-add-btn:hover {
+  background: #1a1a1a;
+}
+
+body.high-contrast-mode .aria-pch-card__delete {
+  background: #1a1a1a;
+  color: #ff6b6b;
+  border-left-color: #444;
+}
+
+body.high-contrast-mode .aria-pch-card__delete:hover {
+  background: #2a0000;
+  color: #ff8a8a;
+}
+
+body.high-contrast-mode .aria-add-pc-modal {
+  background: #111;
+  border: 1px solid yellow;
+}
+
+body.high-contrast-mode .aria-add-pc-modal__header {
+  border-bottom-color: #444;
+}
+
+body.high-contrast-mode .aria-add-pc-modal__header h3 {
+  color: yellow;
+}
+
+body.high-contrast-mode .aria-add-pc-modal__close {
+  color: #ccc;
+}
+
+body.high-contrast-mode .aria-add-pc-modal__row label {
+  color: #ccc;
+}
+
+body.high-contrast-mode .aria-add-pc-modal__row input,
+body.high-contrast-mode .aria-add-pc-modal__row select {
+  background: black;
+  color: yellow;
+  border-color: #444;
+}
+
+body.high-contrast-mode .aria-add-pc-modal__row input:focus,
+body.high-contrast-mode .aria-add-pc-modal__row select:focus {
+  border-color: yellow;
+  box-shadow: 0 0 0 3px rgba(255, 255, 0, 0.3);
+}
+
+body.high-contrast-mode .aria-add-pc-modal__btn-cancel {
+  color: #ccc;
+  border-color: #444;
+}
+
+body.high-contrast-mode .aria-add-pc-modal__btn-submit {
+  background: yellow;
+  color: black;
+}
+
+/* ============================================================================
+   MODE CONTRASTE ELEVE
+   ============================================================================ */
+
+body.high-contrast-mode .aria-parties-view {
+  background-color: black;
+}
+
+/* Sections Pour / Contre / Autres */
+body.high-contrast-mode .aria-side__header {
+  background: #1a1a1a !important;
+  border-left-color: yellow !important;
+}
+
+body.high-contrast-mode .aria-side__header--pour,
+body.high-contrast-mode .aria-side__header--contre,
+body.high-contrast-mode .aria-side__header--other {
+  background: #1a1a1a !important;
+  border-left-color: yellow !important;
+}
+
+body.high-contrast-mode .aria-side__title {
+  color: yellow;
+}
+
+body.high-contrast-mode .aria-side__count {
+  background: yellow;
+  color: black;
+}
+
+body.high-contrast-mode .aria-side__empty {
+  color: #ccc;
+}
+
+/* Carte */
+body.high-contrast-mode .aria-card {
+  background: #111;
+  border-color: yellow;
+  box-shadow: none;
+}
+
+body.high-contrast-mode .aria-card--pour,
+body.high-contrast-mode .aria-card--contre,
+body.high-contrast-mode .aria-card--other {
+  border-left-color: yellow;
+}
+
+body.high-contrast-mode .aria-card__header {
+  background: #1a1a1a !important;
+  border-bottom-color: yellow;
+}
+
+body.high-contrast-mode .aria-card__name {
+  color: yellow;
+}
+
+body.high-contrast-mode .aria-card__role-badge {
+  background: yellow;
+  color: black;
+}
+
+body.high-contrast-mode .aria-card__type-badge {
+  background: #333;
+  color: #ccc;
+}
+
+/* Groupe */
+body.high-contrast-mode .aria-group {
+  border-bottom-color: #444;
+}
+
+body.high-contrast-mode .aria-group__toggle {
+  background: #0d0d0d;
+}
+
+body.high-contrast-mode .aria-group__toggle:hover {
+  background: #222;
+}
+
+body.high-contrast-mode .aria-group__title {
+  color: yellow;
+}
+
+body.high-contrast-mode .aria-group__chevron {
+  color: yellow;
+}
+
+body.high-contrast-mode .aria-group__count {
+  color: #aaa;
+}
+
+/* Champs */
+body.high-contrast-mode .aria-field__label {
+  color: #ccc;
+}
+
+body.high-contrast-mode .aria-field__value {
+  color: white;
+  border-color: transparent;
+}
+
+body.high-contrast-mode .aria-field__value:hover {
+  border-color: yellow;
+  background-color: #1a1a1a;
+}
+
+body.high-contrast-mode .aria-field__value--empty {
+  color: #666;
+}
+
+body.high-contrast-mode .aria-field__input,
+body.high-contrast-mode .aria-field__select {
+  background: black;
+  color: yellow;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .aria-field__input:focus,
+body.high-contrast-mode .aria-field__select:focus {
+  box-shadow: 0 0 0 3px rgba(255, 255, 0, 0.3);
+}
+
+body.high-contrast-mode .aria-field__saving-indicator {
+  border-color: #555;
+  border-top-color: yellow;
+}
+
+/* Liens et sections liees */
+body.high-contrast-mode .aria-linked-section {
+  border-left-color: #444;
+}
+
+body.high-contrast-mode .aria-linked-section__label {
+  color: #888;
+}
+
+body.high-contrast-mode .aria-partie-block__label {
+  color: #aaa;
+}
+
+/* Personnes a charge */
+body.high-contrast-mode .aria-pch-card {
+  background: #111;
+  border-color: #444;
+}
+
+body.high-contrast-mode .aria-pch-card__header {
+  background: #1a1a1a;
+}
+
+body.high-contrast-mode .aria-pch-card__header:hover {
+  background: #222;
+}
+
+body.high-contrast-mode .aria-pch-card__name {
+  color: yellow;
+}
+
+body.high-contrast-mode .aria-pch-card__type {
+  color: #888;
+}
+
+/* Scrollbar */
+body.high-contrast-mode .aria-parties-view::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+body.high-contrast-mode .aria-parties-view::-webkit-scrollbar-thumb {
+  background: yellow;
+}
+
+/* ----------------------------------------------------------
+   Dropdown custom — mode malvoyant (jaune sur noir)
+   ---------------------------------------------------------- */
+body.high-contrast-mode .aria-field__select-popup {
+  background: #000 !important;
+  border: 2px solid #FFE500 !important;
+  box-shadow: 0 0 18px rgba(255, 229, 0, 0.45) !important;
+}
+
+body.high-contrast-mode .aria-field__select-option {
+  color: #FFE500 !important;
+  background: #000 !important;
+  font-weight: 600 !important;
+}
+
+body.high-contrast-mode .aria-field__select-option:hover,
+body.high-contrast-mode .aria-field__select-option--active {
+  background: #FFE500 !important;
+  color: #000 !important;
+}
+
+body.high-contrast-mode .aria-field__select-option--none {
+  color: rgba(255, 229, 0, 0.7) !important;
+}
+
+body.high-contrast-mode .aria-field__select-option--none:hover,
+body.high-contrast-mode .aria-field__select-option--none.aria-field__select-option--active {
+  color: #000 !important;
+  background: #FFE500 !important;
+}
+
+body.high-contrast-mode .aria-field__select-popup::-webkit-scrollbar {
+  width: 6px;
+}
+
+body.high-contrast-mode .aria-field__select-popup::-webkit-scrollbar-track {
+  background: #000;
+}
+
+body.high-contrast-mode .aria-field__select-popup::-webkit-scrollbar-thumb {
+  background: #FFE500;
+  border-radius: 3px;
+}

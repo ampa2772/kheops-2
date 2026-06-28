@@ -1,0 +1,253 @@
+/* ==========================================================
+   DossiersListe — Navy gradient context (tokens k2-*)
+   Cartes individuelles avec relief
+   ========================================================== */
+
+.dossierListe-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--k-text-muted, #5f6368);
+  font-size: var(--k-font-size-base, 0.875rem);
+  font-style: italic;
+}
+
+.dossierItemContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  color: #ffffff;
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-sm, 13px);
+  gap: var(--k2-space-2, 8px);
+  padding: clamp(12px, 2.5vw, var(--k2-space-5, 20px));
+  cursor: pointer;
+  background-color: rgba(25, 45, 75, 0.75);
+  margin: 0;
+  border-radius: var(--k2-radius-lg, 12px);
+  min-height: 56px;
+  min-width: 0;
+  transition: background-color 150ms ease,
+              box-shadow 150ms ease,
+              transform 150ms ease;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.dossier-type-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 2px 8px;
+  border-radius: var(--k2-radius-md, 6px);
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.dossierItemContainer:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  transform: translateY(-2px);
+}
+
+/* ─── Couleurs par type de tribunal ───
+   Chaque classe utilise une variable CSS dont la valeur peut être surchargée
+   sur :root par les préférences utilisateur (onglet Paramètres → Couleurs).
+   Le fallback est la couleur historique. Le hover réduit légèrement la
+   luminosité via un overlay CSS pour rester lisible quelle que soit la
+   couleur choisie. */
+
+.dossier-color-tgi        { background-color: var(--dossier-color-tgi, #2563eb); }
+.dossier-color-tco        { background-color: var(--dossier-color-tco, #0d9488); }
+.dossier-color-cph        { background-color: var(--dossier-color-cph, #d97706); }
+.dossier-color-ta         { background-color: var(--dossier-color-ta, #7c3aed); }
+.dossier-color-cass       { background-color: var(--dossier-color-cass, #dc2626); }
+.dossier-color-ccd        { background-color: var(--dossier-color-ccd, #be185d); }
+.dossier-color-te         { background-color: var(--dossier-color-te, #0891b2); }
+.dossier-color-tprx       { background-color: var(--dossier-color-tprx, #059669); }
+.dossier-color-ca         { background-color: var(--dossier-color-ca, #c2410c); }
+.dossier-color-caa        { background-color: var(--dossier-color-caa, #4f46e5); }
+.dossier-color-cdad       { background-color: var(--dossier-color-cdad, #0284c7); }
+.dossier-color-tbrtj      { background-color: var(--dossier-color-tbrtj, #65a30d); }
+.dossier-color-divorce-cm { background-color: var(--dossier-color-divorce-cm, #a21caf); }
+.dossier-color-default    { background-color: var(--dossier-color-default, rgba(25, 45, 75, 0.75)); }
+
+/* Hover : assombrissement léger via un overlay box-shadow inset
+   (fonctionne quelle que soit la couleur de fond, même custom). */
+.dossier-color-tgi:hover,
+.dossier-color-tco:hover,
+.dossier-color-cph:hover,
+.dossier-color-ta:hover,
+.dossier-color-cass:hover,
+.dossier-color-ccd:hover,
+.dossier-color-te:hover,
+.dossier-color-tprx:hover,
+.dossier-color-ca:hover,
+.dossier-color-caa:hover,
+.dossier-color-cdad:hover,
+.dossier-color-tbrtj:hover,
+.dossier-color-divorce-cm:hover,
+.dossier-color-default:hover {
+  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.12);
+}
+
+.nomDossierItem {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-grow: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.partie-pour {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: var(--k2-font-weight-bold, 700);
+  color: #ffffff;
+  font-size: var(--k2-font-size-md, 16px);
+  line-height: 1.3;
+}
+
+.partie-contre {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: var(--k2-font-weight-medium, 500);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: var(--k2-font-size-sm, 13px);
+}
+
+/* ─── Bouton trois points ─── */
+.dossier-three-dots-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.dossier-three-dots-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+/* ─── Menu dropdown ─── */
+.dossier-dropdown-menu {
+  z-index: 10000;
+  background-color: rgba(20, 30, 50, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  min-width: 140px;
+  animation: dossierDropdownFadeIn 0.15s ease;
+}
+
+@keyframes dossierDropdownFadeIn {
+  from { opacity: 0; transform: translateX(-100%) translateY(-4px); }
+  to   { opacity: 1; transform: translateX(-100%) translateY(0); }
+}
+
+.dossier-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-sm, 13px);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.dossier-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dossier-dropdown-item--delete {
+  color: #ff6b6b;
+}
+
+.dossier-dropdown-item--delete:hover {
+  background-color: rgba(255, 77, 77, 0.15);
+}
+
+/* Scrollbar */
+.DossierListe::-webkit-scrollbar { width: 4px; }
+.DossierListe::-webkit-scrollbar-track { background: transparent; }
+.DossierListe::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+.DossierListe::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ─── HIGH-CONTRAST ─── */
+body.high-contrast-mode .dossierItemContainer {
+  background-color: #000 !important;
+  color: yellow;
+  border: 2px solid rgba(255, 255, 0, 0.5);
+  box-shadow: none;
+}
+
+body.high-contrast-mode .dossierItemContainer:hover {
+  background-color: rgba(255, 255, 0, 0.08) !important;
+  box-shadow: none;
+  transform: none;
+}
+
+body.high-contrast-mode .partie-pour,
+body.high-contrast-mode .partie-contre {
+  color: yellow;
+}
+
+body.high-contrast-mode .dossier-three-dots-btn {
+  color: yellow;
+}
+
+body.high-contrast-mode .dossier-three-dots-btn:hover {
+  background-color: rgba(255, 255, 0, 0.15);
+}
+
+body.high-contrast-mode .dossier-dropdown-menu {
+  background-color: #000;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .dossier-dropdown-item {
+  color: yellow;
+}
+
+body.high-contrast-mode .dossier-dropdown-item:hover {
+  background-color: rgba(255, 255, 0, 0.15);
+}
+
+body.high-contrast-mode .dossier-type-badge {
+  background: transparent;
+  border: 1px solid yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .dossier-dropdown-item--delete {
+  color: #ff6b6b;
+}

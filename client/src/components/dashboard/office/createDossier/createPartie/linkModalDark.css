@@ -1,0 +1,624 @@
+/* ============================================================
+ * linkModalDark.css — Refonte dark navy de la modale d'ajout
+ * de contacts/avocats liés à une partie (rc66).
+ *
+ * Cible : NewModal qui rend LinkModalContent. Surcharge tous les
+ * styles via !important quand nécessaire pour gagner sur le
+ * styles.css legacy.
+ * ============================================================ */
+
+/* Variables locales dark navy */
+.modal-overlay-partieLink {
+  --kdn-bg-deep: #0a1828;
+  --kdn-bg-surface: rgba(15, 32, 56, 0.7);
+  --kdn-input-bg: rgba(8, 22, 42, 0.65);
+  --kdn-input-border: rgba(120, 180, 240, 0.18);
+  --kdn-input-border-focus: #4dc9ff;
+  --kdn-text-primary: #e8f1ff;
+  --kdn-text-secondary: rgba(195, 215, 240, 0.85);
+  --kdn-text-muted: rgba(165, 195, 230, 0.72);
+  --kdn-accent: #4dc9ff;
+  background: rgba(5, 12, 24, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+.modal-overlay-partieLink .modal-content-partie-link {
+  background:
+    radial-gradient(ellipse at top left, rgba(45, 80, 130, 0.35) 0%, transparent 55%),
+    linear-gradient(160deg, #0a1828 0%, #0d2138 55%, #0a1c34 100%) !important;
+  border: 1px solid rgba(120, 180, 240, 0.18) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.55) !important;
+  color: var(--kdn-text-primary) !important;
+  padding: 1.4rem 1.4rem 1.2rem !important;
+}
+
+/* Titres "Avocats liés..." / "Contacts liés..." */
+.modal-overlay-partieLink .modal-content-partie-link .listeAvocats,
+.modal-overlay-partieLink .modal-content-partie-link .contacts_deja_lies > div:first-child {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.55rem !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: #7dd3fc !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0.5rem 0 !important;
+  margin-bottom: 0.4rem !important;
+}
+
+/* Icône AVOCATS LIÉS : bonhomme avec cravate (plaidant) en pastille teal */
+.modal-overlay-partieLink .modal-content-partie-link .listeAvocats::before {
+  content: '';
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237dd3fc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='4'/><path d='M4 21c0-4.5 3.5-7 8-7s8 2.5 8 7'/><path d='M10 12l2 4 2-4'/><path d='M11 12h2'/></svg>") center/17px no-repeat,
+    rgba(77, 201, 255, 0.14);
+  border: 1px solid rgba(77, 201, 255, 0.32);
+  flex-shrink: 0;
+}
+
+/* Icône CONTACTS LIÉS : groupe de personnes en pastille teal */
+.modal-overlay-partieLink .modal-content-partie-link .contacts_deja_lies > div:first-child::before {
+  content: '';
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237dd3fc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/></svg>") center/16px no-repeat,
+    rgba(77, 201, 255, 0.14);
+  border: 1px solid rgba(77, 201, 255, 0.32);
+  flex-shrink: 0;
+}
+
+/* Cards Linked Avocat — rc71 : height: auto + min-height 56px
+   pour donner ≥2px de marge interne aux icônes 32px (plaidant/
+   postulant) et 28px (initiales). Neutralise le legacy
+   `.linkedContact, .linkedAvocat { height: 28px; box-sizing: border-box; }`
+   qui tronquait visuellement les icônes (rc70 et avant). */
+.modal-overlay-partieLink .linkedAvocat {
+  background: rgba(15, 32, 56, 0.85) !important;
+  border: 1px solid rgba(120, 180, 240, 0.18) !important;
+  border-radius: 11px !important;
+  padding: 0.65rem 0.85rem !important;
+  margin-bottom: 0.55rem !important;
+  color: var(--kdn-text-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.8rem !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  height: auto !important;
+  min-height: 50px !important;
+}
+
+.modal-overlay-partieLink .linkedAvocat:hover {
+  border-color: rgba(77, 201, 255, 0.4) !important;
+}
+
+.modal-overlay-partieLink .identiteAvocat {
+  flex: 1 !important;
+  color: var(--kdn-text-primary) !important;
+  font-weight: 600 !important;
+  font-size: 0.92rem !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+/* Badge "Avocat" vert à côté du nom — via pseudo-element */
+.modal-overlay-partieLink .identiteAvocat::after {
+  content: 'Avocat';
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(16, 185, 129, 0.16);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  border-radius: 5px;
+}
+
+/* Container des icônes (role) à droite */
+.modal-overlay-partieLink .linkedAvocat .role {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Icônes plaidant/postulant : carrés sombres avec icône blanche */
+.modal-overlay-partieLink .linkedAvocat .plaidant,
+.modal-overlay-partieLink .linkedAvocat .postulant {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 7px !important;
+  background: rgba(8, 22, 42, 0.8) !important;
+  border: 1px solid rgba(120, 180, 240, 0.2) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  padding: 0 !important;
+  margin: 0 !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Empêche les <img> internes d'intercepter le clic — l'event remonte au div parent */
+.modal-overlay-partieLink .linkedAvocat .plaidant img,
+.modal-overlay-partieLink .linkedAvocat .postulant img {
+  pointer-events: none !important;
+}
+
+.modal-overlay-partieLink .linkedAvocat .plaidant:hover,
+.modal-overlay-partieLink .linkedAvocat .postulant:hover {
+  background: rgba(20, 42, 72, 0.95) !important;
+  border-color: rgba(120, 180, 240, 0.4) !important;
+}
+
+.modal-overlay-partieLink .linkedAvocat .plaidant.selection,
+.modal-overlay-partieLink .linkedAvocat .postulant.selection {
+  background: linear-gradient(135deg, rgba(77, 201, 255, 0.95), rgba(37, 99, 235, 0.85)) !important;
+  border-color: rgba(77, 201, 255, 0.65) !important;
+  box-shadow: 0 0 0 1px rgba(77, 201, 255, 0.35),
+              0 6px 14px rgba(77, 201, 255, 0.22);
+}
+
+.modal-overlay-partieLink .linkedAvocat .plaidant img,
+.modal-overlay-partieLink .linkedAvocat .postulant img {
+  width: 16px !important;
+  height: 16px !important;
+  filter: brightness(0) saturate(100%) invert(85%) sepia(15%) saturate(316%) hue-rotate(180deg) brightness(100%);
+}
+
+.modal-overlay-partieLink .linkedAvocat .plaidant.selection img,
+.modal-overlay-partieLink .linkedAvocat .postulant.selection img {
+  filter: brightness(0) saturate(100%) invert(8%) sepia(40%) saturate(2174%) hue-rotate(199deg) brightness(94%);
+}
+
+/* Modif / Supprimer */
+.modal-overlay-partieLink .modif-suppr-options {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  background: transparent !important;
+}
+
+.modal-overlay-partieLink .modifLinkContact,
+.modal-overlay-partieLink .deleteLinkContact {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 7px !important;
+  background: rgba(8, 22, 42, 0.8) !important;
+  border: 1px solid rgba(120, 180, 240, 0.2) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease;
+  padding: 0 !important;
+}
+
+.modal-overlay-partieLink .modifLinkContact:hover {
+  background: rgba(77, 201, 255, 0.18) !important;
+  border-color: rgba(77, 201, 255, 0.45) !important;
+}
+
+.modal-overlay-partieLink .deleteLinkContact:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+}
+
+.modal-overlay-partieLink .modifLinkContact img,
+.modal-overlay-partieLink .deleteLinkContact img {
+  width: 14px !important;
+  height: 14px !important;
+  filter: brightness(0) saturate(100%) invert(85%) sepia(15%) saturate(316%) hue-rotate(180deg) brightness(100%);
+}
+
+/* ─── Contacts liés ────────────────────────────────────────── */
+.modal-overlay-partieLink .contacts_deja_lies {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin-top: 0.7rem !important;
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.modal-overlay-partieLink .linkedContactsList {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.4rem !important;
+  background: transparent !important;
+  padding: 0 !important;
+  overflow-y: visible !important;
+  max-height: none !important;
+}
+
+/* Active le scroll UNIQUEMENT à partir de 6 contacts ou plus
+   (5 visibles confortablement, scroll au 6e) */
+.modal-overlay-partieLink .linkedContactsList:has(> :nth-child(6)) {
+  max-height: 320px !important;
+  overflow-y: auto !important;
+  padding-right: 4px !important;
+}
+
+/* Tous les enfants de linkedContactsList (cards contact / avocat) — rc71 :
+   min-height 56px pour cohérence visuelle entre cards avocat (icônes 32px)
+   et cards contact (initiales 28px). */
+.modal-overlay-partieLink .linkedContactsList > div,
+.modal-overlay-partieLink .linkedContactsList > * {
+  background: rgba(15, 32, 56, 0.85) !important;
+  border: 1px solid rgba(120, 180, 240, 0.18) !important;
+  border-radius: 11px !important;
+  padding: 0.6rem 0.8rem !important;
+  color: var(--kdn-text-primary) !important;
+  min-height: 50px !important;
+}
+
+/* Centrage du contenu pour les contacts (wrapper container_initialesOptions
+   + linkedContact). Force l'alignement vertical centre + flex row. */
+.modal-overlay-partieLink .linkedContactsList .container_initialesOptions {
+  display: flex !important;
+  align-items: center !important;
+  width: 100%;
+}
+
+.modal-overlay-partieLink .linkedContactsList .linkedContact {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.6rem !important;
+  flex: 1 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  height: auto !important;       /* rc71 : neutralise le legacy height: 28px */
+  min-height: 36px !important;
+}
+
+.modal-overlay-partieLink .linkedContactsList .linkedContactName {
+  flex: 1 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: var(--kdn-text-primary) !important;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.modal-overlay-partieLink .linkedContactsList .OptionsLinkedContact {
+  display: flex !important;
+  align-items: center !important;
+  flex-shrink: 0;
+}
+
+.modal-overlay-partieLink .linkedContactsList .initials-icon_linkedContact {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(120, 180, 240, 0.18) !important;
+  color: var(--kdn-text-primary) !important;
+  font-weight: 700 !important;
+  font-size: 0.72rem !important;
+  cursor: pointer;
+}
+
+/* ─── Champ de recherche "Ajouter un contact lié" ──────────── */
+.modal-overlay-partieLink .ajoutContactAPartie,
+.modal-overlay-partieLink .ajoutAvocatAPartie {
+  color: var(--kdn-text-secondary) !important;
+  font-size: 0.88rem !important;
+  margin: 1rem 0 0.45rem !important;
+  background: transparent !important;
+}
+
+/* Container de l'input recherche */
+.modal-overlay-partieLink .container_form_nom_partie {
+  background: var(--kdn-bg-surface) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(120, 180, 240, 0.14) !important;
+  border-radius: 12px !important;
+  padding: 0.6rem 0.8rem !important;
+  position: relative !important;
+}
+
+.modal-overlay-partieLink .inputNomPartie {
+  background: var(--kdn-input-bg) !important;
+  border: 1px solid var(--kdn-input-border) !important;
+  color: var(--kdn-text-primary) !important;
+  border-radius: 8px !important;
+  padding: 0.55rem 3rem 0.55rem 2.4rem !important;
+  font-size: 0.9rem !important;
+  font-family: inherit !important;
+  width: 100% !important;
+  height: 40px !important;            /* rc71 : 32→40px pour équilibre avec cards 50px */
+  min-height: 40px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgb(165,195,230)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><path d='m20 20-3.5-3.5'/></svg>") !important;
+  background-repeat: no-repeat !important;
+  background-position: 0.7rem center !important;
+  background-size: 16px 16px !important;
+}
+
+.modal-overlay-partieLink .inputNomPartie::placeholder {
+  color: var(--kdn-text-muted) !important;
+}
+
+.modal-overlay-partieLink .inputNomPartie:focus {
+  border-color: var(--kdn-input-border-focus) !important;
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.15) !important;
+}
+
+/* Bouton "+" création de contact */
+.modal-overlay-partieLink .creerContactLinkPartie,
+.modal-overlay-partieLink .optionsInput,
+.modal-overlay-partieLink .optionsInputEdit {
+  position: absolute !important;
+  right: 1rem !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border: 1px solid rgba(16, 185, 129, 0.6) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.modal-overlay-partieLink .creerContactLinkPartie:hover,
+.modal-overlay-partieLink .optionsInput:hover,
+.modal-overlay-partieLink .optionsInputEdit:hover {
+  filter: brightness(1.08);
+}
+
+.modal-overlay-partieLink .creerContactLinkPartie img,
+.modal-overlay-partieLink .CreerPartie img {
+  width: 14px !important;
+  height: 14px !important;
+  filter: brightness(0) saturate(100%) invert(100%);
+}
+
+.modal-overlay-partieLink .CreerPartie {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border: none !important;
+}
+
+/* ─── Wrapper input+bouton+liste (rc71) ────────────────────── */
+/* Le legacy DocumentsStockes/styles.css force .inputWithCreerPartie
+   en display:flex row, ce qui plaque la liste de suggestions À CÔTÉ
+   de l'input. On le passe en column pour empiler input puis liste. */
+.modal-overlay-partieLink .inputWithCreerPartie {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  position: relative !important;
+  width: 100% !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+/* L'input prend toute la largeur du wrapper */
+.modal-overlay-partieLink .inputWithCreerPartie > .inputNomPartie {
+  width: 100% !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+}
+
+/* Bouton "+ créer contact" reste à droite, centré verticalement sur
+   l'input (1ère ligne du flex column = hauteur de l'input 40px en rc71).
+   Anciennement top:50% du wrapper = trop bas après ajout de la liste. */
+.modal-overlay-partieLink .CreerContactLinkPartie {
+  position: absolute !important;
+  top: 20px !important;
+  right: 0.5rem !important;
+  transform: translateY(-50%) !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 7px !important;
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border: 1px solid rgba(16, 185, 129, 0.6) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  z-index: 2 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.modal-overlay-partieLink .CreerContactLinkPartie:hover {
+  filter: brightness(1.08);
+}
+
+.modal-overlay-partieLink .CreerContactLinkPartie img {
+  width: 12px !important;
+  height: 12px !important;
+  filter: brightness(0) saturate(100%) invert(100%) !important;
+}
+
+/* ─── Suggestions du carnet (rc70/rc71) ────────────────────── */
+/* Container inline sous le champ recherche (pas en overlay flottant).
+   max-height: none neutralise la règle legacy 125px qui plafonnait
+   la liste — le scroll est délégué au .k-link-suggest-body. */
+.modal-overlay-partieLink .k-link-suggest-list,
+.modal-overlay-partieLink .liste_contacts_form_partie {
+  background: rgba(8, 22, 42, 0.55) !important;
+  border: 1px solid rgba(120, 180, 240, 0.16) !important;
+  border-radius: 12px !important;
+  margin-top: 0.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: visible !important;
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  max-height: none !important;
+  flex: 0 0 auto !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  pointer-events: auto !important;
+  z-index: auto !important;
+}
+
+/* Header SUGGESTIONS DU CARNET · N résultats */
+.modal-overlay-partieLink .k-link-suggest-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.7rem !important;
+  padding: 0.55rem 0.85rem !important;
+  border-bottom: 1px solid rgba(120, 180, 240, 0.1) !important;
+  background: rgba(8, 22, 42, 0.65) !important;
+}
+
+.modal-overlay-partieLink .k-link-suggest-head-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #7dd3fc;
+  text-transform: uppercase;
+}
+
+.modal-overlay-partieLink .k-link-suggest-head-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7dd3fc;
+  box-shadow: 0 0 6px rgba(125, 211, 252, 0.55);
+  flex-shrink: 0;
+}
+
+.modal-overlay-partieLink .k-link-suggest-head-count {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--kdn-text-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-feature-settings: "tnum";
+}
+
+/* Body : scroll vertical UNIQUEMENT à partir de 4 items (rc71).
+   ≤ 3 items → tout affiché, modale grandit symétriquement.
+   ≥ 4 items → max-height ≈ 3 items, scroll interne. */
+.modal-overlay-partieLink .k-link-suggest-body {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0.35rem !important;
+  gap: 0.3rem !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
+/* Scroll interne à partir de 4 items (3 visibles confortablement) */
+.modal-overlay-partieLink .k-link-suggest-body:has(> :nth-child(4)) {
+  max-height: 150px !important;
+  overflow-y: auto !important;
+  padding-right: 6px !important;
+}
+
+/* Items de suggestion — format compact */
+.modal-overlay-partieLink .k-link-suggest-item,
+.modal-overlay-partieLink .itemContact {
+  background: rgba(15, 32, 56, 0.85) !important;
+  border: 1px solid rgba(120, 180, 240, 0.12) !important;
+  color: var(--kdn-text-primary) !important;
+  border-radius: 8px !important;
+  padding: 0.45rem 0.7rem !important;
+  cursor: pointer !important;
+  font-size: 0.88rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.6rem !important;
+  transition: background 0.12s ease, border-color 0.12s ease;
+  min-height: 36px;
+}
+
+.modal-overlay-partieLink .k-link-suggest-item:hover,
+.modal-overlay-partieLink .k-link-suggest-item.is-active,
+.modal-overlay-partieLink .itemContact:hover,
+.modal-overlay-partieLink .itemContact.is-active {
+  background: rgba(77, 201, 255, 0.12) !important;
+  border-color: rgba(77, 201, 255, 0.4) !important;
+}
+
+/* Badge initiales coloré à gauche de chaque item */
+.modal-overlay-partieLink .k-link-suggest-avatar {
+  width: 28px;
+  height: 22px;
+  border-radius: 5px;
+  background: rgba(77, 201, 255, 0.18);
+  border: 1px solid rgba(77, 201, 255, 0.35);
+  color: #7dd3fc;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+.modal-overlay-partieLink .k-link-suggest-name {
+  flex: 1;
+  font-size: 0.88rem;
+  line-height: 1.3;
+  color: var(--kdn-text-primary);
+}
+
+/* Surlignage de la lettre/string tapée */
+.modal-overlay-partieLink .k-link-suggest-hl {
+  background: rgba(251, 191, 36, 0.32);
+  color: #fef3c7;
+  padding: 0 0.1rem;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+/* La modale ne doit pas scroller au global : seul le body de la modale
+   peut scroller si le contenu est trop grand. Les sections internes ont
+   leur propre scroll au besoin. */
+.modal-overlay-partieLink .modal-content-partie-link {
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+}

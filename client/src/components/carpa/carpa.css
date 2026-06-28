@@ -1,0 +1,808 @@
+/* client/src/components/carpa/carpa.css
+ *
+ * Styles dedies du module CARPA. Tous prefixes en .k-carpa-* pour eviter
+ * les collisions avec l'existant. Couleurs alignees sur la palette de
+ * l'app (bleu nuit du chat, accents oranges premium).
+ */
+
+/* ============================================================
+ * Conteneurs principaux
+ * ============================================================ */
+.k-carpa-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  font-family: inherit;
+  color: #1f2937;
+  box-sizing: border-box;
+}
+
+.k-carpa-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.k-carpa-section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  margin: 0 0 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.k-carpa-section-subtitle {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: -0.4rem 0 0.75rem 0;
+}
+
+/* ============================================================
+ * Tableau de totaux (cartes)
+ * ============================================================ */
+.k-carpa-totaux-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.k-carpa-totaux-card {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  color: #fff;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.k-carpa-totaux-card.alt {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.k-carpa-totaux-card.warn {
+  background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
+}
+
+.k-carpa-totaux-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+.k-carpa-totaux-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.k-carpa-totaux-sub {
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+/* ============================================================
+ * Pastilles d'etat
+ * ============================================================ */
+.k-carpa-pastille {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.k-carpa-etat-brouillon { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
+.k-carpa-etat-attention { background: #fef3c7; color: #92400e; border-color: #f59e0b; }
+.k-carpa-etat-progres   { background: #dbeafe; color: #1e40af; border-color: #60a5fa; }
+.k-carpa-etat-ok        { background: #d1fae5; color: #065f46; border-color: #34d399; }
+.k-carpa-etat-bloque    { background: #fee2e2; color: #991b1b; border-color: #f87171; }
+.k-carpa-etat-annule    { background: #f3f4f6; color: #6b7280; border-color: #9ca3af; text-decoration: line-through; }
+.k-carpa-etat-default   { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
+
+.k-carpa-pastille-sens-entree { background: #ecfdf5; color: #065f46; border-color: #10b981; }
+.k-carpa-pastille-sens-sortie { background: #fff7ed; color: #9a3412; border-color: #f97316; }
+
+/* ============================================================
+ * Tableau d'operations
+ * ============================================================ */
+.k-carpa-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.k-carpa-table thead th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.k-carpa-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.k-carpa-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.k-carpa-table td {
+  padding: 0.65rem 0.5rem;
+  vertical-align: middle;
+}
+
+.k-carpa-table .col-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.k-carpa-empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem 1rem;
+  font-style: italic;
+}
+
+/* ============================================================
+ * Bloc "operation card" (utilise dans le dashboard groupes)
+ * ============================================================ */
+.k-carpa-op-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  align-items: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.k-carpa-op-card:hover {
+  border-color: #93c5fd;
+  background: #f0f7ff;
+}
+
+.k-carpa-op-card .meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.k-carpa-op-card .meta-line {
+  display: flex;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #4b5563;
+  align-items: center;
+}
+
+.k-carpa-op-card .montant {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-carpa-op-card .montant.entree { color: #047857; }
+.k-carpa-op-card .montant.sortie { color: #c2410c; }
+
+/* ============================================================
+ * Beneficiaire group
+ * ============================================================ */
+.k-carpa-benef-group {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+  background: #fff;
+  overflow: hidden;
+}
+
+.k-carpa-benef-header {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  align-items: center;
+}
+
+.k-carpa-benef-header:hover {
+  background: #f3f4f6;
+}
+
+.k-carpa-benef-name {
+  font-weight: 600;
+  color: #1e3a8a;
+  font-size: 0.95rem;
+}
+
+.k-carpa-benef-summary {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.k-carpa-benef-balance {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e40af;
+  text-align: right;
+}
+
+.k-carpa-benef-content {
+  padding: 0.6rem 0.85rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.k-carpa-benef-collapsed {
+  display: none;
+}
+
+/* ============================================================
+ * Alertes
+ * ============================================================ */
+.k-carpa-alertes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.k-carpa-alerte {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.k-carpa-alerte-critique {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.k-carpa-alerte-attention {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.k-carpa-alerte-info {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
+.k-carpa-alerte-icon {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.k-carpa-alerte-conseil {
+  font-size: 0.74rem;
+  opacity: 0.85;
+  margin-top: 0.15rem;
+}
+
+/* ============================================================
+ * Boutons
+ * ============================================================ */
+.k-carpa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.k-carpa-btn-primary {
+  background: #1e40af;
+  color: #fff;
+  border-color: #1e40af;
+}
+
+.k-carpa-btn-primary:hover { background: #1e3a8a; border-color: #1e3a8a; }
+.k-carpa-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.k-carpa-btn-secondary {
+  background: #fff;
+  color: #1e40af;
+  border-color: #c7d2fe;
+}
+
+.k-carpa-btn-secondary:hover { background: #eef2ff; }
+
+.k-carpa-btn-ghost {
+  background: transparent;
+  color: #4b5563;
+  border-color: transparent;
+}
+
+.k-carpa-btn-ghost:hover { background: #f3f4f6; }
+
+.k-carpa-btn-danger {
+  background: #fff;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+.k-carpa-btn-danger:hover { background: #fee2e2; }
+
+.k-carpa-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.k-carpa-toolbar .filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+ * Modale operation
+ * ============================================================ */
+.k-carpa-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 9000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 3rem 1rem 1rem;
+  overflow: auto;
+}
+
+.k-carpa-modal {
+  background: #fff;
+  border-radius: 14px;
+  width: min(820px, 100%);
+  max-height: calc(100vh - 4rem);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+}
+
+.k-carpa-modal-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #1e3a8a, #1e40af);
+  color: #fff;
+}
+
+.k-carpa-modal-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.k-carpa-modal-close {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.k-carpa-modal-close:hover { background: rgba(255, 255, 255, 0.3); }
+
+.k-carpa-modal-body {
+  padding: 1rem 1.25rem;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.k-carpa-modal-footer {
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  background: #f9fafb;
+}
+
+/* ============================================================
+ * Form fields
+ * ============================================================ */
+.k-carpa-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+}
+
+.k-carpa-form-grid.full {
+  grid-template-columns: 1fr;
+}
+
+.k-carpa-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.k-carpa-field label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.k-carpa-field input,
+.k-carpa-field select,
+.k-carpa-field textarea {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  font-family: inherit;
+  color: inherit;
+}
+
+.k-carpa-field input:focus,
+.k-carpa-field select:focus,
+.k-carpa-field textarea:focus {
+  outline: none;
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.15);
+}
+
+.k-carpa-field textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.k-carpa-field .help {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+/* ============================================================
+ * Checklist
+ * ============================================================ */
+.k-carpa-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.k-carpa-checklist-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.6rem;
+  padding: 0.55rem 0.65rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.k-carpa-checklist-item.fournie {
+  background: #ecfdf5;
+  border-color: #34d399;
+}
+
+.k-carpa-checklist-item.manquante {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.k-carpa-checklist-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.k-carpa-checklist-icon.ok { background: #10b981; }
+.k-carpa-checklist-icon.ko { background: #ef4444; }
+
+/* ============================================================
+ * Detail / timeline
+ * ============================================================ */
+.k-carpa-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.k-carpa-timeline li {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.6rem;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.k-carpa-timeline-when {
+  font-variant-numeric: tabular-nums;
+  color: #6b7280;
+}
+
+/* ============================================================
+ * Print (export client / recapitulatif)
+ * ============================================================ */
+@media print {
+  body * { visibility: hidden; }
+  .k-carpa-print-area, .k-carpa-print-area * { visibility: visible; }
+  .k-carpa-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 1.5cm;
+    background: #fff;
+    color: #000;
+  }
+  .k-carpa-no-print { display: none !important; }
+}
+
+.k-carpa-print-area {
+  display: none;
+}
+
+.k-carpa-print-area.preparing {
+  display: block;
+}
+
+/* ============================================================
+ * Tabs internes (operations / honoraires / stats)
+ * ============================================================ */
+.k-carpa-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 0.85rem;
+  /* FIX-S4-9 : sans flex-wrap, les 5 tabs (~471px total) debordent de la
+     zone CARPA en demi-ecran (root 360 a 600), poussant tout le k-carpa-
+     root en scroll horizontal de 151px. flex-wrap: wrap fait passer les
+     onglets sur 2 lignes plutot que de scroller toute la page. */
+  flex-wrap: wrap;
+}
+
+.k-carpa-tab {
+  padding: 0.55rem 0.95rem;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  font-size: 0.85rem;
+  color: #4b5563;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+
+.k-carpa-tab.active {
+  background: #fff;
+  color: #1e3a8a;
+  border-color: #e5e7eb;
+  font-weight: 600;
+}
+
+.k-carpa-tab:hover:not(.active) {
+  background: #f3f4f6;
+}
+
+/* ============================================================
+ * Flag LCB-FT
+ * ============================================================ */
+.k-carpa-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.k-carpa-flag.levee {
+  background: #f3f4f6;
+  color: #6b7280;
+  border-color: #d1d5db;
+  text-decoration: line-through;
+}
+
+/* ==========================================================
+   Toggle "Masquer les operations annulees" + boutons d'action
+   inline (Annuler / Supprimer brouillon).
+   ========================================================== */
+
+.k-carpa-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+}
+.k-carpa-tabs-row .k-carpa-tabs {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.k-carpa-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: #4b5563;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+.k-carpa-toggle:hover {
+  background: #e5e7eb;
+}
+.k-carpa-toggle input[type='checkbox'] {
+  margin: 0;
+  cursor: pointer;
+  accent-color: #0977a5;
+}
+
+/* ----- Boutons d'action sur chaque operation ----- */
+.k-carpa-op-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.k-carpa-icon-btn {
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.k-carpa-icon-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.k-carpa-icon-btn:disabled {
+  cursor: progress;
+  opacity: 0.5;
+}
+.k-carpa-icon-btn:focus-visible {
+  outline: 2px solid #0977a5;
+  outline-offset: 1px;
+}
+
+.k-carpa-icon-btn-cancel:hover:not(:disabled) {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.k-carpa-icon-btn-delete:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+/* ----- Etat "annulee" : ligne grisee ----- */
+.k-carpa-op-card.is-annulee {
+  opacity: 0.55;
+}
+.k-carpa-op-card.is-annulee .montant {
+  text-decoration: line-through;
+}
+.k-carpa-table tr.is-annulee {
+  opacity: 0.55;
+}
+.k-carpa-table tr.is-annulee .col-amount {
+  text-decoration: line-through;
+}
+
+/* ----- Note "X operations annulees masquees" ----- */
+.k-carpa-hidden-note {
+  font-size: 0.78rem;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px dashed #e5e7eb;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 0.4rem 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.k-carpa-link-btn {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  color: #0977a5;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+.k-carpa-link-btn:hover { color: #075a7f; }
+
+/* ----- Colonne actions sur la table ----- */
+.k-carpa-table th.col-actions,
+.k-carpa-table td.col-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  padding-right: 8px;
+}

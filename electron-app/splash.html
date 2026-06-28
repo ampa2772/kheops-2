@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Kheops 2 — Chargement</title>
+<style>
+  :root {
+    --kheops-blue-deep: #032b3b;
+    --kheops-blue: #0977a5;
+    --kheops-cyan: #4dafca;
+    --kheops-green: #00a85e;
+    --kheops-violet: #6366f1;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    color: #f1f5f9;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(ellipse at 30% 25%, rgba(99, 102, 241, 0.28) 0%, transparent 55%),
+      radial-gradient(ellipse at 70% 75%, rgba(16, 185, 129, 0.18) 0%, transparent 55%),
+      linear-gradient(180deg, #0f1c2e 0%, #051422 60%, #02090f 100%);
+    -webkit-app-region: drag;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  }
+  .splash {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 22px 36px;
+    animation: splashIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition: opacity 250ms ease;
+  }
+  body.is-finishing .splash { opacity: 0; transform: scale(0.985); }
+  @keyframes splashIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .splash__logo-wrap {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 22px;
+    background:
+      radial-gradient(ellipse at 30% 25%, rgba(255, 255, 255, 0.25) 0%, transparent 60%),
+      linear-gradient(135deg, #1a8fbd 0%, #0977a5 50%, #075a7f 100%);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.2) inset,
+      0 8px 22px -2px rgba(9, 119, 165, 0.55),
+      0 18px 36px -6px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(99, 102, 241, 0.2);
+    animation: logoPulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes logoPulse {
+    0%, 100% {
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.2) inset,
+        0 8px 22px -2px rgba(9, 119, 165, 0.55),
+        0 0 0 1px rgba(99, 102, 241, 0.2);
+    }
+    50% {
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.25) inset,
+        0 8px 24px -2px rgba(9, 119, 165, 0.7),
+        0 0 0 4px rgba(99, 102, 241, 0.25),
+        0 0 30px rgba(99, 102, 241, 0.4);
+    }
+  }
+  .splash__logo {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 46px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.04em;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    line-height: 1;
+  }
+  .splash__halo {
+    position: absolute;
+    inset: -10px;
+    border-radius: 28px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.22) 0%, transparent 65%);
+    z-index: -1;
+    animation: haloRotate 6s linear infinite;
+  }
+  @keyframes haloRotate {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .splash__title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #f8fafc;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    margin: 0;
+  }
+  .splash__subtitle {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin: -10px 0 6px;
+    white-space: nowrap;
+  }
+  .splash__progress {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .splash__pct {
+    font-size: 26px;
+    font-weight: 700;
+    color: #f1f5f9;
+    letter-spacing: -0.01em;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    min-width: 64px;
+    text-align: center;
+  }
+  .splash__bar {
+    width: 280px;
+    height: 6px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.4) inset,
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  }
+  .splash__bar-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg,
+      #4dafca 0%,
+      #6366f1 50%,
+      #00a85e 100%);
+    background-size: 200% 100%;
+    border-radius: 9999px;
+    box-shadow:
+      0 0 10px rgba(99, 102, 241, 0.55),
+      0 0 20px rgba(99, 102, 241, 0.22);
+    transition: width 90ms linear;
+    animation: barShimmer 2.4s linear infinite;
+  }
+  @keyframes barShimmer {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+  .splash__hint {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+  <div class="splash">
+    <div class="splash__logo-wrap">
+      <div class="splash__halo" aria-hidden="true"></div>
+      <div class="splash__logo">K</div>
+    </div>
+    <h1 class="splash__title">KHEOPS 2</h1>
+    <p class="splash__subtitle">Logiciel de gestion cabinet d'avocat</p>
+    <div class="splash__progress">
+      <div class="splash__pct" id="pct">0%</div>
+      <div class="splash__bar" role="progressbar" aria-label="Chargement">
+        <div class="splash__bar-fill" id="bar"></div>
+      </div>
+    </div>
+    <p class="splash__hint" id="hint">Démarrage de l'application…</p>
+  </div>
+
+<script>
+(function () {
+  // Progression simulée 0 → 95% sur ~6s avec courbe ease-out cubic.
+  // Quand le main process appelle window.__finalizeProgress(), on anime de
+  // la valeur courante jusqu'à 100% en 250ms, puis on déclenche un fade.
+  var SIM_TARGET = 95;
+  var SIM_DURATION = 6000;
+  var pctEl  = document.getElementById('pct');
+  var barEl  = document.getElementById('bar');
+  var hintEl = document.getElementById('hint');
+  var startTs = Date.now();
+  var finalized = false;
+  var lastDisplayed = 0;
+
+  function setProgress(p) {
+    p = Math.max(0, Math.min(100, Math.round(p)));
+    if (p === lastDisplayed) return;
+    lastDisplayed = p;
+    pctEl.textContent = p + '%';
+    barEl.style.width = p + '%';
+    if (p < 30)      hintEl.textContent = "Préparation de l'environnement…";
+    else if (p < 60) hintEl.textContent = 'Démarrage du serveur local…';
+    else if (p < 90) hintEl.textContent = "Chargement de l'interface…";
+    else             hintEl.textContent = "Finalisation…";
+  }
+
+  function tickSim() {
+    if (finalized) return;
+    var elapsed = Date.now() - startTs;
+    var t = Math.min(elapsed / SIM_DURATION, 1);
+    var eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    setProgress(eased * SIM_TARGET);
+    requestAnimationFrame(tickSim);
+  }
+
+  window.__setProgress = setProgress;
+  window.__finalizeProgress = function (cb) {
+    if (finalized) { if (cb) cb(); return; }
+    finalized = true;
+    var startPct = lastDisplayed;
+    var animStart = Date.now();
+    var animDur = 220;
+    function animTo100() {
+      var t = Math.min((Date.now() - animStart) / animDur, 1);
+      var p = startPct + (100 - startPct) * t;
+      setProgress(p);
+      if (t < 1) {
+        requestAnimationFrame(animTo100);
+      } else {
+        // Fade out doux puis callback
+        document.body.classList.add('is-finishing');
+        setTimeout(function () { if (cb) cb(); }, 240);
+      }
+    }
+    animTo100();
+  };
+
+  requestAnimationFrame(tickSim);
+})();
+</script>
+</body>
+</html>

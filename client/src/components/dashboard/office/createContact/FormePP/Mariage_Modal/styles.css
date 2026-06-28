@@ -1,0 +1,240 @@
+.marriageNotaire, .marriageDate_contrat {
+  width: 100%;
+  margin: 0;
+  padding: 7px;
+  height: 32px;
+}
+
+
+.notaires_list {
+  position: absolute;
+  z-index: 100;
+}
+
+.itemNotaire {
+  width: 100%;
+}
+
+.modal_mariage {
+  height: auto;
+  position: static;
+  padding-top: 0;
+  
+}
+
+
+
+.close_mariage {
+  position: relative;
+  left: 96.5%;
+}
+
+
+input.marriageLocation,
+input.marriageDate,
+input.marriageDate_contrat,
+input.marriageNotaire {
+  outline: none;
+}
+
+
+.itemNotaire {
+  background-color: #fff;
+  border-radius: 5px;
+  padding: 3px;
+  cursor: pointer;
+}
+
+.button_contrat_de_mariage {
+  cursor: pointer;
+}
+
+
+
+.notif {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+
+}
+
+
+
+.notif span {
+  font-weight: 600;
+}
+
+.boutons {
+  display: flex;
+  gap: 7px;
+}
+
+.boutons button {
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 3px 5px;
+  background-color: #ffffff;
+  color: #0977a5;
+  border: 1px solid #ffffff;
+  font-weight: 500;
+  
+}
+
+.formeAjoutNotaire button {
+  background-color: #0977a5;
+  color: #fff;
+  padding: 7px 5px;
+
+
+}
+
+
+
+
+
+.bold {
+  font-weight: bold;
+}
+
+.boutonsContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.boutonsContainer button {
+  border: 1px solid #0977a5;
+  padding: 5px;
+  text-align: center;
+  cursor: pointer;
+  background-color: #fff;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 5px;
+  color: #0977a5;
+}
+
+
+
+@media (min-width: 768px) {
+
+  
+}
+
+
+
+
+
+.inputNotaireMariage {
+
+  padding: 12px 5px;
+  background-color: #0977a5;
+  border-radius: 5px;
+  
+}
+
+.containerNomPrenomsNotaireMariage {
+  display: flex;
+  gap: 7px
+
+}
+
+.gap {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.formContainerAjoutNotaires {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+
+}
+
+.containerVilleCodePNotaireMariage, .containerEmailTelNotaireMariage {
+  display: flex;
+  gap: 7px;
+}
+
+.formeAjoutNotaire {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}  
+
+.titleAjoutNotaire {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 2px;
+  color: #0977a5;
+}
+
+
+
+
+
+.marg_bot_none {
+  margin-bottom: 0 !important;
+}
+
+.regime_matrimonial {
+  background-color: #0977a5;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 5px;
+}
+
+.regime_matrimonial input {
+ height: 32px;
+ padding: 7px;
+}
+
+.heigthAuto {
+  height: auto;
+}
+
+
+.marriageNotaire, .myInfiniteScrollClass {
+  box-sizing: border-box;
+}
+
+.redBNT {
+  background-color: var(--k-danger, #dc3545) !important;
+}
+
+
+
+/* styles.css */
+
+/* .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+} */
+
+.modal-content_confAjout {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  position: relative;
+  border: 2px solid #0977a5;
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+}

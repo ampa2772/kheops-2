@@ -1,0 +1,973 @@
+/* ==========================================================================
+   Formulaire Personnes à Charge — Kheops 2 Premium 2026
+   Crystal Edition — Sub-module redesign
+   ========================================================================== */
+
+/* -------------------------------------------------------
+   0. KEYFRAMES & ANIMATIONS
+   ------------------------------------------------------- */
+
+@keyframes pchOverlayFadeIn {
+  from { opacity: 0; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); }
+  to   { opacity: 1; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+}
+
+@keyframes pchModalFadeIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pchShimmer {
+  0%   { left: -100%; }
+  100% { left: 200%; }
+}
+
+@keyframes pchGradientFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* -------------------------------------------------------
+   1. OVERLAY
+   ------------------------------------------------------- */
+
+.modal-overlay_PC {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(3, 43, 59, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  cursor: auto;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: pchOverlayFadeIn 250ms ease-out both;
+}
+
+/* -------------------------------------------------------
+   2. CONTENEUR PRINCIPAL — Glass Card Premium
+   ------------------------------------------------------- */
+
+.pos {
+  position: relative;
+  top: 0;
+  height: auto;
+  border-radius: var(--k-form-radius-container, 16px);
+  animation: pchModalFadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.modal-content.pos.pch {
+  background: linear-gradient(170deg, #0a6d94 0%, #075a7f 30%, #054d6b 60%, #043a4f 100%) !important;
+  color: #fff;
+  border-radius: var(--k-form-radius-container, 16px);
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  box-shadow:
+    0 4px 24px rgba(4, 58, 79, 0.35),
+    0 8px 40px rgba(3, 43, 59, 0.2);
+}
+
+/* Gradient border — applied as box-shadow instead of ::after to avoid scroll overlap */
+
+
+.pch {
+  padding: 16px 18px 18px;
+  width: min(88%, 520px) !important;
+  transition: width 250ms ease;
+}
+
+/* Wider modal when adult form is active */
+.formulaireAdulte {
+  min-width: 420px;
+}
+
+/* -------------------------------------------------------
+   3. HEADER & NAVIGATION LAYOUT
+   ------------------------------------------------------- */
+
+.containerHeader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.containerFormPC {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.nav_container {
+  width: 34px;
+  flex-shrink: 0;
+}
+
+/* -------------------------------------------------------
+   4. CLOSE BUTTON — Glassmorphism Circle
+   ------------------------------------------------------- */
+
+.modal-content.pos.pch .close-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 200ms ease;
+  padding: 0;
+  z-index: 2;
+}
+
+.modal-content.pos.pch .close-button:hover {
+  background: rgba(220, 53, 69, 0.2);
+  border-color: rgba(220, 53, 69, 0.3);
+  transform: scale(1.1);
+}
+
+.modal-content.pos.pch .close-btn {
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) invert(1);
+  opacity: 0.7;
+  transition: opacity 200ms ease;
+}
+
+.modal-content.pos.pch .close-button:hover .close-btn {
+  opacity: 1;
+}
+
+/* -------------------------------------------------------
+   5. TYPE SELECTOR — Enfant / Adulte Pill Tabs
+   ------------------------------------------------------- */
+
+.choixPersonneCharge {
+  display: flex;
+  padding: 3px;
+  gap: 0;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  border: 1px solid rgba(138, 180, 248, 0.15);
+  width: fit-content;
+  align-self: center;
+}
+
+.choixPersonneCharge .enfant,
+.choixPersonneCharge .adulte {
+  padding: 5px 20px;
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  letter-spacing: 0.01em;
+}
+
+.choixPersonneCharge .enfant:hover:not(.typeSelected),
+.choixPersonneCharge .adulte:hover:not(.typeSelected) {
+  background: rgba(138, 180, 248, 0.2);
+  border-color: rgba(138, 180, 248, 0.3);
+  color: #fff;
+}
+
+.typeSelected {
+  background: linear-gradient(135deg, #00a85e 0%, #00784a 50%, #006940 100%) !important;
+  color: white !important;
+  border-color: rgba(0, 168, 94, 0.4) !important;
+  box-shadow:
+    0 2px 8px rgba(0, 120, 74, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.08);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.pch-separator {
+  color: rgba(255, 255, 255, 0.25);
+  font-weight: 300;
+  padding: 0 2px;
+  user-select: none;
+  font-size: 0.8125rem;
+}
+
+/* -------------------------------------------------------
+   5b. FIELDSET SUB-SECTIONS (Adult form)
+   ------------------------------------------------------- */
+
+.pch-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 8px 0;
+  padding: 10px 12px 10px 12px;
+  border: 1px solid rgba(138, 180, 248, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  position: relative;
+}
+
+.pch-section > legend {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: linear-gradient(135deg, #0ea5d1 0%, #0977a5 50%, #055a78 100%);
+  padding: 3px 12px;
+  border-radius: 16px;
+  width: fit-content;
+  box-shadow: 0 2px 8px rgba(14, 165, 209, 0.25);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  line-height: 1.4;
+  border: 1px solid rgba(138, 180, 248, 0.25);
+  float: none;
+}
+
+/* Triple row: Genre+MaritalStatus (flex:3) + Nationalité (flex:2) */
+.pch-row-triple {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.pch-row-triple > .genre_PersonneCharge {
+  flex: 3 1 0% !important;
+  min-width: 0 !important;
+  width: 0 !important;
+}
+
+.pch-row-triple > .container_input_nationality_list_nationality {
+  flex: 2 1 0% !important;
+  min-width: 0 !important;
+  width: 0 !important;
+}
+
+/* -------------------------------------------------------
+   6. FORM STRUCTURE
+   ------------------------------------------------------- */
+
+.formPC {
+  flex-direction: column;
+  display: flex;
+  align-items: center;
+}
+
+.formPC form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.container-input-personneCharge {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.container-input-personneCharge > input,
+.container-input-personneCharge > div {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  max-width: calc(50% - 4px) !important;
+  width: calc(50% - 4px) !important;
+}
+
+.container-input-personneCharge input {
+  margin-bottom: 0;
+}
+
+.inputAdressePC {
+  margin-bottom: 0;
+}
+
+/* Ensure inputs inside wrapper divs fill their container */
+.container_input_communes_list_communes input,
+.container_input_paysNaissance_list_paysNaissance input,
+.container_input_nationality_list_nationality input,
+.ville_listeVille input {
+  width: 100% !important;
+}
+
+/* Ensure the Ville row (.codepostalville) aligns like other rows */
+.codepostalville {
+  display: flex;
+  gap: 8px;
+}
+
+.codepostalville > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.ville_listeVille {
+  flex: 1;
+  min-width: 0;
+}
+
+/* -------------------------------------------------------
+   7. INPUTS — Premium Glass Style
+   ------------------------------------------------------- */
+
+.contenair-formulaires input,
+.contenair-formulaires select {
+  padding: 10px 14px;
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  border-radius: var(--k-form-radius-input, 10px);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: #1a2a3a;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition:
+    border-color 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    background 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.contenair-formulaires input:hover:not(:focus),
+.contenair-formulaires select:hover:not(:focus) {
+  border-color: rgba(138, 180, 248, 0.4);
+}
+
+.contenair-formulaires input:focus,
+.contenair-formulaires select:focus {
+  border-color: var(--k-accent, #8ab4f8);
+  box-shadow:
+    0 0 0 3px rgba(138, 180, 248, 0.25),
+    0 0 15px rgba(14, 165, 209, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  background: linear-gradient(180deg, #f8fcfe 0%, #fff 100%);
+}
+
+.contenair-formulaires input::placeholder {
+  color: var(--k-form-input-placeholder, #637085);
+  font-weight: 400;
+}
+
+/* -------------------------------------------------------
+   8. GENRE SELECTOR — Enhanced Container
+   ------------------------------------------------------- */
+
+.genre_PersonneCharge {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 6px 10px;
+  margin-top: 0;
+  margin-bottom: 0;
+  border-radius: var(--k-form-radius-input, 10px);
+  font-weight: normal;
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  transition: border-color 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.genre_PersonneCharge:hover {
+  border-color: rgba(138, 180, 248, 0.4);
+}
+
+.genre_PersonnCharge_Option_Container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.optionsPC_Container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.label_genre_PersonneCharge {
+  color: var(--k-primary, #0977a5);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------
+   9. SUBMIT BUTTON — Premium CTA
+   ------------------------------------------------------- */
+
+.contenair-formulaires button[type="submit"] {
+  position: relative;
+  width: 65%;
+  align-self: center;
+  padding: 10px 24px;
+  margin-top: 4px;
+  background: linear-gradient(135deg, #00a85e 0%, #00784a 50%, #006940 100%);
+  background-size: 200% 200%;
+  animation: pchGradientFlow 5s ease infinite;
+  color: white;
+  border: 1px solid rgba(0, 168, 94, 0.3) !important;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.025em;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 4px 15px rgba(0, 120, 74, 0.3),
+    0 2px 8px rgba(0, 105, 64, 0.2),
+    0 0 20px rgba(0, 168, 94, 0.1);
+  transition:
+    transform 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  z-index: 0;
+}
+
+.contenair-formulaires button[type="submit"]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  animation: pchShimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.contenair-formulaires button[type="submit"]:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 25px rgba(0, 120, 74, 0.35),
+    0 4px 12px rgba(0, 105, 64, 0.25),
+    0 0 30px rgba(0, 168, 94, 0.15);
+}
+
+.contenair-formulaires button[type="submit"]:active {
+  transform: translateY(0);
+  transition-duration: 80ms;
+}
+
+/* Red button error state override */
+.contenair-formulaires button[type="submit"].redButton {
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  animation: none !important;
+}
+
+.contenair-formulaires button[type="submit"].redButton::before {
+  display: none !important;
+}
+
+.contenair-formulaires button[type="submit"].redButton:hover {
+  background: linear-gradient(135deg, #c82333, #b21f2d) !important;
+}
+
+/* -------------------------------------------------------
+   10. NAVIGATION ARROWS — Glassmorphism Circles
+   ------------------------------------------------------- */
+
+.btnnav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(138, 180, 248, 0.15);
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btnnav:hover {
+  background: rgba(138, 180, 248, 0.2);
+  border-color: rgba(138, 180, 248, 0.35);
+  transform: scale(1.1);
+}
+
+.flecheDR,
+.flecheG {
+  height: 14px;
+  width: 14px;
+  filter: brightness(0) invert(1);
+  opacity: 0.7;
+  transition: opacity 200ms ease;
+}
+
+.btnnav:hover .flecheDR,
+.btnnav:hover .flecheG {
+  opacity: 1;
+}
+
+.flecheDR {
+  transform: rotate(180deg);
+}
+
+/* -------------------------------------------------------
+   11. DELETE BUTTON — Elegant Destructive Action
+   ------------------------------------------------------- */
+
+.right-div {
+  position: absolute;
+  right: 10px;
+  top: -2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(220, 53, 69, 0.12);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.right-div:hover {
+  background: rgba(220, 53, 69, 0.25);
+  border-color: rgba(220, 53, 69, 0.4);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
+}
+
+.supprPC {
+  height: 14px;
+  width: 14px;
+  filter: brightness(0) invert(1);
+  opacity: 0.8;
+  transition: opacity 200ms ease;
+}
+
+.right-div:hover .supprPC {
+  opacity: 1;
+}
+
+/* -------------------------------------------------------
+   12. PERSONNE A CHARGE BADGE (for civil status section)
+   ------------------------------------------------------- */
+
+.pcharge {
+  align-items: normal !important;
+  display: flex;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .pcharge {
+    align-items: normal !important;
+    width: 102.68px !important;
+  }
+}
+
+.pchargeContenu {
+  align-items: normal !important;
+  margin-top: 19px !important;
+  width: 101% !important;
+}
+
+.show_select_option_matrimonial.new_class_STMPC {
+  color: #324fcf !important;
+  background-color: #00ff7f38 !important;
+  width: 102.68px;
+  justify-content: center;
+}
+
+.larg {
+  width: 102.68px !important;
+}
+
+@media (min-width: 768px) {
+  .larg {
+    width: 173px !important;
+  }
+}
+
+.widthPlus {
+  width: 215px !important;
+}
+
+@media (min-width: 768px) {
+  .widthPlus {
+    width: 168px !important;
+  }
+}
+
+.has-personnes-charge {
+  color: var(--k-primary-800, #043a4f);
+  box-shadow: inset 0 0 0 2px var(--k-primary, #0977a5);
+}
+
+/* -------------------------------------------------------
+   13. DROPDOWN LISTS — Premium Autocomplete
+   ------------------------------------------------------- */
+
+.container_input_communes_list_communes {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-width: 0;
+}
+
+.container_input_nationality_list_nationality,
+.container_input_paysNaissance_list_paysNaissance {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-width: 0;
+}
+
+.container_input_communes_list_communes input {
+  color: #1a2a3a;
+}
+
+.Code_postalPC {
+  color: #1a2a3a;
+}
+
+.border_bot_none {
+  /* !important requis : battre le selecteur plus specifique
+     `.contenair-formulaires input { border-radius: 10px }` */
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.border_bot {
+  border-bottom-left-radius: var(--k-form-radius-input, 10px) !important;
+  border-bottom-right-radius: var(--k-form-radius-input, 10px) !important;
+}
+
+.border_top_none {
+  /* Meme raison : !important pour battre `.contenair-formulaires input` */
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+.infinite-scroll-component {
+  position: absolute;
+  height: 100px !important;
+  overflow-y: scroll;
+  z-index: 22;
+}
+
+.myInfiniteScrollClass {
+  position: absolute;
+  z-index: 30;
+  max-height: 120px !important;
+  overflow-y: auto;
+  /* Fond blanc plein pour matcher le champ (.contenair-formulaires input) */
+  background: #fff;
+  width: 100%;
+  padding: 4px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: var(--k-form-radius-input, 10px);
+  border-bottom-right-radius: var(--k-form-radius-input, 10px);
+  display: flex !important;
+  flex-direction: column;
+  gap: 3px;
+  /* Meme couleur de bordure que l'input (rgba(138, 180, 248, 0.25))
+     pour que champ + liste apparaissent comme un seul bloc */
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  border-top: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.myInfiniteScrollClass::-webkit-scrollbar {
+  width: 6px;
+}
+
+.myInfiniteScrollClass::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.myInfiniteScrollClass::-webkit-scrollbar-thumb {
+  background: rgba(138, 180, 248, 0.3);
+  border-radius: 3px;
+}
+
+.myInfiniteScrollClass::-webkit-scrollbar-thumb:hover {
+  background: rgba(138, 180, 248, 0.5);
+}
+
+.itemCommune {
+  background-color: #fff;
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  color: #1a2a3a;
+  font-size: 0.8125rem;
+  transition: background-color 150ms ease;
+}
+
+/* Surlignage géré par useComboboxKeyboard. */
+.itemCommune.is-active {
+  background-color: var(--k-primary-50, #e6f4f9);
+}
+
+/* -------------------------------------------------------
+   14. BIRTH LOCATION FIELDS
+   ------------------------------------------------------- */
+
+.AdulteNaissance {
+  display: flex;
+  /* column-reverse : l'input reste en bas (position naturelle dans le fieldset)
+     et la liste absolue se positionne au-dessus. Evite que la liste s'etende
+     en dehors de la modale quand le champ est tout en bas. */
+  flex-direction: column-reverse;
+  gap: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.PaysNaissance {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.AdulteNaissanceList {
+  /* Shift vers le haut pour coller au-dessus de l'input */
+  transform: translate(0, -32px);
+  /* Coins hauts arrondis, bas carre (raccord avec le haut de l'input) */
+  border-radius: var(--k-form-radius-input, 10px) var(--k-form-radius-input, 10px) 0 0;
+  /* Meme couleur de bordure que le champ pour continuite visuelle */
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  border-bottom: none;
+}
+
+.PaysNaissanceList {
+  transform: none;
+  border-radius: 0 0 var(--k-form-radius-input, 10px) var(--k-form-radius-input, 10px);
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  border-top: none;
+}
+
+.PaysNaissanceList::-webkit-scrollbar-track {
+  background: transparent;
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 0;
+}
+
+.AdulteNaissanceList::-webkit-scrollbar-track {
+  background: transparent;
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 0;
+}
+
+/* -------------------------------------------------------
+   15. ERROR DISPLAY
+   ------------------------------------------------------- */
+
+.errorUP {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--k-danger, #dc3545);
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* -------------------------------------------------------
+   16. HIGH-CONTRAST MODE OVERRIDES
+   ------------------------------------------------------- */
+
+body.high-contrast-mode .modal-overlay_PC {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body.high-contrast-mode .modal-content.pos.pch {
+  background: #000;
+  border: 2px solid yellow;
+  box-shadow: none;
+}
+
+
+body.high-contrast-mode .choixPersonneCharge {
+  background: #000;
+  border: 2px solid yellow;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body.high-contrast-mode .choixPersonneCharge .enfant,
+body.high-contrast-mode .choixPersonneCharge .adulte {
+  color: yellow;
+}
+
+body.high-contrast-mode .typeSelected {
+  background: yellow !important;
+  color: #000 !important;
+  box-shadow: none;
+}
+
+body.high-contrast-mode .pch-separator {
+  color: yellow;
+}
+
+body.high-contrast-mode .contenair-formulaires input,
+body.high-contrast-mode .contenair-formulaires select {
+  background: #000;
+  color: yellow;
+  border: 2px solid yellow;
+  box-shadow: none;
+}
+
+body.high-contrast-mode .contenair-formulaires input:focus,
+body.high-contrast-mode .contenair-formulaires select:focus {
+  box-shadow: 0 0 0 2px yellow;
+  background: #000;
+}
+
+body.high-contrast-mode .contenair-formulaires input::placeholder {
+  color: #33ff33;
+}
+
+body.high-contrast-mode .genre_PersonneCharge {
+  background: #000;
+  border: 2px solid yellow;
+}
+
+body.high-contrast-mode .label_genre_PersonneCharge {
+  color: yellow;
+}
+
+body.high-contrast-mode .contenair-formulaires button[type="submit"] {
+  background: yellow !important;
+  color: #000 !important;
+  border: 2px solid yellow;
+  animation: none !important;
+  text-shadow: none;
+  box-shadow: none;
+}
+
+body.high-contrast-mode .contenair-formulaires button[type="submit"]::before {
+  display: none !important;
+}
+
+body.high-contrast-mode .modal-content.pos.pch .close-button {
+  background: #000;
+  border: 2px solid yellow;
+}
+
+body.high-contrast-mode .modal-content.pos.pch .close-btn {
+  filter: none;
+  opacity: 1;
+}
+
+body.high-contrast-mode .btnnav {
+  background: #000;
+  border: 2px solid yellow;
+}
+
+body.high-contrast-mode .flecheDR,
+body.high-contrast-mode .flecheG {
+  filter: none;
+  opacity: 1;
+}
+
+body.high-contrast-mode .right-div {
+  background: #000;
+  border: 2px solid #dc3545;
+}
+
+body.high-contrast-mode .supprPC {
+  filter: none;
+  opacity: 1;
+}
+
+body.high-contrast-mode .myInfiniteScrollClass {
+  background: #000;
+  border: 2px solid yellow;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body.high-contrast-mode .itemCommune {
+  background: #000;
+  color: yellow;
+  border: 1px solid yellow;
+}
+
+body.high-contrast-mode .itemCommune:hover {
+  background: yellow;
+  color: #000;
+}
+
+/* -------------------------------------------------------
+   17. REDUCED MOTION
+   ------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay_PC {
+    animation: none;
+  }
+
+  .pos {
+    animation: none;
+  }
+
+  .contenair-formulaires button[type="submit"] {
+    animation: none;
+  }
+
+  .contenair-formulaires button[type="submit"]::before {
+    animation: none;
+  }
+
+  .contenair-formulaires button[type="submit"]:hover {
+    transform: none;
+  }
+
+  .btnnav:hover {
+    transform: none;
+  }
+
+  .right-div:hover {
+    transform: none;
+  }
+
+  .modal-content.pos.pch .close-button:hover {
+    transform: none;
+  }
+}

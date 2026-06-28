@@ -1,0 +1,83 @@
+.mainUserModal {
+  color: var(--k-bg-white, #fff);
+  background-color: var(--k-primary, #0977a5);
+  border: none;
+  padding: 15px 20px;
+  position: fixed;
+  border-radius: 10px;
+  z-index: 10010;
+  min-width: 220px;
+}
+
+.mainUserModal h2 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+}
+
+.google-status {
+  font-size: 13px;
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+}
+
+.status-connected {
+  color: #4cff88;
+  font-weight: bold;
+}
+
+.status-disconnected {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+.status-checking {
+  color: #ffd93d;
+}
+
+.status-warning {
+  color: #ffd93d;
+  font-size: 11px;
+}
+
+.mainUserModal button {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: 8px;
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.mainUserModal button:hover {
+  opacity: 0.85;
+}
+
+.btn-profile {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: var(--k-primary, #0977a5);
+}
+
+.btn-profile:hover {
+  background-color: #fff !important;
+  opacity: 1 !important;
+}
+
+.btn-google {
+  background-color: #34a853;
+  color: #fff;
+}
+
+.btn-google:disabled {
+  background-color: #888;
+  cursor: wait;
+}
+
+.btn-logout {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}

@@ -1,0 +1,24 @@
+.fs-loader__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4000; /* au‑dessus de la modale */
+}
+
+.fs-loader__spinner {
+  width: 64px;
+  height: 64px;
+  border: 8px solid #e5e5e5;
+  border-top: 8px solid #1a1a1a;
+  border-radius: 50%;
+  animation: fs-spin 1s linear infinite;
+}
+
+@keyframes fs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

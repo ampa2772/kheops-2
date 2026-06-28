@@ -1,0 +1,342 @@
+/* =============================================================
+   AddSubfolderModal — Créer un sous-dossier
+   Relook thème bleu nuit Kheops 2 (cohérent rc99/rc102).
+   Rendu via BaseModal : overlay .k-modal-overlay (plein écran +
+   centrage déjà fournis par _modal-base.css), boîte
+   .subfolder-modal-content. Pas de classe .modal-content ici
+   → pas de piège rc99 ; sélecteurs scopés proprement.
+   ============================================================= */
+
+/* Overlay : position/flex/centrage fournis par .k-modal-overlay.
+   z-index conservé à 10001 (valeur historique — pas de régression
+   de superposition sur la vue dossier). */
+.subfolder-modal-overlay {
+  z-index: 10001;
+  background: rgba(4, 14, 22, 0.58);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  animation: sfm-fade 0.16s ease-out;
+}
+
+@keyframes sfm-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.subfolder-modal-content {
+  width: 440px;
+  max-width: calc(100vw - 40px);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0d2233 0%, #0a1a27 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  color: #e8eef5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  animation: sfm-pop 0.18s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes sfm-pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- En-tête ---------- */
+.subfolder-modal-content .sfm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.subfolder-modal-content .sfm-header-id {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.subfolder-modal-content .sfm-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: rgba(38, 190, 175, 0.16);
+  color: #38d6c4;
+}
+
+.subfolder-modal-content .sfm-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.subfolder-modal-content .sfm-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #6f93ab;
+}
+
+.subfolder-modal-content .sfm-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f3f7fb;
+}
+
+.subfolder-modal-content .sfm-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  color: #9fb4c6;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.subfolder-modal-content .sfm-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* ---------- Corps ---------- */
+.subfolder-modal-content .sfm-body {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 20px;
+  overflow-y: auto;
+}
+
+.subfolder-modal-content .sfm-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #6f93ab;
+  margin-bottom: 9px;
+}
+
+.subfolder-modal-content .sfm-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.subfolder-modal-content .sfm-field-icon {
+  position: absolute;
+  left: 13px;
+  display: flex;
+  color: #6f8aa0;
+  pointer-events: none;
+}
+
+.subfolder-modal-content .sfm-input {
+  width: 100%;
+  padding: 12px 70px 12px 40px;
+  font-size: 14px;
+  color: #e8eef5;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.subfolder-modal-content .sfm-input::placeholder {
+  color: #6f8499;
+}
+
+.subfolder-modal-content .sfm-input:focus {
+  border-color: rgba(56, 214, 196, 0.6);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.subfolder-modal-content .sfm-counter {
+  position: absolute;
+  right: 13px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #6f8499;
+  pointer-events: none;
+}
+
+.subfolder-modal-content .sfm-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 9px;
+  font-size: 12px;
+  color: #7f93a6;
+}
+
+.subfolder-modal-content .sfm-hint svg {
+  flex-shrink: 0;
+  color: #5f7d92;
+}
+
+/* ---------- Suggestions ---------- */
+.subfolder-modal-content .sfm-suggestions {
+  margin-top: 20px;
+}
+
+.subfolder-modal-content .sfm-suggestions-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #6f93ab;
+  margin-bottom: 10px;
+}
+
+.subfolder-modal-content .sfm-suggestions-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.subfolder-modal-content .sfm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #b7c7d5;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.subfolder-modal-content .sfm-chip svg {
+  color: #6f93ab;
+  transition: color 0.15s ease;
+}
+
+.subfolder-modal-content .sfm-chip:hover {
+  background: rgba(38, 190, 175, 0.14);
+  border-color: rgba(56, 214, 196, 0.4);
+  color: #d6f5ef;
+}
+
+.subfolder-modal-content .sfm-chip:hover svg {
+  color: #38d6c4;
+}
+
+/* ---------- Pied ---------- */
+.subfolder-modal-content .sfm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.subfolder-modal-content .sfm-footer-hints {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.subfolder-modal-content .sfm-kbd-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #7f93a6;
+  white-space: nowrap;
+}
+
+.subfolder-modal-content .sfm-kbd-hint kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 11px;
+  color: #c3d3e1;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+}
+
+.subfolder-modal-content .sfm-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.subfolder-modal-content .sfm-btn-create {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #04161c;
+  background: linear-gradient(135deg, #3fe0cd, #23b7a7);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+.subfolder-modal-content .sfm-btn-create:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+
+.subfolder-modal-content .sfm-btn-create:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: none;
+}
+
+/* ---------- Contraste élevé ---------- */
+body.high-contrast-mode .subfolder-modal-content {
+  background: #00121c;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+body.high-contrast-mode .subfolder-modal-content .sfm-input {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ---------- Responsive étroit ---------- */
+@media (max-width: 480px) {
+  .subfolder-modal-content { width: 100%; }
+  .subfolder-modal-content .sfm-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .subfolder-modal-content .sfm-footer-actions { justify-content: flex-end; }
+}

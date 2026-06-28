@@ -1,0 +1,1331 @@
+/* ---------- Modale "Envoyer un e‑mail" ---------- */
+
+/* Styles pour l'overlay parent de SendEmailModal */
+/* Ceci cible le <div className="modal-overlay"> dans SendEmailModal.js */
+.modal-overlay { /* Assurez-vous que ce sélecteur est suffisamment spécifique si .modal-overlay est utilisé ailleurs avec d'autres intentions */
+  position: fixed;
+  inset: 0; /* Équivalent à top: 0; right: 0; bottom: 0; left: 0; */
+  background-color: rgba(0, 0, 0, 0.5); /* Fond semi-transparent */
+  display: flex;
+  align-items: center; /* Centre verticalement .send-email-modal */
+  justify-content: center; /* Centre horizontalement .send-email-modal */
+  z-index: 1040; /* En dessous de la modale mais au-dessus du reste */
+  /* padding: 1rem; LIGNE SUPPRIMÉE - Le padding ici peut causer des problèmes de clipping */
+  box-sizing: border-box;
+}
+
+/* Styles pour le contenu de la modale (la boîte verte) */
+.send-email-modal {
+  /* position: fixed, top, left, transform sont retirés car le parent .modal-overlay gère le centrage */
+  position: relative; /* Pour le contexte de stacking et positionnement des enfants */
+  width: min(840px, 95vw);
+  max-width: 840px;
+  min-height: min(500px, 80vh);
+  max-height: 95vh;
+  overflow-y: auto;
+  background: var(--k-primary-800, #043a4f);
+  color: #e8eef5;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
+  z-index: 1050; /* Au-dessus de son .modal-overlay parent */
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box; /* S'assurer que le padding est inclus dans width/height */
+}
+
+
+
+
+
+.send-email-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 1rem;
+    max-height: none; /* Permettre au formulaire de s'étendre avec le textarea */
+    flex-grow: 1; /* Permettre au formulaire de prendre l'espace disponible dans la modale */
+}
+
+
+
+.send-email-form label {
+  font-weight: 600;
+}
+
+.send-email-form input,
+.send-email-form textarea {
+  width: 100%;
+  padding: 8px 10px; /* Légère augmentation du padding vertical pour aérer */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 1rem;
+  margin: 0;
+  border: none;
+  background-color: #ffffff;
+  color: #1f2933;
+}
+
+.send-email-form textarea {
+  resize: vertical;
+  min-height: 150px; /* Augmentation significative de la hauteur minimale du textarea */
+  flex-grow: 1; /* Permettre au textarea de prendre l'espace disponible dans le formulaire */
+}
+
+.send-email-form .buttons-row {
+  display: flex;
+  justify-content: flex-end; /* Aligne le groupe de boutons à droite */
+  gap: 20px; /* Espace de 20px entre les boutons */
+  margin-top: .5rem;
+  align-items: center; /* S'assurer de l'alignement vertical si les hauteurs diffèrent */
+}
+
+.send-email-form .buttons-row button {
+  padding: 6px 18px;
+  border: 1px solid var(--k-primary, #0977a5);
+  background: var(--k-primary, #0977a5);
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background .2s;
+}
+
+.send-email-form .buttons-row button:hover {
+  background: #0a8fc4;
+  color: var(--k-bg-white, #fff);
+}
+
+.send-email-form .buttons-row button[type="button"] {
+  background: transparent;
+  color: #cdd9e5;
+}
+
+.send-email-form .buttons-row button[type="button"]:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+
+
+
+.send-email-form textarea { resize: vertical; }
+
+
+/* aperçu de pièce jointe */
+
+
+
+
+
+
+
+
+/* Styles for Attachment Picker Dropdown */
+
+
+
+
+
+
+
+
+
+
+
+.attachment-picker-item.selected {
+  background-color: #e0e0e0; /* Un gris plus foncé pour l'élément sélectionné */
+  font-weight: bold;
+}
+
+
+
+
+
+/* Dans client/src/components/dashboard/office/dossier/DocumentsStockes/styles.css ou un fichier partagé */
+
+.inputWithCreerPartie {
+  position: relative; /* Essentiel pour le positionnement absolu de l'enfant */
+  display: flex; /* Peut aider à aligner l'input si nécessaire */
+  align-items: center; /* Si display:flex est utilisé */
+}
+
+.inputWithCreerPartie .inputNomPartie { /* Cible l'input DANS le conteneur */
+  /* ... vos styles existants pour l'input ... */
+  padding-right: 30px; /* Laissez de la place pour le bouton "+" à droite */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+
+
+
+/* Remplacement par les nouveaux styles Gmail */
+
+.email-recipients-field-outer-container-gmail-style {
+  display: flex;
+  align-items: flex-start; /* Aligne le bouton + avec le haut de la zone de saisie */
+  width: 100%;
+  position: relative; /* Pour la liste de suggestions */
+  margin-bottom: 8px; /* Ajouté pour cohérence avec les autres champs */
+}
+
+.email-recipients-input-area-gmail-style {
+  flex-grow: 1;
+  display: flex;
+  flex-wrap: wrap; /* Permet aux tags de passer à la ligne */
+  align-items: center; /* Centre verticalement les tags et l'input */
+  gap: 4px; /* Espace entre les tags et l'input */
+  padding: 2px 8px; /* Padding réduit pour un look plus compact */
+  border: 1px solid #dadce0; /* Bordure subtile Gmail */
+  border-radius: 4px;
+  min-height: 36px; /* Hauteur standard d'un champ de texte */
+  box-sizing: border-box;
+  background-color: white;
+  cursor: text;
+  max-height: 72px; /* Environ 2 lignes de tags (36px * 2) ou ajustez selon la hauteur réelle des tags + padding */
+  overflow-y: auto;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.email-recipients-input-area-gmail-style:focus-within {
+  border-color: #4285f4; /* Bordure bleue au focus */
+  box-shadow: 0 0 0 1px #4285f4; /* Légère ombre bleue Gmail */
+}
+
+.email-recipient-tag-gmail-style {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f0f0f0; /* Fond gris clair Gmail */
+  color: #3c4043; /* Texte foncé Gmail */
+  padding: 2px 8px; /* Padding pour le tag */
+  border-radius: 16px; /* Coins bien arrondis */
+  font-size: 0.875rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  border: 1px solid transparent; /* Peut être #d9d9d9 si un léger contour est souhaité */
+  max-width: 350px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.remove-recipient-tag-btn-gmail-style {
+    background: none;
+    border: none;
+    margin-left: 6px;
+    padding: 1px 4px !important;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    font-weight: normal;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.remove-recipient-tag-btn-gmail-style:hover {
+  color: #202124; /* Plus foncée au survol */
+}
+
+.manual-email-input-field-gmail-style {
+  flex-grow: 1; /* Prend l'espace restant */
+  border: none;
+  outline: none;
+  padding: 4px 0; /* Ajustement vertical pour l'alignement avec les tags */
+  background-color: transparent;
+  min-width: 80px; /* Pour pouvoir taper un minimum */
+  font-size: 1rem;
+  line-height: inherit;
+  align-self: center; /* S'assurer qu'il est bien centré verticalement */
+  color: #1f2933;
+}
+
+.manual-email-input-field-gmail-style::placeholder {
+  color: #757575; /* Couleur du placeholder Gmail */
+}
+
+.add-recipient-from-dossier-btn-gmail-style {
+  flex-shrink: 0; /* Ne pas rétrécir */
+  margin-left: 8px; /* Espace à gauche du bouton */
+  background: transparent;
+  border: none;
+  padding: 6px; /* Assez grand pour l'icône */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px; /* Aligné avec la zone de saisie */
+  width: 36px;
+  border-radius: 50%; /* Bouton rond */
+  transition: background-color 0.15s ease-in-out;
+}
+.add-recipient-from-dossier-btn-gmail-style:hover {
+  background-color: rgba(60,64,67,0.08); /* Léger fond gris au survol Gmail */
+}
+.add-recipient-from-dossier-btn-gmail-style img {
+  width: 20px; /* Taille de l'icône "+" */
+  height: 20px;
+}
+
+.global-suggestions-list-gmail-style {
+  position: absolute;
+  top: calc(100% + 2px); /* Un peu d'espace sous la zone de saisie */
+  left: 0; /* Aligné à gauche de la zone de saisie parente (.email-recipients-input-area-gmail-style) */
+  /* right: 0; /* S'étend sur toute la largeur du parent si besoin, mais min/max-width contrôlent */
+  background-color: white;
+  border: 1px solid #dadce0; /* Bordure Gmail */
+  border-radius: 4px; /* Coins arrondis pour le panneau */
+  box-shadow: 0 4px 6px rgba(32,33,36,0.28); /* Ombre Gmail */
+  min-width: min(280px, 100%); /* Largeur minimale adaptative */
+  max-width: min(450px, calc(100vw - 24px)); /* Respecte le viewport */
+  width: auto; /* S'adapte au contenu jusqu'à max-width */
+  max-height: min(200px, 50vh);
+  overflow-y: auto;
+  z-index: 1050; /* Très haut pour être au-dessus de tout */
+  padding: 4px 0; /* Léger padding vertical interne */
+}
+
+/* === DÉBUT DE LA MODIFICATION MAJEURE === */
+.email-choice-popover {
+  /* position: absolute; */
+  background-color: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(32, 33, 36, 0.28);
+  z-index: 1060; /* Au-dessus de la liste de suggestions */
+  padding: 4px 0;
+  min-width: min(350px, calc(100vw - 32px)); /* S'adapte aux petits écrans */
+  max-width: min(480px, calc(100vw - 24px));
+  /* Pas de max-height, la hauteur s'adaptera au contenu */
+}
+
+.email-choice-item {
+  padding: 8px 16px; /* Plus d'espace vertical */
+  cursor: pointer;
+  /* On retire flexbox pour un layout bloc simple */
+}
+
+.email-choice-item:hover {
+  background-color: #f0f0f0;
+}
+
+.choice-label-full {
+  font-weight: 500;
+  color: #3c4043;
+  font-size: 0.875rem;
+  display: block; /* S'assure que le label est sur sa propre ligne */
+  margin-bottom: 3px; /* Espace entre le label et l'email */
+}
+
+.choice-email-full {
+  font-size: 0.8125rem;
+  color: #5f6368;
+  padding-left: 8px; /* Indentation pour l'email */
+  display: block; /* S'assure que l'email est sur sa propre ligne */
+}
+/* === FIN DE LA MODIFICATION MAJEURE === */
+
+
+.suggestion-item-gmail-style {
+  padding: 6px 16px; /* Padding Gmail */
+  cursor: pointer;
+  display: flex; /* Pour aligner nom et email si besoin */
+  flex-direction: column; /* Nom au-dessus, email en dessous */
+}
+/* Surlignage géré par useComboboxKeyboard. */
+.suggestion-item-gmail-style.is-active {
+  background-color: #f0f0f0;
+}
+.suggestion-name-gmail-style {
+  font-weight: 500;
+  color: #3c4043; /* Texte Gmail */
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.suggestion-email-gmail-style {
+  font-size: 0.8125rem;
+  color: #5f6368; /* Email plus discret Gmail */
+  line-height: 1.4;
+}
+.suggestion-item-loading-gmail-style, 
+.suggestion-item-no-results-gmail-style {
+  padding: 8px 16px;
+  color: #5f6368;
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
+.buttons-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+/* ... (styles existants pour le reste de la modale) ... */
+/* Si d'autres styles spécifiques à la modale SendEmailModal existent et ne concernent pas le champ destinataire,
+   ils devraient être ici ou après. Pour l'instant, on assume que les styles Gmail couvrent la partie modifiée. */
+
+/* Styles pour la liste des pièces jointes multiples */
+
+
+/* Style pour le nom de la pièce jointe (pour l'ellipsis) */
+.attachment-preview span.attachment-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1; /* Permet au span de prendre l'espace disponible */
+  min-width: 0; /* Nécessaire pour que flex-grow et ellipsis fonctionnent correctement ensemble */
+  margin-right: 8px; /* Espace avant le bouton de suppression */
+}
+
+
+
+
+
+
+
+
+
+/* Styles pour le sélecteur de pièces jointes (Attachment Picker) */
+
+
+
+
+
+
+
+
+
+
+/* Couleurs alternées */
+
+
+/* ============================================================ */
+/* === Modale intermédiaire de choix email — PM Privée ======== */
+/* ============================================================ */
+
+.email-choice-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.email-choice-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  padding: clamp(16px, 4vw, 28px) clamp(16px, 5vw, 32px) clamp(14px, 3vw, 20px);
+  width: min(460px, calc(100vw - 24px));
+  min-width: 0;
+  max-width: 460px;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.email-choice-title {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  text-align: center;
+}
+
+.email-choice-subtitle {
+  margin: 0 0 20px 0;
+  font-size: 0.95rem;
+  color: #5f6368;
+  text-align: center;
+  font-weight: 500;
+}
+
+.email-choice-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.email-choice-option {
+  padding: 14px 18px;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: #fafafa;
+}
+
+.email-choice-option:hover {
+  background: #e8f0fe;
+  border-color: #4285f4;
+  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.15);
+}
+
+.email-choice-option-label {
+  font-weight: 600;
+  color: #1a1a2e;
+  font-size: 0.925rem;
+  margin-bottom: 2px;
+}
+
+.email-choice-option-sublabel {
+  font-size: 0.8rem;
+  color: #80868b;
+  margin-bottom: 4px;
+}
+
+.email-choice-option-email {
+  font-size: 0.85rem;
+  color: #4285f4;
+  font-weight: 500;
+}
+
+.email-choice-cancel {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #5f6368;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-weight: 500;
+}
+
+.email-choice-cancel:hover {
+  background: #f1f3f4;
+  color: #3c4043;
+}
+
+
+
+
+.attachment-picker-item:not(.selected):hover {
+  background-color: #e9ecef; /* Gris plus foncé au survol pour les non-sélectionnés */
+}
+
+.attachment-picker-item.selected {
+  background-color: #cfe2ff; /* Bleu clair pour la sélection */
+  color: #004085; /* Texte bleu foncé pour contraster */
+  font-weight: 500; /* Un peu plus gras */
+  border-left: 4px solid #007bff; /* Bordure bleue distinctive à gauche */
+  padding-left: 6px; /* Ajuster le padding pour compenser la bordure */
+}
+
+
+
+/* La classe .remove-attachment_btn (avec underscore) est incorrecte et dupliquée. 
+   Le style correct est .attachment-preview .remove-attachment-btn (avec tiret) défini plus haut.
+   Suppression de ce bloc. */
+
+/* Nouveaux styles pour les tags des pièces jointes dans SendEmailModal */
+.email-attachments-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background-color: #f8f9fa; /* Un fond légèrement différent pour distinguer de la zone des destinataires */
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  margin-bottom: 8px; /* Espace avant le champ suivant */
+  min-height: 38px; /* Hauteur minimale similaire au champ des destinataires */
+  box-sizing: border-box;
+}
+
+.email-attachment-tag {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e9ecef; /* Un gris un peu plus foncé que les tags destinataires */
+  color: #212529; 
+  padding: 4px 10px; 
+  border-radius: 16px; 
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  border: 1px solid #ced4da; 
+}
+
+.remove-attachment-tag-btn {
+    background: var(--k-primary-800, #043a4f);
+    border: none;
+    margin-left: 8px;
+    padding: 0;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    /* font-weight: bold; */
+    color: white;
+    /* opacity: 0.7; */
+    width: 16px;
+    height: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50% !important;
+    border: 1px solid black;
+}
+
+/* .remove-attachment-tag-btn:hover {
+  color: #000;
+  opacity: 1;
+} */
+
+/* Style pour la section globale des pièces jointes dans la modale */
+.attachment-section {
+  margin-bottom: 10px; /* Espace avant le champ des destinataires */
+  padding: 5px;
+  border: 1px dashed #006738; /* Bordure discrète pour délimiter la zone */
+  border-radius: 4px;
+  background-color: rgba(230, 245, 230, 0.1); /* Très léger fond vert */
+}
+
+
+/* NOUVEAUX STYLES POUR L'OPTION DE COULEUR */
+.colorOptionContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    gap: 5px;
+    cursor: default; /* Le conteneur n'est pas cliquable */
+}
+
+.colorOptionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Pour espacer le label et les cercles */
+    width: 100%;
+    color: var(--k-primary-800, #043a4f);
+    font-size: 13px;
+    padding: 3px;
+    background-color: white;
+    border-radius: 4px;
+    cursor: pointer; /* Le header est cliquable pour ouvrir le picker */
+}
+
+
+
+
+
+
+
+/* NOUVEAUX STYLES POUR LA MODALE DU COLOR PICKER */
+.color-picker-modal-overlay {
+  position: fixed; /* Couvre toute la fenêtre */
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10002; /* Au-dessus de la mini-modale et de son overlay */
+}
+
+.color-palette-label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.color-palette-label:hover {
+    text-decoration: underline;
+}
+
+.suggestion-inactive {
+
+  display: none;
+}
+
+/* --- NOUVEAUX STYLES POUR LA SUGGESTION MULTI-LIGNES --- */
+.suggestion-item-gmail-style.company-suggestion {
+  flex-direction: column;
+  align-items: flex-start; /* Aligner les "parties" à gauche */
+  gap: 6px; /* Espace entre la société et les sous-contacts */
+}
+
+.suggestion-part {
+  width: 100%;
+}
+
+.suggestion-part.sub-contact {
+  padding-left: 10px; /* Indentation pour les sous-contacts */
+  border-left: 2px solid #e0e0e0; /* Ligne de séparation verticale subtile */
+  margin-top: 4px; /* Petit espace au-dessus */
+}
+
+.sub-contact .suggestion-name-gmail-style {
+  font-weight: normal; /* Le nom du RL/CD n'est pas en gras */
+  font-style: italic; /* Italique pour le distinguer */
+}
+/* --- FIN DES NOUVEAUX STYLES --- */
+/* ========================================================================
+   Verrouillage collaboratif de documents
+   ======================================================================== */
+.doc-row--locked {
+  position: relative;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 200, 0, 0.04) 0,
+    rgba(255, 200, 0, 0.04) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+}
+
+.doc-row--locked .doc-row__title {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.doc-row__lock {
+  font-size: 0.85em;
+  margin-left: 6px;
+  vertical-align: middle;
+  opacity: 0.85;
+}
+
+.doc-row__lock-info {
+  font-size: 11px;
+  color: #f5b400;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+.doc-row__lock-info strong {
+  font-style: normal;
+  color: #ffd34d;
+}
+
+/* ============================================================ */
+/* === Refonte visuelle SendEmailModal (vue principale) ======= */
+/* === Surcharge en fin de fichier : ordre source + scope    === */
+/* === .send-email-modal. Ne touche PAS aux classes des      === */
+/* === suggestions / 2e ecran (selecteur destinataires).     === */
+/* ============================================================ */
+.send-email-modal {
+  width: min(680px, 95vw);
+  max-width: 680px;
+  min-height: 0;
+  max-height: 90vh;
+  background: linear-gradient(180deg, #101e30 0%, #0c1521 100%);
+  color: #dce6f1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 0;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7), 0 8px 28px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.send-email-modal .send-email-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  gap: 0;
+}
+
+/* En-tete */
+.send-email-modal .sem-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
+}
+.send-email-modal .sem-header-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.send-email-modal .sem-header-icon {
+  display: inline-flex;
+  color: #4d9bff;
+}
+.send-email-modal .sem-header-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.send-email-modal .sem-eyebrow {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6f8398;
+}
+.send-email-modal .sem-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e8eef5;
+}
+.send-email-modal .sem-header .sem-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #8a9cb0;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.send-email-modal .sem-header .sem-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* Corps : lignes label / champ */
+.send-email-modal .sem-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.send-email-modal .sem-body::-webkit-scrollbar { width: 7px; }
+.send-email-modal .sem-body::-webkit-scrollbar-thumb {
+  background: rgba(125, 145, 185, 0.28);
+  border-radius: 3px;
+}
+.send-email-modal .sem-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.send-email-modal .sem-label {
+  flex: 0 0 84px;
+  width: 84px;
+  padding-top: 10px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #7d93a8;
+  text-align: left;
+}
+.send-email-modal .sem-field {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+.send-email-modal .sem-row--msg .sem-field { display: flex; }
+
+/* Champs texte */
+.send-email-modal .send-email-form input,
+.send-email-modal .send-email-form textarea,
+.send-email-modal .sem-input,
+.send-email-modal .sem-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: #dce6f1;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.send-email-modal .send-email-form input::placeholder,
+.send-email-modal .send-email-form textarea::placeholder {
+  color: #5f7488;
+}
+.send-email-modal .send-email-form input:focus,
+.send-email-modal .send-email-form textarea:focus,
+.send-email-modal .sem-input:focus,
+.send-email-modal .sem-textarea:focus {
+  border-color: #3a92d6;
+  background: rgba(255, 255, 255, 0.06);
+}
+.send-email-modal .sem-textarea {
+  min-height: 150px;
+  resize: vertical;
+  flex: 1;
+}
+
+/* Zone destinataires + chips */
+.send-email-modal .email-recipients-field-outer-container-gmail-style {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+}
+.send-email-modal .email-recipients-input-area-gmail-style {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  min-height: 40px;
+  max-height: 96px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: text;
+}
+.send-email-modal .email-recipients-input-area-gmail-style:focus-within {
+  border-color: #3a92d6;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+.send-email-modal .email-recipient-tag-gmail-style {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(56, 178, 170, 0.12);
+  border: 1px solid rgba(72, 196, 184, 0.45);
+  color: #cdeef0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.send-email-modal .email-recipient-tag-gmail-style .remove-recipient-tag-btn-gmail-style {
+  background: none;
+  border: none;
+  padding: 0 2px !important;
+  margin-left: 2px;
+  color: rgba(205, 238, 240, 0.6);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.send-email-modal .email-recipient-tag-gmail-style .remove-recipient-tag-btn-gmail-style:hover { color: #fff; }
+.send-email-modal .manual-email-input-field-gmail-style {
+  flex: 1;
+  min-width: 90px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #dce6f1;
+  font-size: 0.92rem;
+  padding: 4px 2px;
+}
+.send-email-modal .manual-email-input-field-gmail-style::placeholder { color: #5f7488; }
+.send-email-modal .email-recipients-field-outer-container-gmail-style .add-recipient-from-dossier-btn-gmail-style {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(52, 186, 150, 0.14);
+  border: 1px solid rgba(72, 200, 160, 0.5);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.send-email-modal .email-recipients-field-outer-container-gmail-style .add-recipient-from-dossier-btn-gmail-style:hover {
+  background: rgba(52, 186, 150, 0.24);
+}
+.send-email-modal .email-recipients-field-outer-container-gmail-style .add-recipient-from-dossier-btn-gmail-style img {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) saturate(100%) invert(74%) sepia(38%) saturate(560%) hue-rotate(110deg) brightness(95%);
+}
+
+/* Pieces jointes */
+.send-email-modal .email-attachments-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  min-height: 0;
+}
+.send-email-modal .email-attachment-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cdd9e6;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  max-width: 320px;
+}
+.send-email-modal .sem-attach-icon { color: #7f93a8; flex-shrink: 0; }
+.send-email-modal .sem-attach-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.send-email-modal .sem-attach-size {
+  color: #6f8398;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+.send-email-modal .email-attachment-tag .remove-attachment-tag-btn {
+  background: transparent !important;
+  border: none;
+  margin-left: 2px;
+  padding: 0 !important;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(205, 217, 230, 0.6);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 50% !important;
+}
+.send-email-modal .email-attachment-tag .remove-attachment-tag-btn:hover { color: #fff; }
+.send-email-modal .email-attachments-container .sem-attach-add {
+  background: transparent;
+  border: none;
+  color: #6fb0df;
+  font-size: 0.84rem;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+.send-email-modal .email-attachments-container .sem-attach-add:hover { text-decoration: underline; }
+
+/* Pied : meta + actions */
+.send-email-modal .sem-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.22);
+  flex-shrink: 0;
+}
+.send-email-modal .sem-footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.send-email-modal .sem-footer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+.send-email-modal .sem-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.send-email-modal .sem-kbd-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #7d8ea3;
+}
+.send-email-modal .sem-kbd-hint kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-size: 0.66rem;
+  font-family: inherit;
+  color: #c3d0e0;
+  min-width: 18px;
+}
+.send-email-modal .sem-footer-actions .sem-btn-draft {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #8d9fb2;
+  font-size: 0.88rem;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.send-email-modal .sem-footer-actions .sem-btn-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  background: linear-gradient(180deg, #3f9bd8 0%, #2f81c2 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.send-email-modal .sem-footer-actions .sem-btn-send:hover { filter: brightness(1.08); }
+.send-email-modal .sem-footer-actions .sem-btn-send:disabled {
+  filter: grayscale(0.3) brightness(0.85);
+  cursor: progress;
+}
+
+/* ============================================================ */
+/* === Refonte visuelle — Sélecteur de destinataires (2e écran) */
+/* === Scopé .send-email-modal, classes .sem-picker* neuves :  === */
+/* === n'impacte PAS dossier/styles.css ni ModalSelectReceiver === */
+/* ============================================================ */
+.send-email-modal .sem-picker {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+.send-email-modal .sem-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
+}
+.send-email-modal .sem-picker-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.send-email-modal .sem-picker-header-icon { display: inline-flex; color: #4d9bff; }
+.send-email-modal .sem-picker-header-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.send-email-modal .sem-picker-header .sem-picker-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #8a9cb0;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.send-email-modal .sem-picker-header .sem-picker-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.send-email-modal .sem-picker .sem-picker-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: none;
+}
+.send-email-modal .sem-picker .sem-picker-list::-webkit-scrollbar { width: 7px; }
+.send-email-modal .sem-picker .sem-picker-list::-webkit-scrollbar-thumb {
+  background: rgba(125, 145, 185, 0.28);
+  border-radius: 3px;
+}
+.send-email-modal .sem-picker-section {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6f8398;
+  padding: 12px 6px 4px;
+}
+.send-email-modal .sem-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.send-email-modal .sem-picker-row:hover { background: rgba(255, 255, 255, 0.045); }
+.send-email-modal .sem-picker-row--selected {
+  background: rgba(56, 178, 170, 0.14);
+  border-color: rgba(72, 196, 184, 0.5);
+}
+.send-email-modal .sem-picker-check {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  position: relative;
+}
+.send-email-modal .sem-picker-row--selected .sem-picker-check {
+  background: #2bb3a8;
+  border-color: #2bb3a8;
+}
+.send-email-modal .sem-picker-row--selected .sem-picker-check::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.send-email-modal .sem-picker-avatar {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.send-email-modal .sem-picker-avatar--public {
+  background: rgba(120, 150, 190, 0.2);
+  color: #9fc0e0;
+}
+.send-email-modal .sem-picker-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.send-email-modal .sem-picker-name {
+  color: #e2e9f2;
+  font-size: 0.9rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.send-email-modal .sem-picker-email {
+  color: #7d8ea3;
+  font-size: 0.76rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.send-email-modal .sem-picker-badge {
+  flex-shrink: 0;
+  font-size: 0.66rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.send-email-modal .sem-badge-public {
+  background: rgba(230, 170, 60, 0.16);
+  color: #e7b860;
+  border-color: rgba(230, 170, 60, 0.35);
+}
+.send-email-modal .sem-badge-demandeur {
+  background: rgba(56, 178, 170, 0.16);
+  color: #5fd0c4;
+  border-color: rgba(72, 196, 184, 0.35);
+}
+.send-email-modal .sem-badge-adverse {
+  background: rgba(225, 90, 90, 0.16);
+  color: #ec8a8a;
+  border-color: rgba(225, 90, 90, 0.35);
+}
+.send-email-modal .sem-badge-avocat {
+  background: rgba(80, 140, 210, 0.16);
+  color: #8fb4e6;
+  border-color: rgba(80, 140, 210, 0.35);
+}
+.send-email-modal .sem-badge-avocat-adverse {
+  background: rgba(225, 120, 80, 0.16);
+  color: #eaa07a;
+  border-color: rgba(225, 120, 80, 0.35);
+}
+.send-email-modal .sem-badge-societe {
+  background: rgba(150, 120, 220, 0.16);
+  color: #b7a3e6;
+  border-color: rgba(150, 120, 220, 0.35);
+}
+.send-email-modal .sem-badge-contact {
+  background: rgba(255, 255, 255, 0.06);
+  color: #9fb0c2;
+  border-color: rgba(255, 255, 255, 0.13);
+}
+.send-email-modal .sem-picker-edit {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-left: 2px;
+  cursor: pointer;
+  opacity: 0.5;
+  filter: invert(0.85);
+  transition: opacity 0.15s ease;
+}
+.send-email-modal .sem-picker-edit:hover { opacity: 1; }
+.send-email-modal .sem-picker-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.22);
+  flex-shrink: 0;
+}
+.send-email-modal .sem-picker-count {
+  font-size: 0.8rem;
+  color: #7d8ea3;
+}
+.send-email-modal .sem-picker-footer .sem-picker-validate {
+  padding: 9px 20px;
+  background: linear-gradient(180deg, #3f9bd8 0%, #2f81c2 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.send-email-modal .sem-picker-footer .sem-picker-validate:hover { filter: brightness(1.08); }

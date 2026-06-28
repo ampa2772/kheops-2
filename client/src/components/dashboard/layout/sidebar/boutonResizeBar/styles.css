@@ -1,0 +1,22 @@
+.rotated {
+  width: 15px;
+  height: 15px;
+  transform: rotate(360deg);
+  cursor: pointer;
+}
+
+.resizeBarIcon {
+  width: 15px;
+  height: 15px;
+  transform: rotate(180deg);
+  cursor: pointer;
+}
+
+@media (max-width: 767px), (max-height: 529px) {
+  .rotated,
+  .resizeBarIcon {
+    display: none;
+  }
+
+ 
+}

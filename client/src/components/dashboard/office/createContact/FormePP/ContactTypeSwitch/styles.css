@@ -1,0 +1,199 @@
+/* ContactTypeSwitch — styles */
+
+.contact-type-switch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+  width: 100%;
+}
+
+.contact-type-switch.error .cts-switch {
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.35);
+  border-radius: 12px;
+}
+
+.cts-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Mode professionnel : fond blanc du fieldset -> label en bleu theme. */
+.cts-label--pro {
+  color: #0b7ea6;
+}
+
+/* Mode client/partie : fond sombre du fieldset -> label en blanc. */
+.cts-label--client {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* Ligne qui regroupe le switch pro/client et les icones genre */
+.cts-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.cts-switch {
+  display: inline-flex;
+  /* Fond plus sombre pour que le texte blanc des boutons inactifs reste
+     bien lisible sur le gradient bleu clair de la modale. */
+  background: rgba(4, 58, 79, 0.45);
+  border: 1.5px solid rgba(138, 180, 248, 0.35);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 2px;
+  transition: border-color 200ms ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.cts-switch:hover {
+  border-color: rgba(138, 180, 248, 0.55);
+}
+
+.cts-option {
+  padding: 8px 20px;
+  border: none;
+  background: transparent;
+  /* Blanc opaque : toujours lisible sur le fond sombre du switch */
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: 9px;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.cts-option:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cts-option.active {
+  background: linear-gradient(135deg, #0ea5d1, #0b7ea6);
+  color: #fff;
+  box-shadow:
+    0 2px 12px rgba(14, 165, 209, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* Selecteur de genre (icones homme/femme) aligne avec le switch */
+.cts-genre {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.cts-gender-option {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(138, 180, 248, 0.35);
+  background: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.cts-gender-option img {
+  width: 22px;
+  height: 22px;
+  opacity: 0.55;
+  transition: opacity 180ms ease;
+}
+
+.cts-gender-option:hover {
+  border-color: rgba(138, 180, 248, 0.55);
+  transform: translateY(-1px);
+}
+
+.cts-gender-option:hover img {
+  opacity: 0.8;
+}
+
+.cts-gender-option.selected {
+  /* Vert theme, identique au selecteur genre de la section "Etat civil"
+     (.gender-option.selected) pour coherence visuelle. */
+  background: linear-gradient(135deg, #00a85e, #00784a);
+  border-color: rgba(0, 168, 94, 0.5);
+  box-shadow:
+    0 0 0 3px rgba(0, 120, 74, 0.2),
+    0 2px 8px rgba(0, 120, 74, 0.25),
+    0 0 12px rgba(0, 168, 94, 0.15);
+}
+
+.cts-gender-option.selected img {
+  opacity: 1;
+  filter: brightness(0) invert(1);
+}
+
+.cts-pro-details {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.cts-pro-select {
+  flex: 0 0 auto;
+  min-width: 180px;
+  padding: 10px 14px;
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  border-radius: 10px;
+  background: #fff;
+  color: #1a2a3a;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  outline: none;
+  cursor: pointer;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.cts-pro-select:hover:not(:focus) {
+  border-color: rgba(138, 180, 248, 0.4);
+}
+
+.cts-pro-select:focus {
+  border-color: #8ab4f8;
+  box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.25);
+}
+
+.cts-other-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  border-radius: 10px;
+  background: #fff;
+  color: #1a2a3a;
+  font-size: 0.8125rem;
+  outline: none;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.cts-other-input:focus {
+  border-color: #8ab4f8;
+  box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.25);
+  background: linear-gradient(180deg, #f8fcfe 0%, #fff 100%);
+}

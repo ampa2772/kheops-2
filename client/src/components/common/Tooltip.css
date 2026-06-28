@@ -1,0 +1,128 @@
+/* ==========================================================
+   Tooltip.css
+   Composant tooltip pour le design system Kheops 2.
+   Mode Portal : rendu dans document.body via createPortal,
+   position: fixed calculée en JS.
+   ========================================================== */
+
+/* --- Container (reste dans le DOM normal) --- */
+.k-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* --- Bulle tooltip (rendue dans document.body via Portal) --- */
+.k-tooltip {
+  z-index: var(--k-tooltip-z, 10100);
+  background-color: var(--k-tooltip-bg, #212121);
+  color: var(--k-tooltip-color, #fff);
+  font-size: var(--k-tooltip-font-size, 0.75rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  line-height: var(--k-line-height-tight, 1.25);
+  padding: var(--k-tooltip-padding, 6px 10px);
+  border-radius: var(--k-tooltip-radius, 4px);
+  max-width: var(--k-tooltip-max-width, 250px);
+  width: max-content;
+  pointer-events: none;
+  white-space: normal;
+  word-wrap: break-word;
+  box-shadow: var(--k-shadow-sm);
+
+  /* Animation */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--k-duration-normal, 200ms) var(--k-ease-out, ease),
+              visibility var(--k-duration-normal, 200ms) var(--k-ease-out, ease);
+}
+
+/* Etat affiche */
+.k-tooltip.k-tooltip--visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* --- Fleche --- */
+.k-tooltip::after {
+  content: '';
+  position: absolute;
+  border: var(--k-tooltip-arrow-size, 6px) solid transparent;
+}
+
+/* ==========================================================
+   Mode Portal : position fixed, coordonnées calculées en JS.
+   Le transform de positionnement est appliqué via le style
+   inline pour top/left. Ici on gère uniquement la flèche
+   et le transform de centrage.
+   ========================================================== */
+
+/* --- Portal: bottom --- */
+.k-tooltip--portal.k-tooltip--bottom {
+  transform: translateX(-50%);
+}
+.k-tooltip--portal.k-tooltip--bottom::after {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: var(--k-tooltip-bg, #212121);
+}
+
+/* --- Portal: top --- */
+.k-tooltip--portal.k-tooltip--top {
+  transform: translate(-50%, -100%);
+}
+.k-tooltip--portal.k-tooltip--top::after {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: var(--k-tooltip-bg, #212121);
+}
+
+/* --- Portal: left --- */
+.k-tooltip--portal.k-tooltip--left {
+  transform: translate(-100%, -50%);
+}
+.k-tooltip--portal.k-tooltip--left::after {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: var(--k-tooltip-bg, #212121);
+}
+
+/* --- Portal: right --- */
+.k-tooltip--portal.k-tooltip--right {
+  transform: translateY(-50%);
+}
+.k-tooltip--portal.k-tooltip--right::after {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: var(--k-tooltip-bg, #212121);
+}
+
+/* --- Mode malvoyant (high-contrast) --- */
+body.high-contrast-mode .k-tooltip {
+  background-color: #000000;
+  color: yellow;
+  border: 2px solid yellow;
+  box-shadow: none;
+}
+
+body.high-contrast-mode .k-tooltip--top::after {
+  border-top-color: yellow;
+}
+body.high-contrast-mode .k-tooltip--bottom::after {
+  border-bottom-color: yellow;
+}
+body.high-contrast-mode .k-tooltip--left::after {
+  border-left-color: yellow;
+}
+body.high-contrast-mode .k-tooltip--right::after {
+  border-right-color: yellow;
+}
+
+/* --- Mouvement reduit --- */
+@media (prefers-reduced-motion: reduce) {
+  .k-tooltip {
+    transition: none;
+  }
+}

@@ -1,0 +1,238 @@
+/* ==========================================================
+   Sidebar styles — Phase 2 Redesign (Linear / Notion style)
+   Tokens k2-* avec fallback k-* pour compatibilité.
+   ========================================================== */
+
+/* ─── Nav wrapper (enfant direct de la sidebar) ─── */
+nav[aria-label="Menu principal"] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ─── Container de navigation ─── */
+.iconsSideBarLeft {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Scrollbar fine */
+.iconsSideBarLeft::-webkit-scrollbar { width: 4px; }
+.iconsSideBarLeft::-webkit-scrollbar-track { background: transparent; }
+.iconsSideBarLeft::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--k2-radius-full, 9999px);
+}
+
+/* ─── Item de navigation ─── */
+.sidebar-nav-item {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: var(--k2-space-2, 8px) var(--k2-space-3, 12px);
+  margin: 0 var(--k2-space-2, 8px);
+  border-radius: var(--k2-radius-sm, 6px);
+  transition: background-color var(--k2-duration-normal, 150ms) ease,
+              color var(--k2-duration-normal, 150ms) ease;
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  border: none;
+  background: none;
+  width: calc(100% - var(--k2-space-4, 16px));
+  outline: none;
+}
+
+/* Hover — fond subtil */
+.sidebar-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Hover icon scale */
+.sidebar-nav-item:hover .boutonSideBar {
+  transform: scale(1.05);
+}
+
+/* Focus-visible */
+.sidebar-nav-item:focus-visible {
+  box-shadow: var(--k2-shadow-ring, var(--k-focus-ring));
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ─── État sélectionné — Linear style avec accent bar ─── */
+.selectedInSideBar {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  padding: var(--k2-space-2, 8px) var(--k2-space-3, 12px);
+  margin: 0 var(--k2-space-2, 8px);
+  border-radius: var(--k2-radius-sm, 6px);
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+/* Accent bar gauche */
+.selectedInSideBar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 3px;
+  background-color: var(--k2-primary-400, #3d97ff);
+  border-radius: 0 3px 3px 0;
+  transition: all var(--k2-duration-normal, 150ms) var(--k2-ease-out, ease);
+}
+
+.selectedInSideBar .boutonSideBar {
+  filter: brightness(1.3);
+}
+
+/* ─── État non-sélectionné ─── */
+.notSelectedInSideBar {
+  padding: var(--k2-space-2, 8px) var(--k2-space-3, 12px);
+  margin: 0 var(--k2-space-2, 8px);
+  border-radius: var(--k2-radius-sm, 6px);
+  display: flex;
+  align-items: center;
+}
+
+/* ─── Modificateur sidebar ouverte ─── */
+.sidebarOpenClass {
+  border-radius: var(--k2-radius-sm, 6px);
+}
+
+/* ─── Icônes ─── */
+.boutonSideBar {
+  height: var(--k2-space-5, 20px);
+  width: var(--k2-space-5, 20px);
+  flex-shrink: 0;
+  transition: transform var(--k2-duration-fast, 100ms) var(--k2-ease-out, ease),
+              filter var(--k2-duration-normal, 150ms) ease;
+  opacity: 0.85;
+}
+
+.selectedInSideBar .boutonSideBar {
+  opacity: 1;
+}
+
+.e-mails {
+  height: 22px;
+  width: 22px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* ─── Container label + icône ─── */
+.boutonConteneur {
+  display: flex;
+  align-items: center;
+  color: inherit;
+  gap: var(--k2-space-3, 12px);
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-sm, 13px);
+  font-weight: var(--k2-font-weight-medium, 500);
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* ─── Container bouton resize ─── */
+.boutonResize {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: auto;
+  padding-top: var(--k2-space-2, 8px);
+  margin-left: var(--k2-space-2, 8px);
+  margin-right: var(--k2-space-2, 8px);
+}
+
+.boutonResizeCenter {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: auto;
+  padding-top: var(--k2-space-2, 8px);
+}
+
+.btn_mails {
+  margin-bottom: -2px;
+}
+
+/* En dessous de 900px, la sidebar est forcee en mode icone (60px) par
+   dashboard/styles.css quel que soit le state Redux. Le bouton resize n'a
+   plus d'effet visible : on le masque. Cette regle a sa place ici (et non
+   dans dashboard/styles.css) car sidebar/styles.css charge apres et ses
+   regles non-media gagneraient autrement la cascade par derniere position. */
+@media (max-width: 900px) {
+  .boutonResize,
+  .boutonResizeCenter {
+    display: none;
+  }
+}
+
+/* ─── Mode icône (sidebar fermée) — Icônes élargies + centrées ─── */
+.dashboard-sidebar-close .iconsSideBarLeft {
+  align-items: center;
+  overflow: visible;
+}
+
+.dashboard-sidebar-close .sidebar-nav-item,
+.dashboard-sidebar-close .selectedInSideBar,
+.dashboard-sidebar-close .notSelectedInSideBar {
+  justify-content: center;
+  padding: var(--k2-space-2, 8px);
+  margin: 0 auto;
+  width: auto;
+  overflow: visible;
+}
+
+.dashboard-sidebar-close .boutonConteneur {
+  justify-content: center;
+  overflow: visible;
+}
+
+
+/* ═══════════════════════════════════════
+   MODE MALVOYANT (HIGH-CONTRAST)
+   ═══════════════════════════════════════ */
+
+body.high-contrast-mode .sidebar-nav-item {
+  color: yellow;
+}
+
+body.high-contrast-mode .sidebar-nav-item:hover {
+  background-color: rgba(255, 255, 0, 0.08);
+}
+
+body.high-contrast-mode .sidebar-nav-item:focus-visible {
+  box-shadow: var(--k-focus-ring);
+  outline: 2px solid yellow;
+  outline-offset: 2px;
+}
+
+body.high-contrast-mode .selectedInSideBar {
+  background-color: transparent;
+  border: 2px solid var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .selectedInSideBar::before {
+  background-color: var(--highlight-color, #33ff33);
+  width: 4px;
+}
+
+body.high-contrast-mode .boutonConteneur {
+  color: yellow;
+}
+
+body.high-contrast-mode .boutonSideBar {
+  opacity: 1;
+}

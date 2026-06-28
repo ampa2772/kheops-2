@@ -1,0 +1,56 @@
+.facturation-main-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.facturation-sub-tabs {
+  display: flex;
+  background-color: var(--k-primary-800, #043a4f); /* Match main tabs */
+  flex-shrink: 0;
+}
+
+/* Neutralise les styles inline de HoverToSpeak pour que les deux onglets
+   se partagent equitablement la largeur au lieu d'etre etires/espaces. */
+.facturation-sub-tabs > div {
+  flex: 1 1 0% !important;
+  width: auto !important;
+  display: flex !important;
+  min-width: 0;
+}
+
+.facturation-sub-tabs .sub-tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px 10px;
+  cursor: pointer;
+  color: var(--k-primary-800, #043a4f);
+  background-color: var(--k-primary-100, #b3dde9);
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease-in-out;
+  font-size: 0.9rem;
+}
+
+.facturation-sub-tabs .sub-tab:not(:last-child) {
+  border-right: 1px solid var(--k-primary-800, #043a4f);
+}
+
+.facturation-sub-tabs .sub-tab:hover {
+  background-color: var(--k-primary-600, #075a7f);
+  color: var(--k-text-light, #e8eaed);
+}
+
+.facturation-sub-tabs .sub-tab.active {
+  background-color: var(--k-primary-700, #064963);
+  color: var(--k-text-light, #e8eaed);
+  font-weight: var(--k-font-weight-semibold, 600);
+  border-bottom: 2px solid transparent;
+}
+
+.facturation-sub-tab-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  background-color: #add8e6;
+  padding: 10px;
+}

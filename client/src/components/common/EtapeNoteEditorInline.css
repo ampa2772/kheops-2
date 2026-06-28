@@ -1,0 +1,72 @@
+/* client/src/components/common/EtapeNoteEditorInline.css
+ *
+ * Mode INLINE de l'éditeur riche : look identique à EtapeNoteEditor
+ * (fond clair, page A4 sur fond gris, ruban en haut). Aucun overlay
+ * propre ; le conteneur parent (par exemple InfoDossierTextModal) gère
+ * son propre wrapper modal.
+ */
+
+.k-inline-rich-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  background: #fafbfd;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Le ruban réutilise directement les classes k-dcm-note-ribbon / k-dcm-note-group
+ * de EtapeNoteEditor.css : pas de surcharge nécessaire ici. */
+
+.k-inline-rich-editor-canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  background: #ecedf1;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.k-inline-rich-editor-canvas .k-dcm-note-editor {
+  width: 100%;
+  max-width: 800px;
+  min-height: 100%;
+  background: #ffffff;
+  border: 1px solid #d6dbe6;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 2rem 2.25rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #1f2937;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.k-inline-rich-editor-canvas .k-dcm-note-editor:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Placeholder visuel quand l'éditeur est vide */
+.k-inline-rich-editor-canvas .k-dcm-note-editor[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Listes : on force les puces/numéros dans la zone d'édition (App.css les
+ * supprime au global avec list-style:none). */
+.k-inline-rich-editor-canvas .k-dcm-note-editor ul,
+.k-inline-rich-editor-canvas .k-dcm-note-editor ol {
+  margin: 0 0 0.6rem 0;
+  padding-left: 1.75rem;
+}
+.k-inline-rich-editor-canvas .k-dcm-note-editor ul { list-style: disc outside; }
+.k-inline-rich-editor-canvas .k-dcm-note-editor ol { list-style: decimal outside; }
+.k-inline-rich-editor-canvas .k-dcm-note-editor li { margin: 0.15rem 0; }
+.k-inline-rich-editor-canvas .k-dcm-note-editor p { margin: 0 0 0.6rem 0; }

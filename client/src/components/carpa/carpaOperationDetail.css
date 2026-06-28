@@ -1,0 +1,918 @@
+/* ============================================================
+ * carpaOperationDetail.css — Refonte dark navy de la modale
+ * "Détail de l'opération CARPA" (rc59).
+ *
+ * Surcharge ciblée sur la modale via .k-carpa-detail-modal pour
+ * éviter d'impacter les autres modales du module CARPA.
+ *
+ * Variables réutilisées depuis _darkNavyTheme.css :
+ *   --kdn-bg-deep, --kdn-bg-surface, --kdn-accent, --kdn-text-*
+ * ============================================================ */
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal {
+  background:
+    radial-gradient(ellipse at top left, rgba(45, 80, 130, 0.35) 0%, transparent 55%),
+    linear-gradient(160deg, #0a1828 0%, #0d2138 55%, #0a1c34 100%);
+  color: var(--kdn-text-primary);
+  border: 1px solid rgba(120, 180, 240, 0.15);
+  box-shadow:
+    0 28px 60px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ─── Header ───────────────────────────────────────────────── */
+.k-carpa-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid rgba(120, 180, 240, 0.12);
+  background: rgba(10, 24, 42, 0.55);
+}
+
+.k-carpa-detail-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(77, 201, 255, 0.95), rgba(37, 99, 235, 0.85));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0a1828;
+  box-shadow:
+    0 0 0 1px rgba(77, 201, 255, 0.35),
+    0 6px 16px rgba(77, 201, 255, 0.22);
+  flex-shrink: 0;
+}
+
+.k-carpa-detail-badge svg {
+  width: 22px;
+  height: 22px;
+  stroke: #0a1828;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.k-carpa-detail-header-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.k-carpa-detail-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--kdn-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.k-carpa-detail-eyebrow .k-carpa-detail-sens {
+  color: #fb923c;
+  font-weight: 700;
+}
+
+.k-carpa-detail-titlerow {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.k-carpa-detail-titlerow h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--kdn-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.k-carpa-detail-ref-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.6rem;
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #7dd3fc;
+  background: rgba(77, 201, 255, 0.12);
+  border: 1px solid rgba(77, 201, 255, 0.32);
+  border-radius: 999px;
+}
+
+.k-carpa-detail-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(120, 180, 240, 0.22);
+  background: rgba(15, 32, 56, 0.7);
+  color: var(--kdn-text-secondary);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.k-carpa-detail-close:hover {
+  background: rgba(20, 42, 72, 0.95);
+  color: var(--kdn-text-primary);
+  border-color: rgba(120, 180, 240, 0.4);
+}
+
+/* ─── Bandeau 3 stats ──────────────────────────────────────── */
+.k-carpa-detail-stats {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 1px;
+  background: rgba(120, 180, 240, 0.08);
+  border-bottom: 1px solid rgba(120, 180, 240, 0.12);
+}
+
+.k-carpa-detail-stat {
+  padding: 0.95rem 1.4rem;
+  background: rgba(10, 22, 40, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.k-carpa-detail-stat-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-detail-stat-main {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--kdn-text-primary);
+  line-height: 1.25;
+}
+
+.k-carpa-detail-stat-main.k-carpa-detail-stat-main-empty {
+  color: var(--kdn-text-secondary);
+}
+
+.k-carpa-detail-stat-sub {
+  font-size: 0.8rem;
+  color: var(--kdn-text-muted);
+  line-height: 1.3;
+}
+
+.k-carpa-detail-stat-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.k-carpa-detail-stat-amount .k-carpa-detail-amount-value {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--kdn-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.k-carpa-detail-stat-amount .k-carpa-detail-amount-currency {
+  font-size: 0.95rem;
+  color: var(--kdn-text-secondary);
+  font-weight: 500;
+}
+
+.k-carpa-detail-stat-etat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.k-carpa-detail-stat-etat-date {
+  font-size: 0.78rem;
+  color: var(--kdn-text-muted);
+}
+
+/* Pastilles d'état repris en versions dark, surchargent l'override clair */
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-pastille {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.22rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid;
+  width: max-content;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-pastille::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-etat-brouillon {
+  background: rgba(148, 163, 184, 0.18); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.45);
+}
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-etat-attention {
+  background: rgba(251, 191, 36, 0.16); color: #fcd34d; border-color: rgba(251, 191, 36, 0.45);
+}
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-etat-progres {
+  background: rgba(96, 165, 250, 0.18); color: #93c5fd; border-color: rgba(96, 165, 250, 0.5);
+}
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-etat-ok {
+  background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.5);
+}
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-etat-bloque {
+  background: rgba(239, 68, 68, 0.18); color: #fca5a5; border-color: rgba(239, 68, 68, 0.5);
+}
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-etat-annule {
+  background: rgba(239, 68, 68, 0.16); color: #fca5a5; border-color: rgba(239, 68, 68, 0.45);
+}
+
+/* ─── Body avec sections dark ──────────────────────────────── */
+.k-carpa-detail-modal .k-carpa-modal-body {
+  padding: 1.2rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: transparent;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-section {
+  background: rgba(15, 32, 56, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  color: var(--kdn-text-primary);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.k-carpa-detail-section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.k-carpa-detail-section-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(77, 201, 255, 0.12);
+  border: 1px solid rgba(77, 201, 255, 0.28);
+  color: #7dd3fc;
+  flex-shrink: 0;
+}
+
+.k-carpa-detail-section-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.k-carpa-detail-section-icon.k-carpa-detail-section-icon-warning {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.32);
+  color: #fcd34d;
+}
+
+.k-carpa-detail-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--kdn-text-primary);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.k-carpa-detail-section-aside {
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: var(--kdn-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.k-carpa-detail-section-aside-label {
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-detail-section-aside-value {
+  color: var(--kdn-text-secondary);
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-weight: 500;
+}
+
+.k-carpa-detail-section-aside.k-carpa-detail-aside-ok {
+  color: #6ee7b7;
+}
+
+.k-carpa-detail-section-aside.k-carpa-detail-aside-ok::before,
+.k-carpa-detail-section-aside.k-carpa-detail-aside-warn::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.k-carpa-detail-section-aside.k-carpa-detail-aside-warn {
+  color: #fcd34d;
+}
+
+.k-carpa-detail-section-subtitle {
+  font-size: 0.82rem;
+  color: var(--kdn-text-muted);
+  margin: 0.5rem 0 0;
+  line-height: 1.4;
+}
+
+/* ─── Stepper "Cycle de vie" ───────────────────────────────── */
+.k-carpa-detail-stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+  padding: 0.4rem 0.2rem 0;
+  gap: 0.4rem;
+}
+
+.k-carpa-detail-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  min-width: 0;
+}
+
+.k-carpa-detail-step + .k-carpa-detail-step::before {
+  content: '';
+  position: absolute;
+  top: 17px;
+  left: -50%;
+  right: 50%;
+  height: 2px;
+  background: rgba(148, 163, 184, 0.25);
+  z-index: 0;
+}
+
+.k-carpa-detail-step.is-done + .k-carpa-detail-step::before,
+.k-carpa-detail-step.is-current + .k-carpa-detail-step::before {
+  background: rgba(77, 201, 255, 0.65);
+}
+
+.k-carpa-detail-step.is-done-cancelled + .k-carpa-detail-step::before,
+.k-carpa-detail-step.is-current-cancelled + .k-carpa-detail-step::before,
+.k-carpa-detail-step.is-future-cancelled + .k-carpa-detail-step::before {
+  background: rgba(239, 68, 68, 0.45);
+}
+
+.k-carpa-detail-step-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: rgba(15, 32, 56, 0.85);
+  border: 2px solid rgba(148, 163, 184, 0.35);
+  color: var(--kdn-text-muted);
+  z-index: 1;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.k-carpa-detail-step.is-done .k-carpa-detail-step-circle {
+  background: rgba(77, 201, 255, 0.95);
+  border-color: rgba(77, 201, 255, 0.95);
+  color: #0a1828;
+}
+
+.k-carpa-detail-step.is-current .k-carpa-detail-step-circle {
+  background: rgba(77, 201, 255, 0.18);
+  border-color: rgba(77, 201, 255, 0.95);
+  color: #7dd3fc;
+  box-shadow: 0 0 0 4px rgba(77, 201, 255, 0.12);
+}
+
+.k-carpa-detail-step.is-done-cancelled .k-carpa-detail-step-circle {
+  background: rgba(15, 32, 56, 0.85);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-detail-step.is-current-cancelled .k-carpa-detail-step-circle,
+.k-carpa-detail-step.is-future-cancelled .k-carpa-detail-step-circle {
+  background: rgba(15, 32, 56, 0.6);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: rgba(252, 165, 165, 0.85);
+}
+
+.k-carpa-detail-step.is-cancel-terminal .k-carpa-detail-step-circle {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.85);
+  color: #fca5a5;
+}
+
+.k-carpa-detail-step-label {
+  margin-top: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--kdn-text-secondary);
+  text-align: center;
+  line-height: 1.2;
+  word-wrap: break-word;
+  max-width: 100%;
+}
+
+.k-carpa-detail-step.is-current .k-carpa-detail-step-label {
+  color: var(--kdn-text-primary);
+  font-weight: 600;
+}
+
+.k-carpa-detail-step.is-future-cancelled .k-carpa-detail-step-label,
+.k-carpa-detail-step.is-current-cancelled .k-carpa-detail-step-label {
+  text-decoration: line-through;
+  color: rgba(252, 165, 165, 0.7);
+}
+
+.k-carpa-detail-step.is-cancel-terminal .k-carpa-detail-step-label {
+  color: #fca5a5;
+  font-weight: 600;
+}
+
+.k-carpa-detail-step-date {
+  font-size: 0.72rem;
+  color: var(--kdn-text-muted);
+  margin-top: 0.18rem;
+}
+
+.k-carpa-detail-step-date-empty {
+  color: rgba(120, 140, 170, 0.5);
+}
+
+.k-carpa-detail-step.is-future-cancelled .k-carpa-detail-step-date {
+  color: rgba(252, 165, 165, 0.55);
+}
+
+/* ─── Pièces justificatives ────────────────────────────────── */
+.k-carpa-detail-piece-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.4rem 0 0.65rem;
+}
+
+.k-carpa-detail-piece-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.25;
+  border: 1px solid;
+  background: rgba(15, 32, 56, 0.6);
+  color: var(--kdn-text-secondary);
+  flex: 1 1 200px;
+  min-width: 200px;
+}
+
+.k-carpa-detail-piece-chip.is-fournie {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #a7f3d0;
+}
+
+.k-carpa-detail-piece-chip.is-manquante {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #fcd34d;
+}
+
+.k-carpa-detail-piece-chip-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.k-carpa-detail-piece-chip.is-fournie .k-carpa-detail-piece-chip-icon {
+  background: rgba(16, 185, 129, 0.35);
+  color: #d1fae5;
+}
+
+.k-carpa-detail-piece-chip.is-manquante .k-carpa-detail-piece-chip-icon {
+  background: rgba(251, 191, 36, 0.3);
+  color: #fef3c7;
+}
+
+.k-carpa-detail-piece-chip-icon svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.k-carpa-detail-piece-legal {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--kdn-text-muted);
+  line-height: 1.4;
+}
+
+.k-carpa-detail-piece-deposited {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.k-carpa-detail-piece-deposited-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-detail-piece-deposited-item {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.5rem 0.7rem;
+  background: rgba(8, 22, 42, 0.55);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  border-radius: 8px;
+}
+
+.k-carpa-detail-piece-deposited-name {
+  font-weight: 500;
+  color: var(--kdn-text-primary);
+}
+
+.k-carpa-detail-piece-deposited-file {
+  font-size: 0.78rem;
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-detail-piece-deposited-date {
+  font-size: 0.72rem;
+  color: var(--kdn-text-muted);
+  margin-left: auto;
+}
+
+.k-carpa-detail-piece-add {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.k-carpa-detail-piece-add .k-carpa-field {
+  flex: 1;
+  min-width: 160px;
+}
+
+.k-carpa-detail-piece-add .k-carpa-field label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--kdn-text-muted);
+  margin-bottom: 0.3rem;
+  display: block;
+}
+
+/* Inputs/selects dans la modale dark navy */
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal input[type="text"],
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal input[type="number"],
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal input[type="date"],
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal input[type="search"],
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal select,
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal textarea {
+  background: var(--kdn-input-bg);
+  border: 1px solid var(--kdn-input-border);
+  color: var(--kdn-text-primary);
+  border-radius: 7px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.88rem;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal input::placeholder,
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal textarea::placeholder {
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal input:focus,
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal select:focus,
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal textarea:focus {
+  outline: none;
+  border-color: var(--kdn-input-border-focus);
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.15);
+}
+
+/* ─── Vigilance LCB-FT ─────────────────────────────────────── */
+.k-carpa-detail-flag-add-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(77, 201, 255, 0.16);
+  border: 1px solid rgba(77, 201, 255, 0.42);
+  color: #7dd3fc;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.k-carpa-detail-flag-add-btn:hover {
+  background: rgba(77, 201, 255, 0.26);
+  border-color: rgba(77, 201, 255, 0.6);
+}
+
+.k-carpa-detail-flag-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-detail-flag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.k-carpa-detail-flag-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: rgba(8, 22, 42, 0.55);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  align-items: center;
+}
+
+.k-carpa-detail-flag-item.is-active {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.32);
+}
+
+.k-carpa-detail-flag-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 6px;
+  background: rgba(251, 191, 36, 0.18);
+  color: #fcd34d;
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.k-carpa-detail-flag-item.is-lifted .k-carpa-detail-flag-type {
+  background: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.k-carpa-detail-flag-reason {
+  font-size: 0.85rem;
+  color: var(--kdn-text-primary);
+  line-height: 1.35;
+}
+
+.k-carpa-detail-flag-lifted-info {
+  font-size: 0.74rem;
+  color: var(--kdn-text-muted);
+  margin-top: 0.2rem;
+}
+
+.k-carpa-detail-flag-lift-btn {
+  padding: 0.32rem 0.7rem;
+  font-size: 0.78rem;
+  background: rgba(15, 32, 56, 0.8);
+  color: var(--kdn-text-secondary);
+  border: 1px solid rgba(120, 180, 240, 0.25);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.k-carpa-detail-flag-lift-btn:hover {
+  background: rgba(20, 42, 72, 0.95);
+  color: var(--kdn-text-primary);
+}
+
+/* ─── Journal d'audit ──────────────────────────────────────── */
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-timeline li {
+  background: rgba(8, 22, 42, 0.55);
+  color: var(--kdn-text-primary);
+  border: 1px solid rgba(120, 180, 240, 0.1);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-timeline-when {
+  font-size: 0.74rem;
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-detail-audit-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--kdn-text-muted);
+}
+
+/* ─── Alerte (erreurs) ─────────────────────────────────────── */
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-alerte {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fecaca;
+}
+
+/* ─── Footer ──────────────────────────────────────────────── */
+.k-carpa-detail-modal .k-carpa-modal-footer {
+  padding: 1rem 1.4rem;
+  border-top: 1px solid rgba(120, 180, 240, 0.12);
+  background: rgba(10, 24, 42, 0.55);
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-btn-secondary {
+  background: rgba(77, 201, 255, 0.14);
+  border: 1px solid rgba(77, 201, 255, 0.38);
+  color: #7dd3fc;
+  border-radius: 7px;
+  padding: 0.42rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-btn-secondary:hover:not(:disabled) {
+  background: rgba(77, 201, 255, 0.22);
+  border-color: rgba(77, 201, 255, 0.55);
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-btn-primary {
+  background: linear-gradient(135deg, #4dc9ff, #2563eb);
+  border: 1px solid rgba(77, 201, 255, 0.6);
+  color: #0a1828;
+  border-radius: 7px;
+  padding: 0.45rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(120, 180, 240, 0.25);
+  color: var(--kdn-text-secondary);
+  border-radius: 7px;
+  padding: 0.42rem 0.85rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-btn-ghost:hover {
+  background: rgba(20, 42, 72, 0.7);
+  color: var(--kdn-text-primary);
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-btn-danger {
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+  border-radius: 6px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-detail-modal .k-carpa-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.28);
+}
+
+.k-carpa-detail-footer-transitions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.k-carpa-detail-footer-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+/* ─── Notes inline ─────────────────────────────────────────── */
+.k-carpa-detail-notes {
+  margin-top: 0.85rem;
+  padding: 0.7rem 0.85rem;
+  background: rgba(8, 22, 42, 0.5);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  border-left: 3px solid rgba(77, 201, 255, 0.55);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--kdn-text-secondary);
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+/* ─── Responsive : stack stats / stepper sur petit écran ──── */
+@media (max-width: 720px) {
+  .k-carpa-detail-stats {
+    grid-template-columns: 1fr;
+  }
+  .k-carpa-detail-stepper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+  .k-carpa-detail-step + .k-carpa-detail-step::before {
+    display: none;
+  }
+  .k-carpa-detail-step {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .k-carpa-detail-step-label {
+    margin-top: 0;
+    text-align: left;
+  }
+}

@@ -1,0 +1,139 @@
+/* ==========================================================================
+   ToastContainer — bulles de notification non bloquantes en bas à droite
+   ========================================================================== */
+
+.k-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 6000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 48px));
+  pointer-events: none;
+}
+
+.k-toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(165deg, rgba(15, 27, 45, 0.97) 0%, rgba(18, 39, 64, 0.97) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e8eaed;
+  box-shadow:
+    0 16px 32px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  animation: kToastIn 220ms cubic-bezier(0.2, 0.8, 0.4, 1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+@keyframes kToastIn {
+  from { opacity: 0; transform: translateX(20px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+.k-toast__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.k-toast__body {
+  min-width: 0;
+}
+
+.k-toast__title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  margin-bottom: 2px;
+  color: #fff;
+}
+
+.k-toast__message {
+  color: rgba(232, 234, 237, 0.88);
+  word-wrap: break-word;
+}
+
+.k-toast__close {
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.k-toast__close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Variantes par type — fond + bordure + accent */
+.k-toast--success {
+  border-left: 4px solid #10b981;
+}
+.k-toast--success .k-toast__icon {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+}
+
+.k-toast--error {
+  border-left: 4px solid #ef4444;
+}
+.k-toast--error .k-toast__icon {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.k-toast--warning {
+  border-left: 4px solid #f59e0b;
+}
+.k-toast--warning .k-toast__icon {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.k-toast--info {
+  border-left: 4px solid #4dc9ff;
+}
+.k-toast--info .k-toast__icon {
+  background: rgba(77, 201, 255, 0.18);
+  color: #6ee7ff;
+}
+
+/* High-contrast mode */
+body.high-contrast-mode .k-toast {
+  background: #000;
+  border: 1px solid yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .k-toast__title,
+body.high-contrast-mode .k-toast__message,
+body.high-contrast-mode .k-toast__close {
+  color: yellow;
+}
+
+@media (max-width: 600px) {
+  .k-toast-container {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+    max-width: calc(100vw - 24px);
+  }
+}

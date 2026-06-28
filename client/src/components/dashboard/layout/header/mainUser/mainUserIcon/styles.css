@@ -1,0 +1,19 @@
+/* MainUserIcon — Phase 1 Redesign */
+.main-user-icon {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: var(--k-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-weight: var(--k-font-weight-bold);
+  font-size: var(--k-font-size-sm);
+  transition: background-color var(--k-duration-normal) var(--k-ease-out);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.main-user-icon:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}

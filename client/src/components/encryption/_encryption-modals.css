@@ -1,0 +1,293 @@
+/* ==========================================================
+   _encryption-modals.css
+   Styles specifiques aux modales du chiffrement E2E :
+     - EncryptionSetupModal (situation A — premier avocat du cabinet)
+     - EncryptionUnlockModal (situation B — saisie phrase secrete existante)
+   Etend les classes communes de _modal-base.css.
+   Support du mode malvoyant (body.high-contrast-mode).
+   ========================================================== */
+
+/* --- Niveau d'empilement --- */
+.k-encryption-overlay {
+  z-index: 1000;
+}
+
+/* La modale d'unlock (situation B) est BLOQUANTE : zindex au-dessus de tout
+   le reste, fond plus opaque pour bien indiquer qu'on ne peut pas la fermer. */
+.k-encryption-overlay--blocking {
+  z-index: 1200;
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+/* --- Boite de contenu --- */
+.k-encryption-box {
+  width: var(--k-encryption-modal-w, min(560px, 95vw));
+  max-width: 95vw;
+}
+
+/* --- Sections internes --- */
+.k-encryption-section {
+  padding: 8px 0;
+}
+
+.k-encryption-section + .k-encryption-section {
+  margin-top: 14px;
+}
+
+.k-encryption-explain {
+  color: #444;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.k-encryption-explain strong {
+  color: #008047;
+}
+
+/* --- Affichage de la phrase secrete (6 mots) --- */
+.k-encryption-passphrase {
+  background-color: #f6f9f7;
+  border: 2px solid #008047;
+  border-radius: 8px;
+  padding: 18px 16px;
+  margin: 12px 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.25rem;
+  text-align: center;
+  letter-spacing: 0.05em;
+  color: #003923;
+  word-spacing: 0.6em;
+  user-select: all;                                                          /* facilite la selection pour les utilisateurs */
+}
+
+.k-encryption-passphrase-empty {
+  background-color: #f6f9f7;
+  border: 2px dashed #aaa;
+  border-radius: 8px;
+  padding: 18px 16px;
+  margin: 12px 0;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.k-encryption-passphrase-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.k-encryption-btn-secondary {
+  background-color: #fff;
+  color: #008047;
+  border: 1px solid #008047;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.k-encryption-btn-secondary:hover {
+  background-color: #f0f8f4;
+}
+
+.k-encryption-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Champ de saisie de la phrase --- */
+.k-encryption-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 1.05rem;
+  font-family: 'Courier New', Courier, monospace;
+  border: 1px solid #b8b8b8;
+  border-radius: 8px;
+  outline: none;
+  letter-spacing: 0.03em;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.k-encryption-input:focus {
+  border-color: #008047;
+  box-shadow: 0 0 0 2px rgba(0, 128, 71, 0.15);
+}
+
+.k-encryption-input--error {
+  border-color: #dc3545;
+  background-color: #fff5f5;
+}
+
+.k-encryption-input-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* --- Case a cocher de confirmation --- */
+.k-encryption-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.k-encryption-checkbox input[type="checkbox"] {
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.k-encryption-checkbox label {
+  cursor: pointer;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+/* --- Notes d'avertissement --- */
+.k-encryption-warning {
+  background-color: #fff8e6;
+  border-left: 4px solid #f0a500;
+  padding: 12px 14px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #5c3a00;
+  line-height: 1.45;
+}
+
+.k-encryption-warning strong {
+  color: #5c3a00;
+}
+
+/* --- Erreur --- */
+.k-encryption-error {
+  background-color: #fff0f0;
+  border-left: 4px solid #dc3545;
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #80232b;
+  margin-top: 10px;
+}
+
+/* --- Lien "j'ai perdu ma phrase" --- */
+.k-encryption-recovery-link {
+  display: block;
+  margin-top: 14px;
+  text-align: center;
+  background: none;
+  border: none;
+  color: #0056b3;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.k-encryption-recovery-link:hover {
+  color: #003e80;
+}
+
+/* --- Indicateur d'avancement (wizard) --- */
+.k-encryption-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.k-encryption-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ddd;
+}
+
+.k-encryption-step-dot--active {
+  background-color: #008047;
+}
+
+.k-encryption-step-dot--done {
+  background-color: #008047;
+  opacity: 0.5;
+}
+
+/* ============================================================
+   MODE MALVOYANT (high-contrast)
+   ============================================================ */
+
+body.high-contrast-mode .k-encryption-passphrase {
+  background-color: #000;
+  border-color: yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .k-encryption-passphrase-empty {
+  background-color: #000;
+  border-color: yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .k-encryption-input {
+  background-color: #000;
+  color: yellow;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k-encryption-input:focus {
+  border-color: yellow;
+  box-shadow: 0 0 0 2px yellow;
+}
+
+body.high-contrast-mode .k-encryption-input--error {
+  border-color: #ff4d4d;
+  background-color: #1a0000;
+  color: #ffaaaa;
+}
+
+body.high-contrast-mode .k-encryption-explain,
+body.high-contrast-mode .k-encryption-checkbox label,
+body.high-contrast-mode .k-encryption-input-hint {
+  color: yellow;
+}
+
+body.high-contrast-mode .k-encryption-btn-secondary {
+  background-color: #000;
+  color: yellow;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k-encryption-btn-secondary:hover {
+  background-color: #222;
+}
+
+body.high-contrast-mode .k-encryption-warning {
+  background-color: #1a1500;
+  border-left-color: yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .k-encryption-error {
+  background-color: #1a0000;
+  border-left-color: #ff4d4d;
+  color: #ffaaaa;
+}
+
+body.high-contrast-mode .k-encryption-recovery-link {
+  color: yellow;
+}
+
+body.high-contrast-mode .k-encryption-step-dot {
+  background-color: #555;
+}
+
+body.high-contrast-mode .k-encryption-step-dot--active,
+body.high-contrast-mode .k-encryption-step-dot--done {
+  background-color: yellow;
+}

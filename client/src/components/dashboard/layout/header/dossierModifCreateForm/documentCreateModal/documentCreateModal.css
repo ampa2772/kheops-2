@@ -1,0 +1,852 @@
+/* ==========================================================
+   documentCreateModal.css
+   Styles pour la modale de creation de document
+   Premium redesign — Niveau concours CSS (Awwwards)
+   ========================================================== */
+
+/* --- Keyframes --- */
+@keyframes doc-step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes doc-dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes doc-toast-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* --- Step transition animation --- */
+.doc-step-animate {
+  animation: doc-step-enter 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* --- Overlay --- */
+.doc-create-overlay {
+  z-index: var(--k-z-modal-high, 10000);
+  background-color: rgba(10, 22, 40, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ==========================================================
+   MODAL BOX
+   ========================================================== */
+.k-modal-box.doc-create-box {
+  width: 440px;
+  max-width: 90vw;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 220, 130, 0.15);
+  box-shadow:
+    0 25px 50px -12px rgba(6, 27, 48, 0.4),
+    0 12px 20px -6px rgba(6, 27, 48, 0.15),
+    0 0 0 1px rgba(0, 220, 130, 0.08);
+  background: linear-gradient(180deg, #0a4d6e 0%, #0b3a54 40%, #082d42 100%);
+  overflow-y: visible;
+  position: relative;
+  animation: k2-fade-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ==========================================================
+   HEADER
+   ========================================================== */
+.k-modal-box.doc-create-box .k-modal-header {
+  background: linear-gradient(135deg, #1a6b8a 0%, #2d4a7a 50%, #4a3a6e 100%);
+  border-bottom: 1px solid rgba(0, 220, 130, 0.15);
+  padding: 24px 24px 18px;
+  border-radius: 16px 16px 0 0;
+}
+
+.k-modal-box.doc-create-box .k-modal-header h3 {
+  font-family: var(--k2-font-family, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  margin: 0;
+}
+
+/* --- Header avec bouton retour --- */
+.doc-create-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.doc-create-back-btn {
+  background: none;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 4px 10px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.doc-create-back-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+/* ==========================================================
+   BOUTON FERMER (x) — POSITION ABSOLUE HAUT DROITE
+   ========================================================== */
+.k-modal-box.doc-create-box .k-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.k-modal-box.doc-create-box .k-modal-close:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.k-modal-box.doc-create-box .k-modal-close:active {
+  background-color: rgba(255, 255, 255, 0.15);
+  transform: scale(0.95);
+}
+
+/* ==========================================================
+   SOUS-TITRE CONTEXTUEL
+   ========================================================== */
+.doc-create-subtitle {
+  padding: 2px 24px 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Loading --- */
+.doc-create-loading {
+  padding: 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8125rem;
+}
+
+/* ==========================================================
+   CORPS DU FORMULAIRE
+   ========================================================== */
+.doc-create-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.doc-create-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.doc-create-field label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* ==========================================================
+   INPUT — PREMIUM
+   ========================================================== */
+.doc-create-field input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.doc-create-field input:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.doc-create-field input:focus {
+  outline: none;
+  border: 2px solid #00dc82;
+  box-shadow: 0 0 0 4px rgba(0, 220, 130, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.doc-create-field input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ==========================================================
+   DROPDOWNS — FLOTTANTS PREMIUM
+   ========================================================== */
+.doc-name-search {
+  position: relative;
+}
+
+.doc-name-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 500px;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #0c3f5a 0%, #0a3348 100%);
+  border: 1px solid rgba(0, 220, 130, 0.12);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  box-shadow:
+    0 16px 32px -8px rgba(10, 22, 40, 0.14),
+    0 6px 12px -4px rgba(10, 22, 40, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
+  z-index: 10;
+  padding: 4px 0;
+  animation: doc-dropdown-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.doc-name-suggestion-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 6px;
+  margin: 2px 6px;
+  border-left: 3px solid transparent;
+}
+
+.doc-name-suggestion-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-name-suggestion-badge {
+  font-size: 0.6875rem;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #fff7ed, #fff1e0);
+  color: #c4320a;
+  border: 1px solid rgba(194, 50, 10, 0.1);
+  white-space: nowrap;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.doc-name-suggestion-item:hover {
+  background: linear-gradient(90deg, rgba(0, 220, 130, 0.15) 0%, rgba(9, 119, 165, 0.08) 100%);
+  border-left: 3px solid #00dc82;
+  color: #ffffff;
+}
+
+.doc-name-suggestion-item--loading,
+.doc-name-suggestion-item--empty {
+  padding: 14px 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8125rem;
+  cursor: default;
+}
+
+/* ==========================================================
+   RECHERCHE DOSSIER
+   ========================================================== */
+.doc-dossier-search {
+  position: relative;
+}
+
+.doc-dossier-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(0, 220, 130, 0.1);
+  border: 1px solid rgba(0, 220, 130, 0.25);
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  color: #00dc82;
+  font-weight: 500;
+  max-width: 100%;
+}
+
+.doc-dossier-tag__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-dossier-tag__remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: rgba(0, 220, 130, 0.7);
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  transition: color 120ms ease;
+}
+
+.doc-dossier-tag__remove:hover {
+  color: #dc3545;
+}
+
+/* --- Liste suggestions dossier --- */
+.doc-dossier-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 500px;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #0c3f5a 0%, #0a3348 100%);
+  border: 1px solid rgba(0, 220, 130, 0.12);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  box-shadow:
+    0 16px 32px -8px rgba(10, 22, 40, 0.14),
+    0 6px 12px -4px rgba(10, 22, 40, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
+  z-index: 10;
+  padding: 4px 0;
+  animation: doc-dropdown-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.doc-dossier-suggestion-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 6px;
+  margin: 2px 6px;
+  border-left: 3px solid transparent;
+}
+
+.doc-dossier-suggestion-item:hover {
+  background: linear-gradient(90deg, rgba(0, 220, 130, 0.15) 0%, rgba(9, 119, 165, 0.08) 100%);
+  border-left: 3px solid #00dc82;
+  color: #ffffff;
+}
+
+.doc-dossier-suggestion-item--loading,
+.doc-dossier-suggestion-item--empty {
+  padding: 14px 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8125rem;
+  cursor: default;
+}
+
+/* ==========================================================
+   DESTINATAIRES
+   ========================================================== */
+.doc-create-destinataires {
+  max-height: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid rgba(0, 220, 130, 0.12);
+  border-radius: 10px;
+  margin-top: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.doc-dest-section-header {
+  padding: 10px 16px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(9, 119, 165, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.doc-dest-section-header--pour {
+  color: #00dc82;
+}
+
+.doc-dest-section-header--contre {
+  color: #ff6b6b;
+}
+
+.doc-dest-section-header--contacts {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.doc-dest-block {
+  padding: 0;
+}
+
+.doc-dest-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.doc-dest-item:last-child {
+  border-bottom: none;
+}
+
+.doc-dest-item:hover {
+  background: linear-gradient(90deg, rgba(0, 220, 130, 0.1) 0%, rgba(9, 119, 165, 0.05) 100%);
+}
+
+.doc-dest-item--selected {
+  background: linear-gradient(90deg, rgba(0, 220, 130, 0.15) 0%, rgba(9, 119, 165, 0.08) 100%);
+  border-left: 3px solid #00dc82;
+  font-weight: 500;
+  color: #00dc82;
+  padding-left: 13px;
+}
+
+.doc-dest-item--selected:hover {
+  background: linear-gradient(90deg, rgba(0, 220, 130, 0.2) 0%, rgba(9, 119, 165, 0.1) 100%);
+}
+
+.doc-dest-item--avocat {
+  padding-left: 20px;
+  font-style: italic;
+}
+
+.doc-dest-item--avocat.doc-dest-item--selected {
+  padding-left: 17px;
+}
+
+.doc-dest-item--contact {
+  padding-left: 20px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.doc-dest-item--contact.doc-dest-item--selected {
+  padding-left: 17px;
+  color: #00dc82;
+}
+
+/* ==========================================================
+   CONFIRMATION SUMMARY
+   ========================================================== */
+.doc-create-confirm-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: rgba(0, 220, 130, 0.05);
+  border: 1px solid rgba(0, 220, 130, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.doc-create-confirm-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.doc-create-confirm-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.doc-create-confirm-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* ==========================================================
+   FOOTER
+   ========================================================== */
+.doc-create-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px 24px;
+  border-top: 1px solid rgba(0, 220, 130, 0.15);
+  background: linear-gradient(135deg, rgba(0, 220, 130, 0.06) 0%, rgba(6, 27, 48, 0.3) 100%);
+  border-radius: 0 0 16px 16px;
+}
+
+/* ==========================================================
+   BOUTONS — NIVEAU CONCOURS
+   ========================================================== */
+.doc-create-footer .k-modal-btn {
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --- Bouton principal (Creer le document) --- */
+.doc-create-footer .k-modal-btn--primary {
+  background: linear-gradient(180deg, #00dc82 0%, #00b86e 100%);
+  color: #061b30;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+  box-shadow:
+    0 2px 4px rgba(0, 128, 71, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.doc-create-footer .k-modal-btn--primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #00f090 0%, #00dc82 100%);
+  box-shadow:
+    0 4px 8px rgba(0, 128, 71, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.doc-create-footer .k-modal-btn--primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 1px 2px rgba(0, 128, 71, 0.2);
+}
+
+/* --- Bouton secondaire (Annuler) --- */
+.doc-create-footer .k-modal-btn--cancel {
+  background: #061b30;
+  color: #ffffff;
+  border: 1.5px solid #00dc82;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.doc-create-footer .k-modal-btn--cancel:hover:not(:disabled) {
+  background: #0a2a45;
+  border-color: #33ff99;
+  box-shadow: 0 0 12px rgba(0, 220, 130, 0.2);
+  color: #ffffff;
+}
+
+.doc-create-footer .k-modal-btn--cancel:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.doc-create-footer .k-modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==========================================================
+   STATUS TOAST
+   ========================================================== */
+.doc-create-status {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  padding: 14px 24px;
+  border-radius: 10px;
+  box-shadow:
+    0 16px 32px -8px rgba(10, 22, 40, 0.14),
+    0 6px 12px -4px rgba(10, 22, 40, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  z-index: 10001;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #101828;
+  pointer-events: none;
+  animation: doc-toast-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.doc-create-status--success {
+  border-left: 3px solid #12b76a;
+}
+
+.doc-create-status--error {
+  border-left: 3px solid #f04438;
+}
+
+/* ==========================================================
+   MODE HIGH-CONTRAST
+   ========================================================== */
+
+body.high-contrast-mode .doc-step-animate {
+  animation: none;
+}
+
+body.high-contrast-mode .doc-create-overlay {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body.high-contrast-mode .k-modal-box.doc-create-box {
+  background: #000000;
+  border: 2px solid var(--highlight-color, #33ff33);
+  box-shadow: none;
+  animation: none;
+}
+
+body.high-contrast-mode .k-modal-box.doc-create-box .k-modal-header {
+  background: #000000;
+  border-bottom-color: var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .k-modal-box.doc-create-box .k-modal-header h3 {
+  color: yellow;
+}
+
+body.high-contrast-mode .k-modal-box.doc-create-box .k-modal-close {
+  color: yellow;
+  position: absolute;
+}
+
+body.high-contrast-mode .k-modal-box.doc-create-box .k-modal-close:hover {
+  background-color: #333;
+}
+
+body.high-contrast-mode .doc-create-body label {
+  color: yellow;
+}
+
+body.high-contrast-mode .doc-create-field input {
+  background-color: #000000;
+  color: yellow;
+  border-color: yellow;
+  box-shadow: none;
+}
+
+body.high-contrast-mode .doc-create-field input:hover {
+  border-color: var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .doc-create-field input:focus {
+  border-color: var(--highlight-color, #33ff33);
+  box-shadow: 0 0 0 2px var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .doc-create-field input::placeholder {
+  color: #999900;
+}
+
+body.high-contrast-mode .doc-name-suggestions {
+  background-color: #000000;
+  border-color: yellow;
+  box-shadow: none;
+  animation: none;
+}
+
+body.high-contrast-mode .doc-name-suggestion-item {
+  color: yellow;
+}
+
+body.high-contrast-mode .doc-name-suggestion-item:hover {
+  background: #333300;
+}
+
+body.high-contrast-mode .doc-name-suggestion-item--loading,
+body.high-contrast-mode .doc-name-suggestion-item--empty {
+  color: #999900;
+}
+
+body.high-contrast-mode .doc-name-suggestion-badge {
+  background: rgba(255, 165, 0, 0.4);
+  color: #ffa500;
+  border-color: #ffa500;
+}
+
+body.high-contrast-mode .doc-dossier-tag {
+  background: #1a1a00;
+  border-color: yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .doc-dossier-tag__remove {
+  color: yellow;
+}
+
+body.high-contrast-mode .doc-dossier-tag__remove:hover {
+  color: #ff4444;
+}
+
+body.high-contrast-mode .doc-dossier-suggestions {
+  background-color: #000000;
+  border-color: yellow;
+  box-shadow: none;
+  animation: none;
+}
+
+body.high-contrast-mode .doc-dossier-suggestion-item {
+  color: yellow;
+}
+
+body.high-contrast-mode .doc-dossier-suggestion-item:hover {
+  background: #333300;
+}
+
+body.high-contrast-mode .doc-dossier-suggestion-item--loading,
+body.high-contrast-mode .doc-dossier-suggestion-item--empty {
+  color: #999900;
+}
+
+body.high-contrast-mode .doc-create-back-btn {
+  border-color: yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .doc-create-back-btn:hover {
+  background-color: #333300;
+}
+
+body.high-contrast-mode .doc-create-subtitle {
+  color: #999900;
+}
+
+body.high-contrast-mode .doc-create-loading {
+  color: #999900;
+}
+
+body.high-contrast-mode .doc-create-destinataires {
+  border-color: yellow;
+  box-shadow: none;
+}
+
+body.high-contrast-mode .doc-dest-section-header {
+  background: #1a1a00;
+  border-bottom-color: yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .doc-dest-section-header--pour {
+  color: var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .doc-dest-section-header--contre {
+  color: #ff4444;
+}
+
+body.high-contrast-mode .doc-dest-section-header--contacts {
+  color: #999900;
+}
+
+body.high-contrast-mode .doc-dest-item {
+  color: yellow;
+  border-bottom-color: #333300;
+}
+
+body.high-contrast-mode .doc-dest-item:hover {
+  background: #333300;
+}
+
+body.high-contrast-mode .doc-dest-item--selected {
+  background: #004400;
+  color: var(--highlight-color, #33ff33);
+  border-left-color: var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .doc-dest-item--contact {
+  color: #999900;
+}
+
+body.high-contrast-mode .doc-create-confirm-summary {
+  background: #1a1a00;
+  border-color: yellow;
+  box-shadow: none;
+}
+
+body.high-contrast-mode .doc-create-confirm-label {
+  color: #999900;
+}
+
+body.high-contrast-mode .doc-create-confirm-value {
+  color: yellow;
+}
+
+body.high-contrast-mode .doc-create-footer {
+  border-top-color: var(--highlight-color, #33ff33);
+  background: #000000;
+}
+
+body.high-contrast-mode .doc-create-footer .k-modal-btn--primary {
+  background: var(--highlight-color, #33ff33);
+  color: #000000;
+  border-color: var(--highlight-color, #33ff33);
+  box-shadow: none;
+}
+
+body.high-contrast-mode .doc-create-footer .k-modal-btn--cancel {
+  background: transparent;
+  color: yellow;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .doc-create-footer .k-modal-btn--cancel:hover:not(:disabled) {
+  background: #333300;
+}
+
+body.high-contrast-mode .doc-create-status {
+  background: #000000;
+  border-color: yellow;
+  color: yellow;
+  box-shadow: none;
+  animation: none;
+}

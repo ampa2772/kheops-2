@@ -1,0 +1,66 @@
+/* ==========================================================
+   Home / Login page — Scoped with "home-" prefix
+   ========================================================== */
+
+.home-container {
+	display: flex;
+	flex-wrap: wrap;
+	min-height: 100vh;
+	height: 100%;
+}
+
+.home-left {
+	flex: 1 1 50%;
+	min-width: 0;
+	background-image: url('../../../public/dossier3.png');
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: clamp(28px, 5vw, 50px);
+	font-weight: 900;
+}
+
+.home-left p {
+	background: linear-gradient(45deg, var(--k-primary, #0977a5), var(--k-primary-600, #0b6d96));
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+	padding: var(--k-space-3) var(--k-space-5);
+	border-radius: var(--k-radius-lg);
+	color: var(--k-bg-white, #fff);
+	letter-spacing: 2px;
+}
+
+.home-right {
+	flex: 1 1 50%;
+	min-width: 0;
+	height: auto;
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.home-switch-button {
+	background-color: transparent;
+	margin-top: 10px;
+	border: none;
+	color: var(--k-primary, #0977a5);
+	cursor: pointer;
+}
+
+.home-switch-button:hover {
+	background-color: transparent;
+	opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+	.home-left,
+	.home-right {
+		min-width: 100%;
+	}
+	.home-left {
+		display: none;
+	}
+}

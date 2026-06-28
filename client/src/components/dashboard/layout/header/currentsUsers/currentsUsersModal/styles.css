@@ -1,0 +1,172 @@
+/* Modale "Utilisateurs connectes" — style aligne sur le langage Kheops 2 */
+
+.currents-users-modal-overlay {
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+}
+
+.currents-users-modal-content {
+  background: var(--k-color-surface, #fff);
+  border-radius: var(--k-radius-lg, 12px);
+  box-shadow: 0 12px 32px rgba(10, 24, 40, 0.18);
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.currents-users-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 8px 20px;
+}
+
+.currents-users-modal-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--k-color-text-strong, #0a1828);
+}
+
+.currents-users-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--k-color-text-muted, #6b7280);
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--k-radius-md, 8px);
+}
+
+.currents-users-modal-close:hover {
+  background: var(--k-color-surface-muted, #f3f4f6);
+}
+
+.currents-users-modal-subtitle {
+  padding: 0 20px 12px 20px;
+  font-size: 0.85rem;
+  color: var(--k-color-text-muted, #6b7280);
+}
+
+.currents-users-modal-error {
+  margin: 0 20px 12px 20px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: var(--k-radius-md, 8px);
+  font-size: 0.85rem;
+}
+
+.currents-users-modal-empty {
+  padding: 24px 20px;
+  text-align: center;
+  color: var(--k-color-text-muted, #6b7280);
+  font-size: 0.9rem;
+}
+
+.currents-users-modal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px 12px 8px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+.currents-users-modal-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--k-radius-md, 8px);
+  transition: background var(--k-duration-fast, 120ms) var(--k-ease-out, ease);
+}
+
+.currents-users-modal-item:hover {
+  background: var(--k-color-surface-muted, #f3f4f6);
+}
+
+.currents-users-modal-item.is-offline {
+  opacity: 0.72;
+}
+
+.currents-users-modal-avatar {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: var(--k-radius-full, 9999px);
+  background: var(--k-color-primary-soft, #dbeafe);
+  color: var(--k-color-primary, #1d4ed8);
+  font-weight: 600;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.04em;
+}
+
+.currents-users-modal-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.currents-users-modal-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--k-color-text-strong, #0a1828);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.currents-users-modal-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background: var(--k-color-primary-soft, #dbeafe);
+  color: var(--k-color-primary, #1d4ed8);
+  border-radius: var(--k-radius-sm, 4px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.currents-users-modal-role {
+  font-size: 0.8rem;
+  color: var(--k-color-text-muted, #6b7280);
+  margin-top: 2px;
+}
+
+.currents-users-modal-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.currents-users-modal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--k-radius-full, 9999px);
+  display: inline-block;
+}
+
+.currents-users-modal-dot.is-online {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+
+.currents-users-modal-dot.is-offline {
+  background: #94a3b8;
+}
+
+.currents-users-modal-status-text {
+  font-size: 0.78rem;
+  color: var(--k-color-text-muted, #6b7280);
+}

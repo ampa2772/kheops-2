@@ -1,0 +1,142 @@
+/* Overlay : les propriétés de base (position, flex, centering) sont fournies par .k-modal-overlay (_modal-base.css) */
+.event-detail-modal-overlay-kheops {
+  background-color: rgba(0, 0, 0, 0.7); /* Légèrement plus sombre pour le focus */
+  z-index: 1070; /* Au-dessus de la modale de création (1050), en dessous de la confirmation (1080) */
+  font-family: 'Roboto', Arial, sans-serif;
+}
+
+.event-detail-modal-kheops {
+  background-color: #202124;
+  color: #e8eaed;
+  border-radius: 8px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  width: 448px; /* Taille standard Google Calendar */
+  max-width: 90%;
+  position: relative;
+}
+
+/* En-tête avec les boutons d'action */
+.event-detail-modal-header-kheops {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px;
+  gap: 4px; /* Espace entre les boutons */
+}
+
+.event-detail-action-btn-kheops {
+  background: none;
+  border: none;
+  color: #bdc1c6;
+  font-size: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+.event-detail-action-btn-kheops:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.event-detail-close-main-btn-kheops {
+  font-size: 24px;
+}
+.icon-event-detail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* === MODIFICATION : Règle CSS plus spécifique pour le thème par défaut (sombre) === */
+.event-detail-modal-overlay-kheops .supprEvent img,
+.event-detail-modal-overlay-kheops .modifEvent img {
+    /* Ce filtre force la couleur blanche, quelle que soit la couleur d'origine. */
+    filter: brightness(0) invert(1);
+    opacity: 0.7;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+/* === FIN MODIFICATION === */
+
+.event-detail-action-btn-kheops:hover .supprEvent img,
+.event-detail-action-btn-kheops:hover .modifEvent img {
+    opacity: 1;
+}
+
+/* Corps de la modale */
+.event-detail-modal-body-kheops {
+  padding: 0 24px 24px 56px; /* Espace pour les icônes de corps */
+  position: relative;
+}
+
+.event-detail-title-kheops {
+  font-size: 22px;
+  font-weight: 400;
+  margin-bottom: 20px;
+  color: #e8eaed;
+}
+
+.event-detail-datetime-kheops {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  font-size: 14px;
+  margin-bottom: 12px;
+  color: #e8eaed;
+}
+
+.event-detail-description-kheops {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  font-size: 14px;
+  margin-bottom: 12px;
+  color: #e8eaed;
+  white-space: pre-wrap; /* Respecter les sauts de ligne */
+  word-break: break-word; /* Casser les mots longs */
+  max-height: 150px; /* Limite de hauteur */
+  overflow-y: auto;  /* Barre de défilement si nécessaire */
+  background-color: rgba(255, 255, 255, 0.04); /* Fond subtil pour délimiter */
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.icon-event-detail-body {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    filter: invert(75%); /* Gris clair pour les icônes */
+}
+
+/* --- NOUVEAUX STYLES POUR LE LIEN DU DOSSIER --- */
+.clickable-dossier-link {
+    cursor: pointer;
+    border-radius: 4px; /* Pour un effet de survol plus propre */
+    padding: 4px 0; 
+    padding-top: 6px;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.clickable-dossier-link:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+/* --- FIN DES NOUVEAUX STYLES --- */
+
+/* Scrollbar pour la description */
+.event-detail-description-kheops::-webkit-scrollbar {
+  width: 8px;
+}
+.event-detail-description-kheops::-webkit-scrollbar-track {
+  background: transparent; /* Fond de la piste */
+}
+.event-detail-description-kheops::-webkit-scrollbar-thumb {
+  background: #5f6368; /* Couleur du pouce de la scrollbar */
+  border-radius: 4px;
+}
+.event-detail-description-kheops::-webkit-scrollbar-thumb:hover {
+  background: #797d82; /* Au survol */
+}

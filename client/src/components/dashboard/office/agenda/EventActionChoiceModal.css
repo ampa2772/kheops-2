@@ -1,0 +1,94 @@
+/* Overlay : les propriétés de base (position, flex, centering) sont fournies par .k-modal-overlay (_modal-base.css) */
+.choice-modal-overlay {
+    z-index: 1060; /* Au-dessus de l'agenda mais en dessous des modales de détail/création */
+    font-family: 'Roboto', Arial, sans-serif;
+}
+
+.choice-modal-content {
+    background-color: var(--k-bg-white, #fff);
+    color: var(--k-primary-800, #043a4f);
+    padding: 25px 30px;
+    border-radius: var(--k-radius-lg, 12px);
+    box-shadow: var(--k-shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.4));
+    width: 380px;
+    max-width: 90%;
+    text-align: center;
+    position: relative; /* Indispensable pour positionner le bouton de fermeture */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.choice-modal-close-btn {
+    position: absolute; /* Permet de positionner le bouton par rapport à son parent */
+    top: 8px;           /* Distance depuis le haut */
+    right: 8px;          /* Distance depuis la droite */
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #5f6368;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.choice-modal-close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.choice-modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.choice-modal-event-name {
+    font-size: 14px;
+    color: #5f6368;
+    margin: -5px 0 5px 0;
+    font-style: italic;
+}
+
+.choice-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.choice-modal-btn {
+    padding: 10px 20px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.choice-modal-btn.primary {
+    background-color: var(--k-primary-800, #043a4f);
+    color: var(--k-bg-white, #fff);
+    border-color: var(--k-primary-800, #043a4f);
+}
+
+.choice-modal-btn.primary:hover {
+    background-color: var(--k-primary-700, #064963);
+}
+
+.choice-modal-btn.secondary {
+    background-color: #f1f3f4;
+    color: #202124;
+    border-color: #dadce0;
+}
+
+.choice-modal-btn.secondary:hover {
+    background-color: #e8eaed;
+}

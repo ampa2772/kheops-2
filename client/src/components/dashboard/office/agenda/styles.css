@@ -1,0 +1,1174 @@
+/* ==========================================================
+   Agenda — Refonte "CALENDRIER" (sidebar + tabs + chips)
+   ========================================================== */
+
+/* Catégorie -> couleur de base.
+   Centralisées ici pour que header, événements, sidebar et chips
+   restent cohérents. */
+.agenda-container-kheops {
+  --cat-audience: #ef4444;
+  --cat-rdv:      #06b6d4;
+  --cat-reunion:  #a855f7;
+  --cat-personnel:#ec4899;
+  --cat-task:     #f59e0b;
+  --cat-default:  #64748b;
+
+  --ag-accent:    #22d3ee; /* cyan d'interface (boutons, today, tabs actifs) */
+  --ag-accent-2:  #0ea5b7;
+
+  --ag-bg-0:      rgba(8, 16, 32, 0.55);
+  --ag-bg-1:      rgba(15, 27, 45, 0.55);
+  --ag-bg-2:      rgba(255, 255, 255, 0.04);
+  --ag-bg-hover:  rgba(255, 255, 255, 0.08);
+
+  --ag-border:    rgba(255, 255, 255, 0.08);
+  --ag-border-2:  rgba(255, 255, 255, 0.14);
+
+  --ag-text:      rgba(255, 255, 255, 0.92);
+  --ag-text-mute: rgba(255, 255, 255, 0.55);
+  --ag-text-dim:  rgba(255, 255, 255, 0.32);
+}
+
+/* -- CONTENEUR GLOBAL -- */
+.agenda-container-kheops {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: transparent;
+  color: var(--ag-text);
+  font-family: var(--k2-font-family);
+  padding: 6px 8px 10px 8px;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+/* Layout principal: grille (calendrier + sidebar) */
+.agenda-main-content-kheops {
+  flex-grow: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 12px;
+}
+
+.agenda-main-calendar {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.agenda-header-kheops {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 4px 12px 4px;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.agenda-header-left-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agenda-header-right-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Bloc titre (CALENDRIER + Avril 2026) */
+.agenda-title-block {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  margin-right: 4px;
+}
+.agenda-title-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ag-text-mute);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.agenda-title-main {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ag-text);
+  margin-top: 2px;
+  letter-spacing: 0.01em;
+}
+.agenda-title-main .agenda-title-year {
+  color: var(--ag-accent);
+  font-weight: 500;
+  margin-left: 6px;
+}
+
+/* Boutons "pill" génériques.
+   width:auto + flex:0 0 auto pour neutraliser un global `button { width:100% }`
+   défini ailleurs dans l'app. */
+.agenda-button-kheops {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--ag-text);
+  border: 1px solid var(--ag-border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--k2-font-family);
+  font-size: 12px;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 120ms ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 12px;
+  width: auto;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+}
+.agenda-button-kheops:hover {
+  background-color: var(--ag-bg-hover);
+  border-color: var(--ag-border-2);
+}
+.agenda-button-kheops:active { transform: translateY(1px); }
+
+/* Aujourd'hui */
+.agenda-today-btn-kheops { padding: 0 14px; font-weight: 500; }
+
+/* Flèches navigation : cercles */
+.agenda-nav-arrow-kheops {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 999px;
+  font-weight: bold;
+  font-size: 14px;
+  color: var(--ag-text);
+}
+
+/* Tabs (Jour / Semaine / Mois / Liste) */
+.agenda-view-tabs {
+  display: inline-flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--ag-border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+.agenda-view-tab {
+  appearance: none;
+  background: transparent;
+  color: var(--ag-text-mute);
+  border: none;
+  height: 26px;
+  padding: 0 12px;
+  width: auto;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  font-family: var(--k2-font-family);
+}
+.agenda-view-tab:hover { color: var(--ag-text); }
+.agenda-view-tab.is-active {
+  background-color: rgba(34, 211, 238, 0.16);
+  color: var(--ag-accent);
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.28) inset;
+}
+
+/* Bouton filtre (entonnoir) */
+.agenda-filter-btn {
+  position: relative;
+  width: 32px;
+  height: 30px;
+  padding: 0;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.agenda-filter-btn.is-active {
+  color: var(--ag-accent);
+  border-color: rgba(34, 211, 238, 0.4);
+  background-color: rgba(34, 211, 238, 0.10);
+}
+.agenda-filter-btn .agenda-filter-dot {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--ag-accent);
+  box-shadow: 0 0 0 2px rgba(8, 16, 32, 0.95);
+}
+
+.agenda-filter-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  background: rgba(15, 27, 45, 0.97);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--ag-border-2);
+  border-radius: 10px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45);
+  padding: 8px;
+  z-index: 50;
+}
+.agenda-filter-popover-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 140ms ease;
+}
+.agenda-filter-popover-row:hover { background: rgba(255,255,255,0.06); }
+.agenda-filter-popover-row input { accent-color: var(--ag-accent); }
+
+/* Bouton "+ Nouveau" (cyan) */
+.agenda-new-btn {
+  background: linear-gradient(135deg, #22d3ee 0%, #0ea5b7 100%);
+  color: #06222b;
+  border: none;
+  font-weight: 700;
+  height: 30px;
+  padding: 0 14px;
+  width: auto;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-family: var(--k2-font-family);
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.28);
+  transition: transform 120ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+.agenda-new-btn:hover { filter: brightness(1.06); box-shadow: 0 6px 16px rgba(34, 211, 238, 0.4); }
+.agenda-new-btn:active { transform: translateY(1px); }
+
+/* (legacy) dropdown view selector — masqué après refonte tabs */
+.agenda-view-selector-kheops { position: relative; }
+
+/* ============================================================
+   GRILLE MOIS
+   ============================================================ */
+.agenda-grid-kheops {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: auto repeat(6, 1fr);
+  gap: 0;
+  background-color: var(--ag-bg-0);
+  border: 1px solid var(--ag-border);
+  border-radius: 14px;
+  overflow: hidden;
+  flex-grow: 1;
+  min-height: 0;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+}
+
+.agenda-weekday-kheops {
+  text-align: center;
+  padding: 8px 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ag-text-mute);
+  background-color: rgba(255, 255, 255, 0.025);
+  border-bottom: 1px solid var(--ag-border);
+  border-right: 1px solid var(--ag-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.agenda-weekday-kheops:last-of-type { border-right: none; }
+
+.agenda-day-kheops {
+  background-color: transparent;
+  padding: 6px 6px 4px 8px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+  border-right: 1px solid var(--ag-border);
+  border-bottom: 1px solid var(--ag-border);
+  min-height: 0;
+}
+.agenda-day-kheops:nth-child(7n) { border-right: none; }
+.agenda-day-kheops:hover { background-color: rgba(255, 255, 255, 0.03); }
+
+.agenda-day-kheops.agenda-day-row-even,
+.agenda-day-kheops.agenda-day-row-odd {
+  background-color: transparent;
+}
+
+/* Hors mois : très estompé mais cliquable. */
+.agenda-day-kheops.not-current-month-kheops,
+.agenda-day-kheops.not-current-month-kheops.agenda-day-row-even,
+.agenda-day-kheops.not-current-month-kheops.agenda-day-row-odd {
+  background-color: rgba(0, 0, 0, 0.18);
+  color: var(--ag-text-dim);
+}
+.agenda-day-kheops.not-current-month-kheops:hover { background-color: rgba(255, 255, 255, 0.05); }
+.agenda-day-kheops.not-current-month-kheops .agenda-day-number-kheops { color: var(--ag-text-dim); }
+
+/* Numéro de jour */
+.agenda-day-number-kheops {
+  font-size: 12px;
+  margin-bottom: 4px;
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  line-height: 1;
+  box-sizing: border-box;
+  color: var(--ag-text-mute);
+  font-weight: 500;
+  align-self: flex-start;
+  padding: 0 6px;
+}
+.agenda-day-month-tag {
+  margin-left: 4px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--ag-accent);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Aujourd'hui : pill cyan plein */
+.agenda-day-kheops.today-kheops .agenda-day-number-kheops {
+  background-color: var(--ag-accent);
+  color: #04222a;
+  font-weight: 700;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18);
+}
+
+.agenda-events-kheops {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  margin-top: 2px;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+/* Pastille événement vue Mois */
+.agenda-event-item-kheops {
+  --evt-color: var(--cat-default);
+  background-color: color-mix(in srgb, var(--evt-color) 14%, transparent);
+  color: var(--ag-text);
+  padding: 2px 6px 2px 7px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  max-width: 100%;
+  border-left: 3px solid var(--evt-color);
+  transition: background-color 150ms ease, transform 100ms ease;
+  line-height: 1.5;
+}
+.agenda-event-item-kheops:hover {
+  background-color: color-mix(in srgb, var(--evt-color) 26%, transparent);
+}
+
+.agenda-event-item-kheops.cat-audience  { --evt-color: var(--cat-audience); }
+.agenda-event-item-kheops.cat-rdv       { --evt-color: var(--cat-rdv); }
+.agenda-event-item-kheops.cat-reunion   { --evt-color: var(--cat-reunion); }
+.agenda-event-item-kheops.cat-personnel { --evt-color: var(--cat-personnel); }
+.agenda-event-item-kheops.cat-task,
+.agenda-event-item-kheops.task-item     { --evt-color: var(--cat-task); }
+
+.agenda-event-time-kheops { font-weight: 600; flex-shrink: 0; opacity: 0.85; font-variant-numeric: tabular-nums; }
+.agenda-event-title-kheops { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.agenda-more-events-link-kheops {
+  color: var(--ag-accent);
+  font-size: 10.5px;
+  text-align: left;
+  padding: 2px 4px;
+  margin-top: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  width: fit-content;
+  transition: background-color 160ms ease, opacity 160ms ease;
+}
+.agenda-more-events-link-kheops:hover {
+  background-color: rgba(34, 211, 238, 0.08);
+  text-decoration: underline;
+}
+
+/* ============================================================
+   GRILLE SEMAINE / JOUR
+   ============================================================ */
+/* Layout en 2 zones empilees : header non scrollable + body scrollable.
+   On retire le display:contents intermediaire pour pouvoir limiter l'overflow
+   au seul .time-grid-body — sans quoi position:sticky du header echoue dans
+   ce navigateur (Electron/Chrome) lorsque le scroll englobe la grid entiere. */
+.agenda-time-grid {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--ag-bg-0);
+  border: 1px solid var(--ag-border);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+}
+
+.time-grid-header {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  flex-shrink: 0;
+  background-color: rgba(8, 16, 32, 0.95);
+  border-bottom: 1px solid var(--ag-border);
+  z-index: 2;
+}
+.day-view-grid .time-grid-header { grid-template-columns: 60px 1fr; }
+
+.time-grid-body {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  grid-template-rows: repeat(24, 60px);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.time-grid-gmt-spacer,
+.time-grid-day-header,
+.time-grid-timeline,
+.time-grid-day-column { box-sizing: border-box; }
+
+.time-grid-gmt-spacer {
+  font-size: 10px; color: var(--ag-text-dim);
+  padding: 5px;
+  text-align: center;
+  border-right: 1px solid var(--ag-border);
+}
+.time-grid-day-header {
+  text-align: center; padding: 8px 0;
+  border-right: 1px solid var(--ag-border);
+}
+.time-grid-day-header:last-child { border-right: none; }
+
+.day-header-name {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ag-text-mute);
+  font-weight: 600;
+}
+.day-header-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  line-height: 1;
+  border-radius: 50%;
+  margin-top: 4px;
+  font-weight: 600;
+  color: var(--ag-text);
+}
+
+.time-grid-day-header.today .day-header-name { color: var(--ag-accent); }
+.time-grid-day-header.today .day-header-number {
+  background-color: var(--ag-accent);
+  color: #04222a;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18);
+}
+
+.day-view-grid .time-grid-body { grid-template-columns: 60px 1fr; }
+
+.time-grid-timeline {
+  grid-column: 1;
+  grid-row: 1 / -1;
+  display: grid; grid-template-rows: repeat(24, 60px);
+  border-right: 1px solid var(--ag-border);
+}
+
+.time-grid-hour-label {
+  position: relative; height: 60px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--ag-text-dim); font-size: 11px; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.time-grid-hour-label span { position: absolute; top: -8px; right: 5px; }
+
+.time-grid-day-column {
+  position: relative;
+  grid-row: 1 / -1;
+  display: grid; grid-template-rows: repeat(24, 60px);
+  border-right: 1px solid var(--ag-border);
+  border-top: 1px solid var(--ag-border);
+  cursor: pointer;
+}
+.time-grid-day-column:last-child { border-right: none; }
+
+.time-grid-hour-slot {
+  position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
+}
+
+/* Événements vue Semaine/Jour */
+.grid-event-item {
+  --evt-color: var(--cat-default);
+  position: absolute;
+  background-color: color-mix(in srgb, var(--evt-color) 18%, transparent);
+  color: var(--ag-text);
+  border-radius: 6px;
+  padding: 4px 7px;
+  overflow: hidden;
+  font-family: var(--k2-font-family);
+  font-size: 11px;
+  left: 3px;
+  right: 5px;
+  z-index: 1;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--evt-color) 32%, transparent);
+  border-left: 3px solid var(--evt-color);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1px;
+  white-space: normal;
+  word-break: break-word;
+  min-height: 22px;
+  transition: background-color 150ms ease;
+}
+.grid-event-item:hover { background-color: color-mix(in srgb, var(--evt-color) 28%, transparent); }
+.grid-event-item.cat-audience  { --evt-color: var(--cat-audience); }
+.grid-event-item.cat-rdv       { --evt-color: var(--cat-rdv); }
+.grid-event-item.cat-reunion   { --evt-color: var(--cat-reunion); }
+.grid-event-item.cat-personnel { --evt-color: var(--cat-personnel); }
+.grid-event-item.cat-task,
+.grid-event-item.task-item     { --evt-color: var(--cat-task); }
+
+/* Surbrillance breve quand on cible un event depuis la sidebar
+   (clic mini-calendrier / liste "A venir"). Anneau pulsant ~1.8s,
+   synchronise avec le timeout JS qui retire la classe. */
+@keyframes k2-event-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+  12%  { box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.9), 0 0 16px 5px rgba(34, 211, 238, 0.55); }
+  45%  { box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.45), 0 0 9px 2px rgba(34, 211, 238, 0.28); }
+  70%  { box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.75), 0 0 14px 4px rgba(34, 211, 238, 0.45); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+}
+.grid-event-item.k2-flash-target {
+  z-index: 6;
+  animation: k2-event-flash 1.8s ease-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .grid-event-item.k2-flash-target {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.85);
+  }
+}
+
+.grid-event-title { font-weight: 600; width: 100%; line-height: 1.2; }
+.grid-event-dossier {
+  font-size: 10px;
+  font-style: italic;
+  opacity: 0.7;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================
+   VUE LISTE
+   ============================================================ */
+.agenda-listview {
+  flex-grow: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background-color: var(--ag-bg-0);
+  border: 1px solid var(--ag-border);
+  border-radius: 14px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+}
+.agenda-listview-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--ag-text-mute);
+  font-size: 13px;
+}
+.agenda-listview-day-group { padding: 10px 4px 6px 4px; }
+.agenda-listview-day-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--ag-border);
+  margin-bottom: 6px;
+}
+.agenda-listview-day-num { font-size: 22px; font-weight: 700; color: var(--ag-text); font-variant-numeric: tabular-nums; }
+.agenda-listview-day-name { font-size: 11px; color: var(--ag-text-mute); text-transform: uppercase; letter-spacing: 0.12em; }
+.agenda-listview-day-month { font-size: 11px; color: var(--ag-accent); margin-left: auto; text-transform: uppercase; letter-spacing: 0.12em; }
+
+.agenda-listview-day-group.is-today .agenda-listview-day-num { color: var(--ag-accent); }
+
+.agenda-listview-row {
+  --evt-color: var(--cat-default);
+  display: grid;
+  grid-template-columns: 76px 4px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+.agenda-listview-row:hover { background-color: rgba(255, 255, 255, 0.04); }
+.agenda-listview-row.cat-audience  { --evt-color: var(--cat-audience); }
+.agenda-listview-row.cat-rdv       { --evt-color: var(--cat-rdv); }
+.agenda-listview-row.cat-reunion   { --evt-color: var(--cat-reunion); }
+.agenda-listview-row.cat-personnel { --evt-color: var(--cat-personnel); }
+.agenda-listview-row.cat-task      { --evt-color: var(--cat-task); }
+
+.agenda-listview-time {
+  font-size: 12px;
+  color: var(--ag-text-mute);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+.agenda-listview-bar {
+  width: 4px;
+  align-self: stretch;
+  background-color: var(--evt-color);
+  border-radius: 2px;
+}
+.agenda-listview-title {
+  font-size: 13px;
+  color: var(--ag-text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agenda-listview-meta {
+  font-size: 11px;
+  color: var(--ag-text-mute);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.agenda-listview-cat-pill {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--evt-color);
+  background-color: color-mix(in srgb, var(--evt-color) 14%, transparent);
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-weight: 700;
+  border: 1px solid color-mix(in srgb, var(--evt-color) 28%, transparent);
+}
+
+/* ============================================================
+   SIDEBAR DROITE
+   ============================================================ */
+.agenda-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.agenda-sidebar-card {
+  background: var(--ag-bg-0);
+  border: 1px solid var(--ag-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+/* Mini-calendrier */
+.mini-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.mini-cal-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ag-text);
+}
+.mini-cal-title .mini-cal-year { color: var(--ag-text-mute); margin-left: 4px; font-weight: 400; }
+.mini-cal-nav {
+  display: inline-flex;
+  gap: 2px;
+}
+.mini-cal-nav button {
+  background: transparent;
+  border: none;
+  color: var(--ag-text-mute);
+  width: 22px; height: 22px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  padding: 0;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+.mini-cal-nav button:hover { background-color: rgba(255,255,255,0.06); color: var(--ag-text); }
+
+.mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  text-align: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.mini-cal-dow {
+  color: var(--ag-text-dim);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  padding: 4px 0 6px 0;
+  text-transform: uppercase;
+}
+.mini-cal-day {
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--ag-text);
+  transition: background-color 130ms ease, color 130ms ease, box-shadow 130ms ease;
+  box-sizing: border-box;
+}
+.mini-cal-day:hover { background-color: rgba(255,255,255,0.06); }
+.mini-cal-day.is-other-month { color: var(--ag-text-dim); }
+.mini-cal-day.is-today {
+  background-color: var(--ag-accent);
+  color: #04222a;
+  font-weight: 700;
+}
+/* Anneau coloré (catégorie du 1er événement du jour). Inset → pas de débordement. */
+.mini-cal-day.has-events {
+  box-shadow: 0 0 0 1.5px var(--day-ring, var(--ag-accent)) inset;
+}
+.mini-cal-day.is-today.has-events {
+  box-shadow: 0 0 0 1.5px var(--day-ring, var(--ag-accent)) inset,
+              0 0 0 2px rgba(8, 16, 32, 0.6) inset;
+}
+.mini-cal-day-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+}
+
+/* "À venir" */
+.sidebar-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.sidebar-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ag-text);
+  font-weight: 700;
+}
+.sidebar-section-title svg { color: var(--ag-accent); }
+.sidebar-section-count {
+  font-size: 10.5px;
+  color: var(--ag-text-mute);
+}
+
+.upcoming-list { display: flex; flex-direction: column; gap: 8px; }
+.upcoming-item {
+  --evt-color: var(--cat-default);
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  background-color: rgba(255,255,255,0.025);
+  border: 1px solid var(--ag-border);
+  border-left: 3px solid var(--evt-color);
+  cursor: pointer;
+  transition: background-color 140ms ease, transform 100ms ease;
+}
+.upcoming-item:hover { background-color: rgba(255,255,255,0.05); }
+.upcoming-item.cat-audience  { --evt-color: var(--cat-audience); }
+.upcoming-item.cat-rdv       { --evt-color: var(--cat-rdv); }
+.upcoming-item.cat-reunion   { --evt-color: var(--cat-reunion); }
+.upcoming-item.cat-personnel { --evt-color: var(--cat-personnel); }
+.upcoming-item.cat-task      { --evt-color: var(--cat-task); }
+
+.upcoming-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-right: 1px solid var(--ag-border);
+  padding-right: 8px;
+}
+.upcoming-date-eyebrow {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ag-text-mute);
+}
+.upcoming-date-day {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ag-text);
+  line-height: 1;
+  margin-top: 2px;
+}
+.upcoming-date-month {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ag-text-mute);
+}
+
+.upcoming-body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.upcoming-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--evt-color);
+  font-weight: 700;
+}
+.upcoming-cat svg { width: 10px; height: 10px; }
+.upcoming-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ag-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.upcoming-meta {
+  font-size: 10.5px;
+  color: var(--ag-text-mute);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.upcoming-meta svg { flex-shrink: 0; }
+
+.upcoming-empty {
+  padding: 14px 6px;
+  text-align: center;
+  color: var(--ag-text-mute);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* Catégories chips */
+.cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cat-chip {
+  --evt-color: var(--cat-default);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  width: auto;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background-color: rgba(255,255,255,0.04);
+  border: 1px solid var(--ag-border);
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--ag-text);
+  transition: background-color 140ms ease, border-color 140ms ease, opacity 140ms ease;
+  user-select: none;
+}
+.cat-chip svg { color: var(--evt-color); }
+.cat-chip.is-active {
+  background-color: color-mix(in srgb, var(--evt-color) 14%, transparent);
+  border-color: color-mix(in srgb, var(--evt-color) 36%, transparent);
+}
+.cat-chip.is-disabled { opacity: 0.4; }
+.cat-chip:hover { background-color: rgba(255,255,255,0.07); }
+.cat-chip.cat-audience  { --evt-color: var(--cat-audience); }
+.cat-chip.cat-rdv       { --evt-color: var(--cat-rdv); }
+.cat-chip.cat-reunion   { --evt-color: var(--cat-reunion); }
+.cat-chip.cat-personnel { --evt-color: var(--cat-personnel); }
+.cat-chip.cat-task      { --evt-color: var(--cat-task); }
+
+/* ============================================================
+   HIGH-CONTRAST
+   ============================================================ */
+body.high-contrast-mode .agenda-container-kheops { background-color: #000; color: yellow; }
+body.high-contrast-mode .agenda-button-kheops { border-color: yellow; color: yellow; }
+body.high-contrast-mode .agenda-title-main { color: yellow; }
+body.high-contrast-mode .agenda-title-eyebrow,
+body.high-contrast-mode .agenda-title-main .agenda-title-year { color: yellow; }
+body.high-contrast-mode .agenda-grid-kheops,
+body.high-contrast-mode .agenda-time-grid,
+body.high-contrast-mode .agenda-listview,
+body.high-contrast-mode .agenda-sidebar-card { background-color: #000; border-color: yellow; }
+body.high-contrast-mode .agenda-weekday-kheops { background-color: #000; color: yellow; border-color: yellow; }
+body.high-contrast-mode .agenda-day-kheops,
+body.high-contrast-mode .agenda-day-kheops.agenda-day-row-even,
+body.high-contrast-mode .agenda-day-kheops.agenda-day-row-odd { background-color: #000; }
+body.high-contrast-mode .agenda-day-number-kheops { color: yellow; }
+body.high-contrast-mode .agenda-day-kheops.today-kheops .agenda-day-number-kheops { background-color: yellow; color: #000; }
+/* Mode haut-contraste : on conserve la couleur de catégorie (border-left
+   épais), on met un fond très foncé pour le contraste, et un texte clair
+   bien visible. La couleur de catégorie (--evt-color) reste appliquée.
+   Avant : tout était forcé en jaune et on perdait la distinction visuelle
+   entre Audience, RDV, Téléphone, etc. */
+body.high-contrast-mode .agenda-event-item-kheops,
+body.high-contrast-mode .grid-event-item {
+  background-color: color-mix(in srgb, var(--evt-color) 22%, #000);
+  border-left-width: 5px;
+  border-left-color: var(--evt-color);
+  color: #ffffff;
+  font-weight: 600;
+}
+body.high-contrast-mode .agenda-event-item-kheops:hover,
+body.high-contrast-mode .grid-event-item:hover {
+  background-color: color-mix(in srgb, var(--evt-color) 35%, #000);
+}
+body.high-contrast-mode .time-grid-gmt-spacer,
+body.high-contrast-mode .time-grid-day-header { background-color: #000; color: yellow; }
+body.high-contrast-mode .agenda-view-tab.is-active { background-color: yellow; color: #000; }
+body.high-contrast-mode .agenda-new-btn { background: yellow; color: #000; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1100px) {
+  .agenda-main-content-kheops { grid-template-columns: 1fr; }
+  .agenda-sidebar { display: none; }
+}
+
+@media (max-width: 767px) {
+  .agenda-header-kheops { padding: 4px 0px; gap: 8px; grid-template-columns: 1fr; }
+  .agenda-header-right-controls { flex-wrap: wrap; }
+  .agenda-button-kheops { font-size: 12px; height: 28px; }
+  .agenda-today-btn-kheops { padding: 0 10px; }
+  .agenda-nav-arrow-kheops { width: 28px; height: 28px; font-size: 13px; }
+  .agenda-title-main { font-size: 18px; }
+  .agenda-event-title-kheops { max-width: 50px; }
+  .agenda-event-item-kheops { font-size: 9.5px; padding: 1px 5px; }
+}
+
+@media (max-height: 700px) {
+  .agenda-header-kheops { padding: 4px 6px; }
+}
+
+/* ==========================================================
+   Drag & drop MonthView : deplacer un event d'un jour a l'autre
+   ========================================================== */
+.agenda-event-item-kheops[draggable="true"] { cursor: grab; }
+.agenda-event-item-kheops[draggable="true"]:active { cursor: grabbing; }
+
+.agenda-day-kheops.agenda-day-drag-over {
+  background-color: rgba(20, 184, 166, 0.14) !important;
+  box-shadow: inset 0 0 0 2px rgba(20, 184, 166, 0.55);
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+/* Drag&drop sur vues Week/Day : grid-event-item draggable + hour-slot dropzone */
+.grid-event-item[draggable="true"] { cursor: grab; }
+.grid-event-item[draggable="true"]:active { cursor: grabbing; }
+
+.time-grid-hour-slot.time-grid-hour-slot-drag-over {
+  background-color: rgba(20, 184, 166, 0.14);
+  box-shadow: inset 0 0 0 2px rgba(20, 184, 166, 0.55);
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+/* Ghost flottant durant un drag d'event (Week/Day). Hauteur = duree reelle
+   de l'event (1px = 1min => 60min = 60px). Suit le curseur via top dynamique
+   snappee au quart d'heure. Pointer-events:none pour ne pas intercepter
+   les dragover de la day-column. */
+.grid-event-drag-ghost {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  background-color: rgba(20, 184, 166, 0.22);
+  border: 1px dashed rgba(20, 184, 166, 0.8);
+  border-radius: 6px;
+  z-index: 4;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.grid-event-drag-ghost-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #5eead4;
+  background: rgba(8, 16, 32, 0.85);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+/* Event source semi-transparent pendant qu'il est drag (pour distinguer
+   du ghost qui montre la position cible). */
+.grid-event-item.is-being-dragged {
+  opacity: 0.35;
+  filter: saturate(0.6);
+}
+
+/* Poignees de resize sur les events des vues Semaine/Jour.
+   Bandes horizontales de 6px sur le haut/bas, curseur ns-resize. */
+.grid-event-resize-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+  z-index: 5;
+  background-color: transparent;
+  transition: background-color 120ms ease;
+}
+.grid-event-resize-handle-top { top: 0; border-top-left-radius: 6px; border-top-right-radius: 6px; }
+.grid-event-resize-handle-bottom { bottom: 0; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+.grid-event-resize-handle:hover {
+  background-color: rgba(20, 184, 166, 0.55);
+}
+.grid-event-item.is-resizing {
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.75);
+  z-index: 6;
+  transition: none !important;
+}
+.grid-event-live-times {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #5eead4;
+  background: rgba(8, 16, 32, 0.9);
+  padding: 2px 5px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* ==========================================================
+   Auto-flip de mois pendant un drag&drop (vue Mois)
+   Bandes de 60px sur les bords gauche/droit, visibles seulement
+   pendant qu'on hover dedans en mode drag.
+   ========================================================== */
+.agenda-main-calendar { position: relative; }
+
+.agenda-autoflip-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 12;
+  transition: opacity 150ms ease;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5eead4;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.agenda-autoflip-edge-left {
+  left: 0;
+  background: linear-gradient(to right, rgba(20, 184, 166, 0.24), rgba(20, 184, 166, 0));
+  border-left: 2px solid rgba(20, 184, 166, 0.55);
+}
+
+.agenda-autoflip-edge-right {
+  right: 0;
+  background: linear-gradient(to left, rgba(20, 184, 166, 0.24), rgba(20, 184, 166, 0));
+  border-right: 2px solid rgba(20, 184, 166, 0.55);
+}
+
+.agenda-autoflip-edge.is-active { opacity: 1; }
+
+.agenda-autoflip-arrow {
+  font-size: 22px;
+  line-height: 1;
+  color: #5eead4;
+}
+
+.agenda-autoflip-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.agenda-autoflip-edge-right .agenda-autoflip-label {
+  transform: rotate(180deg);
+}

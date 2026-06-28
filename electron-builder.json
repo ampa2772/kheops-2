@@ -1,0 +1,80 @@
+{
+  "appId": "com.kheops2.app",
+  "productName": "Kheops2",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "electron-app/**/*",
+    "client/build/**/*",
+    "node_modules/**/*",
+    "package.json",
+    "shared/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "server",
+      "to": "server",
+      "filter": [
+        "**/*",
+        "!node_modules/.cache/**/*",
+        "!node_modules/**/README.md",
+        "!node_modules/**/CHANGELOG.md",
+        "!node_modules/**/HISTORY.md",
+        "!node_modules/**/LICENSE",
+        "!node_modules/**/LICENSE.md",
+        "!node_modules/**/*.ts",
+        "!node_modules/**/*.map",
+        "!node_modules/**/*.d.ts",
+        "!node_modules/**/test/**/*",
+        "!node_modules/**/tests/**/*",
+        "!node_modules/**/__tests__/**/*",
+        "!node_modules/**/docs/**/*",
+        "!node_modules/**/example/**/*",
+        "!node_modules/**/examples/**/*"
+      ]
+    },
+    {
+      "from": ".env",
+      "to": ".env"
+    },
+    {
+      "from": "electron-app/google_credentials.json",
+      "to": "google_credentials.json"
+    },
+    {
+      "from": "electron-app/templates",
+      "to": "templates",
+      "filter": ["**/*"]
+    }
+  ],
+  "asarUnpack": [
+    "node_modules/scribe.js-ocr/**/*"
+  ],
+  "win": {
+    "target": "nsis",
+    "icon": "electron-app/icon.ico"
+  },
+  "artifactName": "KHEOPS2-Setup.${ext}",
+  "publish": {
+    "provider": "generic",
+    "url": "https://storage.googleapis.com/kheops-2-app-download/",
+    "channel": "latest"
+  },
+  "nsis": {
+    "oneClick": true,
+    "perMachine": false,
+    "allowElevation": false,
+    "runAfterFinish": true,
+    "createDesktopShortcut": "always",
+    "createStartMenuShortcut": true,
+    "shortcutName": "Kheops 2",
+    "installerIcon": "electron-app/icon.ico",
+    "uninstallerIcon": "electron-app/icon.ico",
+    "deleteAppDataOnUninstall": false
+  },
+  "protocols": {
+    "name": "Kheops 2",
+    "schemes": ["kheops2"]
+  }
+}

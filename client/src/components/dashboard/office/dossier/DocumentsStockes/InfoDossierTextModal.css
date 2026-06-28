@@ -1,0 +1,250 @@
+/* InfoDossierTextModal.css
+ *
+ * Look "EtapeNoteEditor" appliqué à la modale Informations complémentaires
+ * (S27 — 2.0.16-rc1, refonte visuelle demandée par Pierre).
+ *
+ * Le but est d'avoir l'esthétique exacte de l'ancien éditeur de note
+ * (page A4 claire sur fond gris, ruban en haut, header bleu pâle,
+ * footer avec astuce) tout en gardant l'auto-save de la 2.0.15.
+ */
+
+/* ========================================================================
+ * Overlay (fond sombre transparent + flou léger, comme EtapeNoteEditor)
+ * ======================================================================== */
+.info-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 16500;
+  padding: 1.25rem;
+  animation: info-modal-fade-in 150ms ease-out;
+}
+
+@keyframes info-modal-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ========================================================================
+ * Modale (fenêtre principale, fond blanc, taille EtapeNoteEditor)
+ * ======================================================================== */
+.info-modal-content {
+  position: relative;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  width: 100%;
+  max-width: 1100px;
+  height: 90vh;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #1f2937;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 0;
+  animation: info-modal-pop 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes info-modal-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (min-width: 768px) {
+  .info-modal-content {
+    width: 100%;
+    max-width: 1100px;
+    height: 90vh;
+  }
+}
+
+/* ========================================================================
+ * Barre d'onglets (header style EtapeNoteEditor, fond bleu pâle)
+ * ======================================================================== */
+.info-modal-tabs {
+  display: flex;
+  background: #f3f6fc;
+  border-bottom: 1px solid #d6dbe6;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.info-modal-tab {
+  padding: 12px 22px;
+  cursor: pointer;
+  background-color: transparent;
+  color: #6b7280;
+  border-right: 1px solid #d6dbe6;
+  transition: background-color 0.2s, color 0.2s;
+  font-weight: 500;
+  font-size: 0.92rem;
+  position: relative;
+}
+
+.info-modal-tab:last-child {
+  border-right: none;
+}
+
+.info-modal-tab:hover {
+  background-color: #e0e7ff;
+  color: #1f2937;
+}
+
+.info-modal-tab.active {
+  background-color: #ffffff;
+  color: #1e3a8a;
+  font-weight: 700;
+}
+
+.info-modal-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #ffffff;
+}
+
+/* ========================================================================
+ * Corps de la modale (contient l'éditeur inline ou AriaPartiesView)
+ * ======================================================================== */
+.info-modal-body-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  padding: 0;
+  background-color: #ffffff;
+}
+
+/* ========================================================================
+ * Footer (astuce à gauche, indicateur d'auto-save à droite)
+ * Style identique à .k-dcm-note-footer de EtapeNoteEditor.
+ * ======================================================================== */
+.info-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: #f3f6fc;
+  border-top: 1px solid #d6dbe6;
+  flex-shrink: 0;
+}
+
+.info-modal-astuce {
+  font-style: italic;
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.info-modal-status {
+  font-size: 0.78rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.info-modal-status--pending { color: #a87f00; }
+.info-modal-status--saving  { color: #1f6feb; }
+.info-modal-status--saved   { color: #2a8862; }
+.info-modal-status--error   { color: #d33; }
+
+/* ========================================================================
+ * Bouton de fermeture (croix dans le coin haut-droit)
+ * ======================================================================== */
+.info-modal-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.1rem 0.45rem;
+  line-height: 1;
+  border-radius: 4px;
+  transition: background-color 120ms ease, color 120ms ease;
+  z-index: 10;
+  width: auto;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-modal-close-btn:hover {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ========================================================================
+ * Responsive
+ * ======================================================================== */
+@media (max-width: 900px) {
+  .info-modal-overlay { padding: 0.5rem; }
+  .info-modal-content { height: 95vh; max-height: 95vh; border-radius: 6px; }
+  .info-modal-tab { padding: 10px 14px; font-size: 0.85rem; }
+}
+
+/* ========================================================================
+ * Mode contraste élevé (préservé de l'ancien CSS)
+ * ======================================================================== */
+body.high-contrast-mode .info-modal-content {
+  background-color: black;
+  border: 2px solid yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .info-modal-body-container {
+  background-color: black;
+}
+
+body.high-contrast-mode .info-modal-tabs {
+  background-color: #1a1a1a;
+  border-bottom-color: yellow;
+}
+
+body.high-contrast-mode .info-modal-tab {
+  background-color: #1a1a1a;
+  color: #ccc;
+  border-right-color: yellow;
+}
+
+body.high-contrast-mode .info-modal-tab:hover {
+  background-color: #333;
+  color: white;
+}
+
+body.high-contrast-mode .info-modal-tab.active {
+  background-color: black;
+  color: yellow;
+  font-weight: bold;
+}
+
+body.high-contrast-mode .info-modal-footer {
+  background-color: #1a1a1a;
+  border-top-color: yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .info-modal-close-btn {
+  background-color: transparent !important;
+  color: yellow !important;
+  border: none;
+}
+
+body.high-contrast-mode .info-modal-close-btn:hover {
+  background-color: yellow !important;
+  color: black !important;
+}

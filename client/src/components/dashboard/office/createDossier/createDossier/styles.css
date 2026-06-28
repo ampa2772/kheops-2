@@ -1,0 +1,751 @@
+/* ==========================================================================
+   Onglet Dossier (step 1) — Design System Kheops 2 (Premium Flashy)
+   Tokens: _variables.css  --k-form-*
+   ========================================================================== */
+
+/* -------------------------------------------------------
+   1. SECTION TYPE DE DOSSIER + NOM + DESCRIPTION
+   ------------------------------------------------------- */
+.textarea_container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 12px;
+  text-align: center;
+  background: var(--k-form-glass-bg, rgba(255, 255, 255, 0.07));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--k-form-radius-card, 12px);
+  align-items: center;
+  justify-content: center;
+  padding: var(--k-form-card-padding, 18px 20px);
+  border: none;
+  position: relative;
+  box-shadow: 0 2px 12px rgba(4, 58, 79, 0.2),
+              0 0 20px rgba(14, 165, 209, 0.05);
+  transition: box-shadow 250ms ease, transform 250ms ease;
+}
+
+/* Gradient border via pseudo-element */
+.textarea_container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--k-form-border-gradient, linear-gradient(135deg, rgba(138,180,248,0.4), rgba(14,165,209,0.3), rgba(138,180,248,0.15)));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.textarea_container:hover {
+  box-shadow: 0 4px 16px rgba(4, 58, 79, 0.25),
+              0 0 25px rgba(14, 165, 209, 0.1);
+  transform: translateY(-1px);
+}
+
+.textarea_container label {
+  color: var(--k-form-text-section, rgba(255, 255, 255, 0.65));
+  background: rgba(138, 180, 248, 0.1);
+  border: 1px solid rgba(138, 180, 248, 0.25);
+  padding: 4px var(--k-space-3, 12px);
+  border-radius: var(--k-form-radius-input, 10px);
+  font-size: 0.6875rem;
+  font-weight: var(--k-font-weight-semibold, 600);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(138, 180, 248, 0.3);
+}
+
+/* -------------------------------------------------------
+   2. SELECTEUR TYPE DE DOSSIER
+   ------------------------------------------------------- */
+.select_type_dossier {
+  width: 100%;
+  border-radius: var(--k-form-radius-input, 10px);
+  border: 2px solid rgba(138, 180, 248, 0.15);
+  outline: none;
+  appearance: none;
+  background-color: var(--k-bg-white, #fff);
+  color: var(--k-form-input-placeholder, #94a3b8);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--k-form-input-shadow, inset 0 1px 2px rgba(0, 0, 0, 0.04)),
+              0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 250ms ease-out, border-color 250ms ease-out;
+}
+
+.select_type_dossier:hover {
+  border-color: rgba(138, 180, 248, 0.3);
+  box-shadow: var(--k-form-input-shadow),
+              0 0 0 3px rgba(138, 180, 248, 0.1),
+              0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.select_type_dossier.showOptions {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.select_type_dossier:focus { outline: none; }
+.select_type_dossier option { padding: var(--k-space-3, 12px); }
+
+.show_select_option {
+  padding: var(--k-form-input-padding, 12px 16px);
+  cursor: pointer;
+  color: var(--k-form-input-placeholder, #94a3b8);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-normal, 400);
+  letter-spacing: 0.01em;
+}
+
+.show_select_option.new_class {
+  color: var(--k-primary, #0977a5);
+}
+
+.affaire-selected .show_select_option {
+  color: var(--k-form-input-text, #1a3a4f);
+  font-weight: var(--k-font-weight-medium, 500);
+}
+
+.type-selected {
+  color: var(--k-form-input-text, #1a3a4f);
+}
+
+/* -------------------------------------------------------
+   3. INPUT NOM DU DOSSIER
+   ------------------------------------------------------- */
+.input_dossier {
+  border: 2px solid rgba(138, 180, 248, 0.2);
+  width: 100%;
+  background-color: var(--k-bg-white, #fff);
+  color: var(--k-form-input-text, #1a3a4f);
+  padding: var(--k-form-input-padding, 12px 16px);
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  letter-spacing: 0.01em;
+  border-radius: var(--k-form-radius-input, 10px);
+  box-shadow: var(--k-form-input-shadow, inset 0 1px 2px rgba(0, 0, 0, 0.04)),
+              0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 250ms ease-out, border-color 250ms ease-out, transform 200ms ease;
+}
+
+.input_dossier:focus {
+  outline: none;
+  border-color: #8ab4f8;
+  box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.25),
+              0 0 15px rgba(14, 165, 209, 0.15),
+              0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.input_dossier:hover:not(:focus) {
+  border-color: rgba(138, 180, 248, 0.35);
+}
+
+.input_dossier::placeholder {
+  color: var(--k-form-input-placeholder, #637085);
+  font-weight: var(--k-font-weight-normal, 400);
+}
+
+/* Autofill styles */
+.input_dossier:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: var(--k-form-input-text, #1a3a4f) !important;
+}
+.input_dossier:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: var(--k-form-input-text, #1a3a4f) !important;
+}
+
+/* -------------------------------------------------------
+   4. BOUTON DESCRIPTION
+   ------------------------------------------------------- */
+.open_description_modal_button {
+  padding: 8px 20px;
+  border: 1px solid rgba(138, 180, 248, 0.2);
+  border-radius: var(--k-form-radius-input, 10px);
+  color: var(--k-form-text-secondary, rgba(255, 255, 255, 0.75));
+  cursor: pointer;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  background: rgba(138, 180, 248, 0.08);
+  letter-spacing: 0.02em;
+  transition: background-color 200ms ease-out,
+              border-color 200ms ease-out,
+              color 200ms ease-out,
+              text-shadow 200ms ease-out,
+              box-shadow 200ms ease-out;
+}
+
+.open_description_modal_button:hover {
+  background-color: rgba(138, 180, 248, 0.15);
+  border-color: rgba(138, 180, 248, 0.35);
+  color: var(--k-form-text-primary, rgba(255, 255, 255, 0.95));
+  text-shadow: 0 0 8px rgba(138, 180, 248, 0.3);
+  box-shadow: 0 0 12px rgba(14, 165, 209, 0.1);
+}
+
+/* -------------------------------------------------------
+   5. SECTION RESPONSABLES
+   ------------------------------------------------------- */
+.responsable-dossier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--k-form-glass-bg, rgba(255, 255, 255, 0.07));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: var(--k-form-card-padding, 18px 20px);
+  border-radius: var(--k-form-radius-card, 12px);
+  width: 100%;
+  gap: 12px;
+  border: none;
+  position: relative;
+  box-shadow: 0 2px 12px rgba(4, 58, 79, 0.2),
+              0 0 20px rgba(14, 165, 209, 0.05);
+  transition: box-shadow 250ms ease, transform 250ms ease;
+}
+
+/* Gradient border via pseudo-element */
+.responsable-dossier::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--k-form-border-gradient, linear-gradient(135deg, rgba(138,180,248,0.4), rgba(14,165,209,0.3), rgba(138,180,248,0.15)));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.responsable-dossier:hover {
+  box-shadow: 0 4px 16px rgba(4, 58, 79, 0.25),
+              0 0 25px rgba(14, 165, 209, 0.1);
+  transform: translateY(-1px);
+}
+
+.responsables-dossier-title {
+  font-size: 0.6875rem;
+  font-weight: var(--k-font-weight-semibold, 600);
+  color: var(--k-form-text-section, rgba(255, 255, 255, 0.65));
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(138, 180, 248, 0.3);
+  background: rgba(138, 180, 248, 0.1);
+  padding: 4px 12px;
+  border-radius: var(--k-form-radius-input, 10px);
+  border: 1px solid rgba(138, 180, 248, 0.2);
+}
+
+.responsables-dossier-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+}
+
+.responsables-dossier-liste > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--k-form-radius-input, 10px);
+  padding: 8px 12px;
+  border: 1px solid rgba(138, 180, 248, 0.08);
+  transition: background 180ms ease,
+              border-color 180ms ease,
+              box-shadow 180ms ease;
+}
+
+/* HoverToSpeak ajoute un wrapper interne ; on force la disposition horizontale
+   du nom et du macaron sur la div onClick interne. */
+.responsables-dossier-liste > div > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
+.responsables-dossier-liste > div:hover {
+  background: rgba(138, 180, 248, 0.1);
+  border-color: rgba(138, 180, 248, 0.18);
+  box-shadow: 0 2px 8px rgba(14, 165, 209, 0.1);
+}
+
+.affiche_responsable {
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  color: var(--k-form-text-secondary, rgba(255, 255, 255, 0.75));
+  font-weight: var(--k-font-weight-normal, 400);
+  letter-spacing: 0.01em;
+}
+
+/* Badge initiales du responsable */
+.initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(14, 165, 209, 0.45), rgba(138, 180, 248, 0.35));
+  color: var(--k-form-text-primary, rgba(255, 255, 255, 0.95));
+  font-size: 0.7rem;
+  font-weight: var(--k-font-weight-semibold, 600);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(138, 180, 248, 0.25);
+  box-shadow: 0 0 8px rgba(14, 165, 209, 0.2);
+  transition: background 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+  flex-shrink: 0;
+}
+
+.initials:hover {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.7), rgba(220, 53, 69, 0.5));
+  border-color: rgba(220, 53, 69, 0.4);
+  box-shadow: 0 0 12px rgba(220, 53, 69, 0.35);
+}
+
+/* Mode suppression */
+.inSuppr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.85), rgba(220, 53, 69, 0.65));
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 1px solid rgba(220, 53, 69, 0.4);
+  box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
+  transition: background 180ms ease-out, box-shadow 180ms ease-out;
+}
+
+.inSuppr:hover {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 1), rgba(220, 53, 69, 0.85));
+  box-shadow: 0 0 16px rgba(220, 53, 69, 0.5);
+}
+
+.inSuppr img {
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) invert(1);
+}
+
+/* Liste des office users pour ajout */
+.list-officeUser-form {
+  width: 100%;
+}
+
+.list-officeUser-scroll {
+  max-height: 140px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+}
+
+.list-officeUser-scroll::-webkit-scrollbar { width: 5px; }
+.list-officeUser-scroll::-webkit-scrollbar-track { background: transparent; border-radius: 5px; }
+.list-officeUser-scroll::-webkit-scrollbar-thumb { background-color: rgba(138, 180, 248, 0.3); border-radius: 5px; }
+.list-officeUser-scroll::-webkit-scrollbar-thumb:hover { background: rgba(138, 180, 248, 0.5); }
+
+.officeUser-dossier-form {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--k-form-radius-input, 10px);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(138, 180, 248, 0.06);
+  transition: background 180ms ease,
+              border-color 180ms ease,
+              box-shadow 180ms ease;
+}
+
+.officeUser-dossier-form:hover {
+  background: rgba(138, 180, 248, 0.12);
+  border-color: rgba(138, 180, 248, 0.18);
+  box-shadow: 0 2px 8px rgba(14, 165, 209, 0.1);
+}
+
+.affiche_officeUser-form {
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  color: var(--k-form-text-secondary, rgba(255, 255, 255, 0.75));
+  letter-spacing: 0.01em;
+}
+
+.initials_officeUser-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(14, 165, 209, 0.4), rgba(138, 180, 248, 0.3));
+  color: var(--k-form-text-primary, rgba(255, 255, 255, 0.95));
+  font-size: 0.65rem;
+  font-weight: var(--k-font-weight-semibold, 600);
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(138, 180, 248, 0.2);
+  box-shadow: 0 0 6px rgba(14, 165, 209, 0.15);
+}
+
+/* Bouton Ajouter un responsable */
+.container_add_responsable_button {
+  margin-top: 4px;
+}
+
+.container_add_responsable_button button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border: 1px dashed rgba(138, 180, 248, 0.25);
+  border-radius: var(--k-form-radius-input, 10px);
+  background: transparent;
+  color: var(--k-form-text-tertiary, rgba(255, 255, 255, 0.50));
+  font-size: var(--k-font-size-xs, 0.75rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 200ms ease-out,
+              border-color 200ms ease-out,
+              border-style 200ms ease-out,
+              color 200ms ease-out,
+              box-shadow 200ms ease-out;
+}
+
+.container_add_responsable_button button:hover {
+  background: rgba(138, 180, 248, 0.1);
+  border-color: rgba(138, 180, 248, 0.4);
+  border-style: solid;
+  color: var(--k-form-text-secondary, rgba(255, 255, 255, 0.75));
+  box-shadow: 0 0 10px rgba(14, 165, 209, 0.1);
+}
+
+.container_add_responsable_button button img {
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) invert(1);
+  opacity: 0.6;
+  transition: opacity 180ms ease-out;
+}
+
+.container_add_responsable_button button:hover img {
+  opacity: 0.9;
+}
+
+/* -------------------------------------------------------
+   6. BOUTON "Creer une partie"
+   ------------------------------------------------------- */
+/* Les styles de .form_partie_container et .bouton_form_partie
+   sont dans createPartie/styles.css et restent inchanges */
+
+/* -------------------------------------------------------
+   7. OPTIONS DROPDOWN (pour select_type_dossier)
+   ------------------------------------------------------- */
+.options_container {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+}
+
+.options_container p {
+  cursor: pointer;
+  padding: 10px 16px;
+  color: var(--k-primary, #0977a5);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  letter-spacing: 0.01em;
+  transition: background-color 150ms ease,
+              color 150ms ease;
+}
+
+.select_type_dossier .options_container p:hover {
+  background-color: var(--k-primary, #0977a5);
+  color: var(--k-bg-white, #fff);
+}
+
+.options_container p:hover {
+  border-radius: var(--k-radius-sm, 4px);
+}
+
+.options_container p:nth-child(even) { background-color: var(--k-bg-white, #fff); }
+.options_container p:nth-child(odd) { background-color: var(--k-gray-50, #fafafa); }
+.options_container p:last-child {
+  border-bottom-left-radius: var(--k-form-radius-input, 10px);
+  border-bottom-right-radius: var(--k-form-radius-input, 10px);
+}
+
+/* -------------------------------------------------------
+   8. MODALES (TypeDossier + Description)
+   ------------------------------------------------------- */
+.modal_overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 500;
+}
+
+.modal_content {
+  background: var(--k-primary-800, #043a4f);
+  padding: 16px 20px;
+  border-radius: var(--k-form-radius-container, 16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25),
+              0 2px 8px rgba(0, 0, 0, 0.15),
+              0 0 30px rgba(14, 165, 209, 0.08);
+  max-width: 75%;
+  width: 100%;
+  margin-left: 45px;
+  height: auto;
+  color: var(--k-text-light, #e8eaed);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid rgba(138, 180, 248, 0.12);
+}
+
+.modal_textarea {
+  width: 100%;
+  height: 50vh;
+  border-radius: var(--k-form-radius-input, 10px);
+  padding: var(--k-space-3, 12px);
+  border: 2px solid rgba(138, 180, 248, 0.15);
+  outline: none;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-normal, 400);
+  letter-spacing: 0.01em;
+  line-height: var(--k-line-height-base, 1.5);
+  color: var(--k-form-input-text, #1a3a4f);
+  box-shadow: var(--k-form-input-shadow, inset 0 1px 2px rgba(0, 0, 0, 0.04));
+  transition: border-color 250ms ease-out, box-shadow 250ms ease-out;
+}
+
+.modal_textarea:focus {
+  outline: none;
+  border-color: #8ab4f8;
+  box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.2),
+              0 0 12px rgba(14, 165, 209, 0.1);
+}
+
+.modal-create-dossier-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-create-dossier-content {
+  background: linear-gradient(170deg, #0ea5d1 0%, #0b7ea6 20%, #076d90 45%, #055a78 70%, #043a4f 100%);
+  padding: var(--k-space-5, 20px);
+  border-radius: var(--k-form-radius-card, 12px);
+  width: 85%;
+  height: 60%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: 40px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25),
+              0 0 30px rgba(14, 165, 209, 0.1);
+  border: 1px solid rgba(138, 180, 248, 0.2);
+}
+
+/* FIX-S5-1 — input search ne dépend plus de la règle globale `input{width:100%}` (scopée à .reset-container en FIX-S1-4) */
+.modal-create-dossier-content input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal-create-dossier-option {
+  padding: var(--k-space-3, 12px);
+  margin: var(--k-space-2, 8px) 0;
+  background-color: var(--k-bg-white, #fff);
+  border: 1px solid var(--k-gray-200, #eeeeee);
+  border-radius: var(--k-form-radius-input, 10px);
+  cursor: pointer;
+  width: 80%;
+  text-align: center;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  transition: background-color 150ms ease,
+              border-color 150ms ease,
+              box-shadow 150ms ease;
+}
+
+.modal-create-dossier-option:hover {
+  background-color: var(--k-gray-50, #fafafa);
+  border-color: var(--k-primary-200, #80c6da);
+  box-shadow: 0 2px 8px rgba(14, 165, 209, 0.1);
+}
+
+/* -------------------------------------------------------
+   9. TRIBUNAL / AFFAIRES (TypeDossierModal)
+   ------------------------------------------------------- */
+.suggestions {
+  width: 70%;
+  background-color: var(--k-bg-white, #fff);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: var(--k-form-radius-input, 10px);
+  max-height: 250px;
+  overflow-y: auto;
+  padding: var(--k-space-2, 8px);
+  gap: 2px;
+  box-shadow: var(--k-form-input-shadow, inset 0 1px 2px rgba(0, 0, 0, 0.04));
+}
+
+.suggestions::-webkit-scrollbar { width: 5px; }
+.suggestions::-webkit-scrollbar-track { background: transparent; border-radius: 5px; }
+.suggestions::-webkit-scrollbar-thumb { background-color: rgba(14, 165, 209, 0.3); border-radius: 5px; }
+.suggestions::-webkit-scrollbar-thumb:hover { background: rgba(14, 165, 209, 0.5); }
+
+.suggestion-item {
+  padding: var(--k-space-1, 4px) 0;
+  background-color: var(--k-primary-800, #043a4f);
+  color: var(--k-primary-200, #80c6da);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: var(--k-form-radius-input, 10px);
+  cursor: pointer;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  transition: background-color 180ms ease,
+              color 180ms ease,
+              box-shadow 180ms ease;
+}
+
+/* Surlignage géré par useComboboxKeyboard. */
+.suggestion-item.is-active {
+  background-color: var(--k-primary-200, #80c6da);
+  color: var(--k-primary-800, #043a4f);
+  box-shadow: 0 2px 8px rgba(14, 165, 209, 0.2);
+}
+
+.tribunal-options {
+  width: 100%;
+  background-color: var(--k-bg-white, #fff);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: var(--k-form-radius-input, 10px);
+  max-height: 255px;
+  overflow-y: auto;
+  padding: var(--k-space-1, 4px);
+  gap: 2px;
+}
+
+.tribunal-option {
+  padding: var(--k-space-1, 4px) 0;
+  color: var(--k-primary-800, #043a4f);
+  background-color: var(--k-primary-200, #80c6da);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: var(--k-form-radius-input, 10px);
+  cursor: pointer;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  transition: background-color 180ms ease,
+              color 180ms ease,
+              box-shadow 180ms ease;
+}
+
+/* Surlignage géré par useComboboxKeyboard. */
+.tribunal-option.is-active {
+  background-color: var(--k-primary-800, #043a4f);
+  color: var(--k-primary-200, #80c6da);
+  box-shadow: 0 2px 8px rgba(4, 58, 79, 0.2);
+}
+
+.tribunal-options::-webkit-scrollbar { width: 5px; }
+.tribunal-options::-webkit-scrollbar-track { background: transparent; border-radius: 5px; }
+.tribunal-options::-webkit-scrollbar-thumb { background-color: rgba(14, 165, 209, 0.3); border-radius: 5px; }
+.tribunal-options::-webkit-scrollbar-thumb:hover { background: rgba(14, 165, 209, 0.5); }
+
+.selected-tribunal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-1, 4px);
+  background-color: var(--k-primary-800, #043a4f);
+  padding: var(--k-space-3, 12px);
+  border-radius: var(--k-form-radius-input, 10px);
+  border: 1px solid rgba(138, 180, 248, 0.1);
+}
+
+.selected-tribunal h3 { color: var(--k-primary-200, #80c6da); }
+.selected-tribunal p { color: var(--k-text-light, #e8eaed); }
+
+.state-city-list, .state-empty, .state-selected-tribunal { width: 60%; }
+
+.affaires-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
+
+.affaires-list h3 {
+  color: var(--k-primary-800, #043a4f);
+  font-size: 90%;
+}
+
+/* -------------------------------------------------------
+   10. TYPE CONTACT ITEMS (pour modales de types)
+   ------------------------------------------------------- */
+.options_typeContactItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modsuppr_typeContactItem {
+  padding: 2px var(--k-space-1, 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: var(--k-form-radius-input, 10px);
+  padding-bottom: 1px;
+  transition: background-color 150ms ease;
+}
+
+.modsuppr_typeContactItem:hover { background-color: var(--k-bg-white, #fff); }
+
+.modsuppr_typeCIcon {
+  padding: 2px;
+  padding-bottom: 1px;
+  border: 1px solid transparent;
+  border-radius: var(--k-form-radius-input, 10px);
+  transition: border-color 150ms ease;
+}
+
+.modsuppr_typeCIcon:hover { border: 1px solid var(--k-primary, #0977a5); }
+.modsuppr_typeCIcon img { height: 18px; width: 18px; }

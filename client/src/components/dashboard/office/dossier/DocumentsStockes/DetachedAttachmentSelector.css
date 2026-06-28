@@ -1,0 +1,583 @@
+/* =============================================================
+   DetachedAttachmentSelector — Sélecteur de pièces jointes
+   Thème bleu nuit Kheops 2. Fichier dédié & isolé (aucune
+   collision avec styles.css partagé / ModalSelectReceiver).
+
+   ⚠ Le composant est monté DANS .modal-content.send-email-modal.
+   Des règles globales .modal-content button:first/last-of-type
+   existent (piège rc99) → tous les boutons ci-dessous sont en
+   sélecteurs ≥3 classes avec propriétés visuelles explicites.
+   ============================================================= */
+
+.das-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(4, 14, 22, 0.58);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  animation: das-fade 0.16s ease-out;
+}
+
+@keyframes das-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.das-overlay .das-modal {
+  width: 560px;
+  max-width: calc(100vw - 48px);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0d2233 0%, #0a1a27 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  color: #e8eef5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  animation: das-pop 0.18s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes das-pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- En-tête ---------- */
+.das-overlay .das-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.das-overlay .das-header-id {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.das-overlay .das-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: rgba(38, 190, 175, 0.16);
+  color: #38d6c4;
+}
+
+.das-overlay .das-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.das-overlay .das-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #6f93ab;
+}
+
+.das-overlay .das-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f3f7fb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.das-overlay .das-modal .das-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  color: #9fb4c6;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.das-overlay .das-modal .das-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* ---------- Barre recherche + tri ---------- */
+.das-overlay .das-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px 10px;
+}
+
+.das-overlay .das-search {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.das-overlay .das-search-icon {
+  position: absolute;
+  left: 13px;
+  color: #6f8aa0;
+  pointer-events: none;
+}
+
+.das-overlay .das-modal .das-search-input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  font-size: 13.5px;
+  color: #e8eef5;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.das-overlay .das-modal .das-search-input::placeholder {
+  color: #6f8499;
+}
+
+.das-overlay .das-modal .das-search-input:focus {
+  border-color: rgba(56, 214, 196, 0.55);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.das-overlay .das-modal .das-sort {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #c3d3e1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.das-overlay .das-modal .das-sort:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.das-overlay .das-sort-arrow {
+  font-size: 13px;
+  color: #38d6c4;
+  font-weight: 700;
+}
+
+/* ---------- Chips de filtre ---------- */
+.das-overlay .das-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 20px 14px;
+}
+
+.das-overlay .das-modal .das-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #aebfce;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.das-overlay .das-modal .das-chip:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #e3ecf3;
+}
+
+.das-overlay .das-modal .das-chip.is-active {
+  background: rgba(38, 190, 175, 0.18);
+  border-color: rgba(56, 214, 196, 0.45);
+  color: #5fe6d5;
+}
+
+.das-overlay .das-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #cdd9e4;
+  background: rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+}
+
+.das-overlay .das-modal .das-chip.is-active .das-chip-count {
+  color: #04161c;
+  background: #38d6c4;
+}
+
+/* ---------- Ligne « Tout sélectionner » ---------- */
+.das-overlay .das-selectall {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.das-overlay .das-checkall {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #b7c7d5;
+  cursor: pointer;
+  user-select: none;
+}
+
+.das-overlay .das-checkall input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.das-overlay .das-cbx {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.das-overlay .das-checkall input:checked + .das-cbx {
+  background: #38d6c4;
+  border-color: #38d6c4;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2304161c' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>");
+  background-size: 13px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.das-overlay .das-count {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #57b9d6;
+}
+
+/* ---------- Liste des documents ---------- */
+.das-overlay .das-list {
+  flex: 1;
+  min-height: 120px;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+.das-overlay .das-list::-webkit-scrollbar { width: 8px; }
+.das-overlay .das-list::-webkit-scrollbar-track { background: transparent; }
+.das-overlay .das-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.das-overlay .das-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: padding-box;
+}
+
+.das-overlay .das-row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background 0.13s ease, border-color 0.13s ease;
+}
+
+.das-overlay .das-row:hover {
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.das-overlay .das-row.is-selected {
+  background: rgba(38, 190, 175, 0.12);
+  border-color: rgba(56, 214, 196, 0.5);
+}
+
+.das-overlay .das-row-check {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.03);
+  transition: background 0.13s ease, border-color 0.13s ease;
+}
+
+.das-overlay .das-row.is-selected .das-row-check {
+  background: #38d6c4;
+  border-color: #38d6c4;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2304161c' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>");
+  background-size: 13px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.das-overlay .das-thumb {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #fff;
+}
+
+.das-overlay .das-thumb--pdf { background: linear-gradient(160deg, #e0524b, #c0392b); }
+.das-overlay .das-thumb--word { background: linear-gradient(160deg, #3a7bc0, #2c5f9e); }
+.das-overlay .das-thumb--xls { background: linear-gradient(160deg, #28a96a, #1d8a52); }
+.das-overlay .das-thumb--txt { background: linear-gradient(160deg, #6b7d8e, #54657a); }
+.das-overlay .das-thumb--img { background: linear-gradient(160deg, #8a6dd0, #6f55c0); }
+
+.das-overlay .das-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.das-overlay .das-row-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #eef3f8;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.das-overlay .das-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.das-overlay .das-src {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.das-overlay .das-src--dossier { color: #8fb8d4; background: rgba(80, 130, 175, 0.16); border-color: rgba(120, 165, 205, 0.28); }
+.das-overlay .das-src--import { color: #e3b878; background: rgba(210, 160, 80, 0.15); border-color: rgba(220, 175, 100, 0.3); }
+.das-overlay .das-src--export { color: #5fd6c6; background: rgba(45, 190, 170, 0.15); border-color: rgba(70, 210, 190, 0.3); }
+.das-overlay .das-src--esign { color: #b59ce8; background: rgba(140, 110, 215, 0.16); border-color: rgba(160, 130, 230, 0.3); }
+
+.das-overlay .das-row-date {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  text-align: right;
+}
+
+.das-overlay .das-date-main {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #aebecd;
+  white-space: nowrap;
+}
+
+.das-overlay .das-date-sub {
+  font-size: 12px;
+  color: #6f8499;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.das-overlay .das-empty {
+  padding: 44px 20px;
+  text-align: center;
+  color: #6f8499;
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ---------- Pied ---------- */
+.das-overlay .das-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.das-overlay .das-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.das-overlay .das-modal .das-localfile-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: #9fb4c6;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.das-overlay .das-modal .das-localfile-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.das-overlay .das-footer-count {
+  font-size: 12.5px;
+  color: #8298ac;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.das-overlay .das-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.das-overlay .das-modal .das-btn-cancel {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #b7c7d5;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.das-overlay .das-modal .das-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.26);
+}
+
+.das-overlay .das-modal .das-btn-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #04161c;
+  background: linear-gradient(135deg, #3fe0cd, #23b7a7);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+.das-overlay .das-modal .das-btn-confirm:hover {
+  filter: brightness(1.07);
+}
+
+.das-overlay .das-modal .das-btn-confirm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: none;
+}
+
+.das-overlay .das-btn-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: rgba(4, 22, 28, 0.32);
+  border-radius: 999px;
+}
+
+/* ---------- Responsive étroit ---------- */
+@media (max-width: 600px) {
+  .das-overlay .das-modal { width: 100%; max-height: 92vh; }
+  .das-overlay .das-toolbar { flex-wrap: wrap; }
+  .das-overlay .das-search { flex-basis: 100%; }
+  .das-overlay .das-row-date { display: none; }
+}
+
+/* ---------- Contraste élevé ---------- */
+body.high-contrast-mode .das-overlay .das-modal {
+  background: #00121c;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+body.high-contrast-mode .das-overlay .das-row.is-selected {
+  background: rgba(56, 214, 196, 0.22);
+  border-color: #38d6c4;
+}

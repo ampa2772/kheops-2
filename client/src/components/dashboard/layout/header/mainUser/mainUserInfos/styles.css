@@ -1,0 +1,18 @@
+.main-user-infos {
+  text-align: center;  
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  
+}
+
+.main-user-infos p {
+  padding: 0 2px;
+}
+
+@media (max-width: 767px) {
+  .main-user-infos {
+    display: none;
+  }
+}
+
+

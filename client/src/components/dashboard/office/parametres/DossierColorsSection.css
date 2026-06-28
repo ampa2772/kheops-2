@@ -1,0 +1,247 @@
+/* ==========================================================================
+   DossierColorsSection — onglet Paramètres → Couleurs des dossiers
+   ========================================================================== */
+
+.dossier-colors-section {
+  max-width: 760px;
+  margin: 0;
+  padding: 4px 0 24px;
+}
+
+.dossier-colors__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.dossier-colors__head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.dossier-colors__title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: var(--k-text-primary, #1a1a1a);
+}
+
+.dossier-colors__subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--k-text-secondary, #555);
+  line-height: 1.5;
+}
+
+/* Wrapper inline-flex : contraint le <div> interne de HoverToSpeak
+   (qui force width:100% via inline style) à la largeur naturelle du
+   bouton qu'il enrobe. */
+.dossier-colors__reset-all-wrap {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+/* `width: auto` pour neutraliser la règle globale `button { width: 100% }`
+   du reset CSS du projet, sinon le bouton prend toute la largeur du
+   header flex et écrase le titre + description à sa gauche. */
+.dossier-colors__reset-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  background: rgba(220, 38, 38, 0.06);
+  color: #b91c1c;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
+.dossier-colors__reset-all:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.dossier-colors__reset-all:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Liste des types */
+.dossier-colors__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+}
+
+.dossier-colors__row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--k-bg-white, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.dossier-colors__row:hover {
+  border-color: rgba(77, 155, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.dossier-colors__row.is-custom {
+  border-color: rgba(77, 155, 255, 0.5);
+  background: linear-gradient(135deg, rgba(77, 155, 255, 0.04) 0%, rgba(255, 255, 255, 1) 100%);
+}
+
+/* Pastille couleur cliquable */
+.dossier-colors__swatch-wrap {
+  position: relative;
+}
+
+.dossier-colors__swatch {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dossier-colors__swatch:hover {
+  transform: scale(1.05);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.15),
+    0 4px 10px rgba(0, 0, 0, 0.18);
+}
+
+.dossier-colors__color-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
+
+.dossier-colors__swatch-spinner {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+}
+
+.dossier-colors__swatch-spinner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: #4d9bff;
+  border-radius: 50%;
+  animation: dossierColorsSpin 0.8s linear infinite;
+}
+
+@keyframes dossierColorsSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Bloc info */
+.dossier-colors__info {
+  min-width: 0;
+}
+
+.dossier-colors__type-label {
+  font-weight: 600;
+  font-size: 0.94rem;
+  color: var(--k-text-primary, #1a1a1a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+
+.dossier-colors__hex {
+  font-size: 0.78rem;
+  color: var(--k-text-secondary, #666);
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dossier-colors__custom-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(77, 155, 255, 0.12);
+  color: #1d4ed8;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
+/* Bouton reset par ligne */
+.dossier-colors__reset-one {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.dossier-colors__reset-one:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+.dossier-colors__reset-one:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* High contrast mode */
+body.high-contrast-mode .dossier-colors__title,
+body.high-contrast-mode .dossier-colors__type-label,
+body.high-contrast-mode .dossier-colors__subtitle,
+body.high-contrast-mode .dossier-colors__hex {
+  color: yellow;
+}
+
+body.high-contrast-mode .dossier-colors__row {
+  background: #000;
+  border-color: yellow;
+}

@@ -1,0 +1,57 @@
+{
+  "name": "kheops-2",
+  "version": "2.0.18-rc1",
+  "description": "Kheops 2 — Application desktop de gestion juridique",
+  "main": "electron-app/main.js",
+  "scripts": {
+    "start": "concurrently \"cd client && npm start\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
+    "start:server-only": "cd server && npm start",
+    "build": "cd client && npm run build",
+    "generate-manifest": "node scripts/generate-build-manifest.js",
+    "package": "npm run generate-manifest && npm run build && electron-builder",
+    "postinstall": "cd client && npm install && cd ../server && npm install",
+    "test:e2e": "playwright test --config e2e/playwright.config.js",
+    "test:e2e:ui": "playwright test --config e2e/playwright.config.js --ui",
+    "test:e2e:headed": "playwright test --config e2e/playwright.config.js --headed"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^2.16.0",
+    "@google-cloud/local-auth": "^2.1.1",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "@xmldom/xmldom": "^0.8.11",
+    "async": "^3.2.6",
+    "axios": "^1.3.5",
+    "chokidar": "^3.5.3",
+    "cors": "^2.8.5",
+    "docx": "^9.1.0",
+    "docxtemplater": "^3.36.1",
+    "dotenv": "^16.3.1",
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.8.3",
+    "express": "^4.18.2",
+    "fs-extra": "^11.1.1",
+    "googleapis": "^126.0.1",
+    "isomorphic-fetch": "^3.0.0",
+    "mammoth": "^1.9.0",
+    "mime-types": "^2.1.35",
+    "multer": "^2.0.2",
+    "nodemailer": "^6.10.1",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^1.1.1",
+    "pizzip": "^3.1.7",
+    "sanitize-filename": "^1.6.4",
+    "scribe.js-ocr": "^0.10.1",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^31.1.0",
+    "electron-builder": "^24.13.3",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "extends": "./electron-builder.json"
+  }
+}

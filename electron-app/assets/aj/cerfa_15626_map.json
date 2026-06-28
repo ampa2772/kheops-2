@@ -1,0 +1,1498 @@
+[
+ {
+  "id": "civilite_madame",
+  "page": 1,
+  "type": "checkbox",
+  "x": 77.4,
+  "y": 484.2
+ },
+ {
+  "id": "civilite_monsieur",
+  "page": 1,
+  "type": "checkbox",
+  "x": 222.5,
+  "y": 484.2
+ },
+ {
+  "id": "nom_naissance",
+  "page": 1,
+  "type": "text",
+  "x": 124.1,
+  "y": 467.4,
+  "sample": "Delmont"
+ },
+ {
+  "id": "nom_usage",
+  "page": 1,
+  "type": "text",
+  "x": 102.6,
+  "y": 453.4,
+  "sample": "Delmont"
+ },
+ {
+  "id": "prenoms",
+  "page": 1,
+  "type": "text",
+  "x": 84.1,
+  "y": 439.4,
+  "sample": "Jerome"
+ },
+ {
+  "id": "date_naissance",
+  "page": 1,
+  "type": "cells",
+  "y": 425.4,
+  "sample": "12031979",
+  "segments": [
+   {
+    "x0": 122.2,
+    "x1": 147.1,
+    "n": 2,
+    "pad": 0
+   },
+   {
+    "x0": 150.2,
+    "x1": 181.5,
+    "n": 2,
+    "pad": 5
+   },
+   {
+    "x0": 184.6,
+    "x1": 238.7,
+    "n": 4,
+    "pad": 5
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "lieu_naissance",
+  "page": 1,
+  "type": "text",
+  "x": 334.3,
+  "y": 425.4,
+  "sample": "Evreux"
+ },
+ {
+  "id": "nat_francaise",
+  "page": 1,
+  "type": "checkbox",
+  "x": 147.4,
+  "y": 414.2
+ },
+ {
+  "id": "nat_ue",
+  "page": 1,
+  "type": "checkbox",
+  "x": 261.2,
+  "y": 414.2
+ },
+ {
+  "id": "nat_autre",
+  "page": 1,
+  "type": "checkbox",
+  "x": 331.6,
+  "y": 414.2
+ },
+ {
+  "id": "nat_preciser",
+  "page": 1,
+  "type": "text",
+  "x": 435.4,
+  "y": 411.4,
+  "sample": ""
+ },
+ {
+  "id": "sit_celibataire",
+  "page": 1,
+  "type": "checkbox",
+  "x": 145.5,
+  "y": 400.2
+ },
+ {
+  "id": "sit_marie",
+  "page": 1,
+  "type": "checkbox",
+  "x": 219.4,
+  "y": 400.2
+ },
+ {
+  "id": "sit_divorce",
+  "page": 1,
+  "type": "checkbox",
+  "x": 298.3,
+  "y": 400.2
+ },
+ {
+  "id": "sit_pacse",
+  "page": 1,
+  "type": "checkbox",
+  "x": 362.1,
+  "y": 400.2
+ },
+ {
+  "id": "sit_concubin",
+  "page": 1,
+  "type": "checkbox",
+  "x": 450.5,
+  "y": 400.2
+ },
+ {
+  "id": "sit_veuf",
+  "page": 1,
+  "type": "checkbox",
+  "x": 505.2,
+  "y": 400.2
+ },
+ {
+  "id": "adresse",
+  "page": 1,
+  "type": "text",
+  "x": 77.8,
+  "y": 256.4,
+  "sample": "12 rue des Lilas"
+ },
+ {
+  "id": "code_postal",
+  "page": 1,
+  "type": "cells",
+  "y": 240.4,
+  "sample": "27000",
+  "segments": [
+   {
+    "x0": 96.5,
+    "x1": 155.6,
+    "n": 5,
+    "pad": 0
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "commune",
+  "page": 1,
+  "type": "text",
+  "x": 231.4,
+  "y": 240.4,
+  "sample": "Evreux"
+ },
+ {
+  "id": "pays",
+  "page": 1,
+  "type": "text",
+  "x": 439.2,
+  "y": 240.4,
+  "sample": "France"
+ },
+ {
+  "id": "telephone",
+  "page": 1,
+  "type": "cells",
+  "y": 224.4,
+  "sample": "0612345678",
+  "segments": [
+   {
+    "x0": 114.9,
+    "x1": 231.0,
+    "n": 10,
+    "pad": 0
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "courriel",
+  "page": 1,
+  "type": "text",
+  "x": 287.7,
+  "y": 224.4,
+  "sample": "jerome@mail.fr"
+ },
+ {
+  "id": "pro_cdi",
+  "page": 1,
+  "type": "checkbox",
+  "x": 245.8,
+  "y": 211.2
+ },
+ {
+  "id": "pro_cdd",
+  "page": 1,
+  "type": "checkbox",
+  "x": 350.0,
+  "y": 211.2
+ },
+ {
+  "id": "pro_artisan",
+  "page": 1,
+  "type": "checkbox",
+  "x": 537.1,
+  "y": 211.2
+ },
+ {
+  "id": "pro_chomage",
+  "page": 1,
+  "type": "checkbox",
+  "x": 80.6,
+  "y": 195.2
+ },
+ {
+  "id": "pro_apprentissage",
+  "page": 1,
+  "type": "checkbox",
+  "x": 162.8,
+  "y": 195.2
+ },
+ {
+  "id": "pro_etudes",
+  "page": 1,
+  "type": "checkbox",
+  "x": 214.7,
+  "y": 195.2
+ },
+ {
+  "id": "pro_retraite",
+  "page": 1,
+  "type": "checkbox",
+  "x": 271.2,
+  "y": 195.2
+ },
+ {
+  "id": "pro_autre",
+  "page": 1,
+  "type": "checkbox",
+  "x": 319.0,
+  "y": 195.2
+ },
+ {
+  "id": "pro_preciser",
+  "page": 1,
+  "type": "text",
+  "x": 412.5,
+  "y": 192.4,
+  "sample": ""
+ },
+ {
+  "id": "num_caf",
+  "page": 1,
+  "type": "cells",
+  "y": 176.4,
+  "sample": "123456",
+  "segments": [
+   {
+    "x0": 277.2,
+    "x1": 359.1,
+    "n": 7,
+    "pad": 0
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "num_fiscal",
+  "page": 1,
+  "type": "cells",
+  "y": 160.4,
+  "sample": "1234567890123",
+  "segments": [
+   {
+    "x0": 84.8,
+    "x1": 235.1,
+    "n": 13,
+    "pad": 0
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "ref_avis",
+  "page": 1,
+  "type": "cells",
+  "y": 144.4,
+  "sample": "1234567890123",
+  "segments": [
+   {
+    "x0": 260.3,
+    "x1": 410.6,
+    "n": 13,
+    "pad": 0
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "rep_nom_prenom",
+  "page": 1,
+  "type": "text",
+  "x": 177.3,
+  "y": 106.4,
+  "sample": ""
+ },
+ {
+  "id": "rep_parent",
+  "page": 1,
+  "type": "checkbox",
+  "x": 263.8,
+  "y": 95.2
+ },
+ {
+  "id": "rep_tuteur",
+  "page": 1,
+  "type": "checkbox",
+  "x": 307.4,
+  "y": 95.2
+ },
+ {
+  "id": "rep_curateur",
+  "page": 1,
+  "type": "checkbox",
+  "x": 366.2,
+  "y": 95.2
+ },
+ {
+  "id": "rep_autre",
+  "page": 1,
+  "type": "checkbox",
+  "x": 411.3,
+  "y": 95.2
+ },
+ {
+  "id": "rep_statut",
+  "page": 1,
+  "type": "text",
+  "x": 421.1,
+  "y": 92.4,
+  "sample": ""
+ },
+ {
+  "id": "rep_adresse",
+  "page": 1,
+  "type": "text",
+  "x": 144.1,
+  "y": 78.4,
+  "sample": ""
+ },
+ {
+  "id": "rep_code_postal",
+  "page": 1,
+  "type": "cells",
+  "y": 62.4,
+  "sample": "",
+  "segments": [
+   {
+    "x0": 96.5,
+    "x1": 155.6,
+    "n": 5,
+    "pad": 0
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "rep_commune",
+  "page": 1,
+  "type": "text",
+  "x": 231.4,
+  "y": 62.4,
+  "sample": ""
+ },
+ {
+  "id": "rep_pays",
+  "page": 1,
+  "type": "text",
+  "x": 439.2,
+  "y": 62.4,
+  "sample": ""
+ },
+ {
+  "id": "rep_telephone",
+  "page": 1,
+  "type": "cells",
+  "y": 46.4,
+  "sample": "",
+  "segments": [
+   {
+    "x0": 114.9,
+    "x1": 231.0,
+    "n": 10,
+    "pad": 0
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "rep_courriel",
+  "page": 1,
+  "type": "text",
+  "x": 287.7,
+  "y": 46.4,
+  "sample": ""
+ },
+ {
+  "id": "conj_civ_madame",
+  "page": 2,
+  "type": "checkbox",
+  "x": 77.4,
+  "y": 755.8
+ },
+ {
+  "id": "conj_civ_monsieur",
+  "page": 2,
+  "type": "checkbox",
+  "x": 222.7,
+  "y": 755.8
+ },
+ {
+  "id": "conj_nom_naissance",
+  "page": 2,
+  "type": "text",
+  "x": 124.1,
+  "y": 738.9,
+  "sample": "Martin"
+ },
+ {
+  "id": "conj_nom_usage",
+  "page": 2,
+  "type": "text",
+  "x": 102.6,
+  "y": 724.9,
+  "sample": "Martin"
+ },
+ {
+  "id": "conj_prenoms",
+  "page": 2,
+  "type": "text",
+  "x": 84.1,
+  "y": 710.9,
+  "sample": "Sophie"
+ },
+ {
+  "id": "conj_date_naissance",
+  "page": 2,
+  "type": "cells",
+  "y": 696.9,
+  "sample": "05071981",
+  "segments": [
+   {
+    "x0": 122.2,
+    "x1": 147.1,
+    "n": 2,
+    "pad": 0
+   },
+   {
+    "x0": 150.2,
+    "x1": 181.5,
+    "n": 2,
+    "pad": 5
+   },
+   {
+    "x0": 184.6,
+    "x1": 238.7,
+    "n": 4,
+    "pad": 5
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "conj_lieu_naissance",
+  "page": 2,
+  "type": "text",
+  "x": 370.3,
+  "y": 696.9,
+  "sample": "Rouen"
+ },
+ {
+  "id": "oppose_oui",
+  "page": 2,
+  "type": "checkbox",
+  "x": 472.0,
+  "y": 538.2
+ },
+ {
+  "id": "oppose_non",
+  "page": 2,
+  "type": "checkbox",
+  "x": 527.2,
+  "y": 538.2
+ },
+ {
+  "id": "oppose_preciser",
+  "page": 2,
+  "type": "text",
+  "x": 224.1,
+  "y": 519.3,
+  "sample": ""
+ },
+ {
+  "id": "proc_souhaitez",
+  "page": 2,
+  "type": "checkbox",
+  "x": 51.9,
+  "y": 430.9
+ },
+ {
+  "id": "proc_juge_saisi",
+  "page": 2,
+  "type": "checkbox",
+  "x": 51.8,
+  "y": 258.9
+ },
+ {
+  "id": "proc_deja_jugee",
+  "page": 2,
+  "type": "checkbox",
+  "x": 51.8,
+  "y": 132.5
+ },
+ {
+  "id": "expose_affaire",
+  "page": 2,
+  "type": "text",
+  "x": 206.1,
+  "y": 399.0,
+  "sample": "Litige prud'homal"
+ },
+ {
+  "id": "deja_aj1_oui",
+  "page": 2,
+  "type": "checkbox",
+  "x": 380.5,
+  "y": 349.9
+ },
+ {
+  "id": "deja_aj1_non",
+  "page": 2,
+  "type": "checkbox",
+  "x": 491.0,
+  "y": 349.9
+ },
+ {
+  "id": "etesvous_defendeur",
+  "page": 2,
+  "type": "checkbox",
+  "x": 161.6,
+  "y": 244.9
+ },
+ {
+  "id": "etesvous_demandeur",
+  "page": 2,
+  "type": "checkbox",
+  "x": 307.6,
+  "y": 244.9
+ },
+ {
+  "id": "deja_aj2_oui",
+  "page": 2,
+  "type": "checkbox",
+  "x": 380.5,
+  "y": 230.9
+ },
+ {
+  "id": "deja_aj2_non",
+  "page": 2,
+  "type": "checkbox",
+  "x": 491.0,
+  "y": 230.9
+ },
+ {
+  "id": "juridiction_saisie",
+  "page": 2,
+  "type": "text",
+  "x": 188.4,
+  "y": 214.0,
+  "sample": "TJ Evreux"
+ },
+ {
+  "id": "date_convocation",
+  "page": 2,
+  "type": "cells",
+  "y": 200.0,
+  "sample": "20062026",
+  "segments": [
+   {
+    "x0": 303.3,
+    "x1": 328.2,
+    "n": 2,
+    "pad": 0
+   },
+   {
+    "x0": 331.3,
+    "x1": 362.6,
+    "n": 2,
+    "pad": 5
+   },
+   {
+    "x0": 365.7,
+    "x1": 419.8,
+    "n": 4,
+    "pad": 5
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "recours_oui",
+  "page": 2,
+  "type": "checkbox",
+  "x": 416.5,
+  "y": 118.5
+ },
+ {
+  "id": "recours_non",
+  "page": 2,
+  "type": "checkbox",
+  "x": 527.0,
+  "y": 118.5
+ },
+ {
+  "id": "executer_oui",
+  "page": 2,
+  "type": "checkbox",
+  "x": 416.5,
+  "y": 104.5
+ },
+ {
+  "id": "executer_non",
+  "page": 2,
+  "type": "checkbox",
+  "x": 527.0,
+  "y": 104.5
+ },
+ {
+  "id": "desig1_select",
+  "page": 3,
+  "type": "checkbox",
+  "x": 52.4,
+  "y": 630.7
+ },
+ {
+  "id": "desig1_avocat",
+  "page": 3,
+  "type": "checkbox",
+  "x": 265.5,
+  "y": 630.7
+ },
+ {
+  "id": "desig1_huissier",
+  "page": 3,
+  "type": "checkbox",
+  "x": 383.3,
+  "y": 630.7
+ },
+ {
+  "id": "desig1_notaire",
+  "page": 3,
+  "type": "checkbox",
+  "x": 455.0,
+  "y": 630.7
+ },
+ {
+  "id": "desig1_autre",
+  "page": 3,
+  "type": "checkbox",
+  "x": 225.8,
+  "y": 616.7
+ },
+ {
+  "id": "desig1_autre_preciser",
+  "page": 3,
+  "type": "text",
+  "x": 322.9,
+  "y": 613.8,
+  "sample": ""
+ },
+ {
+  "id": "desig2_select",
+  "page": 3,
+  "type": "checkbox",
+  "x": 52.4,
+  "y": 602.7
+ },
+ {
+  "id": "desig2_avocat",
+  "page": 3,
+  "type": "checkbox",
+  "x": 231.9,
+  "y": 602.7
+ },
+ {
+  "id": "desig2_huissier",
+  "page": 3,
+  "type": "checkbox",
+  "x": 341.4,
+  "y": 602.7
+ },
+ {
+  "id": "desig2_notaire",
+  "page": 3,
+  "type": "checkbox",
+  "x": 407.8,
+  "y": 602.7
+ },
+ {
+  "id": "desig2_autre",
+  "page": 3,
+  "type": "checkbox",
+  "x": 220.4,
+  "y": 588.7
+ },
+ {
+  "id": "desig2_autre_preciser",
+  "page": 3,
+  "type": "text",
+  "x": 325.8,
+  "y": 585.8,
+  "sample": ""
+ },
+ {
+  "id": "aux_adresse",
+  "page": 3,
+  "type": "text",
+  "x": 158.9,
+  "y": 571.8,
+  "sample": "2 rue du Palais"
+ },
+ {
+  "id": "aux_code_postal",
+  "page": 3,
+  "type": "cells",
+  "y": 555.8,
+  "sample": "27000",
+  "segments": [
+   {
+    "x0": 95.8,
+    "x1": 154.9,
+    "n": 5,
+    "pad": 0
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "aux_commune",
+  "page": 3,
+  "type": "text",
+  "x": 230.7,
+  "y": 555.8,
+  "sample": "Evreux"
+ },
+ {
+  "id": "aux_pays",
+  "page": 3,
+  "type": "text",
+  "x": 438.4,
+  "y": 555.8,
+  "sample": "France"
+ },
+ {
+  "id": "aux_telephone",
+  "page": 3,
+  "type": "cells",
+  "y": 539.8,
+  "sample": "0612000000",
+  "segments": [
+   {
+    "x0": 120.4,
+    "x1": 236.5,
+    "n": 10,
+    "pad": 0
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "aux_courriel",
+  "page": 3,
+  "type": "text",
+  "x": 287.0,
+  "y": 539.8,
+  "sample": "av@cab.fr"
+ },
+ {
+  "id": "disp_rsa",
+  "page": 3,
+  "type": "checkbox",
+  "x": 36.6,
+  "y": 409.6
+ },
+ {
+  "id": "disp_aspa",
+  "page": 3,
+  "type": "checkbox",
+  "x": 36.6,
+  "y": 395.6
+ },
+ {
+  "id": "disp_cnda",
+  "page": 3,
+  "type": "checkbox",
+  "x": 36.6,
+  "y": 381.6
+ },
+ {
+  "id": "disp_victime",
+  "page": 3,
+  "type": "checkbox",
+  "x": 36.6,
+  "y": 367.6
+ },
+ {
+  "id": "epargne_total",
+  "page": 4,
+  "type": "cells",
+  "y": 795.3,
+  "sample": "1500",
+  "segments": [
+   {
+    "x0": 245.0,
+    "x1": 361.1,
+    "n": 10,
+    "pad": 0
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "proprio_oui",
+  "page": 4,
+  "type": "checkbox",
+  "x": 237.8,
+  "y": 784.2
+ },
+ {
+  "id": "proprio_non",
+  "page": 4,
+  "type": "checkbox",
+  "x": 312.9,
+  "y": 784.2
+ },
+ {
+  "id": "proprio_logement",
+  "page": 4,
+  "type": "checkbox",
+  "x": 247.0,
+  "y": 770.2
+ },
+ {
+  "id": "proprio_autre",
+  "page": 4,
+  "type": "checkbox",
+  "x": 402.9,
+  "y": 770.2
+ },
+ {
+  "id": "patrimoine_desc",
+  "page": 4,
+  "type": "text",
+  "x": 37.7,
+  "y": 731.3,
+  "sample": "Aucun"
+ },
+ {
+  "id": "consent_oui",
+  "page": 4,
+  "type": "checkbox",
+  "x": 453.6,
+  "y": 144.4
+ },
+ {
+  "id": "consent_non",
+  "page": 4,
+  "type": "checkbox",
+  "x": 528.7,
+  "y": 144.4
+ },
+ {
+  "id": "fait_lieu",
+  "page": 4,
+  "type": "text",
+  "x": 71.3,
+  "y": 116.5,
+  "sample": "Evreux"
+ },
+ {
+  "id": "fait_date",
+  "page": 4,
+  "type": "text",
+  "x": 270.1,
+  "y": 116.6,
+  "sample": "17 05 2026"
+ },
+ {
+  "id": "pac_0_nomPrenom",
+  "page": 2,
+  "type": "text",
+  "x": 40,
+  "y": 625.0
+ },
+ {
+  "id": "pac_0_dateNaissance",
+  "page": 2,
+  "type": "cells",
+  "y": 625.0,
+  "segments": [
+   {
+    "x0": 250.3,
+    "x1": 270.4,
+    "n": 2,
+    "pad": 0
+   },
+   {
+    "x0": 272.3,
+    "x1": 298.2,
+    "n": 2,
+    "pad": 5
+   },
+   {
+    "x0": 300.1,
+    "x1": 344.0,
+    "n": 4,
+    "pad": 5
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "pac_0_lien",
+  "page": 2,
+  "type": "text",
+  "x": 356,
+  "y": 625.0
+ },
+ {
+  "id": "pac_0_vit",
+  "page": 2,
+  "type": "checkbox",
+  "x": 477.0,
+  "y": 627.6
+ },
+ {
+  "id": "pac_0_charge",
+  "page": 2,
+  "type": "checkbox",
+  "x": 523.2,
+  "y": 627.6
+ },
+ {
+  "id": "pac_1_nomPrenom",
+  "page": 2,
+  "type": "text",
+  "x": 40,
+  "y": 607.7
+ },
+ {
+  "id": "pac_1_dateNaissance",
+  "page": 2,
+  "type": "cells",
+  "y": 607.7,
+  "segments": [
+   {
+    "x0": 250.3,
+    "x1": 270.4,
+    "n": 2,
+    "pad": 0
+   },
+   {
+    "x0": 272.3,
+    "x1": 298.2,
+    "n": 2,
+    "pad": 5
+   },
+   {
+    "x0": 300.1,
+    "x1": 344.0,
+    "n": 4,
+    "pad": 5
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "pac_1_lien",
+  "page": 2,
+  "type": "text",
+  "x": 356,
+  "y": 607.7
+ },
+ {
+  "id": "pac_1_vit",
+  "page": 2,
+  "type": "checkbox",
+  "x": 477.0,
+  "y": 610.4
+ },
+ {
+  "id": "pac_1_charge",
+  "page": 2,
+  "type": "checkbox",
+  "x": 523.2,
+  "y": 610.4
+ },
+ {
+  "id": "pac_2_nomPrenom",
+  "page": 2,
+  "type": "text",
+  "x": 40,
+  "y": 591.8
+ },
+ {
+  "id": "pac_2_dateNaissance",
+  "page": 2,
+  "type": "cells",
+  "y": 591.8,
+  "segments": [
+   {
+    "x0": 250.3,
+    "x1": 270.4,
+    "n": 2,
+    "pad": 0
+   },
+   {
+    "x0": 272.3,
+    "x1": 298.2,
+    "n": 2,
+    "pad": 5
+   },
+   {
+    "x0": 300.1,
+    "x1": 344.0,
+    "n": 4,
+    "pad": 5
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "pac_2_lien",
+  "page": 2,
+  "type": "text",
+  "x": 356,
+  "y": 591.8
+ },
+ {
+  "id": "pac_2_vit",
+  "page": 2,
+  "type": "checkbox",
+  "x": 477.0,
+  "y": 594.5
+ },
+ {
+  "id": "pac_2_charge",
+  "page": 2,
+  "type": "checkbox",
+  "x": 523.2,
+  "y": 594.5
+ },
+ {
+  "id": "pac_3_nomPrenom",
+  "page": 2,
+  "type": "text",
+  "x": 40,
+  "y": 575.9
+ },
+ {
+  "id": "pac_3_dateNaissance",
+  "page": 2,
+  "type": "cells",
+  "y": 575.9,
+  "segments": [
+   {
+    "x0": 250.3,
+    "x1": 270.4,
+    "n": 2,
+    "pad": 0
+   },
+   {
+    "x0": 272.3,
+    "x1": 298.2,
+    "n": 2,
+    "pad": 5
+   },
+   {
+    "x0": 300.1,
+    "x1": 344.0,
+    "n": 4,
+    "pad": 5
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "pac_3_lien",
+  "page": 2,
+  "type": "text",
+  "x": 356,
+  "y": 575.9
+ },
+ {
+  "id": "pac_3_vit",
+  "page": 2,
+  "type": "checkbox",
+  "x": 477.0,
+  "y": 578.6
+ },
+ {
+  "id": "pac_3_charge",
+  "page": 2,
+  "type": "checkbox",
+  "x": 523.2,
+  "y": 578.6
+ },
+ {
+  "id": "pac_4_nomPrenom",
+  "page": 2,
+  "type": "text",
+  "x": 40,
+  "y": 558.7
+ },
+ {
+  "id": "pac_4_dateNaissance",
+  "page": 2,
+  "type": "cells",
+  "y": 558.7,
+  "segments": [
+   {
+    "x0": 250.3,
+    "x1": 270.4,
+    "n": 2,
+    "pad": 0
+   },
+   {
+    "x0": 272.3,
+    "x1": 298.2,
+    "n": 2,
+    "pad": 5
+   },
+   {
+    "x0": 300.1,
+    "x1": 344.0,
+    "n": 4,
+    "pad": 5
+   }
+  ],
+  "filter": "digits"
+ },
+ {
+  "id": "pac_4_lien",
+  "page": 2,
+  "type": "text",
+  "x": 356,
+  "y": 558.7
+ },
+ {
+  "id": "pac_4_vit",
+  "page": 2,
+  "type": "checkbox",
+  "x": 477.0,
+  "y": 561.3
+ },
+ {
+  "id": "pac_4_charge",
+  "page": 2,
+  "type": "checkbox",
+  "x": 523.2,
+  "y": 561.3
+ },
+ {
+  "id": "adv_0_nomRaison",
+  "page": 3,
+  "type": "text",
+  "x": 37,
+  "y": 724.2
+ },
+ {
+  "id": "adv_0_adresse",
+  "page": 3,
+  "type": "text",
+  "x": 323,
+  "y": 724.2
+ },
+ {
+  "id": "adv_1_nomRaison",
+  "page": 3,
+  "type": "text",
+  "x": 37,
+  "y": 712.2
+ },
+ {
+  "id": "adv_1_adresse",
+  "page": 3,
+  "type": "text",
+  "x": 323,
+  "y": 712.2
+ },
+ {
+  "id": "adv_2_nomRaison",
+  "page": 3,
+  "type": "text",
+  "x": 37,
+  "y": 700.2
+ },
+ {
+  "id": "adv_2_adresse",
+  "page": 3,
+  "type": "text",
+  "x": 323,
+  "y": 700.2
+ },
+ {
+  "id": "adv_3_nomRaison",
+  "page": 3,
+  "type": "text",
+  "x": 37,
+  "y": 688.2
+ },
+ {
+  "id": "adv_3_adresse",
+  "page": 3,
+  "type": "text",
+  "x": 323,
+  "y": 688.2
+ },
+ {
+  "id": "adv_4_nomRaison",
+  "page": 3,
+  "type": "text",
+  "x": 37,
+  "y": 676.2
+ },
+ {
+  "id": "adv_4_adresse",
+  "page": 3,
+  "type": "text",
+  "x": 323,
+  "y": 676.2
+ },
+ {
+  "id": "res_salaires_demandeur",
+  "page": 3,
+  "type": "text",
+  "x": 277,
+  "y": 165.2
+ },
+ {
+  "id": "res_salaires_conjoint",
+  "page": 3,
+  "type": "text",
+  "x": 385,
+  "y": 165.2
+ },
+ {
+  "id": "res_salaires_personnes",
+  "page": 3,
+  "type": "text",
+  "x": 489,
+  "y": 165.2
+ },
+ {
+  "id": "res_revenus_agricoles_demandeur",
+  "page": 3,
+  "type": "text",
+  "x": 277,
+  "y": 148.2
+ },
+ {
+  "id": "res_revenus_agricoles_conjoint",
+  "page": 3,
+  "type": "text",
+  "x": 385,
+  "y": 148.2
+ },
+ {
+  "id": "res_revenus_agricoles_personnes",
+  "page": 3,
+  "type": "text",
+  "x": 489,
+  "y": 148.2
+ },
+ {
+  "id": "res_allocations_chomage_demandeur",
+  "page": 3,
+  "type": "text",
+  "x": 277,
+  "y": 129.5
+ },
+ {
+  "id": "res_allocations_chomage_conjoint",
+  "page": 3,
+  "type": "text",
+  "x": 385,
+  "y": 129.5
+ },
+ {
+  "id": "res_allocations_chomage_personnes",
+  "page": 3,
+  "type": "text",
+  "x": 489,
+  "y": 129.5
+ },
+ {
+  "id": "res_indemnites_demandeur",
+  "page": 3,
+  "type": "text",
+  "x": 277,
+  "y": 104.3
+ },
+ {
+  "id": "res_indemnites_conjoint",
+  "page": 3,
+  "type": "text",
+  "x": 385,
+  "y": 104.3
+ },
+ {
+  "id": "res_indemnites_personnes",
+  "page": 3,
+  "type": "text",
+  "x": 489,
+  "y": 104.3
+ },
+ {
+  "id": "res_pensions_retraites_demandeur",
+  "page": 3,
+  "type": "text",
+  "x": 277,
+  "y": 83.1
+ },
+ {
+  "id": "res_pensions_retraites_conjoint",
+  "page": 3,
+  "type": "text",
+  "x": 385,
+  "y": 83.1
+ },
+ {
+  "id": "res_pensions_retraites_personnes",
+  "page": 3,
+  "type": "text",
+  "x": 489,
+  "y": 83.1
+ },
+ {
+  "id": "res_pensions_alimentaires_demandeur",
+  "page": 3,
+  "type": "text",
+  "x": 277,
+  "y": 67.4
+ },
+ {
+  "id": "res_pensions_alimentaires_conjoint",
+  "page": 3,
+  "type": "text",
+  "x": 385,
+  "y": 67.4
+ },
+ {
+  "id": "res_pensions_alimentaires_personnes",
+  "page": 3,
+  "type": "text",
+  "x": 489,
+  "y": 67.4
+ },
+ {
+  "id": "res_ressources_etranger_demandeur",
+  "page": 3,
+  "type": "text",
+  "x": 277,
+  "y": 52.1
+ },
+ {
+  "id": "res_ressources_etranger_conjoint",
+  "page": 3,
+  "type": "text",
+  "x": 385,
+  "y": 52.1
+ },
+ {
+  "id": "res_ressources_etranger_personnes",
+  "page": 3,
+  "type": "text",
+  "x": 489,
+  "y": 52.1
+ },
+ {
+  "id": "res_autre_revenu_demandeur",
+  "page": 3,
+  "type": "text",
+  "x": 277,
+  "y": 31.9
+ },
+ {
+  "id": "res_autre_revenu_conjoint",
+  "page": 3,
+  "type": "text",
+  "x": 385,
+  "y": 31.9
+ },
+ {
+  "id": "res_autre_revenu_personnes",
+  "page": 3,
+  "type": "text",
+  "x": 489,
+  "y": 31.9
+ },
+ {
+  "id": "prest_0_type",
+  "page": 4,
+  "type": "text",
+  "x": 40,
+  "y": 596.0
+ },
+ {
+  "id": "prest_0_montant",
+  "page": 4,
+  "type": "text",
+  "x": 250,
+  "y": 596.0
+ },
+ {
+  "id": "prest_0_dest",
+  "page": 4,
+  "type": "text",
+  "x": 350,
+  "y": 596.0
+ },
+ {
+  "id": "prest_1_type",
+  "page": 4,
+  "type": "text",
+  "x": 40,
+  "y": 571.0
+ },
+ {
+  "id": "prest_1_montant",
+  "page": 4,
+  "type": "text",
+  "x": 250,
+  "y": 571.0
+ },
+ {
+  "id": "prest_1_dest",
+  "page": 4,
+  "type": "text",
+  "x": 350,
+  "y": 571.0
+ },
+ {
+  "id": "prest_2_type",
+  "page": 4,
+  "type": "text",
+  "x": 40,
+  "y": 545.9
+ },
+ {
+  "id": "prest_2_montant",
+  "page": 4,
+  "type": "text",
+  "x": 250,
+  "y": 545.9
+ },
+ {
+  "id": "prest_2_dest",
+  "page": 4,
+  "type": "text",
+  "x": 350,
+  "y": 545.9
+ }
+]

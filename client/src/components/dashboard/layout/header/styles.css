@@ -1,0 +1,106 @@
+/* ==========================================================
+   Header styles — Phase 2 Redesign (k2-* tokens)
+   ========================================================== */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: var(--k2-header-height, 56px);
+  max-height: var(--k2-header-height, 56px);
+  padding: 0;
+  gap: var(--k2-space-4, 16px);
+  overflow: hidden;
+}
+
+/* ─── Logo + Titre ─── */
+.title_logo {
+  display: flex;
+  align-items: center;
+  gap: var(--k2-space-3, 12px);
+  color: rgba(255, 255, 255, 0.95);
+  flex-shrink: 0;
+}
+
+/* ─── Icônes ─── */
+.icons {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2.5vw, 38px);
+  flex-shrink: 0;
+}
+
+/* ─── Bouton icône header ─── */
+.header-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--k2-radius-full, 9999px);
+  cursor: pointer;
+  transition: background-color var(--k2-duration-normal, 150ms) ease,
+              transform var(--k2-duration-fast, 100ms) ease;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  outline: none;
+  position: relative;
+}
+
+.header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.05);
+}
+
+.header-icon-btn:focus-visible {
+  box-shadow: var(--k2-shadow-ring, var(--k-focus-ring));
+}
+
+.header-icon-btn:active {
+  transform: scale(0.97);
+}
+
+/* ─── Notification wrapper ─── */
+.notification-icon-wrapper {
+  position: relative;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1170px) {
+  .header {
+    gap: var(--k2-space-3, 12px);
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    gap: var(--k2-space-2, 8px);
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    gap: var(--k2-space-1, 4px);
+  }
+  .header-icon-btn {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* ─── HIGH-CONTRAST ─── */
+body.high-contrast-mode .header-icon-btn {
+  background: transparent;
+  border: 1px solid yellow;
+}
+
+body.high-contrast-mode .header-icon-btn:hover {
+  background: rgba(255, 255, 0, 0.15);
+}
+
+body.high-contrast-mode .header-icon-btn:focus-visible {
+  box-shadow: var(--k-focus-ring);
+  outline: 2px solid yellow;
+  outline-offset: 2px;
+}

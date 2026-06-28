@@ -1,0 +1,109 @@
+/* ==========================================================
+   _encryption-banner.css
+   Banniere de rappel "Vos documents ne sont pas encore proteges".
+   Affichee en haut du tableau de bord, en mode dismissible.
+   ========================================================== */
+
+.k-encryption-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(90deg, #fff8e6 0%, #fff5d4 100%);
+  border-bottom: 2px solid #f0a500;
+  padding: 8px 16px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.k-encryption-banner__content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.k-encryption-banner__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background-color: #f0a500;
+  color: #fff;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.k-encryption-banner__text {
+  font-size: 0.92rem;
+  color: #5c3a00;
+  font-weight: 500;
+}
+
+.k-encryption-banner__cta {
+  background-color: #008047;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 14px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-left: 4px;
+}
+
+.k-encryption-banner__cta:hover {
+  background-color: #006838;
+}
+
+.k-encryption-banner__dismiss {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: #5c3a00;
+  cursor: pointer;
+  padding: 0 6px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.k-encryption-banner__dismiss:hover {
+  opacity: 1;
+}
+
+/* ============================================================
+   MODE MALVOYANT (high-contrast)
+   ============================================================ */
+
+body.high-contrast-mode .k-encryption-banner {
+  background: #1a1500;
+  border-bottom-color: yellow;
+}
+
+body.high-contrast-mode .k-encryption-banner__icon {
+  background-color: yellow;
+  color: #000;
+}
+
+body.high-contrast-mode .k-encryption-banner__text {
+  color: yellow;
+}
+
+body.high-contrast-mode .k-encryption-banner__cta {
+  background-color: #000;
+  color: yellow;
+  border: 1px solid yellow;
+}
+
+body.high-contrast-mode .k-encryption-banner__cta:hover {
+  background-color: #222;
+}
+
+body.high-contrast-mode .k-encryption-banner__dismiss {
+  color: yellow;
+}

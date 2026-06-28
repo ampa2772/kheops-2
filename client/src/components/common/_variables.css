@@ -1,0 +1,536 @@
+/* ==========================================================
+   _variables.css
+   Variables CSS globales pour Kheops 2.
+   
+   Ces variables centralisent les couleurs et valeurs répétées
+   dans toute l'application. Elles sont disponibles via
+   var(--nom-variable) dans n'importe quel fichier CSS.
+   
+   Ce fichier est importé globalement dans App.js.
+   ========================================================== */
+
+:root {
+  /* ============================================================
+     PALETTE CANONIQUE — Kheops 2 (reference UI/UX)
+     ------------------------------------------------------------
+     Theme bleu-turquoise sombre, accents verts / orange / rouge
+     pour les statuts. Les 4 ancres a retenir :
+       1. Fond tres sombre  : --k-primary-900 (#032b3b)  bureau, header
+       2. Fond sombre       : --k-primary-800 (#043a4f)  modales, cartes
+       3. Accent primaire   : --k-accent      (#8ab4f8)  CTA, actif, focus
+       4. Accent secondaire : --k-primary-300 (#4dafca)  hover, highlight
+     Statuts :
+       --k-success (#008047) | --k-warning (#ff9800) | --k-danger (#dc3545)
+     Les variantes k-primary-50..700 servent pour des nuances ponctuelles
+     (fond clair, items liste, hover plein jour). Preferer les 4 ancres.
+     ============================================================ */
+
+  /* --- Couleurs de marque --- */
+  --k-primary: #0977a5;           /* Bleu Kheops — couleur principale */
+  --k-primary-hover: #075a7f;     /* Bleu Kheops — survol */
+  --k-primary-light: #cfe8fc;     /* Bleu Kheops — fond clair */
+  --k-primary-lighter: #e6f3fd;   /* Bleu Kheops — fond très clair */
+  --k-accent: #8ab4f8;            /* Bleu accent (style Google) */
+  --k-info: #5cbad9;              /* Bleu info / modal dossier */
+
+  /* --- Alias de la palette canonique (lecture facilitee) --- */
+  --k-bg-900: #032b3b;            /* Fond le plus sombre (alias k-primary-900) */
+  --k-bg-800: #043a4f;            /* Fond sombre secondaire (alias k-primary-800) */
+  --k-accent-primary: #8ab4f8;    /* CTA / actif / focus (alias k-accent) */
+  --k-accent-secondary: #4dafca;  /* Hover / highlight (alias k-primary-300) */
+  
+  /* --- Couleurs d'action --- */
+  --k-success: #008047;           /* Vert — succès / confirmation */
+  --k-success-hover: #006838;
+  --k-danger: #dc3545;            /* Rouge — danger / suppression */
+  --k-danger-hover: #c82333;
+  --k-warning: #ff9800;           /* Orange — avertissement */
+  --k-warning-hover: #f57c00;
+  
+  /* --- Couleurs de texte --- */
+  --k-text-dark: #202124;         /* Texte principal (thème sombre) */
+  --k-text-light: #e8eaed;        /* Texte clair sur fond sombre */
+  --k-text-muted: #5f6368;        /* Texte secondaire / grisé */
+  --k-text-secondary: #9aa0a6;    /* Texte tertiaire */
+  
+  /* --- Couleurs de fond --- */
+  --k-bg-white: #ffffff;
+  --k-bg-light: #f1f1f1;          /* Fond gris clair (scrollbar tracks, etc.) */
+  --k-bg-medium: #f0f0f0;         /* Fond gris moyen */
+  --k-bg-dark: #202124;           /* Fond sombre (modaux agenda) */
+  --k-bg-dark-secondary: #2a2b2e; /* Fond sombre secondaire */
+  --k-bg-dark-tertiary: #3c4043;  /* Fond sombre tertiaire */
+  
+  /* --- Couleurs de bordure --- */
+  --k-border-light: #c0c4c8;      /* Bordure claire (contraste renforcé) */
+  --k-border-medium: #ccc;        /* Bordure moyenne */
+  --k-border-dark: #555;          /* Bordure sombre */
+  
+  /* --- Couleurs thème dossier --- */
+  --k-dossier-navy: navy;         /* Bleu marine — thème dossier */
+  --k-dossier-highlight: springgreen; /* Vert vif — surbrillance dossier */
+  --k-dossier-blue-light: #add8e6;/* Bleu clair — fond items dossier */
+  --k-dossier-link: #215cae;      /* Bleu lien — dossier */
+  
+  /* --- Scrollbar --- */
+  --k-scroll-thumb: #0977a5;      /* Couleur pouce scrollbar standard */
+  --k-scroll-thumb-hover: #555;   /* Survol pouce scrollbar */
+  --k-scroll-track: #f1f1f1;      /* Fond piste scrollbar */
+  
+  /* --- Ombres --- */
+  --k-shadow-light: 0 4px 15px rgba(0, 0, 0, 0.1);
+  --k-shadow-medium: 0 5px 30px rgba(0, 0, 0, 0.3);
+  --k-shadow-heavy: 0 8px 40px rgba(0, 0, 0, 0.5);
+  
+  /* --- Transitions --- */
+  --k-transition-fast: 0.15s ease;
+  --k-transition-normal: 0.2s ease;
+  --k-transition-slow: 0.3s ease;
+  
+  /* --- Z-index (référence — ne pas modifier) --- */
+  /* Sidebar / Header: 100-200            */
+  /* Modaux contacts: 1000                */
+  /* Modaux agenda: 1050-1080             */
+  /* Modaux dossier: 10000-15000          */
+  /* Notifications: non fixé (absolute)   */
+
+  /* ============================================================
+     DESIGN SYSTEM TOKENS — Phase 1 (Bleu professionnel)
+     ============================================================ */
+
+  /* --- Palette primaire — Kheops Blue tints/shades --- */
+  --k-primary-50:  #e6f4f9;
+  --k-primary-100: #b3dde9;
+  --k-primary-200: #80c6da;
+  --k-primary-300: #4dafca;
+  --k-primary-400: #2699b8;
+  --k-primary-500: #0977a5;   /* Base (alias de --k-primary) */
+  --k-primary-600: #075a7f;   /* Alias de --k-primary-hover */
+  --k-primary-700: #064963;
+  --k-primary-800: #043a4f;
+  --k-primary-900: #032b3b;
+
+  /* --- Echelle de gris neutres --- */
+  --k-gray-50:  #fafafa;
+  --k-gray-100: #f5f5f5;
+  --k-gray-200: #eeeeee;
+  --k-gray-300: #e0e0e0;
+  --k-gray-400: #bdbdbd;
+  --k-gray-500: #9e9e9e;
+  --k-gray-600: #757575;
+  --k-gray-700: #616161;
+  --k-gray-800: #424242;
+  --k-gray-900: #212121;
+
+  /* --- Couleurs semantiques (etendues) --- */
+  --k-info-light:    #e0f3fa;
+  --k-info-hover:    #4a9ab5;
+  --k-success-light: #e6f5ed;
+  --k-danger-light:  #fce8ea;
+  --k-warning-light: #fff3e0;
+
+  /* --- Typographie --- */
+  --k-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                        Roboto, Oxygen, Ubuntu, Cantarell,
+                        'Helvetica Neue', Arial, sans-serif;
+  --k-font-family-mono: 'Courier New', Courier, monospace;
+
+  --k-font-size-xs:   0.75rem;    /* 12px */
+  --k-font-size-sm:   0.8125rem;  /* 13px */
+  --k-font-size-base: 0.875rem;   /* 14px — densite app desktop */
+  --k-font-size-md:   1rem;       /* 16px */
+  --k-font-size-lg:   1.125rem;   /* 18px */
+  --k-font-size-xl:   1.25rem;    /* 20px */
+  --k-font-size-2xl:  1.5rem;     /* 24px */
+  --k-font-size-3xl:  1.875rem;   /* 30px */
+
+  --k-font-weight-normal:   400;
+  --k-font-weight-medium:   500;
+  --k-font-weight-semibold: 600;
+  --k-font-weight-bold:     700;
+
+  --k-line-height-tight:   1.25;
+  --k-line-height-base:    1.5;
+  --k-line-height-relaxed: 1.75;
+
+  /* --- Hierarchie typographique (Phase UI/UX) ---
+     Quatre niveaux stabilises, utilisables via les classes utilitaires
+     .k-h1 / .k-h2 / .k-h3 / .k-body definies dans _utilities.css.
+     Objectif : remplacer les pills 0.8125rem utilisees jusqu'ici comme
+     titres de page / section. */
+  --k-heading-h1-size:   1.5rem;    /* 24px — titre de page */
+  --k-heading-h1-weight: 700;
+  --k-heading-h1-line:   1.3;
+  --k-heading-h2-size:   1.125rem;  /* 18px — titre de section / fieldset */
+  --k-heading-h2-weight: 600;
+  --k-heading-h2-line:   1.35;
+  --k-heading-h3-size:   0.95rem;   /* 15px — sous-section */
+  --k-heading-h3-weight: 600;
+  --k-heading-h3-line:   1.4;
+  --k-body-size:         0.8125rem; /* 13px — corps de texte de base */
+  --k-body-weight:       400;
+  --k-body-line:         1.5;
+
+  /* --- Echelle de spacing (base 4px) --- */
+  --k-space-1:  4px;
+  --k-space-2:  8px;
+  --k-space-3:  12px;
+  --k-space-4:  16px;
+  --k-space-5:  20px;
+  --k-space-6:  24px;
+  --k-space-8:  32px;
+  --k-space-10: 40px;
+  --k-space-12: 48px;
+  --k-space-16: 64px;
+
+  /* --- Border-radius --- */
+  --k-radius-sm:   4px;
+  --k-radius-base: 6px;
+  --k-radius-md:   8px;
+  --k-radius-lg:   12px;
+  --k-radius-xl:   16px;
+  --k-radius-full: 9999px;
+
+  /* --- Systeme d'ombres (elevation) --- */
+  --k-shadow-xs:   0 1px 2px rgba(0, 0, 0, 0.05);
+  --k-shadow-sm:   0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --k-shadow-base: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --k-shadow-md:   0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  --k-shadow-lg:   0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+  --k-shadow-xl:   0 25px 50px rgba(0, 0, 0, 0.25);
+
+  /* --- Z-index documente --- */
+  --k-z-dropdown:     100;
+  --k-z-sidebar:      150;
+  --k-z-header:       200;
+  --k-z-tooltip:      10100;
+  --k-z-modal:        1000;
+  --k-z-modal-high:   10000;
+  --k-z-loader:       4000;
+  --k-z-notification: 5000;
+
+  /* --- Transitions / animations --- */
+  --k-ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --k-ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --k-duration-fast:   100ms;
+  --k-duration-normal: 200ms;
+  --k-duration-slow:   300ms;
+  --k-duration-expand: 250ms;
+
+  /* --- Focus ring --- */
+  --k-focus-ring-color: rgba(9, 119, 165, 0.5);
+  --k-focus-ring-offset: 2px;
+  --k-focus-ring: 0 0 0 var(--k-focus-ring-offset) var(--k-focus-ring-color);
+
+  /* --- Tokens Sidebar --- */
+  --k-sidebar-width-open:   220px;
+  --k-sidebar-width-closed: 120px;
+  --k-sidebar-bg: var(--k-primary-800);
+  --k-sidebar-item-hover: rgba(255, 255, 255, 0.08);
+  --k-sidebar-item-active-accent: var(--k-accent);
+  --k-sidebar-icon-size: 22px;
+
+  /* --- Tokens Header --- */
+  --k-header-height: 56px;
+  --k-header-bg: var(--k-primary-900);
+  --k-header-icon-size: 20px;
+  --k-header-icon-btn-size: 36px;
+
+  /* --- Tokens Tooltip --- */
+  --k-tooltip-bg: var(--k-gray-900);
+  --k-tooltip-color: #fff;
+  --k-tooltip-radius: var(--k-radius-sm);
+  --k-tooltip-padding: var(--k-space-2) var(--k-space-3);
+  --k-tooltip-font-size: var(--k-font-size-xs);
+  --k-tooltip-max-width: 250px;
+  --k-tooltip-z: var(--k-z-tooltip);
+  --k-tooltip-arrow-size: 6px;
+
+  /* --- Tokens Formulaire Creation Dossier (Premium Flashy) --- */
+  --k-form-gradient: linear-gradient(170deg, #0ea5d1 0%, #0b7ea6 20%, #076d90 45%, #055a78 70%, #043a4f 100%);
+  --k-form-gradient-accent: linear-gradient(135deg, #0ea5d1, #8ab4f8, #0b7ea6);
+  --k-form-glass-bg: rgba(255, 255, 255, 0.07);
+  --k-form-glass-border: rgba(255, 255, 255, 0.10);
+  --k-form-glass-hover: rgba(255, 255, 255, 0.12);
+  --k-form-input-text: #1a3a4f;
+  --k-form-input-placeholder: #637085;
+  --k-form-text-primary: rgba(255, 255, 255, 0.95);
+  --k-form-text-secondary: rgba(255, 255, 255, 0.75);
+  --k-form-text-tertiary: rgba(255, 255, 255, 0.50);
+  --k-form-text-section: rgba(255, 255, 255, 0.65);
+  --k-form-focus-ring: 0 0 0 3px rgba(14, 165, 209, 0.3), 0 0 15px rgba(14, 165, 209, 0.15);
+  --k-form-input-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  --k-form-glow-primary: 0 0 20px rgba(14, 165, 209, 0.3);
+  --k-form-glow-cta: 0 0 25px rgba(0, 120, 74, 0.4), 0 0 50px rgba(0, 120, 74, 0.15);
+  --k-form-border-gradient: linear-gradient(135deg, rgba(138,180,248,0.4), rgba(14,165,209,0.3), rgba(138,180,248,0.15));
+  --k-form-shimmer-gradient: linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.06) 50%, transparent 75%);
+  --k-form-container-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 12px 28px rgba(4, 58, 79, 0.15),
+    0 0 40px rgba(14, 165, 209, 0.08);
+  --k-form-cta-bg: linear-gradient(135deg, #00a85e 0%, #00784a 50%, #006940 100%);
+  --k-form-cta-hover: linear-gradient(135deg, #00bf6a 0%, #00a85e 50%, #00784a 100%);
+  --k-form-cta-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 120, 74, 0.3);
+  --k-form-cta-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12), 0 8px 30px rgba(0, 120, 74, 0.45), 0 0 20px rgba(0, 168, 94, 0.2);
+  --k-form-radius-container: 16px;
+  --k-form-radius-card: 12px;
+  --k-form-radius-input: 10px;
+  --k-form-radius-cta: 12px;
+  --k-form-section-gap: 18px;
+  --k-form-card-padding: 18px 20px;
+  --k-form-input-padding: 12px 16px;
+  --k-form-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* --- Tokens Formulaire Contact / Partie (White Background) --- */
+  --k-wb-input-border: #b0b8c4;
+  --k-wb-input-border-focus: var(--k-primary, #0977a5);
+  --k-wb-input-focus-ring: 0 0 0 3px rgba(9, 119, 165, 0.1);
+  --k-wb-section-gradient: linear-gradient(145deg, #0878a3, #0a87b5);
+  --k-wb-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --k-wb-fieldset-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --k-wb-item-pour-bg: #edf6f0;
+  --k-wb-item-pour-border: #d5e8da;
+  --k-wb-item-pour-hover: #e2f0e7;
+  --k-wb-item-contre-bg: #fef5e7;
+  --k-wb-item-contre-border: #f5e0c0;
+  --k-wb-item-contre-hover: #fcefd8;
+  --k-wb-linked-list-bg: #d6ebf7;
+  --k-wb-toggle-bg: #f3f4f6;
+  --k-wb-toggle-active: var(--k-form-cta-bg, #00784a);
+  --k-wb-modal-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.12);
+
+  /* ============================================================
+     DESIGN SYSTEM v2 — Tokens k2-*
+     Coexistence avec l'ancien système k-* pendant la migration.
+     ============================================================ */
+
+  /* ─── Primary — Kheops Blue (raffiné Stripe-style) ─── */
+  --k2-primary-50:  #f0f7ff;
+  --k2-primary-100: #e0efff;
+  --k2-primary-200: #b8d9ff;
+  --k2-primary-300: #7ab8ff;
+  --k2-primary-400: #3d97ff;
+  --k2-primary-500: #0969da;
+  --k2-primary-600: #0550ae;
+  --k2-primary-700: #033d8b;
+  --k2-primary-800: #0a2540;
+  --k2-primary-900: #061b30;
+
+  /* ─── Neutral — Gris professionnels (aucune teinte parasite) ─── */
+  --k2-gray-25:  #fcfcfd;
+  --k2-gray-50:  #f9fafb;
+  --k2-gray-100: #f2f4f7;
+  --k2-gray-200: #eaecf0;
+  --k2-gray-300: #d0d5dd;
+  --k2-gray-400: #98a2b3;
+  --k2-gray-500: #667085;
+  --k2-gray-600: #475467;
+  --k2-gray-700: #344054;
+  --k2-gray-800: #1d2939;
+  --k2-gray-900: #101828;
+
+  /* ─── Sémantiques v2 ─── */
+  --k2-success-50:  #ecfdf3;
+  --k2-success-100: #d1fadf;
+  --k2-success-500: #12b76a;
+  --k2-success-700: #027a48;
+
+  --k2-error-50:  #fef3f2;
+  --k2-error-100: #fee4e2;
+  --k2-error-500: #f04438;
+  --k2-error-700: #b42318;
+
+  --k2-warning-50:  #fffaeb;
+  --k2-warning-100: #fef0c7;
+  --k2-warning-500: #f79009;
+  --k2-warning-700: #b54708;
+
+  --k2-info-50:  #f0f9ff;
+  --k2-info-100: #e0f2fe;
+  --k2-info-500: #0ba5ec;
+
+  /* ─── Surfaces v2 ─── */
+  --k2-surface-primary:   #ffffff;
+  --k2-surface-secondary: var(--k2-gray-50);
+  --k2-surface-tertiary:  var(--k2-gray-100);
+  --k2-surface-sidebar:   var(--k2-primary-800);
+  --k2-surface-header:    var(--k2-primary-900);
+
+  /* ─── Typographie v2 ─── */
+  --k2-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                     Roboto, Oxygen, Ubuntu, Cantarell,
+                     'Helvetica Neue', Arial, sans-serif;
+
+  --k2-font-size-xs:   0.75rem;     /* 12px */
+  --k2-font-size-sm:   0.8125rem;   /* 13px */
+  --k2-font-size-base: 0.875rem;    /* 14px */
+  --k2-font-size-md:   1rem;        /* 16px */
+  --k2-font-size-lg:   1.125rem;    /* 18px */
+  --k2-font-size-xl:   1.25rem;     /* 20px */
+  --k2-font-size-2xl:  1.5rem;      /* 24px */
+
+  --k2-font-weight-normal:   400;
+  --k2-font-weight-medium:   500;
+  --k2-font-weight-semibold: 600;
+  --k2-font-weight-bold:     700;
+
+  --k2-line-height-tight:   1.25;
+  --k2-line-height-base:    1.5;
+  --k2-line-height-relaxed: 1.75;
+
+  /* ─── Espacements v2 (grille 8px) ─── */
+  --k2-space-0:  0px;
+  --k2-space-1:  4px;
+  --k2-space-2:  8px;
+  --k2-space-3:  12px;
+  --k2-space-4:  16px;
+  --k2-space-5:  20px;
+  --k2-space-6:  24px;
+  --k2-space-8:  32px;
+  --k2-space-10: 40px;
+  --k2-space-12: 48px;
+  --k2-space-16: 64px;
+
+  /* ─── Border radius v2 ─── */
+  --k2-radius-xs:   4px;
+  --k2-radius-sm:   6px;
+  --k2-radius-md:   8px;
+  --k2-radius-lg:   12px;
+  --k2-radius-xl:   16px;
+  --k2-radius-full: 9999px;
+
+  /* ─── Ombres v2 (elevation scale) ─── */
+  --k2-shadow-xs:   0 1px 2px rgba(16, 24, 40, 0.05);
+  --k2-shadow-sm:   0 1px 3px rgba(16, 24, 40, 0.1), 0 1px 2px rgba(16, 24, 40, 0.06);
+  --k2-shadow-md:   0 4px 8px -2px rgba(16, 24, 40, 0.1), 0 2px 4px -2px rgba(16, 24, 40, 0.06);
+  --k2-shadow-lg:   0 12px 16px -4px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.03);
+  --k2-shadow-xl:   0 20px 24px -4px rgba(16, 24, 40, 0.08), 0 8px 8px -4px rgba(16, 24, 40, 0.03);
+  --k2-shadow-ring: 0 0 0 4px rgba(9, 105, 218, 0.12);
+
+  /* ─── Transitions v2 ─── */
+  --k2-ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --k2-ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --k2-duration-fast:   100ms;
+  --k2-duration-normal: 150ms;
+  --k2-duration-slow:   200ms;
+  --k2-duration-modal:  250ms;
+
+  /* ─── Z-index v2 ─── */
+  --k2-z-dropdown:     100;
+  --k2-z-sidebar:      150;
+  --k2-z-header:       200;
+  --k2-z-modal-backdrop: 900;
+  --k2-z-modal:        1000;
+  --k2-z-tooltip:      1100;
+  --k2-z-notification: 1200;
+
+  /* ─── Layout v2 ─── */
+  --k2-sidebar-width-open:   240px;
+  --k2-sidebar-width-closed: 120px;
+  --k2-header-height:        56px;
+  --k2-content-max-width:    1200px;
+
+  /* ─── Breakpoints standardisés (à utiliser en media queries)
+        Valeurs de référence pour l'ensemble du projet — préférer
+        ces bornes aux valeurs ad hoc (550, 650, 850, 1170...).    ─── */
+  --k-bp-mobile-xs:      320px;
+  --k-bp-mobile:         480px;
+  --k-bp-mobile-wide:    600px;
+  --k-bp-tablet:         768px;
+  --k-bp-desktop:        1024px;
+  --k-bp-desktop-lg:     1280px;
+  --k-bp-desktop-xl:     1600px;
+  --k-bp-height-compact: 700px;
+
+  /* ─── Tailles modales responsives (pattern width: min(...)) ─── */
+  --k-modal-w-sm:  min(400px, 95vw);
+  --k-modal-w-md:  min(600px, 95vw);
+  --k-modal-w-lg:  min(900px, 95vw);
+  --k-modal-w-xl:  min(1200px, 95vw);
+  --k-modal-h-max: min(800px, 90vh);
+
+  /* ─── Premium Surface Palette (Navy → Spring Green) ─── */
+  --k2-bg-gradient: linear-gradient(
+    145deg,
+    #0f1b2d 0%,
+    #132740 28%,
+    #122f3d 52%,
+    #0e3a3a 76%,
+    #123830 100%
+  );
+  --k2-bg-form-card: rgba(255, 255, 255, 0.06);
+  --k2-bg-form-card-border: rgba(255, 255, 255, 0.08);
+  --k2-bg-form-card-hover: rgba(255, 255, 255, 0.09);
+  --k2-bg-input: rgba(255, 255, 255, 0.07);
+  --k2-bg-input-border: rgba(255, 255, 255, 0.12);
+  --k2-bg-input-focus-border: rgba(0, 200, 150, 0.5);
+  --k2-text-on-gradient: rgba(255, 255, 255, 0.92);
+  --k2-text-on-gradient-muted: rgba(255, 255, 255, 0.55);
+  --k2-accent-spring: #00dc82;
+  --k2-accent-spring-dim: rgba(0, 220, 130, 0.15);
+  --k2-accent-spring-glow: 0 0 0 4px rgba(0, 220, 130, 0.12);
+}
+
+/* --- Mode malvoyant (high-contrast) --- */
+body.high-contrast-mode {
+  /* Couleurs de base existantes */
+  --k-text-light: yellow;
+  --k-bg-dark: #000000;
+  --k-primary: yellow;
+  --k-border-light: var(--highlight-color, #33ff33);
+
+  /* --- Palette primaire high-contrast --- */
+  --k-primary-50:  #1a1a00;
+  --k-primary-100: #333300;
+  --k-primary-200: #666600;
+  --k-primary-300: #999900;
+  --k-primary-400: #cccc00;
+  --k-primary-500: yellow;
+  --k-primary-600: #cccc00;
+  --k-primary-700: #999900;
+  --k-primary-800: #000000;
+  --k-primary-900: #000000;
+
+  /* --- Gris inverses (clair = sombre en HC) --- */
+  --k-gray-50:  #0a0a0a;
+  --k-gray-100: #111111;
+  --k-gray-200: #1a1a1a;
+  --k-gray-300: #333333;
+  --k-gray-400: #666666;
+  --k-gray-500: #999999;
+  --k-gray-600: #cccccc;
+  --k-gray-700: #dddddd;
+  --k-gray-800: #eeeeee;
+  --k-gray-900: #ffffff;
+
+  /* --- Couleurs semantiques HC --- */
+  --k-info-light:    #001a1a;
+  --k-success-light: #001a0d;
+  --k-danger-light:  #1a0000;
+  --k-warning-light: #1a1100;
+
+  /* --- Focus ring HC --- */
+  --k-focus-ring-color: rgba(255, 255, 0, 0.7);
+  --k-focus-ring: 0 0 0 3px var(--k-focus-ring-color);
+
+  /* --- Sidebar HC --- */
+  --k-sidebar-bg: #000000;
+  --k-sidebar-item-hover: rgba(255, 255, 0, 0.1);
+  --k-sidebar-item-active-accent: var(--highlight-color, #33ff33);
+
+  /* --- Header HC --- */
+  --k-header-bg: #000000;
+
+  /* --- Tooltip HC --- */
+  --k-tooltip-bg: #000000;
+  --k-tooltip-color: yellow;
+
+  /* --- Ombres desactivees en HC --- */
+  --k-shadow-xs:   none;
+  --k-shadow-sm:   none;
+  --k-shadow-base: none;
+  --k-shadow-md:   0 0 0 1px yellow;
+  --k-shadow-lg:   0 0 0 2px yellow;
+  --k-shadow-xl:   0 0 0 2px yellow;
+}

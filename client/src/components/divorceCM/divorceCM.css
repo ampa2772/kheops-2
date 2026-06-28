@@ -1,0 +1,1464 @@
+/* client/src/components/divorceCM/divorceCM.css
+ *
+ * Styles dedies au module Divorce par consentement mutuel.
+ * Tous prefixes en .k-dcm-* pour eviter les collisions.
+ */
+
+/* ============================================================
+ * Conteneur principal du wizard
+ * ============================================================ */
+.k-dcm-wizard-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  font-family: inherit;
+  color: #1f2937;
+  box-sizing: border-box;
+}
+
+.k-dcm-wizard-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: end;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.k-dcm-wizard-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  margin: 0 0 0.25rem 0;
+}
+
+.k-dcm-wizard-subtitle {
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ============================================================
+ * Stepper
+ * ============================================================ */
+.k-dcm-stepper {
+  display: flex;
+  gap: 0;
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 0.4rem;
+  overflow-x: auto;
+}
+
+.k-dcm-stepper-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 0.78rem;
+  color: #4b5563;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.k-dcm-stepper-item:hover { background: #fff; }
+
+.k-dcm-stepper-item.active {
+  background: #fff;
+  color: #1e3a8a;
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  font-weight: 600;
+}
+
+.k-dcm-stepper-item.completed { color: #047857; }
+
+.k-dcm-stepper-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #4b5563;
+}
+
+.k-dcm-stepper-item.active .k-dcm-stepper-num { background: #1e3a8a; color: #fff; }
+.k-dcm-stepper-item.completed .k-dcm-stepper-num { background: #10b981; color: #fff; }
+
+/* ============================================================
+ * Cartes / sections
+ * ============================================================ */
+.k-dcm-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.k-dcm-card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  margin: 0 0 0.85rem 0;
+}
+
+.k-dcm-card-subtitle {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin: -0.55rem 0 1rem 0;
+}
+
+/* ============================================================
+ * Form fields
+ * ============================================================ */
+.k-dcm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+}
+
+.k-dcm-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.k-dcm-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.k-dcm-grid.full   { grid-template-columns: 1fr; }
+
+.k-dcm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.k-dcm-field label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.k-dcm-field input,
+.k-dcm-field select,
+.k-dcm-field textarea {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  font-family: inherit;
+  color: inherit;
+}
+
+.k-dcm-field input:focus,
+.k-dcm-field select:focus,
+.k-dcm-field textarea:focus {
+  outline: none;
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.15);
+}
+
+.k-dcm-field textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.k-dcm-field .help {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.k-dcm-field-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.k-dcm-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 0.85rem;
+}
+
+.k-dcm-toggle input[type="checkbox"] {
+  margin: 0;
+}
+
+/* ============================================================
+ * Boutons
+ * ============================================================ */
+.k-dcm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.k-dcm-btn-primary { background: #1e40af; color: #fff; border-color: #1e40af; }
+.k-dcm-btn-primary:hover { background: #1e3a8a; }
+.k-dcm-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.k-dcm-btn-secondary { background: #fff; color: #1e40af; border-color: #c7d2fe; }
+.k-dcm-btn-secondary:hover { background: #eef2ff; }
+
+.k-dcm-btn-ghost { background: transparent; color: #4b5563; border-color: transparent; }
+.k-dcm-btn-ghost:hover { background: #f3f4f6; }
+
+.k-dcm-btn-danger { background: #fff; color: #b91c1c; border-color: #fecaca; }
+.k-dcm-btn-danger:hover { background: #fee2e2; }
+
+/* ============================================================
+ * Footer wizard (navigation)
+ * ============================================================ */
+.k-dcm-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+/* ============================================================
+ * Bandeau d'information voie judiciaire
+ * ============================================================ */
+.k-dcm-banner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 0.85rem;
+  align-items: start;
+}
+
+.k-dcm-banner-icon {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* ============================================================
+ * Carte enfant / pension
+ * ============================================================ */
+.k-dcm-item-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.75rem;
+  background: #fff;
+}
+
+.k-dcm-item-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.k-dcm-item-card-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1e3a8a;
+}
+
+.k-dcm-empty-list {
+  text-align: center;
+  color: #6b7280;
+  padding: 1.5rem 1rem;
+  font-style: italic;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+}
+
+/* ============================================================
+ * Recap (etape 7)
+ * ============================================================ */
+.k-dcm-recap-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.k-dcm-recap-card {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e5e7eb;
+}
+
+.k-dcm-recap-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  margin-bottom: 0.3rem;
+}
+
+.k-dcm-recap-value {
+  font-size: 0.92rem;
+  color: #1f2937;
+  white-space: pre-wrap;
+}
+
+/* ============================================================
+ * Panneau dossier (synthese + checklist)
+ * ============================================================ */
+.k-dcm-panel-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  /* Couleur de texte par defaut pour tout le panel : les cards sont sur
+     fond blanc/clair, donc texte fonce. */
+  color: #1f2937;
+}
+
+.k-dcm-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.k-dcm-checklist-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  align-items: center;
+  font-size: 0.88rem;
+  /* Force la couleur du texte sur fond clair : sans cela, le composant herite
+     de la palette claire du dashboard (rgba(255,255,255,...)) et les intitules
+     deviennent illisibles. */
+  color: #1f2937;
+}
+
+.k-dcm-checklist-item.realisee {
+  background: #ecfdf5;
+  border-color: #34d399;
+}
+
+.k-dcm-checklist-item.optional {
+  opacity: 0.85;
+  border-style: dashed;
+}
+
+.k-dcm-checklist-checkbox {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.k-dcm-checklist-meta {
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+
+/* ============================================================
+ * Banniere bouton "Nouveau divorce CM"
+ * ============================================================ */
+.k-dcm-cta-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.95rem;
+  background: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
+  color: #fff;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  transition: transform 0.1s ease;
+}
+
+.k-dcm-cta-banner:hover {
+  transform: translateY(-1px);
+}
+
+.k-dcm-cta-banner-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+/* ============================================================
+ * Bandeau "Reprendre le brouillon de divorce CM" (homepage)
+ * Affiché à la place du CTA "Nouveau divorce CM" quand un brouillon
+ * persisté existe dans le slice (hydraté depuis localStorage).
+ * ============================================================ */
+.k-dcm-resume-banner {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #4dc9ff 100%);
+  padding: 4px;
+  box-shadow: 0 6px 18px rgba(29, 78, 216, 0.35);
+}
+
+/* Variante dossier (bleu turquoise) */
+.k-dcm-resume-banner--dossier {
+  background: linear-gradient(135deg, #0e7490 0%, #0891b2 50%, #4dc9ff 100%);
+  box-shadow: 0 6px 18px rgba(8, 145, 178, 0.35);
+}
+
+/* Variante contact (violet doux) */
+.k-dcm-resume-banner--contact {
+  background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 50%, #a78bfa 100%);
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+}
+
+.k-dcm-resume-banner__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  background: rgba(0, 0, 0, 0.18);
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+
+.k-dcm-resume-banner__main .k-dcm-resume-banner__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.k-dcm-resume-banner__main strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.k-dcm-resume-banner__main:hover {
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.k-dcm-resume-banner__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.k-dcm-resume-banner__sub {
+  font-size: 0.78rem;
+  opacity: 0.92;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.k-dcm-resume-banner__restart {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 0 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1e3a8a;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.k-dcm-resume-banner__restart:hover {
+  background: #fff;
+}
+
+@media (max-width: 700px) {
+  .k-dcm-resume-banner {
+    flex-direction: column;
+  }
+  .k-dcm-resume-banner__restart {
+    padding: 0.55rem 1rem;
+  }
+}
+
+/* ============================================================
+ * Responsive : adaptation aux tablettes et mobiles
+ * ============================================================ */
+@media (max-width: 900px) {
+  .k-dcm-wizard-root {
+    padding: 0.75rem 1rem;
+  }
+  /* Le header du wizard passe en colonne empile sur mobile pour
+     que le bouton Annuler ne chevauche pas le titre. */
+  .k-dcm-wizard-header {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  .k-dcm-wizard-header > div:last-child {
+    justify-self: flex-start;
+  }
+  /* Tous les grids du wizard passent en 1 colonne. */
+  .k-dcm-grid,
+  .k-dcm-grid.cols-3,
+  .k-dcm-grid.cols-4 {
+    grid-template-columns: 1fr;
+  }
+  /* Neutralise les inline styles `gridColumn: 'span 2/3'` poses sur les
+     enfants des grids dans les steps. Sans cette regle, le navigateur
+     cree des colonnes implicites (grid-auto-columns: auto) pour honorer
+     les span, et la grille se retrouve a 2-3 colonnes irregulieres
+     (largeurs en min-content) au lieu de la 1 col voulue par le @media.
+     `!important` est requis car les inline styles JSX ne peuvent etre
+     surcharges autrement. */
+  .k-dcm-grid > *,
+  .k-dcm-grid.cols-3 > *,
+  .k-dcm-grid.cols-4 > * {
+    grid-column: 1 / -1 !important;
+  }
+  /* Recap final : 2 colonnes -> 1 colonne pour eviter ecrasement. */
+  .k-dcm-recap-grid {
+    grid-template-columns: 1fr;
+  }
+  /* Forcer les inputs/selects/textarea a respecter la largeur du parent. */
+  .k-dcm-field input,
+  .k-dcm-field select,
+  .k-dcm-field textarea {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  /* Stepper : padding plus serre et police adaptee. */
+  .k-dcm-stepper {
+    padding: 0.3rem;
+  }
+  .k-dcm-stepper-item {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.74rem;
+  }
+}
+
+/* ============================================================
+ * ─────────  WIZARD DARK THEME  ─────────
+ *
+ * Surcharge tous les styles ci-dessus pour le wizard standalone
+ * (.k-dcm-wizard-root) et la modale d'édition divorce CM
+ * (.k-dcm-theme-dark sur son wrapper). Le panel dossier
+ * (.k-dcm-panel-root) reste sur fond clair.
+ *
+ * Look : fond bleu marine avec quadrillage subtil "blueprint",
+ * cartes glass-morphism, accent cyan, inputs sur fond très sombre.
+ * ============================================================ */
+
+.k-dcm-wizard-root,
+.k-dcm-theme-dark {
+  /* Variables locales du thème pour rester cohérent partout */
+  --kdc-bg-deep: #0a1828;
+  --kdc-bg-surface: rgba(15, 32, 56, 0.7);
+  --kdc-bg-surface-elev: rgba(20, 42, 72, 0.85);
+  --kdc-input-bg: rgba(8, 22, 42, 0.65);
+  --kdc-input-border: rgba(120, 180, 240, 0.18);
+  --kdc-input-border-focus: #4dc9ff;
+  --kdc-text-primary: #e8f1ff;
+  --kdc-text-secondary: rgba(195, 215, 240, 0.85);
+  --kdc-text-muted: rgba(165, 195, 230, 0.72);
+  --kdc-accent: #4dc9ff;
+  --kdc-accent-deep: #2563eb;
+  --kdc-accent-soft: rgba(77, 201, 255, 0.16);
+  --kdc-grid-line: rgba(120, 180, 240, 0.045);
+
+  background:
+    linear-gradient(135deg, #0a1828 0%, #0e2342 55%, #0a1c34 100%);
+  color: var(--kdc-text-primary);
+  position: relative;
+}
+
+/* Quadrillage "blueprint" subtil en arrière-plan, sans gêner la lecture */
+.k-dcm-wizard-root::before,
+.k-dcm-theme-dark::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--kdc-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--kdc-grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: 0 0;
+  z-index: 0;
+}
+
+/* Tous les enfants directs au-dessus du grid pattern */
+.k-dcm-wizard-root > *,
+.k-dcm-theme-dark > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header : badge numéroté + titre + sous-titre + counter ── */
+.k-dcm-wizard-root .k-dcm-wizard-header,
+.k-dcm-theme-dark .k-dcm-wizard-header {
+  border-bottom: 1px solid rgba(120, 180, 240, 0.1);
+  padding: 1.25rem 0 1.1rem;
+  align-items: flex-start;
+}
+
+.k-dcm-wizard-root .k-dcm-wizard-title,
+.k-dcm-theme-dark .k-dcm-wizard-title {
+  color: var(--kdc-text-primary);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.k-dcm-wizard-root .k-dcm-wizard-subtitle,
+.k-dcm-theme-dark .k-dcm-wizard-subtitle {
+  color: var(--kdc-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* Bloc identité de l'étape : badge numéroté + textes + counter à droite */
+.k-dcm-step-identity {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.k-dcm-step-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #06121f;
+  background: linear-gradient(135deg, #6ee7ff 0%, #4dc9ff 50%, #2dadff 100%);
+  box-shadow:
+    0 0 0 1px rgba(110, 231, 255, 0.35),
+    0 8px 24px rgba(45, 173, 255, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+}
+
+.k-dcm-step-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--kdc-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
+}
+
+.k-dcm-step-eyebrow::before {
+  content: '•';
+  margin-right: 0.4rem;
+  color: var(--kdc-accent);
+}
+
+.k-dcm-step-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 180, 240, 0.22);
+  background: rgba(15, 32, 56, 0.5);
+  color: var(--kdc-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-dcm-step-counter::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--kdc-accent);
+  display: inline-block;
+  box-shadow: 0 0 8px var(--kdc-accent);
+}
+
+/* ── Barre de progression "Progression du dossier" ── */
+.k-dcm-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.k-dcm-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--kdc-text-muted);
+  font-weight: 600;
+}
+
+.k-dcm-progress-percent {
+  color: var(--kdc-accent);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-dcm-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(120, 180, 240, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.k-dcm-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4dc9ff 0%, #6ee7ff 100%);
+  box-shadow: 0 0 12px rgba(77, 201, 255, 0.55);
+  transition: width 350ms cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+
+/* ── Stepper en dots numérotés ── */
+.k-dcm-wizard-root .k-dcm-stepper,
+.k-dcm-theme-dark .k-dcm-stepper {
+  background: transparent;
+  padding: 8px 0 4px;
+  gap: 4px;
+  border-radius: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.k-dcm-wizard-root .k-dcm-stepper-item,
+.k-dcm-theme-dark .k-dcm-stepper-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px 4px;
+  background: transparent;
+  border: 0;
+  color: var(--kdc-text-muted);
+  font-size: 0.74rem;
+  font-weight: 500;
+  text-align: center;
+  white-space: normal;
+  cursor: pointer;
+  border-radius: 0;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.k-dcm-wizard-root .k-dcm-stepper-item:hover,
+.k-dcm-theme-dark .k-dcm-stepper-item:hover {
+  background: transparent;
+  color: var(--kdc-text-secondary);
+}
+
+.k-dcm-wizard-root .k-dcm-stepper-item .k-dcm-stepper-num,
+.k-dcm-theme-dark .k-dcm-stepper-item .k-dcm-stepper-num {
+  width: 14px;
+  height: 14px;
+  font-size: 0;       /* On masque le numéro : c'est juste un dot */
+  background: rgba(120, 180, 240, 0.18);
+  border: 2px solid rgba(120, 180, 240, 0.25);
+  color: transparent;
+  font-weight: 700;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  position: relative;
+}
+
+.k-dcm-wizard-root .k-dcm-stepper-item.active,
+.k-dcm-theme-dark .k-dcm-stepper-item.active {
+  background: transparent;
+  border: 0;
+  color: var(--kdc-text-primary);
+  box-shadow: none;
+  font-weight: 600;
+}
+
+.k-dcm-wizard-root .k-dcm-stepper-item.active .k-dcm-stepper-num,
+.k-dcm-theme-dark .k-dcm-stepper-item.active .k-dcm-stepper-num {
+  background: var(--kdc-accent);
+  border-color: var(--kdc-accent);
+  box-shadow:
+    0 0 0 5px rgba(77, 201, 255, 0.18),
+    0 0 18px rgba(77, 201, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.k-dcm-wizard-root .k-dcm-stepper-item.completed,
+.k-dcm-theme-dark .k-dcm-stepper-item.completed {
+  color: var(--kdc-text-secondary);
+}
+
+.k-dcm-wizard-root .k-dcm-stepper-item.completed .k-dcm-stepper-num,
+.k-dcm-theme-dark .k-dcm-stepper-item.completed .k-dcm-stepper-num {
+  background: rgba(110, 231, 255, 0.4);
+  border-color: rgba(110, 231, 255, 0.55);
+}
+
+/* ── Cards / sections ── */
+.k-dcm-wizard-root .k-dcm-card,
+.k-dcm-theme-dark .k-dcm-card {
+  background: var(--kdc-bg-surface);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  border-radius: 14px;
+  padding: 1.4rem 1.5rem;
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: var(--kdc-text-primary);
+}
+
+.k-dcm-wizard-root .k-dcm-card-title,
+.k-dcm-theme-dark .k-dcm-card-title {
+  color: var(--kdc-text-primary);
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.k-dcm-wizard-root .k-dcm-card-subtitle,
+.k-dcm-theme-dark .k-dcm-card-subtitle {
+  color: var(--kdc-text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+/* ── Form fields : labels, inputs, selects, textarea ── */
+.k-dcm-wizard-root .k-dcm-grid,
+.k-dcm-theme-dark .k-dcm-grid {
+  gap: 1rem 1.1rem;
+}
+
+.k-dcm-wizard-root .k-dcm-field label,
+.k-dcm-theme-dark .k-dcm-field label {
+  color: var(--kdc-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
+}
+
+.k-dcm-wizard-root .k-dcm-field input,
+.k-dcm-wizard-root .k-dcm-field select,
+.k-dcm-wizard-root .k-dcm-field textarea,
+.k-dcm-theme-dark .k-dcm-field input,
+.k-dcm-theme-dark .k-dcm-field select,
+.k-dcm-theme-dark .k-dcm-field textarea {
+  background: var(--kdc-input-bg);
+  border: 1px solid var(--kdc-input-border);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  color: var(--kdc-text-primary);
+  font-size: 0.92rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.k-dcm-wizard-root .k-dcm-field input::placeholder,
+.k-dcm-wizard-root .k-dcm-field textarea::placeholder,
+.k-dcm-theme-dark .k-dcm-field input::placeholder,
+.k-dcm-theme-dark .k-dcm-field textarea::placeholder {
+  color: var(--kdc-text-muted);
+}
+
+.k-dcm-wizard-root .k-dcm-field input:hover,
+.k-dcm-wizard-root .k-dcm-field select:hover,
+.k-dcm-wizard-root .k-dcm-field textarea:hover,
+.k-dcm-theme-dark .k-dcm-field input:hover,
+.k-dcm-theme-dark .k-dcm-field select:hover,
+.k-dcm-theme-dark .k-dcm-field textarea:hover {
+  border-color: rgba(120, 180, 240, 0.3);
+}
+
+.k-dcm-wizard-root .k-dcm-field input:focus,
+.k-dcm-wizard-root .k-dcm-field select:focus,
+.k-dcm-wizard-root .k-dcm-field textarea:focus,
+.k-dcm-theme-dark .k-dcm-field input:focus,
+.k-dcm-theme-dark .k-dcm-field select:focus,
+.k-dcm-theme-dark .k-dcm-field textarea:focus {
+  outline: none;
+  border-color: var(--kdc-input-border-focus);
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.18);
+  background: rgba(8, 22, 42, 0.85);
+}
+
+/* Neutralisation de l'autofill Chromium (champs pré-remplis cabinet, contacts).
+   Sans cette règle, Chrome impose un fond clair jaunâtre/bleuté qui casse
+   le thème dark. Astuce : box-shadow inset énorme qui couvre l'autofill
+   sans bloquer les transitions, et fix de la couleur du texte. */
+.k-dcm-wizard-root .k-dcm-field input:-webkit-autofill,
+.k-dcm-wizard-root .k-dcm-field input:-webkit-autofill:hover,
+.k-dcm-wizard-root .k-dcm-field input:-webkit-autofill:focus,
+.k-dcm-wizard-root .k-dcm-field input:-webkit-autofill:active,
+.k-dcm-wizard-root .k-dcm-field select:-webkit-autofill,
+.k-dcm-wizard-root .k-dcm-field textarea:-webkit-autofill,
+.k-dcm-theme-dark .k-dcm-field input:-webkit-autofill,
+.k-dcm-theme-dark .k-dcm-field input:-webkit-autofill:hover,
+.k-dcm-theme-dark .k-dcm-field input:-webkit-autofill:focus,
+.k-dcm-theme-dark .k-dcm-field input:-webkit-autofill:active,
+.k-dcm-theme-dark .k-dcm-field select:-webkit-autofill,
+.k-dcm-theme-dark .k-dcm-field textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px rgba(8, 22, 42, 0.95) inset !important;
+  -webkit-text-fill-color: var(--kdc-text-primary) !important;
+  caret-color: var(--kdc-text-primary) !important;
+  border: 1px solid var(--kdc-input-border) !important;
+  transition: background-color 9999s ease-in-out 0s, color 9999s ease-in-out 0s;
+}
+
+.k-dcm-wizard-root .k-dcm-field input:-webkit-autofill:focus,
+.k-dcm-theme-dark .k-dcm-field input:-webkit-autofill:focus {
+  border-color: var(--kdc-input-border-focus) !important;
+  -webkit-box-shadow:
+    0 0 0 1000px rgba(8, 22, 42, 0.95) inset,
+    0 0 0 3px rgba(77, 201, 255, 0.18) !important;
+}
+
+/* ── ContactSearchBox (bandeau "Le client est-il déjà un contact ?") ──
+   Visible en haut de chaque step Époux1/Époux2/Notaire dans le wizard. */
+.k-dcm-wizard-root .contact-search-box,
+.k-dcm-theme-dark .contact-search-box {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(135deg, rgba(77, 201, 255, 0.06), rgba(77, 201, 255, 0.12));
+  border: 1px solid rgba(77, 201, 255, 0.3);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.k-dcm-wizard-root .contact-search-box__row,
+.k-dcm-theme-dark .contact-search-box__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.k-dcm-wizard-root .contact-search-box__label,
+.k-dcm-theme-dark .contact-search-box__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--kdc-accent);
+  white-space: nowrap;
+}
+
+.k-dcm-wizard-root .contact-search-box__input,
+.k-dcm-theme-dark .contact-search-box__input {
+  flex: 1;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(77, 201, 255, 0.25);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  background: rgba(8, 22, 42, 0.65);
+  color: var(--kdc-text-primary);
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.k-dcm-wizard-root .contact-search-box__input::placeholder,
+.k-dcm-theme-dark .contact-search-box__input::placeholder {
+  color: var(--kdc-text-muted);
+}
+
+.k-dcm-wizard-root .contact-search-box__input:focus,
+.k-dcm-theme-dark .contact-search-box__input:focus {
+  outline: none;
+  border-color: var(--kdc-accent);
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.18);
+}
+
+.k-dcm-wizard-root .contact-search-box__loading,
+.k-dcm-theme-dark .contact-search-box__loading {
+  font-size: 0.72rem;
+  color: var(--kdc-text-muted);
+}
+
+.k-dcm-wizard-root .contact-search-box__hint,
+.k-dcm-theme-dark .contact-search-box__hint {
+  font-size: 0.74rem;
+  color: var(--kdc-text-secondary);
+  margin-top: 6px;
+  font-style: italic;
+}
+
+.k-dcm-wizard-root .contact-search-box__list,
+.k-dcm-theme-dark .contact-search-box__list {
+  position: absolute;
+  top: calc(100% - 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: linear-gradient(165deg, rgba(15, 32, 56, 0.98), rgba(20, 42, 72, 0.98));
+  border: 1px solid rgba(77, 201, 255, 0.3);
+  border-radius: 10px;
+  margin-top: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.k-dcm-wizard-root .contact-search-box__item,
+.k-dcm-theme-dark .contact-search-box__item {
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: var(--kdc-text-primary);
+  border-bottom: 1px solid rgba(120, 180, 240, 0.08);
+  transition: background 0.12s ease;
+}
+
+.k-dcm-wizard-root .contact-search-box__item:last-child,
+.k-dcm-theme-dark .contact-search-box__item:last-child {
+  border-bottom: 0;
+}
+
+/* Surlignage géré par useComboboxKeyboard (.is-active set sur hover
+   souris ou navigation clavier — jamais les deux en même temps). */
+.k-dcm-wizard-root .contact-search-box__item.is-active,
+.k-dcm-theme-dark .contact-search-box__item.is-active {
+  background: rgba(77, 201, 255, 0.12);
+}
+
+.k-dcm-wizard-root .contact-search-box__item-meta,
+.k-dcm-theme-dark .contact-search-box__item-meta {
+  margin-left: 0.5rem;
+  color: var(--kdc-text-muted);
+  font-size: 0.78rem;
+}
+
+.k-dcm-wizard-root .contact-search-box__empty,
+.k-dcm-theme-dark .contact-search-box__empty {
+  position: absolute;
+  top: calc(100% - 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(15, 32, 56, 0.95);
+  border: 1px solid rgba(77, 201, 255, 0.25);
+  border-radius: 10px;
+  margin-top: 4px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--kdc-text-muted);
+  font-style: italic;
+}
+
+/* ── CommunePicker (Ville + CP) ──
+   Le widget rend ses propres inputs avec une dropdown autocomplete.
+   On les style ici pour qu'ils héritent du look dark comme les autres
+   .k-dcm-field input. */
+.k-dcm-wizard-root .commune-picker__input,
+.k-dcm-theme-dark .commune-picker__input {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--kdc-input-border);
+  border-radius: 10px;
+  font-size: 0.92rem;
+  background: var(--kdc-input-bg);
+  color: var(--kdc-text-primary);
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.k-dcm-wizard-root .commune-picker__input::placeholder,
+.k-dcm-theme-dark .commune-picker__input::placeholder {
+  color: var(--kdc-text-muted);
+}
+
+.k-dcm-wizard-root .commune-picker__input:hover,
+.k-dcm-theme-dark .commune-picker__input:hover {
+  border-color: rgba(120, 180, 240, 0.3);
+}
+
+.k-dcm-wizard-root .commune-picker__input:focus,
+.k-dcm-theme-dark .commune-picker__input:focus {
+  outline: none;
+  border-color: var(--kdc-input-border-focus);
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.18);
+  background: rgba(8, 22, 42, 0.85);
+}
+
+.k-dcm-wizard-root .commune-picker__input--cp,
+.k-dcm-theme-dark .commune-picker__input--cp {
+  font-variant-numeric: tabular-nums;
+}
+
+.k-dcm-wizard-root .commune-picker__list,
+.k-dcm-theme-dark .commune-picker__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: linear-gradient(165deg, rgba(15, 32, 56, 0.98), rgba(20, 42, 72, 0.98));
+  border: 1px solid rgba(120, 180, 240, 0.2);
+  border-radius: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.k-dcm-wizard-root .commune-picker__item,
+.k-dcm-theme-dark .commune-picker__item {
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--kdc-text-primary);
+  border-bottom: 1px solid rgba(120, 180, 240, 0.08);
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  transition: background 0.12s ease;
+}
+
+.k-dcm-wizard-root .commune-picker__item:last-child,
+.k-dcm-theme-dark .commune-picker__item:last-child {
+  border-bottom: 0;
+}
+
+/* Surlignage géré par useComboboxKeyboard. */
+.k-dcm-wizard-root .commune-picker__item.is-active,
+.k-dcm-theme-dark .commune-picker__item.is-active {
+  background: rgba(77, 201, 255, 0.1);
+}
+
+.k-dcm-wizard-root .commune-picker__cp,
+.k-dcm-theme-dark .commune-picker__cp {
+  color: var(--kdc-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Datepicker icon — couleur claire en dark mode */
+.k-dcm-wizard-root .k-dcm-field input[type="date"]::-webkit-calendar-picker-indicator,
+.k-dcm-theme-dark .k-dcm-field input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.9) hue-rotate(180deg);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+/* Select : flèche custom claire */
+.k-dcm-wizard-root .k-dcm-field select,
+.k-dcm-theme-dark .k-dcm-field select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a5c3e6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+  padding-right: 36px;
+}
+
+.k-dcm-wizard-root .k-dcm-field select option,
+.k-dcm-theme-dark .k-dcm-field select option {
+  background: #0e2342;
+  color: var(--kdc-text-primary);
+}
+
+.k-dcm-wizard-root .k-dcm-field .help,
+.k-dcm-theme-dark .k-dcm-field .help {
+  color: var(--kdc-text-muted);
+  font-size: 0.72rem;
+}
+
+/* ── Toggle / checkbox ── */
+.k-dcm-wizard-root .k-dcm-toggle,
+.k-dcm-theme-dark .k-dcm-toggle {
+  background: var(--kdc-bg-surface);
+  border-color: rgba(120, 180, 240, 0.18);
+  color: var(--kdc-text-primary);
+}
+
+/* ── Boutons ── */
+.k-dcm-wizard-root .k-dcm-btn-primary,
+.k-dcm-theme-dark .k-dcm-btn-primary {
+  background: linear-gradient(135deg, #4dc9ff 0%, #2dadff 100%);
+  color: #06121f;
+  border: 0;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(45, 173, 255, 0.35);
+}
+
+.k-dcm-wizard-root .k-dcm-btn-primary:hover,
+.k-dcm-theme-dark .k-dcm-btn-primary:hover {
+  background: linear-gradient(135deg, #6ee7ff 0%, #4dc9ff 100%);
+  box-shadow: 0 8px 24px rgba(45, 173, 255, 0.5);
+}
+
+.k-dcm-wizard-root .k-dcm-btn-primary:disabled,
+.k-dcm-theme-dark .k-dcm-btn-primary:disabled {
+  background: rgba(77, 201, 255, 0.25);
+  color: rgba(6, 18, 31, 0.5);
+  box-shadow: none;
+}
+
+.k-dcm-wizard-root .k-dcm-btn-secondary,
+.k-dcm-theme-dark .k-dcm-btn-secondary {
+  background: rgba(77, 201, 255, 0.1);
+  color: var(--kdc-accent);
+  border-color: rgba(77, 201, 255, 0.3);
+}
+
+.k-dcm-wizard-root .k-dcm-btn-secondary:hover,
+.k-dcm-theme-dark .k-dcm-btn-secondary:hover {
+  background: rgba(77, 201, 255, 0.18);
+  border-color: rgba(77, 201, 255, 0.5);
+}
+
+.k-dcm-wizard-root .k-dcm-btn-ghost,
+.k-dcm-theme-dark .k-dcm-btn-ghost {
+  color: var(--kdc-text-secondary);
+}
+
+.k-dcm-wizard-root .k-dcm-btn-ghost:hover,
+.k-dcm-theme-dark .k-dcm-btn-ghost:hover {
+  background: rgba(120, 180, 240, 0.08);
+  color: var(--kdc-text-primary);
+}
+
+/* ── Footer ── */
+.k-dcm-wizard-root .k-dcm-footer,
+.k-dcm-theme-dark .k-dcm-footer {
+  background: var(--kdc-bg-surface);
+  border: 1px solid rgba(120, 180, 240, 0.1);
+  border-radius: 14px;
+  padding: 0.95rem 1.2rem;
+}
+
+.k-dcm-wizard-root .k-dcm-footer span,
+.k-dcm-theme-dark .k-dcm-footer span {
+  color: var(--kdc-text-muted) !important;
+}
+
+/* ── Banner d'erreur / info ── */
+.k-dcm-wizard-root .k-dcm-banner,
+.k-dcm-theme-dark .k-dcm-banner {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbd38d;
+}
+
+/* ── Cards d'enfant / pension (StepEnfants) ── */
+.k-dcm-wizard-root .k-dcm-item-card,
+.k-dcm-theme-dark .k-dcm-item-card {
+  background: var(--kdc-bg-surface-elev);
+  border-color: rgba(120, 180, 240, 0.18);
+  color: var(--kdc-text-primary);
+}
+
+.k-dcm-wizard-root .k-dcm-item-card-title,
+.k-dcm-theme-dark .k-dcm-item-card-title {
+  color: var(--kdc-text-primary);
+}
+
+.k-dcm-wizard-root .k-dcm-empty-list,
+.k-dcm-theme-dark .k-dcm-empty-list {
+  background: rgba(8, 22, 42, 0.4);
+  border-color: rgba(120, 180, 240, 0.18);
+  color: var(--kdc-text-muted);
+}
+
+/* ── Recap (étape 7) ── */
+.k-dcm-wizard-root .k-dcm-recap-card,
+.k-dcm-theme-dark .k-dcm-recap-card {
+  background: var(--kdc-bg-surface-elev);
+  border-color: rgba(120, 180, 240, 0.15);
+}
+
+.k-dcm-wizard-root .k-dcm-recap-label,
+.k-dcm-theme-dark .k-dcm-recap-label {
+  color: var(--kdc-accent);
+  font-weight: 700;
+}
+
+.k-dcm-wizard-root .k-dcm-recap-value,
+.k-dcm-theme-dark .k-dcm-recap-value {
+  color: var(--kdc-text-primary);
+}
+
+/* ── Élements inline qui utilisent style="color: ..." ── */
+.k-dcm-wizard-root h4,
+.k-dcm-theme-dark h4,
+.k-dcm-wizard-root strong,
+.k-dcm-theme-dark strong {
+  color: var(--kdc-text-primary);
+}
+
+/* ── Bandeaux d'info "succès" (vert) et "warning" (orange) ──
+   Utilisés dans EpouxFields pour le pré-remplissage cabinet et le toggle
+   "même avocat". Les couleurs des couples (fond/bordure/texte) sont
+   choisies pour rester très lisibles sur le fond bleu marine du wizard. */
+.k-dcm-info-banner {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid;
+  margin-bottom: 0.7rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.k-dcm-info-banner--success {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #f0fdf4;
+}
+
+.k-dcm-info-banner--warning {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fffbeb;
+}
+
+.k-dcm-info-banner--with-action {
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.k-dcm-info-banner__toggle-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+  width: 100%;
+}
+
+.k-dcm-info-banner__checkbox {
+  margin-top: 0.2rem;
+  width: 16px;
+  height: 16px;
+  accent-color: #4dc9ff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.k-dcm-info-banner__body {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.88rem;
+}
+
+.k-dcm-info-banner__body strong {
+  color: #ffffff;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.k-dcm-info-banner--success .k-dcm-info-banner__subtext {
+  color: #bbf7d0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.k-dcm-info-banner--warning .k-dcm-info-banner__subtext {
+  color: #fde68a;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.k-dcm-info-banner__action {
+  font-size: 0.78rem !important;
+  padding: 0.4rem 0.8rem !important;
+  flex-shrink: 0;
+}
+
+/* Padding global du wizard plus généreux en dark */
+.k-dcm-wizard-root {
+  padding: 1.5rem 2rem 2rem;
+  gap: 1.25rem;
+}
+
+/* Cache le titre/sous-titre interne du PREMIER card de chaque step pour
+   éviter le doublon avec le header global du wizard (qui affiche déjà
+   le titre + sous-titre de l'étape courante). Les titres secondaires
+   (h4 dans StepMariage, "Adultes à charge" dans StepEnfants) restent. */
+.k-dcm-wizard-root .k-dcm-step-content > .k-dcm-card:first-child > .k-dcm-card-title:first-child,
+.k-dcm-wizard-root .k-dcm-step-content > .k-dcm-card:first-child > .k-dcm-card-title:first-child + .k-dcm-card-subtitle,
+.k-dcm-theme-dark .k-dcm-step-content > .k-dcm-card:first-child > .k-dcm-card-title:first-child,
+.k-dcm-theme-dark .k-dcm-step-content > .k-dcm-card:first-child > .k-dcm-card-title:first-child + .k-dcm-card-subtitle {
+  display: none;
+}
+
+/* Stepper responsive : sur écrans étroits, les labels passent en dessous */
+@media (max-width: 700px) {
+  .k-dcm-wizard-root .k-dcm-stepper,
+  .k-dcm-theme-dark .k-dcm-stepper {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+  }
+  .k-dcm-wizard-root .k-dcm-stepper-item,
+  .k-dcm-theme-dark .k-dcm-stepper-item {
+    font-size: 0.6rem;
+  }
+  .k-dcm-step-identity {
+    grid-template-columns: auto 1fr;
+  }
+  .k-dcm-step-counter {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}

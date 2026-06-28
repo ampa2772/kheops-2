@@ -1,0 +1,401 @@
+/* =========================================================
+   Office User Form — design 2026 « Dark Premium »
+   NB : tous les sélecteurs sont préfixés par .modal-content
+   pour battre la spécificité des styles globaux.
+   ========================================================= */
+
+.modal-content .ou-form,
+.modal-content.cu-modal .ou-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  background: transparent;
+  color: #f1f5f9;
+  cursor: default;
+}
+
+/* ---------- Errors ---------- */
+.modal-content .ou-form__errors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.32);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.06);
+  animation: ouShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.modal-content .ou-form__error-pill {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #fca5a5;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+@keyframes ouShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+/* ---------- Section ---------- */
+.modal-content .ou-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---------- Row (Nom / Prénom) ---------- */
+.modal-content .ou-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.modal-content .ou-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.modal-content .ou-form__label,
+.modal-content.cu-modal .ou-form__label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  padding-left: 2px;
+}
+
+.modal-content .ou-form__label--block { display: block; padding-left: 2px; }
+
+/* ---------- Inputs ---------- */
+.modal-content .ou-form__input,
+.modal-content.cu-modal .ou-form__input {
+  width: 100%;
+  padding: 11px 14px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  outline: none;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-content .ou-form__input::placeholder { color: #64748b; font-weight: 400; }
+
+.modal-content .ou-form__input:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.modal-content .ou-form__input:focus {
+  border-color: #60a5fa;
+  background: rgba(59, 130, 246, 0.08);
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.22),
+    inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content .ou-form__input.is-invalid {
+  border-color: #ef4444;
+  box-shadow:
+    0 0 0 3px rgba(239, 68, 68, 0.18),
+    inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* =========================================================
+   Avatar grid — 2 cards Homme / Femme
+   ========================================================= */
+.modal-content .ou-avatar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.modal-content .ou-avatar-card,
+.modal-content.cu-modal .ou-avatar-card,
+.modal-content.cu-modal .ou-avatar-card:first-of-type,
+.modal-content.cu-modal .ou-avatar-card:last-of-type {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+  width: auto;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-content .ou-avatar-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px -3px rgba(0, 0, 0, 0.4);
+}
+
+.modal-content .ou-avatar-card__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  transition: all 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.modal-content .ou-avatar-card__icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: brightness(0) invert(0.78); /* gris clair sur fond sombre */
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.modal-content .ou-avatar-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.modal-content .ou-avatar-card__title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.005em;
+}
+
+.modal-content .ou-avatar-card__subtitle {
+  font-size: 0.6875rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* État sélectionné — VERT (gradient + glow) */
+.modal-content .ou-avatar-card.is-selected,
+.modal-content.cu-modal .ou-avatar-card.is-selected {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(16, 185, 129, 0.08) 100%);
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(16, 185, 129, 0.32),
+    0 6px 18px -3px rgba(16, 185, 129, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.modal-content .ou-avatar-card.is-selected:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(16, 185, 129, 0.4),
+    0 10px 22px -4px rgba(16, 185, 129, 0.4);
+}
+
+.modal-content .ou-avatar-card.is-selected .ou-avatar-card__icon {
+  background:
+    radial-gradient(ellipse at 30% 25%, rgba(255, 255, 255, 0.45) 0%, transparent 60%),
+    linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow:
+    0 2px 6px rgba(16, 185, 129, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.modal-content .ou-avatar-card.is-selected .ou-avatar-card__icon img {
+  filter: brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+  transform: scale(1.05);
+}
+
+/* =========================================================
+   Segmented control — Rôle (3 boutons)
+   ========================================================= */
+.modal-content .ou-role-segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.32);
+}
+
+.modal-content .ou-role-segment.is-invalid {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.modal-content .ou-role-segment__btn,
+.modal-content.cu-modal .ou-role-segment__btn,
+.modal-content.cu-modal .ou-role-segment__btn:first-of-type,
+.modal-content.cu-modal .ou-role-segment__btn:last-of-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #94a3b8;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.01em;
+  width: auto;
+  white-space: nowrap;
+}
+
+.modal-content .ou-role-segment__btn:hover {
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.modal-content .ou-role-segment__btn.is-active {
+  color: #ffffff;
+  background: linear-gradient(180deg, #4f8df5 0%, #3b82f6 50%, #2563eb 100%);
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 1px 3px rgba(37, 99, 235, 0.35),
+    0 4px 10px -2px rgba(59, 130, 246, 0.5);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+/* =========================================================
+   Compatibilité legacy — anciennes classes neutralisées
+   ========================================================= */
+.modal-content .ou-form__gender-row,
+.modal-content .ou-form__gender-options,
+.modal-content .ou-gender,
+.modal-content .ou-form__role-select,
+.modal-content .ou-form__role-trigger,
+.modal-content .ou-form__role-options,
+.modal-content .ou-form__buttons,
+.modal-content .ou-btn,
+.modal-content .ou-btn--ghost,
+.modal-content .ou-btn--primary { /* unused in new layout */ }
+
+/* =========================================================
+   High-contrast mode — adaptation sombre/jaune
+   ========================================================= */
+body.high-contrast-mode .modal-content .ou-form,
+body.high-contrast-mode .modal-content .ou-form__input {
+  color: yellow !important;
+}
+
+body.high-contrast-mode .modal-content .ou-form__input {
+  background: #000 !important;
+  border: 1px solid yellow !important;
+  box-shadow: none !important;
+}
+
+body.high-contrast-mode .modal-content .ou-form__input::placeholder {
+  color: #888800 !important;
+}
+
+body.high-contrast-mode .modal-content .ou-form__input:focus {
+  background: #1a1a00 !important;
+  box-shadow: 0 0 0 2px yellow !important;
+}
+
+body.high-contrast-mode .modal-content .ou-form__label,
+body.high-contrast-mode .modal-content .ou-form__error-pill {
+  color: yellow !important;
+}
+
+body.high-contrast-mode .modal-content .ou-form__errors {
+  background: #1a0000 !important;
+  border-color: #ff5555 !important;
+  box-shadow: none !important;
+}
+
+body.high-contrast-mode .modal-content .ou-form__error-pill {
+  background: #000 !important;
+  border-color: #ff5555 !important;
+  color: #ff7777 !important;
+}
+
+/* Avatar cards HC */
+body.high-contrast-mode .modal-content .ou-avatar-card {
+  background: #000 !important;
+  border: 1px solid yellow !important;
+  box-shadow: none !important;
+  color: yellow !important;
+}
+
+body.high-contrast-mode .modal-content .ou-avatar-card:hover {
+  background: #1a1a00 !important;
+}
+
+body.high-contrast-mode .modal-content .ou-avatar-card__icon {
+  background: #000 !important;
+  border: 1px solid yellow !important;
+}
+
+body.high-contrast-mode .modal-content .ou-avatar-card__icon img {
+  filter: brightness(0) invert(1) sepia(1) saturate(20) hue-rotate(0deg) !important;
+}
+
+body.high-contrast-mode .modal-content .ou-avatar-card__title { color: yellow !important; }
+body.high-contrast-mode .modal-content .ou-avatar-card__subtitle { color: #cccc66 !important; }
+
+/* Avatar sélectionné HC = vert */
+body.high-contrast-mode .modal-content .ou-avatar-card.is-selected {
+  background: #001a0c !important;
+  border-color: #33ff33 !important;
+  box-shadow: 0 0 0 2px #33ff33 !important;
+}
+
+body.high-contrast-mode .modal-content .ou-avatar-card.is-selected .ou-avatar-card__icon {
+  background: #006838 !important;
+  border-color: #33ff33 !important;
+  box-shadow: none !important;
+}
+
+body.high-contrast-mode .modal-content .ou-avatar-card.is-selected .ou-avatar-card__icon img {
+  filter: brightness(0) invert(1) !important;
+}
+
+body.high-contrast-mode .modal-content .ou-avatar-card.is-selected .ou-avatar-card__title { color: #33ff33 !important; }
+
+/* Role segment HC */
+body.high-contrast-mode .modal-content .ou-role-segment {
+  background: #000 !important;
+  border: 1px solid yellow !important;
+  box-shadow: none !important;
+}
+
+body.high-contrast-mode .modal-content .ou-role-segment__btn {
+  color: yellow !important;
+}
+
+body.high-contrast-mode .modal-content .ou-role-segment__btn:hover {
+  background: #1a1a00 !important;
+}
+
+body.high-contrast-mode .modal-content .ou-role-segment__btn.is-active {
+  background: yellow !important;
+  color: #000 !important;
+  border-color: yellow !important;
+  text-shadow: none !important;
+  box-shadow: 0 0 0 2px yellow !important;
+}

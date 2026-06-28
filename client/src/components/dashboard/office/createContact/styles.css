@@ -1,0 +1,2219 @@
+/* ==========================================================================
+   Formulaire de creation / modification de contact — Kheops 2 Premium 2026
+   Crystal Edition — Competition-grade CSS
+   ========================================================================== */
+
+/* -------------------------------------------------------
+   Header horizontal de la modale Création/Modif Contact
+   [← Accueil] [Personne physique / Personne morale] [spacer]
+   Layout grid 3-cols : le toggle reste parfaitement centré
+   horizontalement quel que soit l'état (bouton visible ou non).
+   ------------------------------------------------------- */
+.createContact-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.createContact-header__left {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.createContact-header__center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.createContact-header__right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Bouton "Retour à l'accueil" — préserve le brouillon (slices
+   createContact / personneMorale / pch persistés en localStorage).
+   `width: auto` pour neutraliser la règle globale `button { width: 100% }`. */
+.createContact-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  padding: 7px 14px 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 180, 240, 0.35);
+  background: rgba(15, 32, 56, 0.55);
+  color: #a5d8ff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  flex-grow: 0;
+  transition: background 0.18s ease, border-color 0.18s ease,
+              color 0.18s ease, transform 0.12s ease;
+}
+
+.createContact-header__back:hover {
+  background: rgba(77, 201, 255, 0.18);
+  border-color: rgba(77, 201, 255, 0.6);
+  color: #fff;
+  transform: translateX(-1px);
+}
+
+.createContact-header__back:active {
+  transform: translateX(0);
+}
+
+.createContact-header__back:focus-visible {
+  outline: 2px solid rgba(147, 197, 253, 0.9);
+  outline-offset: 2px;
+}
+
+.createContact-header__back-arrow {
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: transform 0.18s ease;
+}
+
+.createContact-header__back:hover .createContact-header__back-arrow {
+  transform: translateX(-2px);
+}
+
+.createContact-header__back-label {
+  letter-spacing: 0.02em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .createContact-header__back,
+  .createContact-header__back:hover,
+  .createContact-header__back:active,
+  .createContact-header__back-arrow,
+  .createContact-header__back:hover .createContact-header__back-arrow {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Responsive : sous 600px on stack vertical (bouton au-dessus du toggle) */
+@media (max-width: 600px) {
+  .createContact-header {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+  .createContact-header__left {
+    justify-content: center;
+  }
+  .createContact-header__right {
+    display: none;
+  }
+}
+
+/* High-contrast */
+body.high-contrast-mode .createContact-header__back {
+  background: #000 !important;
+  color: #FFE500 !important;
+  border: 2px solid #FFE500 !important;
+}
+body.high-contrast-mode .createContact-header__back:hover {
+  background: #FFE500 !important;
+  color: #000 !important;
+}
+
+/* -------------------------------------------------------
+   0. KEYFRAMES & ANIMATIONS
+   ------------------------------------------------------- */
+
+@keyframes gradientFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes shimmer {
+  0%   { left: -100%; }
+  100% { left: 200%; }
+}
+
+@keyframes legendAppear {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes formFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -------------------------------------------------------
+   1. INPUTS — Refined Glass
+   ------------------------------------------------------- */
+
+.inputAddContact {
+  padding: 10px 14px;
+  margin: 0;
+  box-sizing: border-box;
+  width: 100%;
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: #1a2a3a;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition:
+    border-color 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    background 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.inputAddContact:hover:not(:focus) {
+  border-color: rgba(138, 180, 248, 0.4);
+}
+
+.inputAddContact:focus {
+  outline: none;
+  border-color: #8ab4f8;
+  box-shadow:
+    0 0 0 3px rgba(138, 180, 248, 0.25),
+    0 0 15px rgba(14, 165, 209, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  background: linear-gradient(180deg, #f8fcfe 0%, #fff 100%);
+}
+
+.inputAddContact::placeholder {
+  color: var(--k-form-input-placeholder, #637085);
+  font-weight: 400;
+}
+
+.contact {
+  width: 100%;
+}
+
+/* Box-sizing coherent pour tout le formulaire */
+.formAddContact *,
+.formAddContact *::before,
+.formAddContact *::after {
+  box-sizing: border-box;
+}
+
+/* -------------------------------------------------------
+   2. FORMULAIRE PRINCIPAL
+   ------------------------------------------------------- */
+
+.formAddContact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  background: transparent;
+  animation: formFadeIn 350ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  padding: 16px 20px;
+  border-radius: 0;
+  box-sizing: border-box;
+  width: 100%;
+  flex-grow: 1;
+  overflow-y: auto;
+  min-height: 0;
+  border: none;
+}
+
+@media (min-width: 768px) {
+  .formAddContact {
+    /* Gere par le contexte parent */
+  }
+}
+
+.formAddContact::-webkit-scrollbar {
+  width: 5px;
+}
+
+.formAddContact::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 5px;
+}
+
+.formAddContact::-webkit-scrollbar-thumb {
+  background: rgba(138, 180, 248, 0.3);
+  border-radius: 5px;
+}
+
+.formAddContact::-webkit-scrollbar-thumb:hover {
+  background: rgba(138, 180, 248, 0.5);
+}
+
+.formAddContact h1 {
+  color: rgba(255, 255, 255, 0.95);
+  margin-top: 5px;
+  font-weight: 700;
+  font-size: 1.125rem;
+  text-shadow: 0 0 10px rgba(138, 180, 248, 0.3);
+}
+
+.formAddContact input {
+  color: #1a2a3a;
+}
+
+/* -------------------------------------------------------
+   3. SELECT TYPE CONTACT
+   ------------------------------------------------------- */
+
+.ajout_type_contact {
+  width: 70%;
+  margin: auto;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  margin-top: 10px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ajout_type_contact:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #0ea5d1, #0977a5);
+  border-color: rgba(138, 180, 248, 0.4);
+  box-shadow: 0 4px 12px rgba(14, 165, 209, 0.25);
+}
+
+.options_type {
+  height: 100px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.typeContactItem {
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  transition: all 150ms ease;
+}
+
+.typeContactItem:hover {
+  color: #fff;
+  background-color: #0977a5;
+}
+
+.options_container_type_contact {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+  background-color: #fff;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* -------------------------------------------------------
+   3b. MODALE TYPE DE CONTACT — Premium Overlay
+   ------------------------------------------------------- */
+
+@keyframes typeContactModalIn {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes typeContactOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.type-contact-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: typeContactOverlayIn 200ms ease both;
+  cursor: pointer;
+}
+
+.type-contact-modal-content {
+  background: linear-gradient(170deg, #0ea5d1 0%, #0b7ea6 20%, #076d90 45%, #055a78 70%, #043a4f 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(138, 180, 248, 0.25);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.35),
+    0 0 50px rgba(14, 165, 209, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.15);
+  width: 380px;
+  max-width: 90vw;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  cursor: auto;
+  animation: typeContactModalIn 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.type-contact-modal-header {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.25),
+               0 0 12px rgba(138, 180, 248, 0.3);
+  padding: 18px 24px 14px;
+  width: 100%;
+  text-align: center;
+  border-bottom: 1px solid rgba(138, 180, 248, 0.15);
+  background: rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+}
+
+.type-contact-modal-content .options_type {
+  height: auto;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 14px 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.type-contact-modal-content .typeContactItem {
+  height: 42px;
+  border-radius: 10px;
+  padding: 0 14px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(138, 180, 248, 0.1);
+  margin-bottom: 6px;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.01em;
+}
+
+.type-contact-modal-content .typeContactItem:hover {
+  background: linear-gradient(135deg, rgba(138, 180, 248, 0.22), rgba(14, 165, 209, 0.15));
+  border-color: rgba(138, 180, 248, 0.35);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(14, 165, 209, 0.18);
+  transform: translateX(3px);
+}
+
+.type-contact-modal-content .ajout_type_contact {
+  width: auto;
+  padding: 10px 24px;
+  margin: 6px auto 16px;
+  display: block;
+  text-align: center;
+  background: rgba(138, 180, 248, 0.08);
+  border: 1px dashed rgba(138, 180, 248, 0.3);
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.type-contact-modal-content .ajout_type_contact:hover {
+  background: linear-gradient(135deg, rgba(138, 180, 248, 0.18), rgba(14, 165, 209, 0.12));
+  border-style: solid;
+  border-color: rgba(138, 180, 248, 0.45);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(14, 165, 209, 0.15);
+}
+
+.type-contact-modal-content .options_type::-webkit-scrollbar { width: 5px; }
+.type-contact-modal-content .options_type::-webkit-scrollbar-track { background: transparent; border-radius: 5px; }
+.type-contact-modal-content .options_type::-webkit-scrollbar-thumb { background: rgba(138, 180, 248, 0.3); border-radius: 5px; }
+.type-contact-modal-content .options_type::-webkit-scrollbar-thumb:hover { background: rgba(138, 180, 248, 0.5); }
+
+.type-contact-modal-content .modsuppr_typeCIcon img {
+  filter: brightness(0) invert(1);
+  opacity: 0.6;
+  transition: opacity 150ms ease;
+}
+
+.type-contact-modal-content .modsuppr_typeCIcon:hover img {
+  opacity: 1;
+}
+
+.type-contact-modal-content .modsuppr_typeCIcon:hover {
+  border-color: rgba(138, 180, 248, 0.4);
+}
+
+.options_type::-webkit-scrollbar {
+  width: 5px;
+}
+
+.options_type::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 5px;
+}
+
+.options_type::-webkit-scrollbar-thumb {
+  background: rgba(9, 119, 165, 0.25);
+  border-radius: 5px;
+}
+
+.options_type::-webkit-scrollbar-thumb:hover {
+  background: rgba(9, 119, 165, 0.45);
+}
+
+/* -------------------------------------------------------
+   4. BOUTON SUBMIT — Animated Gradient + Shimmer
+   ------------------------------------------------------- */
+
+.addcontact {
+  position: relative;
+  /* Button compact et centre : plus discret que l'ancienne pleine largeur (65%).
+     max-width est borne a 260px, largeur reelle s'ajuste au contenu jusqu'a
+     cette limite pour rester lisible sur mobile. */
+  width: auto;
+  min-width: 180px;
+  max-width: 260px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #0ea5d1 0%, #0977a5 25%, #00784a 70%, #006940 100%);
+  background-size: 200% 200%;
+  animation: gradientFlow 5s ease infinite;
+  color: white;
+  border: 1px solid rgba(138, 180, 248, 0.2);
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.025em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 4px 15px rgba(14, 165, 209, 0.25),
+    0 2px 8px rgba(0, 120, 74, 0.2),
+    0 0 20px rgba(14, 165, 209, 0.08);
+  transition:
+    transform 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  z-index: 0;
+}
+
+.addcontact::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  animation: shimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.addcontact:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 25px rgba(14, 165, 209, 0.35),
+    0 4px 12px rgba(0, 120, 74, 0.25),
+    0 0 30px rgba(14, 165, 209, 0.12);
+}
+
+.addcontact:active {
+  transform: translateY(0);
+  transition-duration: 80ms;
+  box-shadow:
+    0 2px 8px rgba(9, 119, 165, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 768px) {
+  .addcontact {
+    /* Taille cible conservee : max 260px centre */
+    width: auto;
+    max-width: 260px;
+  }
+}
+
+/* -------------------------------------------------------
+   5. LIGNES DE CHAMPS (NOM/PRENOM, EMAIL/TEL, ETC.)
+   ------------------------------------------------------- */
+
+.codepostalville {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.codepostalville .inputAddContact {
+  width: 100%;
+}
+
+.naissanceNationalite {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.nom_prenom_contact,
+.email_tel_contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Distribution flex pour enveloppement intrinsèque (auto-wrap) sur toutes les rangees */
+.nom_prenom_contact > *,
+.codepostalville > *,
+.email_tel_contact > *,
+.naissanceNationalite > * {
+  flex: 1 1 calc(33.333% - 8px); /* Base: 3 cols approx */
+  min-width: min(160px, 100%); /* Force le wrap si l'espace est inférieur */
+  /* Override le width:100% des inputs pour que flex-basis s'applique réellement.
+     Sans cette règle, les enfants conservent leur largeur à 100% et débordent
+     horizontalement au lieu de wrapper quand le conteneur est étroit. */
+  width: auto;
+  max-width: 100%;
+}
+
+
+/* Override pour le mode colonne (Profession / N Secu) */
+.email_tel_contact.col > * {
+  flex: none;
+  width: 100%;
+}
+
+.col {
+  flex-direction: column;
+}
+
+.bot {
+  bottom: 57px;
+}
+
+/* -------------------------------------------------------
+   6. ERREURS ET VALIDATION
+   ------------------------------------------------------- */
+
+.error {
+  background-color: #fef2f2 !important;
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1) !important;
+}
+
+.redButton {
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  animation: none !important;
+}
+
+.redButton::before {
+  display: none !important;
+}
+
+.redButton:hover {
+  background: linear-gradient(135deg, #c82333, #b21f2d) !important;
+}
+
+.redFieldset {
+  border-color: rgba(220, 53, 69, 0.25) !important;
+  border-left-color: #dc3545 !important;
+  background: linear-gradient(
+    145deg,
+    rgba(220, 53, 69, 0.035) 0%,
+    rgba(220, 53, 69, 0.015) 100%
+  ) !important;
+  box-shadow:
+    0 1px 2px rgba(220, 53, 69, 0.04),
+    0 4px 16px rgba(220, 53, 69, 0.06) !important;
+}
+
+.redFieldset > legend {
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+}
+
+/* -------------------------------------------------------
+   7. TOGGLE PERSONNE PHYSIQUE / PERSONNE MORALE — Pill
+   ------------------------------------------------------- */
+
+.choix_contact {
+  display: flex;
+  padding: 3px;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 200ms ease;
+  overflow: hidden;
+  border: 1px solid rgba(138, 180, 248, 0.15);
+}
+
+.choix_contact:hover {
+  opacity: 1;
+  border-color: rgba(138, 180, 248, 0.25);
+}
+
+/* Separateur / */
+.choix_contact_separator {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 300;
+  padding: 0 2px;
+  user-select: none;
+}
+
+/* Option non-active */
+.choix_contact_option {
+  padding: 5px 18px;
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  user-select: none;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transform: scale(1);
+}
+
+.choix_contact_option:hover:not(.choix_contact_option--active) {
+  background: rgba(138, 180, 248, 0.25);
+  color: #fff;
+  text-shadow: 0 0 8px rgba(138, 180, 248, 0.4);
+  transform: scale(1.03);
+}
+
+/* Option active */
+.choix_contact_option--active {
+  background: linear-gradient(135deg, #00a85e 0%, #00784a 50%, #006940 100%);
+  color: white;
+  box-shadow:
+    0 2px 8px rgba(0, 120, 74, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.08);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* ==========================================================
+   ÉTAT CIVIL — Système 3 états (large / intermédiaire / serré)
+   ==========================================================
+   ÉTAT LARGE (> ~780px disponibles) :
+     → [Célibataire + genres] [Nationalité] [Personnes à charge] — 1 ligne
+   ÉTAT INTERMÉDIAIRE (~400–780px) :
+     → Ligne 1 : [Célibataire + genres] — pleine largeur, centré
+     → Ligne 2 : [Nationalité] [Personnes à charge] — côte à côte
+   ÉTAT SERRÉ (< ~400px) :
+     → 3 lignes empilées
+   ========================================================== */
+.container-status-contact {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+}
+
+/* Chaque enfant direct obtient un flex-basis qui déclenche le wrap proprement */
+.container-status-contact > * {
+  flex: 1 1 200px; /* Base souple — wrap si < 200px dispo */
+  min-width: 0;
+}
+
+
+/* -------------------------------------------------------
+   9. ICONES DE GENRE — FEEDBACK VERT
+   ------------------------------------------------------- */
+
+.gender_man {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  transition: filter 200ms ease;
+}
+
+/* Option genre — base (cercle glass) */
+.gender-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(138, 180, 248, 0.15);
+}
+
+.gender-option:hover:not(.selected) {
+  background: rgba(138, 180, 248, 0.2);
+  border-color: rgba(138, 180, 248, 0.35);
+  transform: scale(1.08);
+}
+
+/* Genre selectionne — cercle vert */
+.gender-option.selected {
+  background: linear-gradient(135deg, #00a85e, #00784a);
+  border-color: rgba(0, 168, 94, 0.5);
+  box-shadow:
+    0 0 0 3px rgba(0, 120, 74, 0.2),
+    0 2px 8px rgba(0, 120, 74, 0.25),
+    0 0 12px rgba(0, 168, 94, 0.15);
+  transform: scale(1.05);
+}
+
+.gender-option.selected .gender_man {
+  filter: brightness(0) invert(1);
+}
+
+/* -------------------------------------------------------
+   10. STATUT MARITAL DROPDOWN
+   ------------------------------------------------------- */
+
+.options_status {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  z-index: 1000; /* Superpose proprement le dropdown sur les rubriques en dessous */
+  background-color: #fff;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  padding: 4px;
+  color: #0977a5;
+  gap: 2px;
+  margin-top: 5px;
+  left: 0;
+  width: 100%;
+  border: 1.5px solid rgba(9, 119, 165, 0.15);
+  border-top: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.show_select_option {
+  position: relative;
+}
+
+.show_select_option_matrimonial p:nth-child(odd) {
+  background-color: #f8fafb;
+}
+
+.show_select_option_matrimonial p {
+  cursor: pointer;
+  padding: 7px;
+  color: #0977a5;
+  border-radius: 6px;
+  background-color: #eef5f8;
+  text-align: start;
+  padding-left: 8px;
+  font-size: 0.8125rem;
+  transition: all 150ms ease;
+}
+
+.show_select_option_matrimonial p:hover {
+  background-color: #0977a5;
+  color: #fff;
+}
+
+/* Conteneur statut marital — accent teal */
+.genre_statusMat {
+  display: flex;
+  background: linear-gradient(145deg, #0ea5d1, #0977a5, #055a78);
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(14, 165, 209, 0.25),
+              0 0 15px rgba(14, 165, 209, 0.08);
+  border: 1px solid rgba(138, 180, 248, 0.2);
+}
+
+/* -------------------------------------------------------
+   11. PERSONNES A CHARGE
+   ------------------------------------------------------- */
+
+.personnes-charge {
+  display: flex;
+  background-color: #fff;
+  flex: 1 1 0%;
+  border-radius: 10px;
+  align-items: center;
+  padding: 11px 14px;
+  color: #8896a4;
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  font-size: 0.8125rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.personnes-charge:hover {
+  background-color: #f8fafb;
+  border-color: rgba(138, 180, 248, 0.4);
+  box-shadow: 0 2px 8px rgba(14, 165, 209, 0.1);
+}
+
+.personnes-charge.has-personnes-charge {
+  color: #00784a;
+  font-weight: 600;
+  border-color: #00784a;
+  background: linear-gradient(135deg, #e6f5ed, #eef8f3);
+  box-shadow: 0 2px 6px rgba(0, 120, 74, 0.08);
+}
+
+.show_select_option_matrimonial {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 4px 26px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  position: relative;
+  text-align: center;
+  width: auto;
+  min-width: 90px;
+  white-space: nowrap;
+  overflow: visible;
+
+  font-size: 0.8125rem;
+  transition: background-color 250ms ease,
+              border-color 250ms ease;
+}
+
+@media (min-width: 768px) {
+  .show_select_option_matrimonial {
+    width: auto;
+    min-width: 100px;
+  }
+}
+
+.contactMS {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bord {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+
+.contenair-formulaires input {
+  color: #1a2a3a;
+}
+
+/* -------------------------------------------------------
+   12. SECTIONS (FIELDSETS) — Glass Card Design
+   ------------------------------------------------------- */
+
+.identity {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  width: 100%;
+  min-width: 0; /* Autorise le shrink du fieldset pour que les enfants wrappent */
+  padding: 14px 16px 12px 20px;
+  border-radius: 14px;
+  border: none;
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 2px 12px rgba(4, 58, 79, 0.2),
+    0 0 20px rgba(14, 165, 209, 0.05);
+  transition:
+    box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Gradient border via pseudo-element */
+.identity::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(138,180,248,0.4), rgba(14,165,209,0.3), rgba(138,180,248,0.15));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.identity:hover {
+  box-shadow:
+    0 4px 16px rgba(4, 58, 79, 0.25),
+    0 0 25px rgba(14, 165, 209, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Deprecated — kept for compatibility */
+.pp {
+  color: #1a2a3a !important;
+}
+
+/* -------------------------------------------------------
+   13. LEGENDS — Floating Gradient Tags
+   ------------------------------------------------------- */
+
+.identity > legend,
+.legend-pm,
+.legendePersPMP {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: linear-gradient(135deg, #0ea5d1 0%, #0977a5 50%, #055a78 100%);
+  padding: 5px 16px;
+  border-radius: 20px;
+  margin-left: 0;
+  width: fit-content;
+  box-shadow: 0 2px 10px rgba(14, 165, 209, 0.3),
+              0 0 15px rgba(14, 165, 209, 0.1);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  line-height: 1.4;
+  animation: legendAppear 400ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  border: 1px solid rgba(138, 180, 248, 0.3);
+  position: relative;
+  z-index: 1;
+}
+
+/* -------------------------------------------------------
+   14. LISTES DE VILLES / AUTOCOMPLETE
+   ------------------------------------------------------- */
+
+.ville_listeVille {
+  position: relative;
+  width: 100%;
+}
+
+.heigth {
+  max-height: 130px !important;
+}
+
+.reverscol {
+  display: flex !important;
+  flex-direction: column-reverse;
+}
+
+/* Liste de suggestions "Ville de naissance" (.naiss).
+   Elle s'affiche AU-DESSUS du champ via .reverscol. On la positionne en
+   absolute pour la sortir du flux flex, avec un fond opaque, et on lui
+   donne un z-index eleve pour passer devant tous les autres champs du
+   formulaire (notamment la fieldset Professionnel au-dessus).
+   La fieldset parent Naissance est elle-meme place en z-index:10 (voir
+   plus bas dans ce fichier), ce qui permet a la liste de couvrir
+   visuellement la section Professionnel (z-index:2).
+
+   La coherence visuelle champ + liste est obtenue via:
+     - coins HAUTS de la liste arrondis (10px)
+     - coins BAS de la liste plats (0) -> jointure avec le champ
+     - coins HAUTS du champ plats (via .border_top_none)
+     - coins BAS du champ arrondis (style par defaut de l'input)
+
+   NOTE: on utilise le selecteur compose .myInfiniteScrollClass.naiss pour
+   gagner en specificite (0,2,0) sur la regle .myInfiniteScrollClass
+   (specificite 0,1,0) definie dans personneCharge/styles.css. Ce fichier
+   est charge APRES createContact/styles.css des que la modale Personne a
+   charge a ete ouverte une fois, ce qui inverserait les coins du dropdown
+   (passage a top-flat / bottom-rounded) si on ne force pas la specificite. */
+.myInfiniteScrollClass.naiss,
+.naiss {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 2px);
+  top: auto;
+  z-index: 50;
+  transform: none;
+
+  background-color: #ffffff;
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  border-top: 1.5px solid rgba(138, 180, 248, 0.25);
+  border-bottom: none;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
+
+  padding: 4px;
+  gap: 3px;
+  max-height: 130px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  display: flex;
+  flex-direction: column;
+}
+
+/* Items de la liste quand rendue dans le formulaire principal.
+   Les styles personneCharge ne sont pas charges si le modal n'a jamais
+   ete ouvert, donc on duplique le minimum ici. */
+.naiss .itemCommune {
+  background-color: #ffffff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: #1a2a3a;
+  font-size: 0.8125rem;
+  transition: background-color 150ms ease;
+}
+/* Surlignage géré par useComboboxKeyboard. */
+.naiss .itemCommune.is-active {
+  background-color: var(--k-primary-50, #e6f4f9);
+}
+
+.naiss::-webkit-scrollbar {
+  width: 6px;
+}
+
+.naiss::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.naiss::-webkit-scrollbar-thumb {
+  background: rgba(138, 180, 248, 0.3);
+  border-radius: 3px;
+}
+
+.naiss::-webkit-scrollbar-thumb:hover {
+  background: rgba(138, 180, 248, 0.5);
+}
+
+/* Champ dont la liste est ouverte : coins HAUTS aplatis pour qu'il se
+   "colle" visuellement a la liste affichee au-dessus. */
+.border_top_none {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+.prof {
+}
+
+/* Global : tout wrapper d'autocomplete prend 100% de son parent flex */
+.container_input_nationality_list_nationality {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.largeur {
+  width: 100%;
+}
+
+.lesswith {
+  width: auto;
+}
+
+/* -------------------------------------------------------
+   15. MARIAGE — Sections
+   ------------------------------------------------------- */
+
+.details_mariage_title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0977a5;
+  font-weight: 700;
+  margin-bottom: 10px;
+  font-size: 0.8125rem;
+}
+
+.apt {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  box-sizing: border-box;
+  border-radius: 10px;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.apt:hover {
+  background: linear-gradient(135deg, #0ea5d1, #0977a5);
+  color: #fff;
+  border-color: rgba(138, 180, 248, 0.4);
+  box-shadow: 0 4px 12px rgba(14, 165, 209, 0.25);
+}
+
+.date_lieu_mariage {
+  background: linear-gradient(145deg, #0ea5d1, #0977a5, #055a78);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(14, 165, 209, 0.15);
+  border: 1px solid rgba(138, 180, 248, 0.15);
+}
+
+.date_lieu_mariage div input {
+  margin: 0;
+  padding: 7px;
+  height: 32px;
+  outline: none;
+}
+
+.date_lieu_mariage div,
+.details_contrat_mariage div {
+  width: 100%;
+}
+
+.date {
+  height: auto;
+}
+
+.details_contrat_mariage {
+  background: linear-gradient(145deg, #0ea5d1, #0977a5, #055a78);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 2px 8px rgba(14, 165, 209, 0.15);
+}
+
+.details_contrat_mariage_alt {
+  margin-top: -1px;
+}
+
+.form_mariage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title_contrat {
+  width: 100%;
+  padding-left: 10px;
+  padding-top: 5px;
+  display: flex;
+  background: linear-gradient(145deg, #0ea5d1, #0977a5, #055a78);
+  border-radius: 10px 10px 0 0;
+  color: #fff;
+  font-size: 0.8125rem;
+}
+
+.isNotformCM {
+  border-radius: 10px;
+  display: inline-block;
+  width: auto;
+  padding: 5px;
+}
+
+.pos_stat {
+  position: static;
+  width: 55%;
+}
+
+.maritalStatusButton {
+  padding: 1px 4px;
+  margin-left: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  transition: background 150ms ease;
+  font-size: 0.75rem;
+}
+
+.maritalStatusButton:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* -------------------------------------------------------
+   16. CONTEXTE DOSSIER DIRECT
+   ------------------------------------------------------- */
+
+.create-contact-dossier-direct-context .formAddContact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 7px;
+  margin-top: 0px;
+  background-color: #fff;
+  padding-top: 5px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 5px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  margin-left: 3%;
+  width: 95%;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+@media (min-width: 768px) {
+  .create-contact-dossier-direct-context .formAddContact {
+    position: static;
+    transform: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background-color: #fff;
+    padding: 10px;
+    border-radius: 10px;
+    box-sizing: border-box;
+    width: 85% !important;
+    max-width: 780px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+}
+
+/* -------------------------------------------------------
+   17. PROFESSIONNEL
+   ------------------------------------------------------- */
+
+.formPro {
+  /* Centrage horizontal global du formulaire pro */
+  margin: 0 auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  max-width: 920px;
+}
+
+.divPro {
+  padding: 12px 5px;
+  background: linear-gradient(145deg, #0878a3, #0a87b5);
+  border-radius: 10px;
+  gap: 8px;
+}
+
+.divPro2 {
+  padding: 10px 5px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #0878a3, #0a87b5);
+  border-bottom-left-radius: 10px !important;
+  border-bottom-right-radius: 10px !important;
+  margin-top: 7px;
+  width: 100%;
+}
+
+.show_selectPro {
+  background-color: #fff;
+  border-radius: 10px;
+}
+
+.borderRadNone {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.new_classPro {
+  width: 98.2%;
+}
+
+.containerPro {
+  /* Centrage horizontal + largeur maitrisee */
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 16px 20px 20px;
+  background-color: #fff;
+  /* Coins arrondis sur les 4 cotes (avant : uniquement top-left) */
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+/* -------------------------------------------------------
+   18. SOUS-SECTIONS DU FORMULAIRE
+   ------------------------------------------------------- */
+
+.contactClientUnder {
+  width: 100%;
+  margin-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Les fieldsets plus haut dans le formulaire doivent avoir un z-index plus eleve
+   pour que leurs dropdowns (statut marital, professions) apparaissent au-dessus
+   des fieldsets suivants (Coordonnees, Naissance, etc.).
+   EXCEPTION : la fieldset Naissance contient une liste ville-de-naissance qui
+   s'ouvre VERS LE HAUT (reverscol) et doit couvrir la fieldset Professionnel.
+   On lui donne donc un z-index plus eleve que Professionnel. */
+.contactClientUnder > .identity:nth-child(1) { z-index: 4; position: relative; } /* Etat civil */
+.contactClientUnder > .identity:nth-child(2) { z-index: 3; position: relative; } /* Coordonnees */
+.contactClientUnder > .identity:nth-child(3) { z-index: 2; position: relative; } /* Professionnel */
+.contactClientUnder > .identity:nth-child(4) { z-index: 10; position: relative; } /* Naissance — au-dessus de Profession (voir EXCEPTION ci-dessus) */
+
+.marg {
+  margin-top: 20px;
+}
+
+.containerBoutonClient {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+  padding-top: 6px;
+  padding-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.containerBoutonPro {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  padding-bottom: 25px;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  flex-shrink: 0;
+}
+
+.mart2 {
+  margin-top: -2px;
+}
+
+.padding_none {
+  padding: 9px 7px !important;
+}
+
+.padding_none:hover {
+  padding: 9px 7px !important;
+}
+
+.hidden {
+  visibility: hidden;
+}
+
+.inputContainer {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Distribution flex egale pour toutes les rangees inputContainer */
+.inputContainer > * {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* -------------------------------------------------------
+   19. PERSONNE MORALE
+   ------------------------------------------------------- */
+
+.formPM-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  overflow: hidden;
+  animation: formFadeIn 350ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.containerFormPersonneMoral {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.container_choix_contact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 16px 6px;
+  margin: 0;
+  flex-shrink: 0;
+  background: transparent;
+}
+
+.create-partie-contact {
+  background: linear-gradient(170deg, #0ea5d1 0%, #0b7ea6 20%, #076d90 45%, #055a78 70%, #043a4f 100%);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+  gap: 0;
+  border: 1px solid rgba(138, 180, 248, 0.15);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 12px 28px rgba(4, 58, 79, 0.15),
+    0 0 40px rgba(14, 165, 209, 0.08);
+}
+
+.containerBoutonPM {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 6px;
+  padding-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.containerBoutonPM button {
+  width: 65%;
+}
+
+.fieldPM {
+  margin: 0;
+}
+
+/* -------------------------------------------------------
+   20. REPRESENTANT LEGAL & CONTACT DIRECT (PM)
+   ------------------------------------------------------- */
+
+.representantLegalNom {
+  background-color: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  padding: 11px 14px;
+  margin: 0;
+  box-sizing: border-box;
+  width: 98%;
+  display: inline-block;
+  border-radius: 10px;
+  color: #1a2a3a;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid #dfe3e8;
+  font-size: 0.8125rem;
+}
+
+.representantLegalNom:hover {
+  background-color: #f8fafb;
+  border-color: rgba(9, 119, 165, 0.3);
+}
+
+.contactDirectNom {
+  background-color: #fff;
+  cursor: pointer;
+  padding: 11px 14px;
+  margin: 0;
+  box-sizing: border-box;
+  width: 100%;
+  display: inline-block;
+  border-radius: 10px;
+  color: #1a2a3a;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid #dfe3e8;
+  font-size: 0.8125rem;
+}
+
+.contactDirectNom:hover {
+  background-color: #f8fafb;
+  border-color: rgba(9, 119, 165, 0.3);
+}
+
+.placeholderTxt {
+  color: #b0b8c1;
+}
+
+/* -------------------------------------------------------
+   21. TOGGLE PRIVEE / PUBLIQUE (PERSONNE MORALE)
+   ------------------------------------------------------- */
+
+.choix-type-PM {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 8px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(138, 180, 248, 0.15);
+  border-radius: 12px;
+  padding: 3px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  transition: all 200ms ease;
+}
+
+.choix-type-PM:hover {
+  opacity: 1;
+  border-color: rgba(138, 180, 248, 0.3);
+}
+
+.choix-type-PM div {
+  /* Desactiver l'ancienne regle couleur bleue */
+}
+
+/* -------------------------------------------------------
+   22. AUTRES
+   ------------------------------------------------------- */
+
+.pAcont {
+  padding-bottom: 10px;
+}
+
+.pAcont .inputContainer {
+  align-items: center;
+}
+
+.btnSubmitpAc {
+  position: relative;
+  width: 65%;
+  margin-top: 6px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #0ea5d1 0%, #0977a5 25%, #00784a 70%, #006940 100%);
+  background-size: 200% 200%;
+  animation: gradientFlow 5s ease infinite;
+  color: white;
+  border: 1px solid rgba(138, 180, 248, 0.2);
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.025em;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 4px 15px rgba(14, 165, 209, 0.25),
+    0 2px 8px rgba(0, 120, 74, 0.2),
+    0 0 20px rgba(14, 165, 209, 0.08);
+  transition:
+    transform 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  z-index: 0;
+}
+
+.btnSubmitpAc::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  animation: shimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.btnSubmitpAc:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 25px rgba(14, 165, 209, 0.35),
+    0 4px 12px rgba(0, 120, 74, 0.25),
+    0 0 30px rgba(14, 165, 209, 0.12);
+}
+
+.btnSubmitpAc:active {
+  transform: translateY(0);
+  transition-duration: 80ms;
+}
+
+.btnSubmitpAc.redButton {
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  animation: none !important;
+}
+
+.btnSubmitpAc.redButton::before {
+  display: none !important;
+}
+
+.formPMP {
+  gap: 10px;
+}
+
+.gapPMP {
+  gap: 8px;
+}
+
+.fCPFP {
+  margin-top: 4px;
+}
+
+/* -------------------------------------------------------
+   23. MODALES INTERNES (MARIAGE, PERSONNE CHARGE, etc.)
+   ------------------------------------------------------- */
+
+.form-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.title_rep_leg {
+  text-align: center;
+  color: #0977a5;
+  font-weight: 700;
+  font-size: 0.8125rem;
+}
+
+.gender_manRL {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  transition: filter 200ms ease;
+}
+
+.genre_rep_leg {
+  margin-top: 0;
+  margin-bottom: 0;
+  background: linear-gradient(145deg, #0ea5d1, #0977a5, #055a78);
+  border-radius: 12px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  align-self: center;
+  box-shadow: 0 2px 10px rgba(14, 165, 209, 0.25),
+              0 0 15px rgba(14, 165, 209, 0.08);
+  border: 1px solid rgba(138, 180, 248, 0.2);
+}
+
+/* -------------------------------------------------------
+   24. CHECKBOX "EST REPRESENTANT LEGAL"
+   ------------------------------------------------------- */
+
+.checkbox-representant-legal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(9, 119, 165, 0.06);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 250ms ease;
+  width: fit-content;
+  margin: 2px auto 0;
+  border: 1.5px solid rgba(9, 119, 165, 0.1);
+}
+
+.checkbox-representant-legal:hover {
+  background: rgba(9, 119, 165, 0.1);
+  border-color: rgba(9, 119, 165, 0.2);
+}
+
+.checkbox-representant-legal input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #00784a;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+  vertical-align: middle;
+}
+
+.checkbox-representant-legal label {
+  color: #0977a5;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* ==========================================================================
+   AJUSTEMENTS — CREATION CONTACT SIMPLE (HORS DOSSIER)
+   ========================================================================== */
+
+.simple-contact-creation-context.create-partie-contact {
+  border-radius: 16px;
+  margin: 8px auto;
+  max-height: calc(100% - 16px);
+  align-self: center; /* Centre le formulaire dans le conteneur flex parent */
+}
+
+/* Contexte global applique au conteneur principal */
+.simple-contact-creation-context .formAddContact {
+  gap: 8px;
+  padding-top: 4px;
+  padding-bottom: 14px;
+}
+
+/* Reduction de l'espacement a l'interieur des fieldsets */
+.simple-contact-creation-context .identity {
+  gap: 6px;
+}
+
+.simple-contact-creation-context .identity.fieldPM {
+  gap: 5px;
+}
+
+/* Reduction de l'espace autour du choix "Personne physique / morale" */
+.simple-contact-creation-context .container_choix_contact {
+  padding-top: 5px;
+  margin-bottom: 4px;
+}
+
+/* Reduction de l'espace sous le choix "Privee / Publique" */
+.simple-contact-creation-context .choix-type-PM {
+  margin-bottom: 6px;
+}
+
+/* Reduction de l'espace vertical entre les blocs fieldset pour Personne Morale */
+.simple-contact-creation-context .containerFormPersonneMoral {
+  gap: 5px;
+}
+
+@media (min-width: 768px) {
+  .simple-contact-creation-context.create-partie-contact {
+    border-radius: 16px;
+    width: clamp(500px, 92%, 960px);
+    margin: 8px auto;
+  }
+}
+
+/* ==========================================================================
+   STYLES REORGANISATION STATUT CIVIL
+   ========================================================================== */
+
+/* Groupe Statut marital + icônes genre :
+   — À grande largeur : s'étire comme les autres enfants (flex: 1 1 200px)
+   — À largeur intermédiaire : bascule SEUL sur une ligne complète (flex-basis 100%)
+     grâce au min-width élevé. Les 2 autres champs partagent alors la ligne suivante.
+*/
+.centered-civil-status-group {
+  display: flex;
+  justify-content: flex-start; /* Aligné à gauche pour cohérence avec les inputs */
+  align-items: center;
+  gap: 8px;
+  /* La clé du système 3 états :
+     min-width: 220px force ce groupe à prendre 100% de largeur
+     quand l'espace n'est pas suffisant pour 3 colones,
+     MAIS qu'il reste suffisamment large pour 2 colonnes côte à côte ci-dessous */
+  flex: 1 1 220px;
+  min-width: 220px;
+  /* Habillage visuel pour l'état intermédiaire — distingue la ligne "statut" */
+  padding: 6px 10px;
+  background: linear-gradient(135deg, rgba(9,119,165,0.05), rgba(0,120,74,0.03));
+  border-radius: 10px;
+  border: 1px solid rgba(9,119,165,0.1);
+}
+
+/* Statut marital dans le conteneur degrade */
+.genre_statusMat .show_select_option_matrimonial {
+  background-color: transparent;
+  border: none;
+  color: #fff;
+  padding: 10px 12px;
+  width: auto;
+}
+
+.genre_statusMat .show_select_option_matrimonial.new_class_STM {
+  background-color: transparent !important;
+  color: #fff !important;
+}
+
+.genre_statusMat .maritalStatusButton {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* Conteneur des icones de genre */
+.genre_contact_civil_status {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Espace suffisant entre les icônes ♂ et ♀ */
+}
+
+/* ==========================================================================
+   OPTIMISATION HAUTEUR — FORMULAIRE PERSONNE MORALE
+   ========================================================================== */
+
+/* Fieldsets PM — padding et gap reduits */
+.identity.fieldPM {
+  padding: 14px 14px 12px 18px;
+  gap: 8px;
+}
+
+/* Inputs PM — padding vertical reduit */
+.identity.fieldPM .inputAddContact {
+  padding: 9px 12px;
+}
+
+/* Bouton PM — plus compact */
+.containerBoutonPM button {
+  padding: 10px 24px;
+}
+
+/* ==========================================================================
+   ACCESSIBILITE
+   ========================================================================== */
+
+/* Mode malvoyant (high-contrast) */
+body.high-contrast-mode .addcontact {
+  background: yellow;
+  color: #000;
+  animation: none;
+}
+
+body.high-contrast-mode .addcontact::before {
+  display: none;
+}
+
+body.high-contrast-mode .identity {
+  border: 2px solid yellow;
+  background: #000;
+}
+
+body.high-contrast-mode .identity > legend {
+  background: yellow;
+  color: #000;
+}
+
+body.high-contrast-mode .inputAddContact {
+  border: 2px solid yellow;
+  background: #000;
+  color: yellow;
+}
+
+/* Personnes à charge — mode malvoyant */
+body.high-contrast-mode .personnes-charge {
+  border: 2px solid yellow !important;
+  background: #000 !important;
+  color: yellow !important;
+}
+
+body.high-contrast-mode .personnes-charge.has-personnes-charge {
+  background: #000 !important;
+  color: yellow !important;
+  border-color: yellow !important;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN SYSTEM — MULTI-BREAKPOINT
+   Strategy: mobile-first intrinsic fluidity + targeted breakpoints
+   ========================================================================== */
+
+/* ── Global overflow prevention ── */
+.formAddContact,
+.create-partie-contact,
+.formPM-container,
+.create-contact-dossier-direct-context {
+  overflow-x: hidden;
+}
+
+/* ── Intrinsic fluidity: flex-wrap on all multi-column rows ── */
+.nom_prenom_contact,
+.email_tel_contact,
+.codepostalville,
+.naissanceNationalite,
+.inputContainer {
+  flex-wrap: wrap;
+}
+
+/* ── Breakpoint 1: ≤ 850px — start wrapping 3-column rows ── */
+@media (max-width: 850px) {
+
+  /* 3-col name fields → wrap souple (2+1 ou 1+1+1 selon l'espace) */
+  .nom_prenom_contact > * {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 120px;
+  }
+
+  /* État civil : le système 3-états intrinseèque gère le wrap automatiquement.
+     On ne force RIEN ici — le min-width: 220px de .centered-civil-status-group
+     déclenche le passage à la ligne 2 quand nécessaire sans media query. */
+  .container-status-contact > .container_input_nationality_list_nationality {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 100px;
+  }
+
+  .personnes-charge {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 100px;
+  }
+
+  /* Reduce form padding */
+  .formAddContact {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* Fieldset padding reduction */
+  .identity {
+    padding: 10px 10px 8px 14px;
+  }
+
+  /* Standalone form: 80% étant déjà défini, on préserve la largeur à 850px */
+  .simple-contact-creation-context.create-partie-contact {
+    width: 80% !important;
+  }
+}
+
+
+/* ── Breakpoint 2: ≤ 650px — single-column stacking ── */
+@media (max-width: 650px) {
+
+  /* All multi-column rows → single column */
+  .nom_prenom_contact,
+  .email_tel_contact:not(.col),
+  .codepostalville,
+  .naissanceNationalite,
+  .inputContainer {
+    flex-direction: column;
+  }
+
+  .nom_prenom_contact > *,
+  .email_tel_contact:not(.col) > *,
+  .codepostalville > *,
+  .naissanceNationalite > *,
+  .inputContainer > * {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* État civil < 650px : tout empi1é verticalement */
+  .container-status-contact {
+    flex-direction: column;
+  }
+
+  .centered-civil-status-group,
+  .container-status-contact > .container_input_nationality_list_nationality,
+  .personnes-charge {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Reduce padding further */
+  .formAddContact {
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 10px;
+  }
+
+  .identity {
+    padding: 8px 8px 8px 12px;
+    gap: 5px;
+  }
+
+  /* Submit button wider for easy tap (mobile), mais toujours borne a 260px */
+  .addcontact {
+    width: auto;
+    max-width: 260px;
+  }
+
+  /* Choix contact option: smaller text */
+  .choix_contact_option {
+    font-size: 0.75rem;
+    padding: 5px 12px;
+  }
+
+  /* Standalone form: wider */
+  .simple-contact-creation-context.create-partie-contact {
+    width: 90% !important;
+  }
+
+  /* Dossier direct context: wider */
+  .create-contact-dossier-direct-context .formAddContact {
+    width: 100% !important;
+    margin-left: 0;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
+
+/* ── Breakpoint 3: ≤ 500px — extreme compact ── */
+@media (max-width: 500px) {
+
+  /* Standalone: full width */
+  .simple-contact-creation-context.create-partie-contact {
+    width: 100% !important;
+  }
+
+  .formAddContact {
+    padding: 6px 6px 10px;
+    gap: 5px;
+  }
+
+  .identity {
+    padding: 6px 6px 6px 10px;
+    border-radius: 10px;
+  }
+
+  .inputAddContact {
+    padding: 7px 10px;
+    font-size: 0.75rem;
+  }
+
+  .addcontact {
+    width: auto;
+    max-width: 260px;
+    padding: 9px 16px;
+    font-size: 0.8125rem;
+  }
+
+  .choix_contact_option {
+    font-size: 0.7rem;
+    padding: 4px 10px;
+  }
+
+  .identity > legend,
+  .legend-pm,
+  .legendePersPMP {
+    font-size: 0.6rem;
+    padding: 3px 10px;
+  }
+
+  .containerBoutonClient {
+    padding-top: 4px;
+    padding-bottom: 2px;
+  }
+
+  .contactClientUnder {
+    gap: 4px;
+  }
+}
+
+/* ── Height-constrained viewports (laptop, docked windows) ── */
+@media (max-height: 700px) {
+
+  .formAddContact {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    gap: 5px;
+  }
+
+  .identity {
+    padding-top: 8px;
+    padding-bottom: 6px;
+    gap: 4px;
+  }
+
+  .inputAddContact {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .containerBoutonClient {
+    padding-top: 4px;
+    padding-bottom: 2px;
+  }
+
+  .container_choix_contact {
+    padding-top: 4px;
+    padding-bottom: 0;
+    gap: 3px;
+  }
+
+  .choix_contact_option {
+    padding: 4px 14px;
+  }
+
+  .contactClientUnder {
+    gap: 4px;
+  }
+
+  .addcontact {
+    padding: 8px 20px;
+  }
+}
+
+/* ── Combined: narrow + short (half-screen Windows) ── */
+@media (max-width: 650px) and (max-height: 700px) {
+
+  .identity {
+    padding: 6px 6px 5px 10px;
+    gap: 3px;
+  }
+
+  .formAddContact {
+    gap: 4px;
+    padding: 4px 6px 6px;
+  }
+
+  .inputAddContact {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+}
+
+/* ── Accessibility: high-contrast ── */
+body.high-contrast-mode .addcontact {
+  background: yellow;
+  color: #000;
+  animation: none;
+}
+
+body.high-contrast-mode .addcontact::before {
+  display: none;
+}
+
+body.high-contrast-mode .identity {
+  border: 2px solid yellow;
+  background: #000;
+}
+
+body.high-contrast-mode .identity > legend {
+  background: yellow;
+  color: #000;
+}
+
+body.high-contrast-mode .inputAddContact {
+  border: 2px solid yellow;
+  background: #000;
+  color: yellow;
+}

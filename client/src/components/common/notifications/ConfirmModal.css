@@ -1,0 +1,128 @@
+/* ==========================================================================
+   ConfirmModal — boîte de dialogue de confirmation in-app
+   ========================================================================== */
+
+.k-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 7000;
+  background: rgba(4, 14, 24, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: kConfirmOverlayIn 180ms ease-out;
+}
+
+@keyframes kConfirmOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.k-confirm-modal {
+  width: min(440px, 100%);
+  background: linear-gradient(165deg, rgba(15, 27, 45, 0.97) 0%, rgba(18, 39, 64, 0.97) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 22px 24px 18px;
+  color: #e8eaed;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  animation: kConfirmIn 220ms cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+
+@keyframes kConfirmIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.k-confirm-modal--danger {
+  border-top: 3px solid #ef4444;
+}
+
+.k-confirm-title {
+  margin: 0 0 8px 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.k-confirm-message {
+  margin: 0 0 18px 0;
+  font-size: 0.92rem;
+  color: rgba(232, 234, 237, 0.88);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.k-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.k-confirm-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.k-confirm-btn:active {
+  transform: translateY(1px);
+}
+
+.k-confirm-btn--cancel {
+  background: transparent;
+  color: rgba(232, 234, 237, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.k-confirm-btn--cancel:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.k-confirm-btn--primary {
+  background: linear-gradient(135deg, #4dc9ff, #2dadff);
+  color: #06121f;
+  box-shadow: 0 4px 14px rgba(45, 173, 255, 0.4);
+}
+
+.k-confirm-btn--primary:hover {
+  background: linear-gradient(135deg, #6ee7ff, #4dc9ff);
+}
+
+.k-confirm-btn--danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+}
+
+.k-confirm-btn--danger:hover {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+}
+
+/* High-contrast mode */
+body.high-contrast-mode .k-confirm-modal {
+  background: #000;
+  border: 1px solid yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .k-confirm-title,
+body.high-contrast-mode .k-confirm-message {
+  color: yellow;
+}
+
+body.high-contrast-mode .k-confirm-btn--cancel,
+body.high-contrast-mode .k-confirm-btn--primary,
+body.high-contrast-mode .k-confirm-btn--danger {
+  background: #000;
+  color: yellow;
+  border: 1px solid yellow;
+}

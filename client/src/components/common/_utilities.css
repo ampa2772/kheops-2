@@ -1,0 +1,404 @@
+/* ==========================================================
+   _utilities.css
+   Classes utilitaires pour le design system Kheops 2.
+   Importe globalement dans App.js aux cotes de _variables.css.
+   ========================================================== */
+
+/* --- Masquage visuel (screen-reader only) --- */
+.k-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Devient visible au focus clavier (pour skip-links) */
+.k-sr-only-focusable:focus,
+.k-sr-only-focusable:active {
+  position: fixed;
+  top: var(--k-space-2);
+  left: var(--k-space-2);
+  width: auto;
+  height: auto;
+  padding: var(--k-space-3) var(--k-space-4);
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  z-index: calc(var(--k-z-notification) + 1);
+  background-color: var(--k-primary-500);
+  color: #fff;
+  font-size: var(--k-font-size-md);
+  font-weight: var(--k-font-weight-semibold);
+  border-radius: var(--k-radius-base);
+  box-shadow: var(--k-shadow-md);
+  text-decoration: none;
+  outline: none;
+}
+
+/* --- Focus-visible global --- */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--k-focus-ring);
+  border-radius: var(--k-radius-sm);
+}
+
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  box-shadow: var(--k-focus-ring);
+}
+
+/* --- Mouvement reduit --- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Helpers typographiques --- */
+.k-text-xs    { font-size: var(--k-font-size-xs); }
+.k-text-sm    { font-size: var(--k-font-size-sm); }
+.k-text-base  { font-size: var(--k-font-size-base); }
+.k-text-md    { font-size: var(--k-font-size-md); }
+.k-text-lg    { font-size: var(--k-font-size-lg); }
+.k-text-xl    { font-size: var(--k-font-size-xl); }
+.k-text-bold  { font-weight: var(--k-font-weight-bold); }
+
+.k-text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Hierarchie typographique canonique (Phase UI/UX) ---
+   Utiliser ces classes sur les balises natives h1/h2/h3 ou sur des divs
+   porteurs de role=heading, pour garantir une echelle coherente a travers
+   l'application. Elles remplacent les anciens "pills" 0.8125rem utilises
+   comme titres de page/section. */
+.k-h1 {
+  font-size: var(--k-heading-h1-size);
+  font-weight: var(--k-heading-h1-weight);
+  line-height: var(--k-heading-h1-line);
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+.k-h2 {
+  font-size: var(--k-heading-h2-size);
+  font-weight: var(--k-heading-h2-weight);
+  line-height: var(--k-heading-h2-line);
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+.k-h3 {
+  font-size: var(--k-heading-h3-size);
+  font-weight: var(--k-heading-h3-weight);
+  line-height: var(--k-heading-h3-line);
+  margin: 0;
+}
+.k-body {
+  font-size: var(--k-body-size);
+  font-weight: var(--k-body-weight);
+  line-height: var(--k-body-line);
+}
+
+/* --- Input canonique Kheops (--k-input) ---
+   Classe partagee qui uniformise l'apparence des champs texte/select/
+   textarea dans toute l'application :
+     - border-radius: 10px
+     - border: 1.5px solid rgba(138,180,248,0.25)
+     - fond blanc, padding 10px 14px
+     - focus = halo turquoise + bordure accent
+   A appliquer sur les nouveaux inputs ; l'existant non opt-in continue de
+   fonctionner tel quel (pas de regle globale sur <input> pour eviter les
+   regressions). */
+.k-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  font-family: var(--k-font-family-base);
+  font-size: var(--k-body-size, 0.8125rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  line-height: 1.4;
+  color: var(--k-text-dark, #202124);
+  background-color: var(--k-bg-white, #ffffff);
+  border: 1.5px solid rgba(138, 180, 248, 0.25);
+  border-radius: var(--k-radius-md, 10px);
+  outline: none;
+  transition: border-color var(--k-transition-fast, 0.15s),
+              box-shadow var(--k-transition-fast, 0.15s);
+}
+
+.k-input::placeholder {
+  color: var(--k-text-secondary, #9aa0a6);
+  font-weight: var(--k-font-weight-normal, 400);
+}
+
+.k-input:hover:not(:disabled):not(:focus) {
+  border-color: rgba(138, 180, 248, 0.45);
+}
+
+.k-input:focus,
+.k-input:focus-visible {
+  border-color: var(--k-accent, #8ab4f8);
+  box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.22);
+}
+
+.k-input:disabled {
+  background-color: var(--k-gray-100, #f5f5f5);
+  color: var(--k-text-muted, #5f6368);
+  cursor: not-allowed;
+}
+
+.k-input--error {
+  border-color: var(--k-danger, #dc3545);
+}
+.k-input--error:focus,
+.k-input--error:focus-visible {
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.18);
+}
+
+/* Variante compacte (ex: barre de recherche) */
+.k-input--sm {
+  padding: 7px 10px;
+  font-size: var(--k-font-size-xs, 0.75rem);
+  border-radius: var(--k-radius-base, 6px);
+}
+
+/* Variante sur fond sombre (navy) : texte clair, fond translucide */
+.k-input--on-dark {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--k-text-light, #e8eaed);
+}
+.k-input--on-dark::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+.k-input--on-dark:focus,
+.k-input--on-dark:focus-visible {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--k-accent, #8ab4f8);
+  box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.18);
+}
+
+body.high-contrast-mode .k-input {
+  background-color: #000;
+  color: yellow;
+  border-color: yellow;
+}
+body.high-contrast-mode .k-input::placeholder {
+  color: #ccc;
+}
+body.high-contrast-mode .k-input:focus,
+body.high-contrast-mode .k-input:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 255, 0, 0.3);
+}
+
+/* --- Helpers layout --- */
+.k-flex         { display: flex; }
+.k-flex-col     { display: flex; flex-direction: column; }
+.k-flex-center  { display: flex; align-items: center; justify-content: center; }
+.k-flex-between { display: flex; align-items: center; justify-content: space-between; }
+.k-gap-1 { gap: var(--k-space-1); }
+.k-gap-2 { gap: var(--k-space-2); }
+.k-gap-3 { gap: var(--k-space-3); }
+.k-gap-4 { gap: var(--k-space-4); }
+
+/* --- High-contrast focus --- */
+body.high-contrast-mode *:focus-visible {
+  box-shadow: var(--k-focus-ring);
+  outline: 2px solid yellow;
+  outline-offset: 2px;
+}
+
+body.high-contrast-mode .k-sr-only-focusable:focus,
+body.high-contrast-mode .k-sr-only-focusable:active {
+  background-color: #000000;
+  color: yellow;
+  border: 2px solid yellow;
+}
+
+/* --- Micro-interactions globales --- */
+
+/* Transitions de base pour tous les boutons et liens */
+button,
+[role="button"],
+a {
+  transition: background-color var(--k-duration-normal, 200ms) ease,
+              color var(--k-duration-normal, 200ms) ease,
+              border-color var(--k-duration-normal, 200ms) ease,
+              opacity var(--k-duration-normal, 200ms) ease,
+              box-shadow var(--k-duration-normal, 200ms) ease;
+}
+
+/* Active state subtil pour tous les boutons */
+button:active,
+[role="button"]:active {
+  transform: scale(0.97);
+}
+
+/* Transition pour les inputs/selects */
+input,
+select,
+textarea {
+  transition: border-color var(--k-duration-normal, 200ms) ease,
+              box-shadow var(--k-duration-normal, 200ms) ease;
+}
+
+/* Scrollbar styling global cohérent */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--k-scroll-track, #f1f1f1);
+  border-radius: var(--k-radius-sm, 4px);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--k-scroll-thumb, #0977a5);
+  border-radius: var(--k-radius-sm, 4px);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--k-scroll-thumb-hover, #555);
+}
+
+/* High contrast scrollbar */
+body.high-contrast-mode ::-webkit-scrollbar-track {
+  background: #222;
+}
+
+body.high-contrast-mode ::-webkit-scrollbar-thumb {
+  background: yellow;
+}
+
+body.high-contrast-mode ::-webkit-scrollbar-thumb:hover {
+  background: var(--highlight-color, #33ff33);
+}
+
+/* --- Classes utilitaires de micro-interaction --- */
+
+/* Effet de lift au survol (pour cartes, items de liste) */
+.k-hover-lift {
+  transition: transform var(--k-duration-normal, 200ms) var(--k-ease-out, ease),
+              box-shadow var(--k-duration-normal, 200ms) ease;
+}
+
+.k-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--k-shadow-sm);
+}
+
+.k-hover-lift:active {
+  transform: translateY(0);
+}
+
+/* Effet de scale au survol (pour icônes, boutons d'action) */
+.k-hover-scale {
+  transition: transform var(--k-duration-normal, 200ms) var(--k-ease-out, ease);
+}
+
+.k-hover-scale:hover {
+  transform: scale(1.08);
+}
+
+.k-hover-scale:active {
+  transform: scale(0.95);
+}
+
+/* Effet de fond au survol (pour items de liste) */
+.k-hover-bg {
+  transition: background-color var(--k-duration-normal, 200ms) ease;
+}
+
+.k-hover-bg:hover {
+  background-color: var(--k-gray-100, #f5f5f5);
+}
+
+/* Animation de fade-in pour les modales */
+@keyframes k-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes k-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.k-animate-fade-in {
+  animation: k-fade-in var(--k-duration-slow, 300ms) var(--k-ease-out, ease) both;
+}
+
+.k-animate-slide-up {
+  animation: k-slide-up var(--k-duration-slow, 300ms) var(--k-ease-out, ease) both;
+}
+
+/* --- Classes utilitaires pour taille d'icônes --- */
+
+.k-icon-xs {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.k-icon-sm {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.k-icon-md {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.k-icon-lg {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.k-icon-xl {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  object-fit: contain;
+}

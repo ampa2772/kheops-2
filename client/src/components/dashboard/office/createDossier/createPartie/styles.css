@@ -1,0 +1,1605 @@
+/* ==========================================================================
+   createPartie — Design System Kheops 2 (Premium 2026)
+   Tokens: _variables.css  --k-form-*  --k-wb-*
+   ========================================================================== */
+
+/* ==========================================================================
+   Variables et Styles Généraux
+   ========================================================================== */
+:root {
+  --dynamic-bottom: 238px;
+}
+
+body.modal-open-from-partie {
+  overflow: hidden;
+}
+
+.containerGeneral {
+  display: inline-block;
+  width: 100%;
+}
+
+.hidden {
+  display: none;
+}
+
+/* ==========================================================================
+   Champs de Sélection et de Saisie (Input, Select)
+   ========================================================================== */
+.select_type_partie {
+  width: 90%;
+  margin-bottom: 7px;
+  border-radius: var(--k-form-radius-input, 8px);
+  border: none;
+  outline: none;
+  appearance: none;
+  background-color: var(--k-bg-white, #ffffff);
+  color: var(--k-gray-600, #757575);
+  font-size: var(--k-font-size-md, 16px);
+  position: relative;
+  z-index: 0;
+}
+
+.select_type_partie.showOptions {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* ==========================================================================
+   Bouton Creer une nouvelle partie (quand isAddingPartie = false)
+   ========================================================================== */
+.form_partie_container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 16px 0;
+}
+
+.bouton_form_partie {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--k-space-2, 8px);
+  padding: 12px 26px;
+  background: linear-gradient(135deg, rgba(138, 180, 248, 0.12), rgba(14, 165, 209, 0.08));
+  color: var(--k-form-text-secondary, rgba(255, 255, 255, 0.75));
+  border: 1px solid rgba(138, 180, 248, 0.2);
+  border-radius: var(--k-form-radius-card, 12px);
+  font-size: var(--k-font-size-base, 0.875rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  cursor: pointer;
+  transition: all 200ms var(--k-form-ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  box-shadow: 0 2px 10px rgba(14, 165, 209, 0.1);
+  letter-spacing: 0.02em;
+}
+
+.bouton_form_partie:hover {
+  background: linear-gradient(135deg, rgba(138, 180, 248, 0.2), rgba(14, 165, 209, 0.15));
+  border-color: rgba(138, 180, 248, 0.35);
+  color: var(--k-form-text-primary, rgba(255, 255, 255, 0.95));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(14, 165, 209, 0.2),
+              0 0 12px rgba(138, 180, 248, 0.1);
+  text-shadow: 0 0 8px rgba(138, 180, 248, 0.3);
+}
+
+.bouton_form_partie:active {
+  transform: translateY(0);
+  transition-duration: 80ms;
+  box-shadow: 0 1px 4px rgba(14, 165, 209, 0.1);
+}
+
+.bouton_form_partie img {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1);
+  opacity: 0.7;
+  transition: opacity 180ms ease-out;
+}
+
+.bouton_form_partie:hover img {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Conteneur du formulaire ajout de partie
+   ========================================================================== */
+.container_form_nom_partie {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* ==========================================================================
+   Barre options (Pour/Contre + bouton Creer)
+   ========================================================================== */
+.optionsInput,
+.optionsInputEdit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--k-space-2, 8px);
+  width: 100%;
+  padding: var(--k-space-1, 4px) 0;
+}
+
+/* ==========================================================================
+   Selecteurs Pour / Contre — Refined
+   ========================================================================== */
+.pour-contre-container {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-1, 4px);
+}
+
+.pour-contre-option-pour,
+.pour-contre-option-contre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--k-space-2, 8px) var(--k-space-3, 12px);
+  border-radius: var(--k-form-radius-input, 8px);
+  cursor: pointer;
+  border: 1px solid var(--k-primary-200, #80c6da);
+  background-color: var(--k-bg-white, #fff);
+  transition: all 150ms ease-out;
+  min-width: 44px;
+}
+
+.pour-contre-option-pour:hover,
+.pour-contre-option-contre:hover {
+  border-color: var(--k-primary, #0977a5);
+  box-shadow: 0 0 0 2px rgba(9, 119, 165, 0.08);
+}
+
+.pour-contre-option-pour:active,
+.pour-contre-option-contre:active {
+  transform: scale(0.97);
+}
+
+.selectedPour {
+  background: var(--k-primary, #0977a5);
+  border-color: var(--k-primary, #0977a5);
+  box-shadow: 0 0 0 3px rgba(9, 119, 165, 0.15);
+}
+
+.selectedContre {
+  background: var(--k-warning, #ff9800);
+  border-color: var(--k-warning, #ff9800);
+  color: var(--k-bg-white, #fff);
+  box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.15);
+}
+
+.PourContre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.PourContre img {
+  width: 18px;
+  height: 18px;
+}
+
+.CreerPartie {
+  width: 22px;
+  height: 22px;
+  background-color: var(--k-primary-800, #043a4f);
+  border-radius: 50%;
+  border: 1.5px solid var(--k-primary, #0977a5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 180ms ease-out,
+              transform 120ms ease-out;
+}
+
+.CreerPartie:hover {
+  background-color: var(--k-primary-600, #075a7f);
+  transform: scale(1.08);
+}
+
+.CreerPartie img {
+  width: 13px;
+  height: 13px;
+}
+
+/* ==========================================================================
+   Input de recherche de partie (standalone)
+   ========================================================================== */
+.inputNomPartie {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 10px 14px;
+  height: 44px;
+  border-radius: var(--k-form-radius-input, 8px);
+  border: 1px solid var(--k-wb-input-border, #e2e5ea);
+  outline: none;
+  color: var(--k-primary-800, #043a4f);
+  background-color: var(--k-bg-white, #fff);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  letter-spacing: 0.01em;
+  transition: border-color 200ms ease-out,
+              box-shadow 200ms ease-out;
+}
+
+.inputNomPartie:focus {
+  border-color: var(--k-wb-input-border-focus, #0977a5);
+  box-shadow: var(--k-wb-input-focus-ring, 0 0 0 3px rgba(9, 119, 165, 0.1));
+}
+
+.inputNomPartie::placeholder {
+  color: var(--k-form-input-placeholder, #637085);
+  font-weight: var(--k-font-weight-normal, 400);
+}
+
+.inputNomPartie_empty {
+  background-color: var(--k-gray-50, #fafafa);
+}
+
+.inputNomPartie_top_border {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+}
+
+.inputNomPartie_bottom_border {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: none;
+}
+
+/* ==========================================================================
+   Liste de suggestions de contacts (ajout de partie)
+   ========================================================================== */
+.liste_contacts_to_partie {
+  background-color: var(--k-bg-white, #fff);
+  border: 1px solid var(--k-primary-200, #80c6da);
+  max-height: 180px;
+  width: 100%;
+  padding: var(--k-space-1, 4px);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+  z-index: 10;
+  box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.liste_contacts_to_partie_bottom_position {
+  border-radius: 0 0 var(--k-form-radius-input, 8px) var(--k-form-radius-input, 8px);
+  border-top: none;
+}
+
+.liste_contacts_to_partie_top_position {
+  border-radius: var(--k-form-radius-input, 8px) var(--k-form-radius-input, 8px) 0 0;
+  border-bottom: none;
+}
+
+.liste_contacts_to_partie::-webkit-scrollbar { width: 5px; }
+.liste_contacts_to_partie::-webkit-scrollbar-track { background: transparent; border-radius: 5px; }
+.liste_contacts_to_partie::-webkit-scrollbar-thumb { background: rgba(9, 119, 165, 0.3); border-radius: 5px; }
+.liste_contacts_to_partie::-webkit-scrollbar-thumb:hover { background: rgba(9, 119, 165, 0.5); }
+
+/* ==========================================================================
+   Board des parties selectionnees (Pour / Contre)
+   ========================================================================== */
+.selected_partie {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--k-space-3, 12px);
+  background: var(--k-bg-white, #ffffff);
+  border-radius: var(--k-form-radius-card, 10px);
+  padding: var(--k-space-4, 16px);
+  box-shadow: var(--k-wb-card-shadow, 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04));
+}
+
+.liste_selected_parties {
+  display: flex;
+  justify-content: stretch;
+  gap: var(--k-space-4, 16px);
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+/* Bouton "..." pour options globales Pour/Contre */
+/* Fond sombre pour contraster avec les points (qui sont blancs via filter) */
+.customAllParties {
+  background-color: rgba(0, 0, 0, 0.38);
+  border: none;
+  cursor: pointer;
+  padding: var(--k-space-1, 4px) var(--k-space-2, 8px);
+  display: flex;
+  align-items: center;
+  border-radius: var(--k-radius-sm, 4px);
+  transition: background-color 120ms ease;
+  position: absolute;
+  right: var(--k-space-2, 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.customAllParties:hover {
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+.customAllParties img {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+
+/* Colonnes Pour et Contre */
+.parties_pour,
+.parties_contre {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--k-space-2, 8px);
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: none;
+  background: var(--k-gray-50, #fafafa);
+  border-radius: var(--k-form-radius-input, 8px);
+  padding: var(--k-space-3, 12px);
+  padding-top: 0;
+  border: 1px solid var(--k-gray-200, #eeeeee);
+  overflow: hidden; /* permet au label .pour/.contre de s'etendre sur toute la largeur */
+}
+
+/* Label Pour / Contre en haut de colonne */
+.pour,
+.contre {
+  font-size: 0.6875rem;
+  font-weight: var(--k-font-weight-semibold, 600);
+  text-transform: uppercase;
+  padding: var(--k-space-2, 8px) var(--k-space-4, 16px);
+  /* Etend le label sur toute la largeur du conteneur (annule le padding horizontal du parent) */
+  margin: 0 calc(-1 * var(--k-space-3, 12px)) var(--k-space-2, 8px);
+  border-radius: var(--k-form-radius-input, 8px) var(--k-form-radius-input, 8px) 0 0;
+  text-align: center;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--k-space-2, 8px);
+  position: relative;
+}
+
+.pour {
+  color: var(--k-bg-white, #fff);
+  background: var(--k-primary, #0977a5);
+}
+
+.contre {
+  color: var(--k-bg-white, #fff);
+  background: var(--k-warning, #ff9800);
+}
+
+/* Liste des parties dans une colonne */
+.listePartiesPour,
+.listePartiesContre {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-2, 8px);
+  width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: var(--k-space-2, 8px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(9, 119, 165, 0.3) transparent;
+}
+
+/* =========================================================================
+   CARTE PARTIE — Layout Vertical Premium (Nom au-dessus, indicateurs en bas)
+   =========================================================================
+   Structure :
+     ┌─────────────────────────────────────────┐
+     │  Nom de la partie                   [DJ] │  ← partie-card__header
+     │  [🧑‍⚖️ 1] [👤 2] [+]     [🗑️ ✏️]         │  ← partie-card__footer
+     └─────────────────────────────────────────┘
+   ========================================================================= */
+
+/* Items de partie individuels — carte verticale */
+.itemPartiePour,
+.itemPartieContre {
+  display: flex;
+  flex-direction: column; /* ← CLÉ : passage en vertical */
+  padding: 10px 14px 8px;
+  border-radius: var(--k-form-radius-input, 8px);
+  cursor: grab;
+  gap: 6px;
+  box-sizing: border-box;
+  transition: all 180ms ease;
+  position: relative;
+}
+
+.itemPartiePour {
+  background-color: var(--k-wb-item-pour-bg, #edf6f0);
+  color: var(--k-primary-800, #043a4f);
+  border: 1px solid var(--k-wb-item-pour-border, #d5e8da);
+  border-left: 3px solid var(--k-primary, #0977a5);
+}
+
+.itemPartiePour:hover {
+  background-color: var(--k-wb-item-pour-hover, #e2f0e7);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.itemPartieContre {
+  background-color: var(--k-wb-item-contre-bg, #fef5e7);
+  color: var(--k-primary-800, #043a4f);
+  border: 1px solid var(--k-wb-item-contre-border, #f5e0c0);
+  border-left: 3px solid var(--k-warning, #ff9800);
+}
+
+.itemPartieContre:hover {
+  background-color: var(--k-wb-item-contre-hover, #fcefd8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Classe pour les items en mode drag (drag en cours) */
+.itemPartieScroll {
+  opacity: 0.5;
+  border: 2px dashed var(--k-primary-200, #80c6da) !important;
+  background-color: var(--k-primary-50, #e6f4f9) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* ── Header de carte : Nom + Initiales ── */
+.partie-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Nom de la partie — dominant, tronqué proprement */
+.partie-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--k-primary-800, #043a4f);
+}
+
+/* ── Footer de carte : Badges + Actions ── */
+.partie-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  min-height: 26px;
+}
+
+/* Conteneur des boutons d'options — apparition au hover */
+.optionsContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-1, 4px);
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 120ms ease-out,
+              transform 120ms ease-out;
+  pointer-events: none;
+  margin-left: auto;
+}
+
+/* Show on card hover (desktop) or when toggled open (mobile fallback) */
+.itemPartiePour:hover .optionsContainer,
+.itemPartieContre:hover .optionsContainer,
+.optionsContainer.optionsContainer--open {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+/* Variante du bouton ajout contact lie */
+.ajoutContactLie_alt {
+  height: 15px;
+  width: 15px;
+  background-color: var(--k-warning, #ff9800);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.ajoutContactLie_alt img {
+  width: 15px;
+}
+
+.inputWithCreerPartie {
+  position: relative;
+  width: 100%;
+}
+
+/* Input dans la modale de lien de partie */
+.inputWithCreerPartie .inputNomPartie {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 30px 7px 10px;
+  height: 32px;
+  border-radius: var(--k-radius-base, 6px);
+  border: none;
+  outline: none;
+  color: var(--k-primary-800, #043a4f);
+  background-color: var(--k-bg-white, white);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+}
+
+/* Quand la liste de suggestions est visible : supprime les radius bas
+   pour créer une continuité visuelle input → dropdown */
+.inputWithCreerPartie .inputNomPartie.listVisible,
+.inputWithCreerPartie .inputNomPartie.inputNomPartie_bottom {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* ==========================================================================
+   Listes de Suggestions et Items
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Liste de suggestions contacts (modale de lien)
+   ─────────────────────────────────────────────────
+   Positionnement : ancré au parent .inputWithCreerPartie (position: relative)
+   Alignement     : left: 0 + width: 100%  ⇒  bords parfaitement alignés
+                    avec l'input .inputNomPartie (lui aussi width: 100%).
+   -------------------------------------------------------------------------- */
+.liste_contacts_form_partie {
+  /* ── Visuel ── */
+  background-color: var(--k-wb-linked-list-bg, #d6ebf7);
+  border-radius: 0 0 var(--k-radius-base, 6px) var(--k-radius-base, 6px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: var(--k-space-1, 4px);
+
+  /* ── Layout interne ── */
+  display: flex !important;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 125px !important;
+  overflow-y: auto;
+  box-sizing: border-box;
+
+  /* ── Positionnement — pixel-perfect avec l'input ── */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  z-index: 1200;
+
+  /* ── État caché (par défaut) ── */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 150ms ease-out,
+              transform 150ms ease-out;
+}
+
+.liste_contacts_form_partie.dropUp {
+  top: auto;
+  bottom: 100%;
+  border-radius: var(--k-radius-base, 6px) var(--k-radius-base, 6px) 0 0;
+  transform: translateY(-4px);
+}
+
+/* Affichage de la liste dans NewModal */
+.modal-content-partie-link_withList .liste_contacts_form_partie {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  top: 100%;
+  bottom: auto;
+}
+
+.modal-content-partie-link_withList .liste_contacts_form_partie.dropUp {
+  top: auto !important;
+  bottom: 100% !important;
+  transform: none;
+}
+
+
+/* Items de suggestion (contacts) */
+.itemContact {
+  background-color: var(--k-bg-white, #fff);
+  border-radius: var(--k-radius-base, 6px);
+  padding: var(--k-space-2, 8px) var(--k-space-3, 12px);
+  cursor: pointer;
+  color: var(--k-primary-800, #043a4f);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  letter-spacing: 0.01em;
+  transition: background-color 120ms ease,
+              color 120ms ease;
+}
+
+/* `.is-active` est driven par useComboboxKeyboard (onMouseEnter set
+   activeIndex pour la souris, ↓/↑ pour le clavier). On ne garde plus
+   :hover natif pour éviter le cumul "souris immobile + clavier" qui
+   surlignait 2 items en même temps. */
+.itemContact.is-active {
+  background-color: var(--k-primary-800, #043a4f);
+  color: var(--k-bg-white, #fff);
+}
+
+.liste_contacts_form_partie .loading,
+.liste_contacts_form_partie .noResults {
+  padding: var(--k-space-1, 5px);
+  text-align: center;
+  color: var(--k-gray-500, #9e9e9e);
+  background-color: var(--k-gray-100, #f5f5f5);
+  border-radius: var(--k-radius-base, 6px);
+}
+
+/* ==========================================================================
+   Scrollbars pour Listes de Suggestions
+   ========================================================================== */
+
+.liste_contacts_form_partie::-webkit-scrollbar,
+.linkedContactsList::-webkit-scrollbar {
+  width: 5px;
+}
+
+.liste_contacts_form_partie::-webkit-scrollbar-track,
+.linkedContactsList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.liste_contacts_form_partie::-webkit-scrollbar-thumb,
+.linkedContactsList::-webkit-scrollbar-thumb {
+  background: rgba(9, 119, 165, 0.25);
+  border-radius: 5px;
+}
+
+.liste_contacts_form_partie::-webkit-scrollbar-thumb:hover,
+.linkedContactsList::-webkit-scrollbar-thumb:hover {
+  background: rgba(9, 119, 165, 0.45);
+}
+
+/* Spécificités de bordure pour .liste_contacts_form_partie */
+.liste_contacts_form_partie::-webkit-scrollbar-track {
+  border-radius: 0 0 5px 0;
+}
+.liste_contacts_form_partie.dropUp::-webkit-scrollbar-track {
+  border-radius: 5px 0 0 0;
+}
+.liste_contacts_form_partie::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+}
+
+
+/* ==========================================================================
+   Parties Sélectionnées — Rôles Plaidant/Postulant
+   ========================================================================== */
+
+.plaidant, .postulant {
+  border: 1px solid var(--k-primary-800, #043a4f);
+  background-color: var(--k-bg-white, white);
+  padding: 3px;
+  border-radius: var(--k-radius-base, 6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: box-shadow 120ms ease;
+}
+.plaidant:hover, .postulant:hover {
+  border: 1px solid var(--k-primary-800, #043a4f);
+  box-shadow: inset 1px 1px 8px rgba(154, 205, 247, 0.5);
+}
+.plaidant.selection, .postulant.selection, .selection {
+  background-color: var(--k-primary, #0977a5);
+}
+.plaidant img, .postulant img { width: 17px; }
+
+
+/* ==========================================================================
+   Boutons d'Options (Créer contact, etc.)
+   ========================================================================== */
+
+.CreerContactLinkPartie, .CreerPartieAbsolute {
+  width: 18px;
+  height: 18px;
+  background-color: var(--k-primary-800, #043a4f);
+  border-radius: 50%;
+  border: 1.5px solid var(--k-primary, #0977a5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.CreerContactLinkPartie:hover, .CreerPartieAbsolute:hover {
+  background-color: var(--k-primary-600, #075a7f);
+}
+
+.CreerContactLinkPartie img {
+  width: 13px;
+  height: 14px;
+}
+.CreerPartieAbsolute img {
+  width: 11px;
+  height: 11px;
+}
+
+
+.CreerContactLinkPartie {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  transform: translateY(-50%);
+  z-index: 1100;
+}
+
+.CreerPartieAbsolute {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.editDossierButton {
+  margin-left: 1rem;
+  padding: var(--k-space-1, 4px) var(--k-space-3, 10px);
+  background-color: var(--k-primary-100, #b3dde9);
+  color: var(--k-primary-800, #043a4f);
+  border: 1px solid var(--k-primary-300, #4dafca);
+  border-radius: var(--k-radius-sm, 4px);
+  cursor: pointer;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+.editDossierButton:hover {
+  background-color: var(--k-primary, #0977a5);
+  color: var(--k-bg-white, #fff);
+}
+
+/* ==========================================================================
+   Icônes et Actions (Supprimer, Modifier, Initials, etc.)
+   ========================================================================== */
+
+.deletePartie, .modifPartie, .ajoutContactLie {
+  background-color: var(--k-primary-800, #043a4f);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 120ms ease-out,
+              transform 120ms ease-out;
+}
+
+.deletePartie:hover,
+.modifPartie:hover {
+  background-color: var(--k-primary-600, #075a7f);
+  transform: scale(1.08);
+}
+
+.deletePartie, .modifPartie {
+  padding: var(--k-space-1, 4px);
+  width: 26px;
+  height: 26px;
+}
+.deletePartie img { width: 14px; height: 14px; object-fit: contain; }
+.modifPartie img { width: 13px; height: 13px; object-fit: contain; }
+
+.ajoutContactLie {
+  height: 15px;
+  width: 15px;
+}
+.ajoutContactLie img { width: 15px; height: 15px; object-fit: contain; }
+
+
+.initials-icon, .initials-icon_linkedContact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: var(--k-font-weight-semibold, 600);
+}
+
+.initials-icon {
+  width: 30px;
+  height: 30px;
+  font-size: 0.65rem;
+  letter-spacing: 0.02em;
+  background-color: var(--k-primary-800, #043a4f);
+  color: var(--k-bg-white, #fff);
+  flex-shrink: 0;
+  transition: transform 120ms ease-out;
+  cursor: pointer;
+}
+
+.initials-icon:hover {
+  transform: scale(1.06);
+}
+
+.initials-icon_linkedContact {
+  width: 22px;
+  height: 22px;
+  font-size: 60%;
+  background-color: var(--k-bg-white, #fff);
+  color: var(--k-primary-800, #043a4f) !important;
+}
+
+
+/* ==========================================================================
+   Styles pour Contacts Liés et Avocats (dans les listes)
+   ========================================================================== */
+.contacts_deja_lies {
+  width: 100%; display: flex; flex-direction: column;
+  align-items: center; gap: var(--k-space-3, 10px); margin-top: 6px;
+  padding: 0 var(--k-space-3, 10px);
+  box-sizing: border-box;
+}
+
+.linkedContactsList {
+  background-color: var(--k-wb-linked-list-bg, #d6ebf7);
+  max-height: 100px !important;
+  width: 100%;
+  margin: 0 auto;
+  border-radius: var(--k-radius-base, 6px);
+  padding: var(--k-space-1, 4px);
+  display: flex !important;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.linkedContact, .linkedAvocat {
+  border-radius: var(--k-radius-base, 6px);
+  padding: 3px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  box-sizing: border-box;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  transition: background-color 120ms ease,
+              color 120ms ease;
+}
+.linkedContact {
+  background-color: var(--k-primary, #0977a5);
+  color: var(--k-bg-white, #fff);
+}
+.linkedContact:hover {
+  background-color: var(--k-primary-800, #043a4f);
+  color: var(--k-bg-white, #fff);
+}
+
+.linkedAvocat {
+  background-color: var(--k-primary-800, #043a4f);
+  color: var(--k-bg-white, #fff);
+  border: 1px solid var(--k-primary-300, #4dafca);
+}
+.linkedAvocat:hover {
+  background-color: var(--k-bg-white, white);
+  color: var(--k-primary-800, #043a4f);
+  border-color: var(--k-primary-800, #043a4f);
+}
+
+.linkedContact .OptionsLinkedContact,
+.linkedAvocat .role {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-1, 4px);
+}
+.role { gap: var(--k-space-1, 4px); }
+
+.container_initialesOptions { height: 28px; }
+
+.modifLinkContact, .deleteLinkContact {
+  padding: 3px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+.modifLinkContact img, .deleteLinkContact img { width: 14px; }
+
+/* Version standard (contact normal) */
+.modifLinkContact, .deleteLinkContact {
+  background-color: var(--k-primary-800, #043a4f);
+}
+.modifLinkContact:hover, .deleteLinkContact:hover {
+  background-color: var(--k-primary-600, #075a7f);
+}
+
+/* Version pour avocat (.linkedAv) */
+.modifLinkContact.linkedAv, .deleteLinkContact.linkedAv {
+  background-color: var(--k-bg-white, white);
+}
+.modifLinkContact.linkedAv:hover, .deleteLinkContact.linkedAv:hover {
+  background-color: var(--k-gray-100, #f5f5f5);
+}
+
+.modif-suppr-options {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  align-items: center;
+}
+
+.ajoutContactContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--k-primary-200, #80c6da);
+  border-radius: var(--k-radius-full, 9999px);
+  height: auto;
+  min-height: 28px;
+  padding: var(--k-space-1, 4px) var(--k-space-2, 8px);
+  flex-wrap: nowrap;
+  gap: var(--k-space-1, 4px);
+  background-color: rgba(255, 255, 255, 0.7);
+  transition: background-color 150ms ease,
+              border-color 150ms ease;
+  cursor: pointer;
+}
+
+.ajoutContactContainer:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-color: var(--k-primary, #0977a5);
+}
+
+.nombreContactsLies {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--k-space-1, 4px);
+}
+
+.contactCount {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 var(--k-space-1, 4px);
+  color: var(--k-primary-800, #043a4f);
+  font-size: var(--k-font-size-xs, 0.75rem);
+  font-weight: var(--k-font-weight-semibold, 600);
+}
+.contactCount img { width: 14px; height: 14px; }
+
+
+/* ==========================================================================
+   Modales (Overlay, Contenu Général, Spécifiques)
+   ========================================================================== */
+.modal-overlay, .modal-overlay-partieLink {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay {
+  z-index: 15000;
+}
+.modal-overlay-top { z-index: 20000 !important; }
+
+.modal-overlay-partieLink {
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 500;
+}
+
+/* Contenu de la modale principale */
+.modal-content-fromPartie {
+  background-color: var(--k-bg-white, #ffffff);
+  padding: 0;
+  border-radius: var(--k-form-radius-card, 10px);
+  box-shadow: none;
+  width: auto;
+  max-width: 90vw;
+  /* ── Scroll isolation: constrain height so inner form scrolls ── */
+  max-height: calc(100vh - 24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Contenu de la modale de lien de partie (NewModal) */
+.modal-content-partie-link {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 600;
+  background-color: var(--k-primary-800, #043a4f);
+  padding: 20px !important;
+  border-radius: var(--k-form-radius-card, 10px);
+  max-width: 500px;
+  width: 90vw;
+  box-shadow: var(--k-wb-modal-shadow, 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.12));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 130px;
+  padding-top: 30px;
+  box-sizing: border-box;
+  color: var(--k-bg-white, white);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+}
+
+.modal-content-partie-link_withList {
+  /* Cette classe active l'affichage de la liste de contacts */
+}
+
+.titleAndInput {
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--k-space-3, 10px);
+  color: var(--k-bg-white, #fff);
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 var(--k-space-3, 10px);
+  margin-bottom: var(--k-space-3, 10px);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+}
+
+/* ── Modale élargie pour accueillir le récapitulatif ── */
+.modal-content-partie-link {
+  max-width: 580px; /* Élargi depuis 500px */
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   RÉCAPITULATIF DES PARTIES (PartiesSummary)
+   ========================================================================== */
+
+.parties-summary {
+  width: 100%;
+  margin: 6px 0 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+.parties-summary__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Section Pour / Contre */
+.parties-summary__section {
+  margin-bottom: 8px;
+  padding-left: 8px;
+  border-left: 3px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0 4px 4px 0;
+}
+
+.parties-summary__section:last-child {
+  margin-bottom: 0;
+}
+
+.parties-summary__section--pour {
+  border-left-color: #00784a;
+  background: rgba(0, 120, 74, 0.06);
+  padding: 6px 8px;
+  border-radius: 0 6px 6px 0;
+}
+
+.parties-summary__section--contre {
+  border-left-color: #d4942a;
+  background: rgba(212, 148, 42, 0.06);
+  padding: 6px 8px;
+  border-radius: 0 6px 6px 0;
+}
+
+.parties-summary__section-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+  opacity: 0.85;
+}
+
+.parties-summary__section--pour .parties-summary__section-title {
+  color: #4ecb8a;
+}
+
+.parties-summary__section--contre .parties-summary__section-title {
+  color: #f0b75a;
+}
+
+/* Chaque partie */
+.parties-summary__partie {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.parties-summary__partie:last-child {
+  border-bottom: none;
+}
+
+.parties-summary__partie-name {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+/* Lignes de contacts/avocats liés */
+.parties-summary__linked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  margin-top: 2px;
+  font-size: 0.75rem;
+}
+
+.parties-summary__linked--empty {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+.parties-summary__linked-label {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+/* Chips (pastilles) pour chaque contact/avocat */
+.parties-summary__chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.parties-summary__chip--avocat {
+  background: rgba(9, 119, 165, 0.25);
+  color: #8adcf8;
+  border: 1px solid rgba(9, 119, 165, 0.35);
+}
+
+.parties-summary__chip--contact {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ==========================================================================
+   ÉTATS INTERACTIFS — Sections cliquables (Pour / Contre)
+   ========================================================================== */
+
+/* Toutes les sections sont cliquables */
+.parties-summary__section {
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.parties-summary__section:hover {
+  transform: translateX(2px);
+}
+
+/* Section-header : titre + badge côte à côte */
+.parties-summary__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+/* ── État ACTIF ── */
+.parties-summary__section--active {
+  opacity: 1;
+}
+
+.parties-summary__section--active.parties-summary__section--pour {
+  border-left-width: 4px;
+  border-left-color: #4ecb8a;
+  background: rgba(0, 120, 74, 0.14);
+  box-shadow: 0 0 12px rgba(78, 203, 138, 0.15);
+}
+
+.parties-summary__section--active.parties-summary__section--contre {
+  border-left-width: 4px;
+  border-left-color: #f0b75a;
+  background: rgba(212, 148, 42, 0.14);
+  box-shadow: 0 0 12px rgba(240, 183, 90, 0.15);
+}
+
+/* ── État INACTIF ── */
+.parties-summary__section--inactive {
+  opacity: 0.5;
+  border-left-width: 2px;
+}
+
+.parties-summary__section--inactive:hover {
+  opacity: 0.8;
+}
+
+/* ── Badge "Actif" ── */
+.parties-summary__active-badge {
+  display: inline-block;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+.parties-summary__section--pour .parties-summary__active-badge {
+  color: #4ecb8a;
+  background: rgba(78, 203, 138, 0.15);
+  border: 1px solid rgba(78, 203, 138, 0.3);
+}
+
+.parties-summary__section--contre .parties-summary__active-badge {
+  color: #f0b75a;
+  background: rgba(240, 183, 90, 0.15);
+  border: 1px solid rgba(240, 183, 90, 0.3);
+}
+
+@keyframes badgePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Marges pour la modale de lien */
+.modal-content-partie-link-margin { height: 100vh; width: 100vw; }
+.modal-content-partie-link-margin-alt { height: 0vh; width: 0vw; }
+
+
+/* Classes de modification de la modale principale */
+.ajout-partie {
+  width: 90%;
+  margin-top: 6px;
+  padding-bottom: 5px;
+  margin-left: 40px;
+}
+
+.modification-linked-physique,
+.modification-linked-morale-private,
+.modification-linked-morale-public,
+.modification-partie-physique,
+.modification-partie-morale-private,
+.modification-partie-morale-public,
+.modification-linked-inconnu,
+.modification-partie-inconnu {
+  width: 92vw;
+  position: relative;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 20px 5px;
+}
+
+/* Ajustements spécifiques par type */
+.modification-linked-physique { margin-top: 35px; padding-bottom: 25px !important; max-width: none !important; }
+.modification-linked-morale-private { margin-top: 28px; padding-bottom: 30px !important; max-width: none !important; }
+.modification-linked-morale-public { margin-top: 32px; padding-bottom: 15px !important; max-width: none !important; }
+
+.modification-partie-physique { margin-top: 6px; padding-bottom: 30px !important; max-width: 85% !important; }
+.modification-partie-morale-private { margin-top: 6px; padding-bottom: 30px !important; max-width: none !important; }
+.modification-partie-morale-public { margin-top: 6px; padding-bottom: 28px !important; max-width: 85% !important; }
+
+.modification-linked-inconnu,
+.modification-partie-inconnu { margin-top: 6px; padding-bottom: 30px !important; max-width: 85% !important; }
+
+
+/* ==========================================================================
+   Droppable Zone — Feedback visuel drag-and-drop
+   ========================================================================== */
+.droppableZone {
+  flex: 1 1 0%;
+  min-width: 0;
+  transition: outline-color 150ms ease;
+  outline: 2px solid transparent;
+  border-radius: var(--k-form-radius-input, 8px);
+}
+
+.droppableZone.over {
+  outline: 2px dashed var(--k-primary, #0977a5);
+  background-color: var(--k-primary-50, #e6f4f9);
+}
+
+/* Si une seule colonne, ne pas trop élargir */
+.liste_selected_parties > .droppableZone:only-child {
+  max-width: 65%;
+}
+
+
+/* ==========================================================================
+   Container principal de la section Parties
+   ========================================================================== */
+.parties-section-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--k-space-4, 16px);
+  margin-top: var(--k-space-3, 12px);
+  padding: 0 var(--k-space-2, 8px);
+}
+
+.container_option {
+  display: flex;
+  align-items: center;
+}
+
+/* Ajustement visuel pour .pour-contre-container quand la liste est au-dessus */
+.pour-contre-container.pour-contre-container_top_visual_adjustment {
+  /* margin-bottom: 130px; */
+}
+
+/* Utilitaire */
+.padBordNone {
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  min-height: auto !important;
+}
+
+
+/* ==========================================================================
+   Media Queries (Styles responsives)
+   ========================================================================== */
+@media (min-width: 768px) {
+
+  .modal-content-fromPartie {
+    background: transparent;
+    max-width: 70%;
+  }
+
+  .formAddContact {
+    margin: 7px 85px;
+  }
+
+  /* Ajustements des modales de modification pour desktop */
+  .modification-linked-physique,
+  .modification-linked-morale-public,
+  .modification-partie-physique,
+  .modification-partie-morale-public,
+  .modification-linked-inconnu,
+  .modification-partie-inconnu {
+    width: 83vw !important;
+  }
+  .modification-linked-physique { margin-top: 45px; }
+  .modification-linked-morale-public { margin-top: 40px; }
+
+  .modification-linked-morale-private,
+  .modification-partie-morale-private {
+    width: 83vw !important;
+    max-width: 70vw !important;
+    margin-top: 25px;
+  }
+   .modification-partie-morale-private { margin-top: 6px !important; }
+
+
+  .ajout-partie {
+    margin-top: 6px !important;
+    padding-bottom: 5px !important;
+  }
+
+  .modal-content-partie-link {
+    width: 100%;
+    max-width: 530px;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ── Responsive: narrow viewports ── */
+@media (max-width: 767px) {
+  .ajout-partie {
+    width: 95%;
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+
+  .modification-linked-physique,
+  .modification-linked-morale-private,
+  .modification-linked-morale-public,
+  .modification-partie-physique,
+  .modification-partie-morale-private,
+  .modification-partie-morale-public,
+  .modification-linked-inconnu,
+  .modification-partie-inconnu {
+    width: 96vw;
+    padding: 10px 2px;
+  }
+
+  .modal-content-fromPartie {
+    max-width: 96vw;
+  }
+
+  .formAddContact {
+    margin: 4px;
+  }
+}
+
+/* ── Responsive: height-constrained ── */
+@media (max-height: 700px) {
+  .modal-content-fromPartie {
+    max-height: calc(100vh - 16px);
+  }
+
+  .ajout-partie {
+    margin-top: 2px;
+    padding-bottom: 2px;
+  }
+}
+
+/* ==========================================================================
+   MODE MALVOYANT (HIGH-CONTRAST) — Onglet Parties
+   Palette : texte jaune vif (#FFE500) sur fond noir (#000)
+   ========================================================================== */
+
+/* ── Cartes de partie : fond noir, bordure jaune ── */
+body.high-contrast-mode .itemPartiePour,
+body.high-contrast-mode .itemPartieContre {
+  background-color: #000 !important;
+  border: 2px dashed yellow !important;
+  border-left: 4px solid yellow !important;
+}
+
+body.high-contrast-mode .itemPartiePour:hover,
+body.high-contrast-mode .itemPartieContre:hover {
+  background-color: #111 !important;
+  box-shadow: 0 0 8px rgba(255, 229, 0, 0.3) !important;
+}
+
+/* ── Nom de la partie : JAUNE VIF et bien visible ── */
+body.high-contrast-mode .partie-name {
+  color: yellow !important;
+  font-weight: 700 !important;
+}
+
+/* ── Initiales : jaune sur fond sombre ── */
+body.high-contrast-mode .initials-icon {
+  color: yellow !important;
+  background: rgba(255, 255, 0, 0.15) !important;
+  border-color: yellow !important;
+}
+
+/* ── Badges (nombre d'avocats/contacts) ── */
+body.high-contrast-mode .ajoutContactContainer {
+  border-color: yellow !important;
+  background-color: #000 !important;
+}
+
+body.high-contrast-mode .contactCount {
+  color: yellow !important;
+}
+
+body.high-contrast-mode .contactCount img {
+  filter: brightness(0) saturate(100%) invert(90%) sepia(100%) saturate(500%) hue-rotate(5deg) !important;
+}
+
+body.high-contrast-mode .ajoutContactLie,
+body.high-contrast-mode .ajoutContactLie_alt {
+  background-color: yellow !important;
+}
+
+body.high-contrast-mode .ajoutContactLie img,
+body.high-contrast-mode .ajoutContactLie_alt img {
+  filter: brightness(0) !important;
+}
+
+/* ── Boutons d'options (supprimer, modifier) ── */
+body.high-contrast-mode .deletePartie,
+body.high-contrast-mode .modifPartie {
+  background-color: yellow !important;
+  border-radius: 4px;
+}
+
+body.high-contrast-mode .deletePartie img,
+body.high-contrast-mode .modifPartie img {
+  filter: brightness(0) !important;
+}
+
+/* ── En-têtes de colonne POUR / CONTRE ── */
+body.high-contrast-mode .headerNomColonne,
+body.high-contrast-mode .headerNomColonneContre {
+  color: #000 !important;
+  font-weight: 700 !important;
+}
+
+/* ── Zone de contenu des colonnes ── */
+body.high-contrast-mode .itemsContainerPour,
+body.high-contrast-mode .itemsContainerContre {
+  background: #000 !important;
+  border-color: yellow !important;
+}
+
+/* ── Input recherche partie ── */
+body.high-contrast-mode .inputNomPartie {
+  border: 2px solid yellow !important;
+  background: #000 !important;
+  color: yellow !important;
+}
+
+body.high-contrast-mode .inputNomPartie::placeholder {
+  color: rgba(255, 229, 0, 0.5) !important;
+}
+
+/* ── Conteneur global des parties : fond noir au lieu de blanc ── */
+body.high-contrast-mode .selected_partie {
+  background: #000 !important;
+  border: 1px solid yellow !important;
+  box-shadow: 0 0 10px rgba(255, 229, 0, 0.25) !important;
+}
+
+/* ── Colonnes Pour/Contre : fond noir, bordure jaune ── */
+body.high-contrast-mode .parties_pour,
+body.high-contrast-mode .parties_contre {
+  background: #000 !important;
+  border: 2px dashed yellow !important;
+}
+
+/* ── Labels POUR / CONTRE : texte noir lisible sur fond jaune/orange ── */
+body.high-contrast-mode .pour {
+  background: yellow !important;
+  color: #000 !important;
+}
+
+body.high-contrast-mode .contre {
+  background: #ff9800 !important;
+  color: #000 !important;
+}
+
+body.high-contrast-mode .pour span,
+body.high-contrast-mode .contre span {
+  color: #000 !important;
+  font-weight: 700 !important;
+}
+
+/* ── Bouton "..." : fond transparent, points noirs pour tranche sur jaune/orange ── */
+body.high-contrast-mode .customAllParties {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+body.high-contrast-mode .customAllParties:hover {
+  background-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+body.high-contrast-mode .customAllParties img {
+  filter: brightness(0) !important;
+}

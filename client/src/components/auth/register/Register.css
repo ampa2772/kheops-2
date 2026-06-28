@@ -1,0 +1,360 @@
+/* ==========================================================================
+   Register.css — formulaire d'inscription multi-sections
+   Pixel-perfect : badge, sections numérotées, cartes de genre.
+   ========================================================================== */
+
+/* Conteneur : scroll vertical interne car le formulaire d'inscription
+   est plus grand qu'un viewport. body/html ont overflow:hidden globalement,
+   donc on doit faire scroller le container lui-même (height + max-height + overflow). */
+.register-container {
+  align-items: flex-start;
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 100vh;
+  overflow-y: auto;
+  /* Padding interne pour respirer en haut/bas pendant le scroll */
+  padding-top: 32px;
+  padding-bottom: 32px;
+  /* Scrollbar discrète */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.register-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.register-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.register-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+.register-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.30);
+}
+
+.register-wrapper {
+  max-width: 480px;
+  padding: 28px 30px 24px;
+  text-align: left;
+  margin: auto;
+}
+
+/* ---------- En-tête : badge "NOUVEAU COMPTE" + titre + sous-titre ---------- */
+.register-header {
+  margin-bottom: 8px;
+}
+
+.new-account-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(9, 119, 165, 0.08);
+  color: var(--k-primary, #0977a5);
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(9, 119, 165, 0.20);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.new-account-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--k-primary, #0977a5);
+}
+
+.new-account-badge-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.register-title {
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  margin: 0 0 8px;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.register-title em {
+  font-style: italic;
+  font-weight: 700;
+  color: var(--k-primary, #0977a5);
+  margin-left: 2px;
+}
+
+/* ---------- Barre de progression ---------- */
+.register-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 4px;
+}
+
+.register-progress-track {
+  flex: 1;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.register-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--k-primary, #0977a5), #38bdf8);
+  border-radius: 999px;
+  transition: width 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.register-progress-percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ---------- Section numérotée (01 / 02 / 03) ---------- */
+.form-section {
+  margin-top: 20px;
+}
+
+.form-section + .form-section {
+  margin-top: 24px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.section-number {
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.section-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.section-divider {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, #e2e8f0, transparent);
+  margin: 0;
+}
+
+/* ---------- Grille 2 colonnes (prénom/nom, ville/code postal) ---------- */
+.row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.row-2 .input-wrapper input {
+  margin-bottom: 0 !important;
+}
+
+.register-wrapper .field-group {
+  margin-bottom: 12px;
+}
+
+/* ---------- Genre : label + cartes ---------- */
+.genre-section {
+  margin-top: 18px;
+}
+
+.genre-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.14em;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.genre-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.genre-card {
+  /* Neutralise la règle globale `button { width:100%, padding:10px, ... }` */
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  width: 100%;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #0f172a;
+  font-family: inherit;
+  text-align: left;
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.genre-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.genre-card.is-selected {
+  border-color: var(--k-primary, #0977a5);
+  background: #f0f9ff;
+  box-shadow: 0 0 0 3px rgba(9, 119, 165, 0.10);
+}
+
+.genre-card-label {
+  flex: 1;
+}
+
+/* Cercle qui contient le mini-personnage — charte app : transparent par défaut,
+   vert dégradé quand sélectionné, SVG blanc via filter en état sélectionné. */
+.genre-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(9, 119, 165, 0.08);
+  border: 2px solid rgba(9, 119, 165, 0.15);
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.genre-avatar-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  transition: filter 200ms ease;
+}
+
+.genre-card:hover .genre-avatar {
+  background: rgba(9, 119, 165, 0.14);
+  border-color: rgba(9, 119, 165, 0.25);
+}
+
+/* Sélectionné : reproduit fidèlement le style .gender-option.selected
+   (formulaire d'ajout de contact, createContact/styles.css). */
+.genre-card.is-selected .genre-avatar {
+  background: linear-gradient(135deg, #00a85e, #00784a);
+  border-color: rgba(0, 168, 94, 0.5);
+  box-shadow:
+    0 0 0 3px rgba(0, 120, 74, 0.20),
+    0 2px 8px rgba(0, 120, 74, 0.25),
+    0 0 12px rgba(0, 168, 94, 0.15);
+}
+
+.genre-card.is-selected .genre-avatar-img {
+  /* Le SVG d'origine est `fill="navy"` ; ce filtre le rend blanc pour
+     bien ressortir sur le fond vert. Identique au pattern de l'app. */
+  filter: brightness(0) invert(1);
+}
+
+/* ---------- Bouton submit "Créer mon compte" ---------- */
+.register-wrapper button[type="submit"] {
+  margin-top: 24px;
+}
+
+/* ---------- Bouton "Revenir à se connecter" ---------- */
+.register-wrapper .switch-button {
+  margin-top: 12px;
+}
+
+/* ---------- Mode malvoyant ---------- */
+body.high-contrast-mode .new-account-badge {
+  background: #000;
+  color: #ff0;
+  border-color: #ff0;
+}
+
+body.high-contrast-mode .new-account-badge-icon {
+  color: #ff0;
+}
+
+body.high-contrast-mode .register-title em {
+  color: #ff0;
+}
+
+body.high-contrast-mode .register-progress-track {
+  background: #333;
+}
+
+body.high-contrast-mode .register-progress-fill {
+  background: #ff0;
+}
+
+body.high-contrast-mode .register-progress-percent {
+  color: #ff0;
+}
+
+body.high-contrast-mode .section-number {
+  background: #000;
+  color: #ff0;
+  border: 1px solid #ff0;
+}
+
+body.high-contrast-mode .section-label,
+body.high-contrast-mode .genre-label {
+  color: #ff0;
+}
+
+body.high-contrast-mode .section-divider {
+  background: #ff0;
+}
+
+body.high-contrast-mode .genre-card {
+  background: #000;
+  color: #ff0;
+  border-color: #ff0;
+}
+
+body.high-contrast-mode .genre-card.is-selected {
+  background: #333;
+  box-shadow: none;
+}
+
+body.high-contrast-mode .genre-avatar {
+  background: #000 !important;
+  border: 2px solid #ff0;
+  color: #ff0;
+  box-shadow: none;
+}

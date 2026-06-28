@@ -1,0 +1,123 @@
+/* Kheops_2/client/src/components/dashboard/office/agenda/MoreEventsModal.css */
+/* Overlay : les propriétés de base (position, flex, centering) sont fournies par .k-modal-overlay (_modal-base.css) */
+.more-events-modal-overlay-kheops {
+  background-color: rgba(0, 0, 0, 0.65);
+  z-index: 1065; /* Entre la modale de création et celle de détail */
+  font-family: 'Roboto', Arial, sans-serif;
+}
+
+.more-events-modal-kheops {
+  background-color: #202124;
+  color: #e8eaed;
+  border-radius: 8px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  width: 360px;
+  max-width: 90%;
+  position: relative;
+  padding: 16px;
+}
+
+.more-events-close-btn-kheops {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #9aa0a6;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 32px; /* Taille fixe pour le cercle */
+  height: 32px; /* Taille fixe pour le cercle */
+  border-radius: 50%; /* Rendre le bouton circulaire */
+  display: flex; /* Centrer la croix */
+  align-items: center; /* Centrer la croix */
+  justify-content: center; /* Centrer la croix */
+  transition: background-color 0.2s ease;
+}
+
+.more-events-close-btn-kheops:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #e8eaed;
+}
+
+.more-events-header-kheops {
+  display: flex;
+  align-items: baseline; /* Aligner sur la ligne de base pour un meilleur aspect */
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3c4043;
+}
+
+.more-events-day-number-kheops {
+  font-size: 28px; /* Grand numéro de jour */
+  font-weight: 400;
+  color: #e8eaed;
+  margin-right: 8px;
+  line-height: 1;
+}
+
+.more-events-day-text-kheops {
+  font-size: 14px;
+  color: #9aa0a6; /* Texte du jour de la semaine plus discret */
+  text-transform: uppercase;
+  line-height: 1.2; /* Ajuster pour alignement vertical avec le numéro */
+}
+
+.more-events-list-kheops {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 300px; /* Limiter la hauteur si beaucoup d'événements */
+  overflow-y: auto;
+}
+
+.more-events-item-kheops {
+  display: flex;
+  align-items: center;
+  padding: 8px 4px; /* Padding plus léger */
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.more-events-item-kheops:not(:last-child) {
+    border-bottom: 1px solid #2a2b2e; /* Séparateur très subtil */
+}
+
+.more-events-item-kheops:hover {
+  background-color: #3c4043;
+}
+
+.more-events-item-time-kheops {
+  font-size: 13px;
+  color: #8ab4f8; /* Heure en bleu Google */
+  margin-right: 12px;
+  flex-shrink: 0; /* Empêcher l'heure de rétrécir */
+}
+
+.more-events-item-title-kheops {
+  font-size: 14px;
+  color: #e8eaed;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+}
+
+/* Styles pour la scrollbar de la liste */
+.more-events-list-kheops::-webkit-scrollbar {
+  width: 6px;
+}
+.more-events-list-kheops::-webkit-scrollbar-track {
+  background: #2a2b2e;
+  border-radius: 3px;
+}
+.more-events-list-kheops::-webkit-scrollbar-thumb {
+  background: #5f6368;
+  border-radius: 3px;
+}
+.more-events-list-kheops::-webkit-scrollbar-thumb:hover {
+  background: #797d82;
+}

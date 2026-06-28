@@ -1,0 +1,100 @@
+/* ==========================================================================
+   UploadProgressBar — Design System Kheops 2
+   ========================================================================== */
+
+.upload-progress-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20000;
+  color: var(--k-primary-800, #043a4f);
+}
+
+.upload-progress-container {
+  background-color: var(--k-primary-lighter, #e6f3fd);
+  padding: 25px 30px;
+  border-radius: var(--k-radius-lg, 12px);
+  box-shadow: var(--k-shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.4));
+  width: 90%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.upload-progress-title {
+  margin-top: 0;
+  margin-bottom: var(--k-space-5, 20px);
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--k-primary-800, #043a4f);
+}
+
+.upload-progress-title.error {
+  color: var(--k-danger, #dc3545);
+}
+
+.upload-progress-bar-wrapper {
+  width: 100%;
+  height: 20px;
+  background-color: var(--k-bg-medium, #e0e0e0);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.upload-progress-bar-fill {
+  height: 100%;
+  background-color: var(--k-success, #008047);
+  border-radius: 10px;
+  transition: width 0.3s ease-in-out;
+}
+
+.upload-progress-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+}
+
+.upload-progress-percentage {
+  font-weight: bold;
+}
+
+.upload-progress-details {
+  font-size: 0.9rem;
+  color: var(--k-primary-800, #043a4f);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.upload-progress-details.error-details {
+  background-color: var(--k-danger-light, #fce8ea);
+  border: 1px solid rgba(220, 53, 69, 0.25);
+  color: var(--k-danger, #dc3545);
+  padding: 10px;
+  border-radius: var(--k-radius-sm, 4px);
+  margin-bottom: 10px;
+}
+
+/* ========== MODE MALVOYANT ========== */
+body.high-contrast-mode .upload-progress-container {
+  background-color: black;
+  border: 2px solid yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .upload-progress-title {
+  color: yellow;
+}
+
+body.high-contrast-mode .upload-progress-bar-fill {
+  background-color: var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .upload-progress-details {
+  color: yellow;
+}

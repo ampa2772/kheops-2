@@ -1,0 +1,81 @@
+/* ==========================================================================
+   CloudSyncStatus — indicateur de synchronisation cloud dans le header
+   ========================================================================== */
+
+.k-cloud-sync {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: default;
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.k-cloud-sync:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.k-cloud-sync__dot {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--k-bg-dark, #08182a);
+  pointer-events: none;
+}
+
+/* États */
+.k-cloud-sync--idle {
+  color: #a5d8ff;
+}
+.k-cloud-sync__dot--idle {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.k-cloud-sync--syncing {
+  color: #4dc9ff;
+}
+.k-cloud-sync__dot--syncing {
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
+  animation: kCloudSyncPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes kCloudSyncPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.3); opacity: 0.7; }
+}
+
+.k-cloud-sync--syncing svg {
+  animation: kCloudSyncSpin 2.5s linear infinite;
+}
+
+@keyframes kCloudSyncSpin {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+.k-cloud-sync--error {
+  color: #fca5a5;
+}
+.k-cloud-sync__dot--error {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.7);
+}
+
+/* High contrast mode */
+body.high-contrast-mode .k-cloud-sync {
+  color: yellow;
+}
+body.high-contrast-mode .k-cloud-sync__dot {
+  border-color: black;
+}

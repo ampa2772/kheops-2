@@ -1,0 +1,193 @@
+/* ============================================================================
+   ClockPicker — cadran SVG analogique pour selectionner heure / minute
+   ============================================================================ */
+
+.clock-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px 14px 16px;
+  background: rgba(8, 22, 36, 0.92);
+  border: 1px solid rgba(77, 155, 255, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  user-select: none;
+  width: max-content;
+  animation: clockFadeIn 180ms cubic-bezier(0.2, 0.7, 0.4, 1);
+}
+
+@keyframes clockFadeIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* === Affichage HH:MM en haut === */
+.clock-picker__display {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.clock-picker__display-num {
+  background: transparent;
+  border: 2px solid transparent;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 2px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  letter-spacing: 0.02em;
+}
+
+.clock-picker__display-num:hover {
+  color: #fff;
+  background: rgba(77, 155, 255, 0.1);
+}
+
+.clock-picker__display-num.is-active {
+  color: #4d9bff;
+  background: rgba(77, 155, 255, 0.14);
+  border-color: rgba(77, 155, 255, 0.45);
+}
+
+.clock-picker__display-sep {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* === Cadran SVG === */
+.clock-picker__svg {
+  cursor: pointer;
+  touch-action: none;
+}
+
+.clock-picker__face {
+  fill: rgba(255, 255, 255, 0.04);
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 1;
+}
+
+.clock-picker__tick {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.clock-picker__tick.is-major {
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1.4;
+}
+
+/* Aiguille animee */
+.clock-picker__hand-group {
+  pointer-events: none;
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+
+.clock-picker__hand-line {
+  stroke: #4d9bff;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.clock-picker__hand-tip {
+  fill: rgba(77, 155, 255, 0.22);
+  stroke: #4d9bff;
+  stroke-width: 1.6;
+}
+
+.clock-picker__hand-center {
+  fill: #4d9bff;
+}
+
+/* Labels (heures et minutes) */
+.clock-picker__label {
+  fill: rgba(255, 255, 255, 0.78);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: fill 0.15s ease;
+}
+
+.clock-picker__label.is-inner {
+  fill: rgba(255, 255, 255, 0.45);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.clock-picker__label:hover {
+  fill: #4d9bff;
+}
+
+.clock-picker__label.is-selected {
+  fill: #fff;
+  font-weight: 700;
+}
+
+/* Footer : modes + bouton OK */
+.clock-picker__footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 9999px;
+  width: 100%;
+}
+
+.clock-picker__mode-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.clock-picker__mode-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.clock-picker__mode-btn.is-active {
+  background: rgba(77, 155, 255, 0.18);
+  color: #4d9bff;
+  font-weight: 600;
+}
+
+.clock-picker__commit-btn {
+  background: linear-gradient(135deg, #2a6dca, #4d9bff);
+  border: none;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 8px rgba(77, 155, 255, 0.3);
+}
+
+.clock-picker__commit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(77, 155, 255, 0.45);
+}
+
+.clock-picker__commit-btn:active {
+  transform: translateY(0);
+}

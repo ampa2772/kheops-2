@@ -1,0 +1,128 @@
+name: Build macOS
+
+# Construit UNIQUEMENT la cible macOS de Kheops 2 (DMG + ZIP universal,
+# signes Developer ID + notarises Apple). Ne reconstruit JAMAIS Windows :
+# electron-builder est invoque avec --mac, et le manifeste produit est
+# latest-mac.yml (distinct du latest.yml Windows). Aucun fichier Windows
+# du bucket gs://kheops-2-app-download/ n'est touche.
+#
+# HYPOTHESE DE CHEMIN : ce fichier suppose que la racine du depot git est
+# le dossier "Kheops_2/" (la ou vivent package.json + electron-builder.json).
+# Si vous initialisez git au niveau du dossier PARENT, deplacez ce fichier
+# dans <parent>/.github/workflows/ et ajoutez "working-directory: Kheops_2"
+# aux steps run, et prefixez les chemins dist/ par Kheops_2/.
+
+on:
+  # Lancement manuel depuis l'onglet Actions de GitHub.
+  workflow_dispatch:
+    inputs:
+      publish_gcs:
+        description: "Pousser AUSSI les fichiers mac sur GCS (latest-mac.yml + dmg + zip + blockmaps). Laisser decoche pour seulement recuperer les artefacts du run."
+        type: boolean
+        default: false
+  # Optionnel : build automatique quand on pousse un tag de version.
+  push:
+    tags:
+      - "v*"
+
+# Empeche deux builds mac de tourner en parallele sur le meme ref.
+concurrency:
+  group: build-mac-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-mac:
+    name: Build, sign & notarize macOS
+    # macos-14 = Apple Silicon (arm64) : seul type de runner capable de
+    # produire un build universal (arm64 + x64) fiable.
+    runs-on: macos-14
+
+    steps:
+      # 1. Recuperer le code.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Installer Node 20.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # 3. Installer les dependances.
+      #    Le postinstall de package.json installe AUSSI client/ et server/.
+      #    On utilise `npm install` (et NON `npm ci`) sciemment : le
+      #    package-lock.json racine est desynchronise et client/ + server/
+      #    ont leurs propres locks ; `npm ci` echouerait.
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Build + package macOS.
+      #    `npm run package` enchaine : generate-manifest -> build client React
+      #    -> electron-builder. Les args apres `--` sont transmis a
+      #    electron-builder : on force la cible mac, universal, formats dmg + zip.
+      #    AUCUNE cible Windows. Les variables d'env activent la signature (CSC_*)
+      #    et la notarisation (APPLE_*).
+      - name: Build & package (macOS, signed + notarized)
+        env:
+          # --- Signature de code (Developer ID Application) ---
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # --- Notarisation Apple (notarytool) ---
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run package -- --mac --universal dmg zip
+
+      # 5. Lister ce qui a ete produit (utile en cas de debug).
+      - name: List build output
+        run: ls -lh dist
+
+      # 6. Publier les artefacts mac comme artifacts du run GitHub.
+      #    Approche recommandee : vous les telechargez puis les uploadez
+      #    vous-meme sur GCS, comme pour Windows.
+      - name: Upload run artifacts (mac)
+        uses: actions/upload-artifact@v4
+        with:
+          name: kheops2-macos
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            dist/KHEOPS2-Setup.dmg
+            dist/KHEOPS2-Setup.dmg.blockmap
+            dist/KHEOPS2-Setup.zip
+            dist/KHEOPS2-Setup.zip.blockmap
+            dist/latest-mac.yml
+
+      # ----------------------------------------------------------------------
+      # 7. (OPTIONNEL) Upload GCS — UNIQUEMENT les fichiers mac.
+      #    Garde derriere l'input publish_gcs : ne s'execute QUE si vous avez
+      #    coche la case au lancement manuel. Ce bloc NE TOUCHE JAMAIS
+      #    latest.yml ni KHEOPS2-Setup.exe (Windows).
+      # ----------------------------------------------------------------------
+      - name: Authenticate to Google Cloud
+        if: ${{ inputs.publish_gcs }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Upload mac binaries to GCS
+        if: ${{ inputs.publish_gcs }}
+        uses: google-github-actions/upload-cloud-storage@v3
+        with:
+          # parent: false => depose les fichiers A PLAT a la racine du bucket.
+          parent: false
+          path: dist
+          destination: kheops-2-app-download
+          # glob evalue relativement a `path` (dist/) : matche dmg/zip/blockmaps,
+          # NE PEUT PAS matcher KHEOPS2-Setup.exe.
+          glob: "KHEOPS2-Setup.{dmg,zip}*"
+
+      - name: Upload latest-mac.yml to GCS (no-cache)
+        if: ${{ inputs.publish_gcs }}
+        uses: google-github-actions/upload-cloud-storage@v3
+        with:
+          parent: false
+          path: dist/latest-mac.yml
+          destination: kheops-2-app-download
+          headers: |-
+            cache-control: no-cache, max-age=0

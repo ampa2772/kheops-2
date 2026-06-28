@@ -1,0 +1,96 @@
+/* client/src/components/common/RichTextField.css
+ *
+ * Champ riche : zone d'apercu cliquable avec bouton Editer en haut a droite.
+ * S'integre dans n'importe quel form/modale.
+ */
+
+.rich-text-field {
+  position: relative;
+  width: 100%;
+}
+
+.rich-text-field-preview {
+  position: relative;
+  cursor: text;
+  background: #ffffff;
+  border: 1px solid #d6dbe6;
+  border-radius: 8px;
+  padding: 14px 16px;
+  padding-right: 110px; /* place pour le bouton "Editer" */
+  color: #1f2937;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  word-wrap: break-word;
+  overflow: auto;
+}
+
+.rich-text-field-preview:hover {
+  border-color: #818cf8;
+}
+
+.rich-text-field-preview:focus-visible {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+
+.rich-text-field-placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.rich-text-field-content p { margin: 0 0 0.5rem 0; }
+.rich-text-field-content p:last-child { margin-bottom: 0; }
+/* Forcer puces/numeros visibles : App.css applique `ul { list-style: none }`
+   au global, ce qui supprime les marqueurs. On les force ici. */
+.rich-text-field-content ul,
+.rich-text-field-content ol {
+  margin: 0 0 0.5rem 0;
+  padding-left: 1.6rem;
+}
+.rich-text-field-content ul { list-style: disc outside; }
+.rich-text-field-content ol { list-style: decimal outside; }
+.rich-text-field-content li { margin: 0.1rem 0; }
+.rich-text-field-content h1 { font-size: 1.25rem; margin: 0.4rem 0; font-weight: 700; }
+.rich-text-field-content h2 { font-size: 1.1rem; margin: 0.4rem 0; font-weight: 700; }
+
+.rich-text-field-edit-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #6366f1;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  width: auto;
+  transition: background-color 120ms ease, transform 120ms ease;
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.25);
+  z-index: 1;
+}
+
+.rich-text-field-edit-btn:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.rich-text-field-edit-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 600px) {
+  .rich-text-field-preview {
+    padding-right: 90px;
+    font-size: 0.9rem;
+  }
+  .rich-text-field-edit-btn {
+    padding: 5px 8px;
+    font-size: 0.74rem;
+  }
+}

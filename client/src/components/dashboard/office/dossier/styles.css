@@ -1,0 +1,3263 @@
+/* ==========================================================================
+   Dossier — Design System Kheops 2
+   Vue complète d'un dossier (onglets, documents, parties, agenda, todos)
+   Variables: _variables.css
+   ========================================================================== */
+
+/* ---------- Disposition générale ---------- */
+.parentContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.dossierNameTitle {
+  text-align: center;
+  font-size: var(--k-font-size-lg, 1.125rem);
+  color: var(--k-bg-white, #fff);
+  font-weight: var(--k-font-weight-bold, 700);
+  padding: var(--k-space-2, 8px) var(--k-space-3, 12px);
+  background-color: var(--k-primary, #0977a5);
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+/* ==========================================================================
+   Detail dossier — En-tete riche
+   Remplace la simple pill turquoise par un bloc contenant :
+   - h1 titre complet
+   - badge de juridiction (couleur heritee des classes dossier-color-*)
+   - parties Pour / Contre avec leur couleur semantique
+   - date de creation
+   - actions primaires (ajouter document / evenement / facture)
+   ========================================================================== */
+
+.dossier-rich-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-2, 8px);
+  padding: var(--k-space-3, 12px) var(--k-space-4, 16px);
+  background: linear-gradient(
+    135deg,
+    var(--k-primary-800, #043a4f) 0%,
+    var(--k-primary, #0977a5) 100%
+  );
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  color: var(--k-text-light, #e8eaed);
+}
+
+.dossier-rich-header__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--k-space-3, 12px);
+  width: 100%;
+}
+
+/* Le wrapper HoverToSpeak (display: inline-block; width: 100%) doit prendre
+   l'espace restant pour que le badge juridiction se colle a droite. */
+.dossier-rich-header__title-row > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dossier-rich-header .dossier-rich-header__title {
+  /* Override de .dossierNameTitle pour s'integrer dans le nouvel header. */
+  background: transparent;
+  color: var(--k-bg-white, #fff);
+  font-size: var(--k-font-size-2xl, 1.5rem);
+  font-weight: var(--k-font-weight-bold, 700);
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  word-break: break-word;
+}
+
+.dossier-rich-header__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--k-space-2, 8px) var(--k-space-3, 12px);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  /* Contraste >= 4.5:1 sur fond --k-primary-800 */
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dossier-rich-header__tribunal {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--k-radius-full, 9999px);
+  color: #fff;
+  font-size: var(--k-font-size-xs, 0.75rem);
+  font-weight: var(--k-font-weight-bold, 700);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.6;
+}
+
+.dossier-rich-header__parties-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-space-1, 4px);
+  max-width: min(50%, 100%);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.dossier-rich-header__parties-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--k-radius-sm, 4px);
+  font-size: var(--k-font-size-xs, 0.75rem);
+  font-weight: var(--k-font-weight-bold, 700);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.dossier-rich-header__parties-label--pour {
+  background: rgba(207, 232, 252, 0.22);
+  color: var(--k-primary-light, #cfe8fc);
+}
+
+.dossier-rich-header__parties-label--contre {
+  background: rgba(255, 152, 0, 0.22);
+  color: var(--k-warning, #ff9800);
+}
+
+.dossier-rich-header__parties-names {
+  color: #fff;
+  font-weight: var(--k-font-weight-medium, 500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.dossier-rich-header__date {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* High-contrast mode */
+body.high-contrast-mode .dossier-rich-header {
+  background: #000;
+  border-bottom: 1px solid yellow;
+}
+
+body.high-contrast-mode .dossier-rich-header .dossier-rich-header__title {
+  color: yellow;
+}
+
+.dossierMainContainer {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ---------- Barre d'options (onglets) ---------- */
+.options {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Neutralise les styles inline de HoverToSpeak (inline-block + width:100%)
+   qui, dans un flex container, produisent un etirement visuel incoherent.
+   On force chaque wrapper a se comporter comme un flex item a largeur egale
+   (4 onglets, 25% chacun) et a propager le flex aux enfants internes. */
+.options > div {
+  flex: 1 1 0% !important;
+  width: auto !important;
+  display: flex !important;
+  min-width: 0;
+}
+
+.DocsDossier,
+.AgendaDossier,
+.TodoListeDossier,
+.FacturationDossier {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  padding: var(--k-space-2, 8px) var(--k-space-1, 4px);
+  background-color: var(--k-primary-100, #b3dde9);
+  color: var(--k-primary-800, #043a4f);
+  cursor: pointer;
+  transition: background-color var(--k-transition-slow, 0.3s),
+              color var(--k-transition-slow, 0.3s);
+  border-bottom: 1px solid var(--k-primary-700, #064963);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  /* Texte tronqué proprement sur écrans très étroits */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.DocsDossier,
+.AgendaDossier,
+.TodoListeDossier {
+  border-right: 1px solid var(--k-primary-700, #064963);
+}
+
+.DocsDossier:hover,
+.AgendaDossier:hover,
+.TodoListeDossier:hover,
+.FacturationDossier:hover {
+  background-color: var(--k-primary-600, #075a7f);
+  color: var(--k-text-light, #e8eaed);
+}
+
+.active {
+  background-color: var(--k-primary-700, #064963);
+  color: var(--k-text-light, #e8eaed);
+  font-weight: var(--k-font-weight-semibold, 600);
+}
+
+/* Conteneur du contenu de l'onglet sélectionné */
+.containerDossierPages {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ---------- Recherche de modèles ---------- */
+.inputSearchTemplate {
+  width: 60%;
+  height: 32px;
+  border-radius: 0;
+  margin: 0;
+  outline: none;
+  border-bottom: 1px;
+  padding: 0 var(--k-space-2, 8px);
+  box-sizing: border-box;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+}
+
+.inputSearchTemplate:focus { outline: none; }
+
+.listeTemplateDoc {
+  width: 40%;
+  background-color: var(--k-primary-light, #cfe8fc);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 3px;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  box-shadow: var(--k-shadow-base, 0 4px 8px rgba(0,0,0,.2));
+  border-radius: 0 0 var(--k-radius-base, 6px) var(--k-radius-base, 6px);
+  z-index: 2000;
+}
+
+.itemTemplateDoc {
+  background-color: var(--k-primary-800, #043a4f);
+  color: var(--k-primary-100, #b3dde9);
+  padding: 3px var(--k-space-2, 8px);
+  border-radius: var(--k-radius-sm, 4px);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  transition: background-color var(--k-transition-fast, 0.15s),
+              color var(--k-transition-fast, 0.15s);
+}
+.itemTemplateDoc:hover {
+  background-color: var(--k-primary-100, #b3dde9);
+  color: var(--k-primary-800, #043a4f);
+}
+
+/* ---------- Liste des documents stockés ---------- */
+.docList {
+  width: 93%;
+  background-color: var(--k-primary-900, #032b3b);
+  margin: 10px auto;
+  box-shadow: var(--k-shadow-base, 0 4px 8px rgba(0, 0, 0, .2));
+  border-radius: var(--k-radius-md, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 3px;
+  flex-grow: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.docList.docList-modal-visible {
+  overflow: visible !important;
+}
+
+@media (min-width: 768px){ .docList{ width:70%; } }
+
+/* Scrollbar docList */
+.docList::-webkit-scrollbar{ width: 6px; }
+.docList::-webkit-scrollbar-track{ background: transparent; border-radius: var(--k-radius-base, 6px); }
+.docList::-webkit-scrollbar-thumb{ background: var(--k-scroll-thumb, #0977a5); border-radius: var(--k-radius-base, 6px); }
+.docList::-webkit-scrollbar-thumb:hover{ background: var(--k-scroll-thumb-hover, #555); }
+
+/* ---------- Item de la liste ---------- */
+.docListItem{
+  position: relative;
+  background: var(--k-bg-white, #fff);
+  color: var(--k-primary-800, #043a4f);
+  border-radius: var(--k-radius-sm, 4px);
+  padding: var(--k-space-1, 4px) var(--k-space-2, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  min-height: 24px;
+  transition: background-color var(--k-duration-normal, 200ms) ease,
+              transform 150ms ease,
+              box-shadow 200ms ease;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+}
+.docListItem:hover{ background: var(--k-bg-light, #f1f1f1); transform: translateY(-1px); }
+
+/* Texte des documents */
+.docListItem span {
+  text-shadow: none !important;
+  color: #000;
+  font-weight: var(--k-font-weight-medium, 500);
+}
+
+/* Affichage mode renommage */
+.renameInput{
+  flex-grow: 1;
+  border: 1px solid var(--k-primary, #0977a5);
+  padding: 2px var(--k-space-1, 4px);
+  margin-right: var(--k-space-2, 8px);
+  border-radius: var(--k-radius-sm, 4px);
+}
+.docListItem.renaming{ background: var(--k-primary-lighter, #e6f3fd); cursor: default; }
+.threeDotsIcon.disabled{ opacity:.5; cursor:not-allowed; }
+
+/* ---------- Icône "trois points" ---------- */
+.threeDotsIcon{
+  width: 16px; height: 100%;
+  background: var(--k-bg-white, #fff);
+  color: var(--k-primary-800, #043a4f);
+  display: flex; align-items: center; justify-content: center;
+  margin-left: var(--k-space-2, 8px);
+  border-radius: var(--k-radius-full, 9999px);
+  flex-shrink: 0;
+  transition: background-color var(--k-transition-fast, 0.15s),
+              color var(--k-transition-fast, 0.15s);
+}
+.docListItem:hover .threeDotsIcon{
+  background: var(--k-bg-white, #fff);
+  color: var(--k-primary-800, #043a4f);
+}
+.threeDotsIcon:hover{
+  background: var(--k-primary-800, #043a4f) !important;
+  color: var(--k-bg-white, #fff) !important;
+}
+
+.activeDot{ background: var(--k-primary-800, #043a4f) !important; color: var(--k-bg-white, #fff) !important; }
+.activeDot:hover{ background: var(--k-primary-800, #043a4f) !important; color: var(--k-bg-white, #fff) !important; }
+
+/* ---------- Bouton télécharger (.txt) ---------- */
+.download-doc-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  margin-right: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.download-doc-btn:hover {
+  background: rgba(0, 255, 127, 0.15);
+  transform: scale(1.1);
+}
+.download-doc-icon {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) saturate(100%) invert(68%) sepia(74%) saturate(438%) hue-rotate(100deg) brightness(93%) contrast(92%);
+}
+
+/* ---------- Ghost custom du drag mouse-based ---------- */
+/* Ghost cree dynamiquement dans DocumentList.handleSourceMouseDown, suit la
+   souris au-dela de 5 px de mouvement. C'est un clone de la ligne source
+   (cloneNode), il herite donc des styles .docListItem.doc-row et garde le
+   look exact du document deplace. La classe .k-drag-ghost ne pose que la
+   mecanique (position, z-index, opacite, ombrage). */
+.k-drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 99999;
+  opacity: 0.65;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  user-select: none;
+  transition: none !important;
+  transform: none !important;
+}
+/* Rendu de secours si le clone DOM a echoue (createDragGhost.fallback) :
+   un rectangle bleu compact avec le nom du document. */
+.k-drag-ghost--fallback {
+  background: var(--k-primary, #0977a5);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.94;
+}
+
+/* ---------- Drag & Drop overlay ---------- */
+.docList.draggingOver{
+  border: 2px dashed var(--k-primary, #0977a5);
+  background: var(--k-primary-lighter, #e6f3fd);
+}
+.drop-overlay{
+  position: absolute; inset: 0;
+  background: rgba(9, 119, 165, 0.7);
+  color: var(--k-bg-white, #fff);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2em; font-weight: bold;
+  z-index: 10; border-radius: var(--k-radius-md, 8px); pointer-events: none;
+}
+
+/* ---------- Messages d'état ---------- */
+.errorMessage{
+  color: var(--k-danger, #dc3545); font-weight: bold; text-align: center; padding: var(--k-space-2, 8px);
+  background: var(--k-danger-light, #fce8ea); border: 1px solid var(--k-danger, #dc3545);
+  border-radius: var(--k-radius-sm, 4px); margin: var(--k-space-2, 8px);
+}
+.uploadingMessage{
+  color: var(--k-primary-800, #043a4f); font-weight: bold; text-align: center; padding: var(--k-space-2, 8px);
+  background: var(--k-info-light, #e0f3fa); border: 1px solid var(--k-primary, #0977a5);
+  border-radius: var(--k-radius-sm, 4px); margin: var(--k-space-2, 8px);
+}
+.drop-instruction{
+  text-align: center; color: var(--k-text-muted, #5f6368);
+  padding: var(--k-space-5, 20px); font-style: italic;
+}
+
+/* ---------- Modale & overlay génériques ---------- */
+.modalOverlay,
+.modal-overlay{
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 9999;
+}
+.modalContainer,
+.modal-content{
+  background: var(--k-primary-800, #043a4f); width: 70%; height: 70%;
+  border-radius: var(--k-radius-md, 8px); padding: 1rem; position: relative;
+  box-sizing: border-box; display: flex; flex-direction: column; overflow-y: auto;
+  margin-left: 10%;
+}
+.modal-content {
+  width: auto; height: auto; width: 70%;
+  background: var(--k-bg-white, #fff);
+  color: var(--k-primary-800, #043a4f);
+}
+.modal-content h2 { text-align: center; margin-bottom: 1rem; }
+.modal-content button {
+  padding: var(--k-space-2, 8px) 15px; border-radius: var(--k-radius-base, 6px);
+  cursor: pointer; border: 1px solid var(--k-primary-700, #064963);
+  transition: background-color var(--k-duration-normal, 200ms) ease, opacity 200ms ease;
+}
+.modal-content button:hover {
+  opacity: 0.85;
+}
+.modal-content button:first-of-type { background: var(--k-bg-light, #f1f1f1); color: var(--k-primary-800, #043a4f); }
+.modal-content button:last-of-type { background: var(--k-primary-800, #043a4f); color: var(--k-bg-white, #fff); border-color: var(--k-danger, #dc3545); }
+.modal-content .close-button { position: absolute; top: 10px; right: 10px; background: none; border: none; padding: 0; }
+.modal-content .close-btn { width: 20px; height: 20px; }
+
+/* ---------- Mini‑modale (actions sur document) ---------- */
+.miniModal {
+  position: absolute;
+  top: calc(100% - 2px);
+  right: -8px;
+  width: 110px;
+  padding: 7px 10px;
+  border-radius: var(--k-radius-md, 8px);
+  background: var(--k-primary-light, #cfe8fc);
+  box-shadow: var(--k-shadow-sm, 0 2px 4px rgba(0, 0, 0, .3));
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-1, 4px);
+  align-items: flex-start;
+}
+.miniModal.flipUp{ top: auto; bottom: calc(100% - 2px); }
+
+/* Portal miniModal — positionné en fixed via JS, échappe au clipping overflow */
+.miniModal-portal {
+  z-index: 100000;
+}
+
+.actionBtn {
+  cursor: pointer;
+  padding: 3px;
+  border-radius: var(--k-radius-sm, 4px);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2, 8px);
+  color: var(--k-primary-800, #043a4f);
+  background: var(--k-bg-white, #fff);
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  transition: background-color var(--k-transition-fast, 0.15s),
+              color var(--k-transition-fast, 0.15s);
+}
+
+.actionBtn:hover{
+  background: var(--k-primary-800, #043a4f);
+  color: var(--k-bg-white, #fff);
+}
+
+/* ----- Icônes d'action dans la mini‑modale ----- */
+.actionIcon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.actionIcon.sendIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.actionIcon.deleteIcon {
+  width: 16px;
+  height: 16px;
+}
+
+/* ----- Icônes & Structure flex ----- */
+.docStockContainer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mainContentArea {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mainContentArea > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ==========================================================================
+   Header sous-dossier — Layout 3 zones (gauche / centre / droite)
+   Le titre reste centré de maniere absolue quels que soient les icones
+   ========================================================================== */
+
+.subfolder-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: 44px;
+  background: var(--k-primary-800, #043a4f);
+  border-bottom: 1px solid var(--k-primary-700, #064963);
+  flex-shrink: 0;
+  padding: 0 var(--k-space-3, 12px);
+  box-sizing: border-box;
+  overflow: visible;
+  position: relative;
+  z-index: 10;
+}
+
+/* --- Zones --- */
+.header-zone {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2, 8px);
+  min-width: 0;
+}
+
+.header-zone--left {
+  justify-self: start;
+  overflow: visible;
+}
+
+.header-zone--center {
+  justify-self: center;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.header-zone--right {
+  justify-self: end;
+}
+
+/* --- Titre du sous-dossier (centre) --- */
+.header-subfolder-title {
+  color: var(--k-text-light, #e8eaed);
+  font-weight: var(--k-font-weight-semibold, 600);
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Bouton icone generique --- */
+.header-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--k-radius-base, 6px);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--k-transition-fast, 0.15s);
+}
+
+.header-icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.header-icon-img {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+/* Spring Green pour les icônes de la zone droite */
+.header-zone--right .header-icon-img {
+  filter: brightness(0) saturate(100%) invert(83%) sepia(43%) saturate(1156%) hue-rotate(88deg) brightness(104%) contrast(105%);
+}
+
+/* --- Bouton "+" creation document --- */
+.header-btn-create {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--k-radius-full, 9999px);
+  background-color: var(--k-primary-300, #4dafca);
+  color: var(--k-bg-white, #fff);
+  transition: transform var(--k-transition-fast, 0.15s),
+              background-color var(--k-transition-fast, 0.15s);
+}
+
+.header-btn-create:hover {
+  background-color: var(--k-primary, #0977a5);
+  transform: scale(1.08);
+}
+
+.header-btn-create-icon {
+  font-size: 1.25rem;
+  font-weight: var(--k-font-weight-bold, 700);
+  line-height: 1;
+  user-select: none;
+}
+
+/* --- Compatibilite ancienne classe (utilise ailleurs) --- */
+.SearchTemplates {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: 44px;
+  background: var(--k-primary-800, #043a4f);
+  border-bottom: 1px solid var(--k-primary-700, #064963);
+  flex-shrink: 0;
+  padding: 0 var(--k-space-3, 12px);
+  box-sizing: border-box;
+}
+
+/* --- Styles pour les sous-dossiers --- */
+.docListItem.is-subfolder {
+    background-color: var(--k-info-light, #e0f3fa);
+    border-left: 5px solid var(--k-primary-300, #4dafca);
+    font-weight: var(--k-font-weight-medium, 500);
+    justify-content: flex-start;
+    gap: var(--k-space-2, 8px);
+    width: 50%;
+    /* F-005 : aligner la hauteur sur celle des documents (~58 px) pour
+       preserver le rythme visuel de la liste. Sans ces overrides, le
+       sous-dossier herite du min-height 24 px / padding 4px 8px de
+       .docListItem et apparait moitie moins haut que les documents. */
+    min-height: 58px;
+    padding: 10px 12px;
+}
+.docListItem.is-subfolder:hover {
+    background-color: var(--k-primary-100, #b3dde9);
+}
+.docListItem.is-subfolder.drop-target-active {
+    background-color: var(--k-primary-300, #4dafca) !important;
+    color: var(--k-bg-white, #fff);
+    border: 2px solid var(--k-bg-white, #fff);
+    box-shadow: 0 0 18px 2px var(--k-primary-300, #4dafca);
+    transform: scale(1.015);
+    transition: transform 0.08s ease, box-shadow 0.1s ease, background-color 0.08s ease;
+}
+/* Mêmes effets sur le bouton "retour racine" en mode subfolder, pour que
+   l'utilisateur sente que le drop y est accepté. */
+.header-icon-btn.drop-target-active {
+    background-color: var(--k-primary-300, #4dafca) !important;
+    box-shadow: 0 0 14px 2px var(--k-primary-300, #4dafca);
+    transform: scale(1.10);
+    transition: transform 0.08s ease, box-shadow 0.1s ease, background-color 0.08s ease;
+}
+/* En mode sous-dossier, drop dans la zone racine de la liste (en dehors d'un
+   sous-dossier ou du breadcrumb retour) = remontee du doc a la racine.
+   Highlight discret en cadre pointille pour signaler que la zone accepte le drop. */
+.docList[data-kheops-current-subfolder-id]:not([data-kheops-current-subfolder-id=""]).drop-target-active {
+    outline: 2px dashed var(--k-primary, #0977a5);
+    outline-offset: -8px;
+    background-color: rgba(9, 119, 165, 0.06);
+    transition: background-color 0.08s ease;
+}
+
+.subfolder-icon {
+    /* F-006 : taille agrandie pour cohérence avec les badges DOC/TXT
+       (.doc-row__badge fait 36 px). 28 px est un compromis entre visibilite
+       et le fait que c'est une icone outline sans fond colore. */
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.subfolder-name {
+    /* Conteneur layout : flex-grow conserve pour garder le compteur et
+       le menu 3-points a droite. PAS de onClick : cliquer sa zone vide
+       ouvre le sous-dossier (l'evenement remonte a la ligne). */
+    flex-grow: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+/* Cible de RENOMMAGE = uniquement le texte du nom (pas toute la ligne).
+   Clic sur le texte = renommer ; clic ailleurs sur la ligne = ouvrir le
+   sous-dossier. Reduit la cible de renommage : l'ouverture (frequente)
+   redevient facile, le renommage (rare) devient un geste delibere. */
+.subfolder-name-text {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    /* F-006 : meme poids visuel qu'un nom de document (0.92rem / 600). */
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: text;
+}
+
+/* Champ d'edition inline du nom de sous-dossier (renommage, meme
+   technique que les documents). Fond sombre semi-opaque + texte blanc :
+   lisible quelle que soit la couleur (parfois vive) du sous-dossier.
+   Meme empreinte que .subfolder-name pour eviter tout saut de layout. */
+.subfolder-name-input {
+    /* ~moitie de la ligne (demande Pierre), min utilisable. */
+    width: 50%;
+    min-width: 140px;
+    max-width: 360px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin: 0;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.subfolder-name-input:focus {
+    border-color: #5BB4E8;
+}
+
+.subfolder-item-count {
+    color: var(--k-primary-600, #075a7f);
+    /* F-006 : passe de 0.8em a 0.85rem absolu pour suivre l'agrandissement
+       du label sans devenir disproportionne. */
+    font-size: 0.85rem;
+    margin-left: auto;
+    padding-right: var(--k-space-2, 8px);
+    flex-shrink: 0;
+}
+
+/* --- Barres de création internes --- */
+.todo-list-header-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4.5px var(--k-space-2, 8px) !important;
+  background-color: var(--k-primary-800, #043a4f);
+  flex-shrink: 0;
+}
+
+/* --- Actions header (ancien, conserve pour compatibilite) --- */
+.header-actions-container {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2, 8px);
+  justify-self: end;
+}
+.add-subfolder-icon, .emailDossierIcon {
+  cursor: pointer; display: flex; align-items: center;
+  justify-content: center; padding: 3px; border-radius: var(--k-radius-base, 6px);
+  transition: background-color var(--k-transition-fast, 0.15s);
+}
+.add-subfolder-icon:hover, .emailDossierIcon:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.add-subfolder-icon img, .emailDossierIcon img {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  flex-shrink: 0 !important;
+}
+.infos img, .emailDossierIcon img {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  flex-shrink: 0 !important;
+}
+
+/* ---------- Panneau Infos Dossier (Parties / Contacts) ---------- */
+.infosDossierContainer{
+  display: flex; flex-direction: column; gap: 0;
+  overflow-y: auto; flex-grow: 1; color: var(--k-text-light, #e8eaed); padding: var(--k-space-2, 8px);
+}
+.infosDossierContainer.editing h4 { color: var(--k-primary-200, #80c6da); margin-bottom: 10px; }
+.infosDossierContainer.view h4 { color: var(--k-primary-200, #80c6da); margin-bottom: 10px; }
+.entityDetails{ margin: 0; display: flex; flex-direction: column; gap: var(--k-space-2, 8px); }
+.entityDetails.editForm label {
+  width: 120px; text-align: right; margin-right: 10px;
+  color: var(--k-text-secondary, #9aa0a6); flex-shrink: 0;
+}
+.entityDetails.editForm input { flex-grow: 1; }
+.entityDetailItem{
+  display: flex; margin-bottom: var(--k-space-2, 8px); align-items: center;
+}
+.entityDetailItem input{
+  max-width: none; max-height: none; margin-top: 0;
+  margin-left: 0; padding: var(--k-space-1, 4px) 6px;
+  border: 1px solid var(--k-border-medium, #ccc); border-radius: var(--k-radius-sm, 4px);
+}
+.entityDetails p { margin: 2px 0; }
+.entityDetails strong { color: var(--k-text-secondary, #9aa0a6); margin-right: var(--k-space-2, 8px); }
+.entityDetails a { color: var(--k-primary-200, #80c6da); text-decoration: none; }
+.entityDetails a:hover { text-decoration: underline; }
+
+/* --- Parties et contacts liés --- */
+.partieNameContre:hover{
+  background: var(--k-primary-800, #043a4f) !important;
+  color: var(--k-warning, #ff9800) !important;
+}
+.avocatItem, .linkedContactItem{
+  background: var(--k-primary-light, #cfe8fc) !important; width: 70%;
+  color: var(--k-primary-800, #043a4f) !important; padding: var(--k-space-1, 4px) !important;
+  transition: background-color var(--k-transition-normal, 0.2s), color var(--k-transition-normal, 0.2s);
+  box-sizing: border-box;
+  border-radius: var(--k-radius-sm, 4px);
+}
+.avocatItem:hover, .linkedContactItem:hover{
+  background: var(--k-primary-800, #043a4f) !important;
+  color: var(--k-primary-light, #cfe8fc) !important;
+}
+.avocatItemContre, .linkedContactItemContre{
+  background: var(--k-warning, #ff9800) !important; width: 70%;
+  color: var(--k-primary-800, #043a4f) !important; padding: var(--k-space-1, 4px) !important;
+  transition: background-color var(--k-transition-normal, 0.2s), color var(--k-transition-normal, 0.2s);
+  box-sizing: border-box;
+  border-radius: var(--k-radius-sm, 4px);
+}
+.avocatItemContre:hover, .linkedContactItemContre:hover{
+  background: var(--k-primary-800, #043a4f) !important;
+  color: var(--k-warning, #ff9800) !important;
+}
+.party-list .partieName, .party-list .partieNameContre, .party-list .avocatItem,
+.party-list .avocatItemContre, .party-list .linkedContactItem,
+.party-list .linkedContactItemContre{ cursor: pointer !important; }
+
+.listeDestinataires::-webkit-scrollbar{ width: 6px; }
+.listeDestinataires::-webkit-scrollbar-track{ background: transparent; border-radius: var(--k-radius-base, 6px); }
+.listeDestinataires::-webkit-scrollbar-thumb{ background: var(--k-scroll-thumb, #0977a5); border-radius: var(--k-radius-base, 6px); }
+.listeDestinataires::-webkit-scrollbar-thumb:hover{ background: var(--k-scroll-thumb-hover, #555); }
+
+/* ---------- ModalSelectReceiver — Sélection du destinataire ---------- */
+.listeDestinataires {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: var(--k-space-2, 8px) var(--k-space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-receiver-title {
+  color: var(--k-bg-white, #fff);
+  font-size: var(--k-font-size-lg, 1.125rem);
+  font-weight: var(--k-font-weight-semibold, 600);
+  text-align: center;
+  margin: 0 0 var(--k-space-2, 8px) 0;
+  padding-bottom: var(--k-space-2, 8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.partieBlock-header {
+  font-size: var(--k-font-size-xs, 0.75rem);
+  font-weight: var(--k-font-weight-bold, 700);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--k-space-1, 4px) var(--k-space-2, 8px);
+  margin-top: var(--k-space-2, 8px);
+  border-radius: var(--k-radius-sm, 4px);
+  flex-shrink: 0;
+}
+
+.partieBlock-header.pour {
+  color: var(--k-primary-light, #cfe8fc);
+  background: rgba(207, 232, 252, 0.12);
+}
+
+.partieBlock-header.contre {
+  color: var(--k-warning, #ff9800);
+  background: rgba(255, 152, 0, 0.12);
+}
+
+.partieBlock-header.contacts {
+  color: var(--k-primary-200, #80c6da);
+  background: rgba(128, 198, 218, 0.12);
+}
+
+.partieBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.destinataireItem {
+  padding: var(--k-space-2, 8px) var(--k-space-3, 12px);
+  border-radius: var(--k-radius-base, 6px);
+  cursor: pointer;
+  font-size: var(--k-font-size-sm, 0.8125rem);
+  font-weight: var(--k-font-weight-medium, 500);
+  transition: background-color 0.18s ease, color 0.18s ease,
+              border-left-color 0.18s ease, transform 0.1s ease;
+  border-left: 4px solid transparent;
+  user-select: none;
+}
+
+/* --- Parties POUR --- */
+.destinataireItem.partieName {
+  background: var(--k-primary-light, #cfe8fc);
+  color: var(--k-primary-800, #043a4f);
+}
+.destinataireItem.partieName:hover {
+  background: #b8d8f8;
+}
+
+/* --- Parties CONTRE --- */
+.destinataireItem.partieNameContre {
+  background: var(--k-warning, #ff9800);
+  color: var(--k-primary-800, #043a4f);
+}
+.destinataireItem.partieNameContre:hover {
+  background: #ffad33;
+}
+
+/* --- Avocats POUR --- */
+.destinataireItem.avocatItem {
+  background: rgba(207, 232, 252, 0.6);
+  color: var(--k-primary-800, #043a4f);
+  margin-left: 12px;
+}
+.destinataireItem.avocatItem:hover {
+  background: var(--k-primary-light, #cfe8fc);
+}
+
+/* --- Avocats CONTRE --- */
+.destinataireItem.avocatItemContre {
+  background: rgba(255, 152, 0, 0.5);
+  color: var(--k-primary-800, #043a4f);
+  margin-left: 12px;
+}
+.destinataireItem.avocatItemContre:hover {
+  background: var(--k-warning, #ff9800);
+}
+
+/* --- Contacts liés --- */
+.destinataireItem.linkedContactItem {
+  background: rgba(128, 198, 218, 0.25);
+  color: var(--k-text-light, #e8eaed);
+  margin-left: 12px;
+}
+.destinataireItem.linkedContactItem:hover {
+  background: rgba(128, 198, 218, 0.4);
+}
+
+.destinataireItem.linkedContactItemContre {
+  background: rgba(255, 152, 0, 0.3);
+  color: var(--k-text-light, #e8eaed);
+  margin-left: 12px;
+}
+.destinataireItem.linkedContactItemContre:hover {
+  background: rgba(255, 152, 0, 0.45);
+}
+
+/* ★ ÉTAT SÉLECTIONNÉ — vert vif pour un feedback clair */
+.destinataireItem.selected {
+  background: #00c853 !important;
+  color: #fff !important;
+  border-left-color: #00e676 !important;
+  transform: scale(1.01);
+  box-shadow: 0 2px 8px rgba(0, 200, 83, 0.3);
+}
+.destinataireItem.selected:hover {
+  background: #00b848 !important;
+}
+
+/* --- Titre section "Autres contacts" --- */
+.categorieTitreDossierContacts {
+  cursor: default !important;
+  background: transparent !important;
+  color: var(--k-primary-200, #80c6da) !important;
+  font-size: var(--k-font-size-xs, 0.75rem) !important;
+  font-weight: var(--k-font-weight-bold, 700) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--k-space-1, 4px) var(--k-space-2, 8px) !important;
+  border-left: none !important;
+}
+
+/* --- Bouton "Créer le document" --- */
+.btn-creer-document {
+  width: 100%;
+  padding: var(--k-space-3, 12px) var(--k-space-4, 16px);
+  background: var(--k-primary, #0977a5);
+  color: var(--k-bg-white, #fff);
+  border: none;
+  border-radius: var(--k-radius-md, 8px);
+  font-size: var(--k-font-size-md, 0.9375rem);
+  font-weight: var(--k-font-weight-semibold, 600);
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  letter-spacing: 0.02em;
+}
+.btn-creer-document:hover:not(:disabled) {
+  background: #0a8abf;
+  transform: translateY(-1px);
+}
+.btn-creer-document:active:not(:disabled) {
+  transform: translateY(0);
+}
+.btn-creer-document:disabled {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+}
+
+/* --- Email modal (dossier) --- */
+.send-email-modal .listeDestinataires {
+  flex-grow: 1; overflow-y: auto; max-height: calc(100% - 4rem);
+}
+.send-email-modal .buttons-row {
+  flex-shrink: 0; text-align: center; padding-top: 1rem;
+}
+.send-email-modal .buttons-row button {
+  padding: 6px 18px; border: 1px solid var(--k-primary-800, #043a4f);
+  background: var(--k-primary-800, #043a4f); color: var(--k-bg-white, #fff);
+  border-radius: var(--k-radius-sm, 4px); cursor: pointer;
+  transition: background-color var(--k-transition-normal, 0.2s);
+  width: auto;
+}
+.send-email-modal .buttons-row button:hover {
+  background: var(--k-primary, #0977a5);
+  color: var(--k-bg-white, #fff);
+}
+
+/* ---------- Modale "Lier Contact" ---------- */
+.modal-overlay-partieLink {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex;
+  justify-content: center; align-items: center; z-index: 10000;
+}
+.modal-content-partie-link {
+  position: fixed; top: 50%; left: 50%; transform: translate(-46%, -50%);
+  z-index: 1000; background-color: var(--k-primary-800, #043a4f);
+  padding: var(--k-space-5, 20px) !important;
+  border-radius: var(--k-radius-md, 8px); max-width: 500px; width: 100%;
+  box-shadow: var(--k-shadow-md, 0 2px 10px rgba(0, 0, 0, 0.1));
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start; min-height: 130px;
+  padding-top: 30px; box-sizing: border-box; color: var(--k-text-light, #e8eaed);
+}
+.titleAndInput{
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  color: var(--k-text-light, #e8eaed); width: 100%; box-sizing: border-box;
+  padding: 0 10px; margin-bottom: 10px;
+}
+.inputWithCreerPartie{ position: relative; width: 100%; }
+.inputWithCreerPartie .inputNomPartie {
+  width: 100%; box-sizing: border-box; padding: 7px 30px 7px 7px;
+  height: 32px; border-radius: var(--k-radius-base, 6px); border: none; outline: none;
+  color: var(--k-primary-800, #043a4f); background-color: var(--k-bg-white, #fff);
+  font-size: var(--k-font-size-sm, 0.8125rem);
+}
+.inputWithCreerPartie .inputNomPartie.listVisible {
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+}
+.CreerPartieAbsolute{
+  position: absolute; top: 50%; right: 7px; transform: translateY(-50%);
+  width: 18px; height: 18px; background: var(--k-primary-800, #043a4f);
+  border-radius: var(--k-radius-full, 9999px);
+  border: 2px solid var(--k-primary-200, #80c6da);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 2;
+  transition: background-color var(--k-transition-fast, 0.15s);
+}
+.CreerPartieAbsolute:hover {
+  background-color: var(--k-primary-600, #075a7f);
+}
+.CreerPartieAbsolute img{ width: 11px; height: 11px; }
+
+.liste_contacts_form_partie{
+  max-height: 125px !important;
+  overflow-y: auto; background: var(--k-primary-100, #b3dde9);
+  border-radius: 0 0 var(--k-radius-base, 6px) var(--k-radius-base, 6px);
+  padding: var(--k-space-2, 8px); display: flex !important; flex-direction: column;
+  gap: 3px; box-sizing: border-box; position: absolute;
+  top: 100%; left: 0; right: 0; width: 100%;
+  transform: translateY(4px); opacity: 0; pointer-events: none; z-index: 1200;
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+.modal-content-partie-link_withList .liste_contacts_form_partie { opacity: 1; transform: none; pointer-events: auto; bottom: auto; }
+.liste_contacts_form_partie .itemContact {
+  background-color: var(--k-bg-white, #fff); border-radius: var(--k-radius-base, 6px);
+  padding: 3px; cursor: pointer; color: var(--k-primary-800, #043a4f);
+  transition: background-color var(--k-transition-fast, 0.15s), color var(--k-transition-fast, 0.15s);
+}
+.liste_contacts_form_partie .itemContact:hover {
+  background-color: var(--k-primary-800, #043a4f); color: var(--k-bg-white, #fff);
+}
+.liste_contacts_form_partie .loading,
+.liste_contacts_form_partie .noResults {
+  padding: var(--k-space-2, 8px); text-align: center;
+  color: var(--k-text-muted, #5f6368); background-color: var(--k-bg-light, #f1f1f1);
+  border-radius: var(--k-radius-base, 6px);
+}
+.liste_contacts_form_partie::-webkit-scrollbar { width: 6px; }
+.liste_contacts_form_partie::-webkit-scrollbar-track { background: transparent; border-radius: 0 0 var(--k-radius-base, 6px) 0; }
+.liste_contacts_form_partie::-webkit-scrollbar-thumb { background: var(--k-scroll-thumb, #0977a5); border-radius: var(--k-radius-base, 6px); }
+.liste_contacts_form_partie::-webkit-scrollbar-thumb:hover { background: var(--k-scroll-thumb-hover, #555); }
+
+.modal-content-partie-link-margin { height: 100vh; width: 100vw; }
+.modal-content-partie-link-margin-alt { height: 0vh; width: 0vw; }
+
+.contacts_deja_lies {
+  width: 100%; display: flex; flex-direction: column; align-items: center;
+  gap: 10px; margin-top: 6px; padding: 0 10px; box-sizing: border-box;
+}
+.linkedContactsList {
+  background-color: var(--k-primary-100, #b3dde9); max-height: 100px !important;
+  width: 100%; margin: 0 auto; border-radius: var(--k-radius-base, 6px);
+  padding: var(--k-space-2, 8px);
+  display: flex !important; flex-direction: column; gap: 3px; overflow-y: auto;
+  box-sizing: border-box;
+}
+.linkedContactsList::-webkit-scrollbar { width: 6px; }
+.linkedContactsList::-webkit-scrollbar-track { background: transparent; border-radius: var(--k-radius-base, 6px); }
+.linkedContactsList::-webkit-scrollbar-thumb { background: var(--k-scroll-thumb, #0977a5); border-radius: var(--k-radius-base, 6px); }
+.linkedContactsList::-webkit-scrollbar-thumb:hover { background: var(--k-scroll-thumb-hover, #555); }
+
+.linkedContact, .linkedAvocat {
+  border-radius: var(--k-radius-base, 6px); padding: 3px 6px; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 28px; box-sizing: border-box;
+  transition: background-color var(--k-transition-fast, 0.15s), color var(--k-transition-fast, 0.15s);
+}
+.linkedContact {
+  background-color: var(--k-primary-200, #80c6da);
+  color: var(--k-primary-800, #043a4f);
+}
+.linkedContact:hover {
+  background-color: var(--k-primary-800, #043a4f);
+  color: var(--k-bg-white, #fff);
+}
+.linkedAvocat {
+  background-color: var(--k-primary-800, #043a4f);
+  color: var(--k-primary-200, #80c6da);
+  border: 1px solid var(--k-primary-200, #80c6da);
+}
+.linkedAvocat:hover {
+  background-color: var(--k-bg-white, #fff);
+  color: var(--k-primary-800, #043a4f);
+  border-color: var(--k-primary-800, #043a4f);
+}
+
+.linkedContact .OptionsLinkedContact, .linkedAvocat .role {
+  display: flex; align-items: center; gap: var(--k-space-1, 4px);
+}
+.container_initialesOptions { height: 28px; }
+
+/* ---------- Bouton « Modifier dossier » ---------- */
+.editDossierButton {
+  margin-left: 1rem; padding: var(--k-space-1, 4px) 10px;
+  background-color: var(--k-primary-100, #b3dde9); color: var(--k-primary-800, #043a4f);
+  border: 1px solid var(--k-primary-700, #064963);
+  border-radius: var(--k-radius-sm, 4px); cursor: pointer;
+  transition: background-color var(--k-transition-slow, 0.3s), color var(--k-transition-slow, 0.3s);
+}
+.editDossierButton:hover {
+  background-color: var(--k-primary, #0977a5);
+  color: var(--k-bg-white, #fff);
+}
+
+/* ---------- Agenda du dossier ---------- */
+.agenda-dossier-content-wrapper {
+  flex-grow: 1; overflow-y: auto; min-height: 0; padding: var(--k-space-3, 12px);
+}
+.agenda-dossier-list { list-style-type: none; padding: 0; margin: 0; }
+.agenda-dossier-item {
+  background-color: var(--k-bg-white, #fff);
+  border: 1px solid var(--k-border-light, #e0e0e0);
+  padding: var(--k-space-3, 12px);
+  margin-bottom: var(--k-space-3, 12px);
+  border-radius: var(--k-radius-base, 6px);
+  box-shadow: var(--k-shadow-xs, 0 1px 2px rgba(0,0,0,0.05));
+  border-left: 5px solid var(--k-primary, #0977a5);
+  cursor: pointer;
+  transition: background-color var(--k-transition-fast, 0.15s);
+}
+.agenda-dossier-item:hover { background-color: var(--k-primary-lighter, #e6f3fd); }
+.agenda-item-title {
+  font-size: var(--k-font-size-md, 1rem); font-weight: var(--k-font-weight-semibold, 600);
+  color: var(--k-primary-800, #043a4f); margin-bottom: var(--k-space-1, 4px);
+}
+.agenda-item-date {
+  font-size: 0.85em; color: var(--k-text-muted, #5f6368);
+  font-weight: bold; margin-bottom: var(--k-space-2, 8px);
+}
+.agenda-item-description {
+  font-size: var(--k-font-size-sm, 0.8125rem); color: var(--k-text-dark, #202124);
+  white-space: pre-wrap; word-break: break-word;
+  background-color: var(--k-primary-lighter, #e6f3fd);
+  padding: var(--k-space-2, 8px); border-radius: var(--k-radius-sm, 4px); margin: 0;
+}
+.agenda-dossier-message, .agenda-dossier-error {
+  text-align: center; margin-top: 2rem; color: var(--k-text-muted, #5f6368);
+  font-size: var(--k-font-size-md, 1rem);
+}
+.agenda-dossier-error { color: var(--k-danger, #dc3545); }
+
+/* --- Barre de l'agenda --- */
+.agenda-header-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4.5px var(--k-space-2, 8px) !important;
+  background-color: var(--k-primary-800, #043a4f);
+  flex-shrink: 0;
+}
+button.agenda-dossier-add-btn {
+  display: flex; align-items: center; justify-content: center;
+  border: none; width: fit-content; margin-left: auto; padding: 0;
+  background: transparent;
+}
+button.agenda-dossier-add-btn img { width: 24px; height: 25px; cursor: pointer; }
+
+/* ---------- To-do list du dossier ---------- */
+.todoListeContent { composes: docList; }
+.todo-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: var(--k-space-2, 8px);
+}
+.task-item {
+  background-color: var(--k-bg-white, #fff);
+  border: 1px solid var(--k-border-light, #e0e0e0);
+  padding: var(--k-space-3, 12px) 15px;
+  border-radius: var(--k-radius-sm, 4px);
+  box-shadow: var(--k-shadow-xs, 0 1px 2px rgba(0, 0, 0, 0.05));
+  border-left: 5px solid var(--k-warning, #ff9800);
+  cursor: pointer;
+  transition: background-color var(--k-transition-fast, 0.15s);
+}
+.task-item:hover { background-color: var(--k-gray-50, #fafafa); }
+.task-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: var(--k-space-2, 8px);
+}
+.task-title {
+  font-size: var(--k-font-size-base, 0.875rem);
+  font-weight: var(--k-font-weight-semibold, 600);
+  color: var(--k-text-dark, #202124);
+}
+.task-deadline {
+  font-size: 0.8em; color: var(--k-text-muted, #5f6368);
+  font-style: italic; white-space: nowrap; flex-shrink: 0; margin-left: 10px;
+}
+.task-description {
+  font-size: var(--k-font-size-sm, 0.8125rem); color: var(--k-text-dark, #202124);
+  white-space: pre-wrap; word-break: break-word;
+  background-color: var(--k-warning-light, #fff3e0);
+  padding: var(--k-space-2, 8px); border-radius: var(--k-radius-sm, 4px); margin: 0;
+}
+.todo-list-message, .todo-list-error {
+  text-align: center; margin-top: 2rem; color: var(--k-text-muted, #5f6368);
+  font-size: var(--k-font-size-md, 1rem);
+}
+.todo-list-error { color: var(--k-danger, #dc3545); }
+
+/* ---------- Facturation ---------- */
+.facturation-dossier-container { padding: 1rem; color: var(--k-primary-800, #043a4f); }
+.facturation-dossier-container h2 { font-size: 1.2rem; font-weight: bold; }
+
+/* (anciens styles btn-create-blank-doc migres vers .header-btn-create) */
+
+/* ==========================================================================
+   Champ de recherche de templates (remplace le bouton "+")
+   ========================================================================== */
+
+.template-search-wrapper {
+  /* Couleur de bord partagee champ + liste : une seule source, ils ne
+     peuvent plus diverger (cause des allers-retours rc81-83). */
+  --tpl-edge: #5BB4E8;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  min-width: 200px;
+  max-width: 280px;
+  height: 100%;
+  z-index: 10;
+}
+
+.template-search-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  margin: auto 0;
+  font-size: 0.82rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--k-radius-md, 6px);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--k-text-white, #fff);
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 11;
+  cursor: text;
+  -webkit-app-region: no-drag;
+}
+
+.template-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.78rem;
+}
+
+.template-search-input:focus {
+  border-color: var(--k-primary, #0977a5);
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Champ "ouvert" : bord visible, soude a la liste. On DOIT utiliser les
+   longhands (border-*-color/-width) : la regle plus bas .dossier-action-bar
+   .template-search-input { border:1px solid rgba(.1) } est un raccourci
+   qui, a specificite egale et place plus loin, ecrase tout border-color/
+   -width pose ici (les longhands, eux, gagnent — d'ou ce fix). */
+.template-search-input.is-panel-open,
+.dossier-action-bar .template-search-input.is-panel-open {
+  border-style: solid;
+  border-top-color: var(--tpl-edge);
+  border-right-color: var(--tpl-edge);
+  border-left-color: var(--tpl-edge);
+  border-bottom-color: transparent;
+  border-top-width: 1.5px;
+  border-right-width: 1.5px;
+  border-left-width: 1.5px;
+  border-bottom-width: 1.5px;
+  border-top-left-radius: var(--k-radius-md, 6px);
+  border-top-right-radius: var(--k-radius-md, 6px);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Bloc ouvert : on SUPPRIME l'anneau de focus clavier global (box-shadow
+   `input:focus-visible` de _utilities.css) qui dessinait un trait bleu
+   epais tout autour du champ (Pierre : pas esthetique). La bordure 1.5px
+   `--tpl-edge` du champ+liste reste l'unique liseré et l'indicateur
+   visible (a11y : etat focus = bordure qui passe au bleu). Anneau
+   inchange partout ailleurs. Scope strict :focus-visible. */
+.template-search-input.is-panel-open:focus-visible,
+.dossier-action-bar .template-search-input.is-panel-open:focus-visible {
+  box-shadow: none;
+}
+
+.template-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--k-bg-dark, #1a2332);
+  /* Pas de bord HAUT (soude au champ) ; gauche/droite/bas seulement,
+     meme couleur que le champ via --tpl-edge. */
+  border-top: none;
+  border-right: 1.5px solid var(--tpl-edge);
+  border-bottom: 1.5px solid var(--tpl-edge);
+  border-left: 1.5px solid var(--tpl-edge);
+  border-radius: 0 0 var(--k-radius-md, 6px) var(--k-radius-md, 6px);
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 2000;
+  box-shadow: none;
+}
+
+.template-dropdown-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--k-text-white, #fff);
+  transition: background-color 0.15s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.template-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+/* Surlignage géré par useComboboxKeyboard. */
+.template-dropdown-item.is-active {
+  background-color: var(--k-primary, #0977a5);
+  color: #fff;
+}
+
+.template-dropdown-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.template-dropdown-badge {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: rgba(255, 165, 0, 0.25);
+  color: #ffa500;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.template-dropdown-empty {
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  /* WCAG AA : relevement a 0.75 (~6:1 sur --k-bg-dark) */
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+  font-style: italic;
+}
+
+/* ---------- État vide : aucun dossier ---------- */
+.dossier-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.dossier-empty-state-message {
+  /* #8aa0b5 assure un contraste >= 4.5:1 sur fond --k-primary-900
+     tout en restant dans la palette gris-bleu du theme. */
+  color: #8aa0b5;
+  font-size: var(--k-font-size-lg, 1.125rem);
+  font-style: italic;
+  text-align: center;
+  padding: var(--k-space-5, 20px);
+}
+
+/* ==========================================================================
+   Responsive — Ajustements pour petits écrans et fenêtres compactes
+   (ajouts non-destructifs, conservent le design existant)
+   ========================================================================== */
+
+/* Champ de recherche de templates — adapter la largeur aux petits écrans */
+@media (max-width: 768px) {
+  .template-search-wrapper {
+    min-width: 140px;
+    max-width: 100%;
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .template-search-wrapper {
+    min-width: 100px;
+  }
+}
+
+/* En-tête riche dossier — empiler proprement les métadonnées quand l'espace manque */
+@media (max-width: 600px) {
+  .dossier-rich-header {
+    padding: var(--k-space-2, 8px) var(--k-space-3, 12px);
+  }
+  .dossier-rich-header .dossier-rich-header__title {
+    font-size: var(--k-font-size-xl, 1.25rem);
+  }
+  .dossier-rich-header__parties-group {
+    max-width: 100%;
+    flex: 1 1 100%;
+  }
+}
+
+/* Sous 420px : reduction de font-size des panneaux de contenu
+   (.DocsDossier/.AgendaDossier/...) pour eviter les sauts de ligne.
+   Les regles .options (flex-wrap:wrap / .options>div flex-basis:50%)
+   N'AFFECTENT PLUS la barre d'onglets du dossier : depuis le passage
+   en mode icones (@media max-width:900 plus bas), .dossier-v2__tabs
+   et .dossier-v2__tabs>div (plus tardifs + plus specifiques) forcent
+   nowrap + flex 1 1 0%, donc une seule ligne d'icones, sans wrap ni
+   scroll, a toutes les largeurs. Verifie en preview a 400px. */
+@media (max-width: 420px) {
+  .options {
+    flex-wrap: wrap;
+  }
+  .options > div {
+    flex-basis: 50% !important;
+  }
+  .DocsDossier,
+  .AgendaDossier,
+  .TodoListeDossier,
+  .FacturationDossier {
+    font-size: var(--k-font-size-xs, 0.75rem);
+  }
+}
+
+/* Modale "Lier Contact" — s'adapter au viewport, éviter le débordement */
+@media (max-width: 600px) {
+  .modal-content-partie-link {
+    max-width: min(500px, calc(100vw - 24px));
+    padding: var(--k-space-3, 12px) !important;
+    padding-top: 24px;
+  }
+}
+
+/* Listes déroulantes internes — réduire la hauteur sur écrans compacts */
+@media (max-height: 700px) {
+  .liste_contacts_form_partie {
+    max-height: 100px !important;
+  }
+  .linkedContactsList {
+    max-height: 80px !important;
+  }
+  .template-dropdown {
+    max-height: 200px;
+  }
+}
+
+/* ==========================================================================
+   Dossier V2 — Layout deux colonnes (image de gauche)
+   ========================================================================== */
+
+.parentContainer.dossier-v2 {
+  background: transparent;
+  color: #e8eaed;
+}
+
+.dossier-v2__columns {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.dossier-v2__main {
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 22, 36, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+@media (max-width: 960px) {
+  .dossier-v2__columns {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+}
+
+/* ==========================================================================
+   Dossier V2 — Header riche (CASS, EN COURS, KPI cards)
+   ========================================================================== */
+
+.dossier-rich-header {
+  background: linear-gradient(135deg, #0a1c2c 0%, #0e2a3a 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 16px 24px 18px 24px;
+}
+
+.dossier-rich-header__main {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.dossier-rich-header__left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dossier-rich-header__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.dossier-rich-header__breadcrumb-sep {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.dossier-rich-header__breadcrumb-current {
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 500;
+}
+
+.dossier-rich-header__badges-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.dossier-rich-header__tribunal {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: #c4344b;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.5;
+}
+
+.dossier-rich-header__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(46, 204, 113, 0.12);
+  color: #2ecc71;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border: 1px solid rgba(46, 204, 113, 0.35);
+  line-height: 1.5;
+}
+
+.dossier-rich-header__status-dot {
+  width: 7px;
+  height: 7px;
+  background: #2ecc71;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.18);
+}
+
+.dossier-rich-header__affaire {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.dossier-rich-header .dossier-rich-header__title {
+  background: transparent;
+  color: #fff;
+  font-size: 1.85rem;
+  font-weight: 700;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  line-height: 1.2;
+  letter-spacing: 0.005em;
+  word-break: break-word;
+}
+
+.dossier-rich-header__title-pour {
+  color: #fff;
+}
+.dossier-rich-header__title-sep {
+  color: #4d9bff;
+  font-weight: 600;
+  margin: 0 4px;
+}
+.dossier-rich-header__title-contre {
+  color: #fff;
+}
+
+/* KPI cards */
+.dossier-rich-header__kpis {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.dossier-kpi {
+  min-width: 110px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.dossier-kpi__label {
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+
+.dossier-kpi__value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.1;
+}
+.dossier-kpi__value--warn {
+  color: #ffbb33;
+}
+.dossier-kpi__value--accent {
+  color: #4d9bff;
+  font-size: 1.2rem;
+}
+
+.dossier-kpi__hint {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+
+@media (max-width: 1100px) {
+  .dossier-rich-header__kpis {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 760px) {
+  .dossier-rich-header__main {
+    flex-direction: column;
+  }
+  .dossier-rich-header__kpis {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .dossier-kpi {
+    flex: 1 1 0;
+  }
+}
+
+/* ==========================================================================
+   Dossier V2 — Panneau lateral gauche (Parties / Details / Echeance)
+   ========================================================================== */
+
+.dossier-left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px;
+  background: rgba(8, 22, 36, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+}
+
+.dossier-left-panel::-webkit-scrollbar { width: 5px; }
+.dossier-left-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+.dossier-left-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dossier-left-section__title {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 4px 0;
+}
+
+.dossier-left-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Section "Parties" : on bascule en grid responsive auto-fit pour que
+   Demandeur et Defendeur se mettent COTE A COTE quand l'espace le permet
+   (vue dossier en demi-page typiquement), et empiles sur une seule colonne
+   si le panneau lateral est trop etroit. minmax(220px, 1fr) garantit que
+   chaque carte garde une largeur lisible. */
+.dossier-left-section--parties .dossier-left-section__body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: start;
+}
+
+.dossier-left-empty {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-style: italic;
+  margin: 0;
+}
+
+/* --- Cartes de partie --- */
+.dossier-party-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px;
+  cursor: default;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.dossier-party-card.is-clickable {
+  cursor: pointer;
+}
+
+.dossier-party-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dossier-party-card.is-clickable:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(77, 155, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.dossier-party-card.is-clickable:focus-visible {
+  border-color: #4d9bff;
+  box-shadow: 0 0 0 2px rgba(77, 155, 255, 0.35);
+}
+
+.dossier-party-card.is-selected {
+  border-color: #4d9bff;
+  background: rgba(77, 155, 255, 0.08);
+  box-shadow: 0 0 0 1px rgba(77, 155, 255, 0.4) inset, 0 4px 12px rgba(77, 155, 255, 0.15);
+}
+
+.dossier-party-card.dossier-party-card--contre.is-selected {
+  border-color: #c66dff;
+  background: rgba(198, 109, 255, 0.08);
+  box-shadow: 0 0 0 1px rgba(198, 109, 255, 0.4) inset, 0 4px 12px rgba(198, 109, 255, 0.15);
+}
+
+.dossier-party-card__head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.dossier-party-card__role {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.dossier-party-card__role--pour {
+  color: #4d9bff;
+  background: rgba(77, 155, 255, 0.12);
+}
+
+.dossier-party-card__role--contre {
+  color: #c66dff;
+  background: rgba(198, 109, 255, 0.12);
+}
+
+.dossier-party-card__body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dossier-party-card__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.dossier-party-card__avatar--pour {
+  background: linear-gradient(135deg, #1a8a4a, #2ecc71);
+}
+
+.dossier-party-card__avatar--contre {
+  background: linear-gradient(135deg, #6b1ea8, #b860ff);
+}
+
+.dossier-party-card__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dossier-party-card__name {
+  font-size: 0.92rem;
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dossier-party-card__sub {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* --- Liste de details --- */
+.dossier-left-details {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 6px 12px;
+}
+
+.dossier-left-details dt {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  align-self: center;
+}
+
+.dossier-left-details dd {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dossier-left-details__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(77, 155, 255, 0.16);
+  color: #8ab8ff;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.dossier-left-details__chip--nature {
+  background: rgba(255, 187, 51, 0.14);
+  color: #ffd279;
+}
+
+.dossier-left-details__hint {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* --- Prochaine echeance --- */
+.dossier-next-deadline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(77, 155, 255, 0.12), rgba(255, 187, 51, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.dossier-next-deadline__date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 4px 10px;
+  min-width: 44px;
+}
+
+.dossier-next-deadline__month {
+  font-size: 0.62rem;
+  color: #ffbb33;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.dossier-next-deadline__day {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.dossier-next-deadline__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dossier-next-deadline__title {
+  font-size: 0.85rem;
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dossier-next-deadline__meta {
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ==========================================================================
+   Dossier V2 — Onglets avec compteurs
+   ========================================================================== */
+
+.dossier-v2__tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  width: 100%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: transparent;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.dossier-v2__tabs > div {
+  flex: 1 1 0% !important;
+  width: auto !important;
+  display: flex !important;
+  min-width: 0;
+}
+
+.dossier-v2__tab {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+.dossier-v2__tab:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dossier-v2__tab.active {
+  color: #4d9bff;
+  border-bottom-color: #4d9bff;
+}
+
+.dossier-v2__tab-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.dossier-v2__tab-count {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  min-width: 18px;
+  text-align: center;
+}
+
+.dossier-v2__tab.active .dossier-v2__tab-count {
+  background: rgba(77, 155, 255, 0.2);
+  color: #4d9bff;
+}
+
+.dossier-v2__tab-icon {
+  display: none;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Responsive : sous 900px les 6 onglets + libelles ne tiennent plus. On
+   bascule en mode ICONES — libelle ET compteur masques, icone seule
+   centree (heritage currentColor : gris inactif / bleu #4d9bff actif).
+   Les onglets se repartissent a parts egales (le flex:1 du wrapper
+   .dossier-v2__tabs > div est conserve, non surcharge ici) et tiennent
+   tous : AUCUN scroll, AUCUNE fleche. L'identification se fait par
+   infobulle native (attribut title sur chaque onglet). > 900px =
+   strictement inchange (libelle + compteur, icone masquee). NE PAS
+   reintroduire de scrollbar ni de fleches de defilement ici (rejete
+   par Pierre — cf. rc90/rc91 supprimes). */
+@media (max-width: 900px) {
+  .dossier-v2__tab {
+    padding: 12px 4px;
+  }
+  .dossier-v2__tab-label,
+  .dossier-v2__tab-count {
+    display: none;
+  }
+  .dossier-v2__tab-icon {
+    display: block;
+  }
+
+  /* Bloc lateral (Parties demandeur/defendeur + Details + Prochaine
+     echeance) masque entierement en mode etroit/icones : sa hauteur
+     est rendue a la liste des documents (demande Pierre). Prolonge
+     l'effort "compact" du @media max-width:1100 (titres de sections
+     deja masques la-bas). .dossier-v2__columns est deja en colonne
+     unique <=960px : display:none retire l'item de la grille -> le
+     main prend toute la place, sans gap residuel (gap:16px ne
+     s'applique qu'entre items existants). > 900px = panneau inchange. */
+  .dossier-left-panel {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Dossier V2 — Barre d'actions (recherche + boutons)
+   ========================================================================== */
+
+.dossier-action-bar {
+  background: rgba(8, 22, 36, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  height: auto;
+  min-height: 52px;
+  padding: 8px 16px;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 12px;
+}
+
+/* La zone "centre" est masquee dans la barre d'action V2 (pills sur leur propre ligne) */
+.dossier-action-bar .header-zone--center:empty {
+  display: none;
+}
+
+/* Rangee dediee aux pills, toujours visible quelle que soit la largeur */
+.dossier-filter-bar {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px 4px 16px;
+  background: rgba(8, 22, 36, 0.4);
+  flex-shrink: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.dossier-filter-bar::-webkit-scrollbar { display: none; }
+
+.dossier-filter-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 9999px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dossier-filter-pill {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 5px 14px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.dossier-filter-pill:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.dossier-filter-pill.is-active {
+  background: rgba(77, 155, 255, 0.2);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(77, 155, 255, 0.4) inset;
+}
+
+.dossier-sort-btn .dossier-sort-glyph {
+  font-size: 1.1rem;
+  color: #2ecc71;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dossier-action-bar .header-icon-img {
+  filter: brightness(0) saturate(100%) invert(83%) sepia(43%) saturate(1156%) hue-rotate(88deg) brightness(104%) contrast(105%);
+}
+
+.dossier-action-bar .header-zone--right .header-icon-btn {
+  border-radius: 8px;
+}
+
+.dossier-action-bar .header-zone--right .header-icon-btn:hover {
+  background-color: rgba(46, 204, 113, 0.1);
+}
+
+/* Champ de recherche dans la barre d'actions */
+.dossier-action-bar .template-search-wrapper {
+  min-width: 240px;
+  max-width: 320px;
+}
+
+/* Force le layout row sur la zone droite (défensif) :
+   en flex parent grid 1 colonne sur petits écrans, la zone empilait
+   parfois ses icônes verticalement à cause d'un flex-wrap interprété
+   en colonne. */
+.dossier-action-bar .header-zone--right {
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+
+/* HoverToSpeak wrappers (HoverToSpeak.js force inline-block + width: 100%) :
+   chaque enfant prend sinon 100% de la zone et les 6 icones se retrouvent
+   empilees verticalement quand le flex-wrap est actif (cas <600px). */
+.dossier-action-bar .header-zone--right > div[style*="inline-block"] {
+  width: auto !important;
+  flex: 0 0 auto;
+}
+
+.dossier-action-bar .template-search-input {
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  padding-left: 14px;
+}
+
+.dossier-action-bar .template-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ==========================================================================
+   Dossier V2 — Liste de documents (sections + lignes enrichies)
+   ========================================================================== */
+
+.dossier-v2__main .docList {
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0 16px 16px 16px;
+  gap: 6px;
+}
+
+.dossier-v2__main .docList > div + div {
+  /* assure des espaces homogenes */
+}
+
+.docList-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 6px 6px 6px;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.docList-section-header:first-child {
+  margin-top: 6px;
+}
+
+.docList-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #2ecc71;
+  font-weight: 700;
+}
+
+.docList-section-header--secondary .docList-section-title {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.docList-section-dot {
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.docList-section-count {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 600;
+}
+
+/* --- Ligne de document enrichie --- */
+.dossier-v2__main .docListItem.doc-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 2fr) minmax(180px, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  min-height: 0;
+  transition: background-color 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.dossier-v2__main .docListItem.doc-row:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: none;
+}
+
+.dossier-v2__main .docListItem.doc-row > span {
+  /* anciens span genericrses : neutralises ici */
+  color: inherit;
+  text-shadow: none;
+}
+
+.doc-row__badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.doc-badge--pdf { background: linear-gradient(135deg, #c43030, #e74c3c); }
+.doc-badge--doc { background: linear-gradient(135deg, #2a5fb0, #4d9bff); }
+.doc-badge--xls { background: linear-gradient(135deg, #1a8a4a, #2ecc71); }
+.doc-badge--txt { background: linear-gradient(135deg, #5a6877, #8a99a8); }
+.doc-badge--img { background: linear-gradient(135deg, #b85a1e, #ff9233); }
+
+.doc-row__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.doc-row__title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* rc78 — édition inline du titre. Clic sur .doc-row__title (hors locked /
+   renaming) bascule en input. L'input mime exactement le rendu du div pour
+   éviter tout saut visuel. */
+.doc-row:not(.doc-row--locked):not(.doc-row--renaming) .doc-row__title {
+  cursor: text;
+}
+.doc-row:not(.doc-row--locked):not(.doc-row--renaming) .doc-row__title:hover {
+  color: #cfe5ff;
+}
+.doc-row__title--editing {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  font-family: inherit;
+  letter-spacing: inherit;
+  box-shadow: inset 0 -1px 0 rgba(77, 201, 255, 0.6);
+  caret-color: #4dc9ff;
+}
+.doc-row__title--editing:focus {
+  box-shadow: inset 0 -1px 0 rgba(77, 201, 255, 1);
+}
+
+.doc-row__subtitle {
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.doc-row__date {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.86rem;
+  color: #a5d8ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.docListItem .doc-row__date-main {
+  color: #a5d8ff;
+  font-weight: 600;
+}
+
+.docListItem .doc-row__date-sub {
+  color: rgba(165, 216, 255, 0.85);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.dossier-v2__main .docListItem.doc-row .threeDotsIcon {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  width: 24px;
+}
+
+.dossier-v2__main .docListItem.doc-row .threeDotsIcon:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+/* Sous-dossiers : conserver fond clair existant pour distinction */
+.dossier-v2__main .docListItem.is-subfolder {
+  width: 100%;
+  background: rgba(77, 155, 255, 0.1);
+  border: 1px solid rgba(77, 155, 255, 0.25);
+  color: #cfe5ff;
+}
+
+.dossier-v2__main .docListItem.is-subfolder .subfolder-name {
+  color: #fff;
+  font-weight: 600;
+}
+
+.dossier-v2__main .docListItem.is-subfolder .subfolder-item-count {
+  color: #8ab8ff;
+}
+
+.dossier-v2__main .docListItem.is-subfolder:hover {
+  background: rgba(77, 155, 255, 0.15);
+}
+
+/* Drop instruction */
+.dossier-v2__main .drop-instruction {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* En mobile : la date passe sous le titre */
+@media (max-width: 760px) {
+  .dossier-v2__main .docListItem.doc-row {
+    grid-template-columns: 36px minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "badge title  threedots download"
+      "badge date   date      date";
+    row-gap: 6px;
+  }
+  .doc-row__badge { grid-area: badge; }
+  .doc-row__main { grid-area: title; }
+  .doc-row__date { grid-area: date; justify-content: flex-start; }
+  .dossier-v2__main .docListItem.doc-row .threeDotsIcon { grid-area: threedots; }
+  .dossier-v2__main .docListItem.doc-row .download-doc-btn { grid-area: download; }
+}
+
+/* Demi-écran (entre 600 et 880px) : on garde la grid 2 colonnes
+   (recherche + icônes) mais on rétrécit la recherche pour que les
+   6 icônes d'action tiennent à droite sur la même ligne. */
+@media (max-width: 880px) and (min-width: 601px) {
+  .dossier-action-bar {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .dossier-action-bar .template-search-wrapper {
+    min-width: 140px;
+    max-width: 220px;
+  }
+}
+
+/* Très petits écrans (≤600px, mobile portrait) : on stack la barre
+   en 1 colonne (recherche au-dessus, icônes en row dessous). */
+@media (max-width: 600px) {
+  .dossier-action-bar {
+    grid-template-columns: 1fr;
+  }
+  .dossier-action-bar .header-zone--right {
+    justify-self: start;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .dossier-action-bar .template-search-wrapper {
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* ==========================================================
+   ModalSelectReceiver — refonte design (préfixe .ksr-*)
+   ========================================================== */
+
+.modalOverlay:has(> .ksr-modal) {
+  background: rgba(2, 12, 22, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.ksr-modal {
+  position: relative;
+  width: min(520px, 92vw);
+  max-height: min(86vh, 820px);
+  background: linear-gradient(180deg, #0a253a 0%, #061827 100%);
+  border: 1px solid rgba(128, 198, 218, 0.12);
+  border-radius: 16px;
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  padding: 22px 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+  margin: 0;
+  color: #e8eef3;
+  overflow: hidden;
+}
+
+/* ----- Header ----- */
+.ksr-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-right: 32px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ksr-header-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(9, 119, 165, 0.35), rgba(128, 198, 218, 0.18));
+  border: 1px solid rgba(128, 198, 218, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #80c6da;
+  flex-shrink: 0;
+}
+
+.ksr-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.ksr-header-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #6f95a8;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.ksr-header-title {
+  margin: 0 0 4px 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.ksr-header-subtitle {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #92a8b6;
+  line-height: 1.45;
+}
+
+.ksr-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #92a8b6;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background-color 0.18s, color 0.18s, border-color 0.18s;
+}
+.ksr-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* ----- Search ----- */
+.ksr-search {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ksr-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6f95a8;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.ksr-search-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 36px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: background-color 0.18s, border-color 0.18s;
+}
+.ksr-search-input::placeholder {
+  color: #6f95a8;
+}
+.ksr-search-input:focus {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(128, 198, 218, 0.4);
+}
+
+/* ----- Liste scrollable ----- */
+.ksr-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 6px;
+  margin-right: -6px;
+}
+.ksr-list::-webkit-scrollbar {
+  width: 6px;
+}
+.ksr-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ksr-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+.ksr-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ----- Section header (Pour / Contre / Autres) ----- */
+.ksr-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.ksr-section-header:first-child {
+  margin-top: 0;
+}
+
+.ksr-section-header.ksr-pour {
+  background: linear-gradient(90deg, rgba(9, 119, 165, 0.35) 0%, rgba(9, 119, 165, 0.08) 100%);
+  border: 1px solid rgba(128, 198, 218, 0.28);
+}
+.ksr-section-header.ksr-contre {
+  background: linear-gradient(90deg, rgba(255, 152, 0, 0.32) 0%, rgba(255, 152, 0, 0.06) 100%);
+  border: 1px solid rgba(255, 152, 0, 0.32);
+}
+.ksr-section-header.ksr-dossier {
+  background: linear-gradient(90deg, rgba(128, 198, 218, 0.22) 0%, rgba(128, 198, 218, 0.05) 100%);
+  border: 1px solid rgba(128, 198, 218, 0.22);
+}
+
+.ksr-section-header-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ksr-section-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+.ksr-section-header.ksr-pour .ksr-section-icon {
+  background: rgba(128, 198, 218, 0.22);
+}
+.ksr-section-header.ksr-contre .ksr-section-icon {
+  background: rgba(255, 152, 0, 0.28);
+}
+.ksr-section-header.ksr-dossier .ksr-section-icon {
+  background: rgba(128, 198, 218, 0.18);
+}
+
+.ksr-section-titles {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.ksr-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.ksr-section-subtitle {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+.ksr-section-header.ksr-pour .ksr-section-subtitle {
+  color: #80c6da;
+}
+.ksr-section-header.ksr-contre .ksr-section-subtitle {
+  color: #ffb74d;
+}
+.ksr-section-header.ksr-dossier .ksr-section-subtitle {
+  color: #80c6da;
+}
+
+.ksr-section-counter {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #043a4f;
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+}
+
+/* ----- Sous-groupe AVOCATS ----- */
+.ksr-subgroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin: 4px 0 2px 6px;
+  flex-shrink: 0;
+}
+.ksr-subgroup.ksr-pour { color: #80c6da; }
+.ksr-subgroup.ksr-contre { color: #ffb74d; }
+
+.ksr-subgroup-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: currentColor;
+  color: #061827;
+  opacity: 0.85;
+}
+.ksr-subgroup.ksr-pour .ksr-subgroup-icon { color: #061827; background: #80c6da; }
+.ksr-subgroup.ksr-contre .ksr-subgroup-icon { color: #061827; background: #ffb74d; }
+
+.ksr-subgroup::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.18;
+}
+
+/* ----- Cartes destinataires ----- */
+.ksr-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease,
+              box-shadow 0.18s ease, transform 0.1s ease;
+  user-select: none;
+}
+.ksr-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.ksr-card.selected.ksr-pour {
+  background: linear-gradient(90deg, rgba(9, 119, 165, 0.28) 0%, rgba(9, 119, 165, 0.08) 100%);
+  border-color: rgba(128, 198, 218, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(128, 198, 218, 0.22),
+    0 6px 16px rgba(9, 119, 165, 0.22);
+}
+.ksr-card.selected.ksr-contre {
+  background: linear-gradient(90deg, rgba(255, 152, 0, 0.28) 0%, rgba(255, 152, 0, 0.06) 100%);
+  border-color: rgba(255, 152, 0, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(255, 152, 0, 0.22),
+    0 6px 16px rgba(255, 152, 0, 0.18);
+}
+.ksr-card.selected.ksr-dossier {
+  background: linear-gradient(90deg, rgba(128, 198, 218, 0.22) 0%, rgba(128, 198, 218, 0.06) 100%);
+  border-color: rgba(128, 198, 218, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(128, 198, 218, 0.18),
+    0 6px 16px rgba(9, 119, 165, 0.18);
+}
+
+/* Avatar */
+.ksr-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: #ffffff;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #0977a5, #0a8abf);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.ksr-card.ksr-pour .ksr-avatar {
+  background: linear-gradient(135deg, #0977a5, #0a8abf);
+}
+.ksr-card.ksr-contre .ksr-avatar {
+  background: linear-gradient(135deg, #f57c00, #ffa726);
+}
+.ksr-card.ksr-dossier .ksr-avatar {
+  background: linear-gradient(135deg, #5e8aa0, #80c6da);
+  color: #043a4f;
+}
+
+/* Contenu carte */
+.ksr-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ksr-card-name {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.ksr-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #92a8b6;
+  line-height: 1.2;
+}
+
+.ksr-card-meta-dot {
+  opacity: 0.5;
+}
+
+/* Cercle de sélection */
+.ksr-card-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: transparent;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+.ksr-card.selected.ksr-pour .ksr-card-check {
+  background: #0977a5;
+  border-color: #80c6da;
+  color: #ffffff;
+}
+.ksr-card.selected.ksr-contre .ksr-card-check {
+  background: #f57c00;
+  border-color: #ffb74d;
+  color: #ffffff;
+}
+.ksr-card.selected.ksr-dossier .ksr-card-check {
+  background: #5e8aa0;
+  border-color: #80c6da;
+  color: #ffffff;
+}
+
+/* Bouton "modifier" sur les contacts du dossier (PM publique) */
+.ksr-card-edit {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.ksr-card-edit:hover {
+  opacity: 1;
+}
+
+/* État vide / aucun résultat de recherche */
+.ksr-empty {
+  padding: 20px 12px;
+  text-align: center;
+  color: #92a8b6;
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
+/* ----- Footer ----- */
+.ksr-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.ksr-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: #92a8b6;
+  min-width: 0;
+}
+
+.ksr-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #0977a5;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ksr-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ksr-btn-cancel {
+  height: 36px;
+  padding: 0 16px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #d6e0e7;
+  border-radius: 9px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.18s, border-color 0.18s, color 0.18s;
+}
+.ksr-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.ksr-btn-create {
+  height: 36px;
+  padding: 0 16px;
+  background: linear-gradient(135deg, #0a8abf 0%, #0977a5 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 14px rgba(9, 119, 165, 0.35);
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+.ksr-btn-create:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0977a5 0%, #08658c 100%);
+  box-shadow: 0 6px 18px rgba(9, 119, 165, 0.45);
+  transform: translateY(-1px);
+}
+.ksr-btn-create:active:not(:disabled) {
+  transform: translateY(0);
+}
+.ksr-btn-create:disabled {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.32);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.ksr-btn-arrow {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Responsive : modal plein écran sur très petits écrans */
+@media (max-width: 540px) {
+  .ksr-modal {
+    width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 18px 16px;
+  }
+  .ksr-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .ksr-actions {
+    justify-content: stretch;
+  }
+  .ksr-btn-cancel,
+  .ksr-btn-create {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
+   COMPACT MODE — fenêtres étroites (demi-page split-screen Windows)
+   --------------------------------------------------------------------------
+   Cible : viewport ≤ 1100px de large (cas typique : app Kheops 2 docked sur
+   la moitié latérale de l'écran via Windows split-screen). Réduit
+   padding/font-size du header dossier + KPI + panneau latéral pour laisser
+   ~60-100px supplémentaires à la liste des documents.
+   Aucun impact en plein écran (au-dessus du seuil).
+   ========================================================================== */
+@media (max-width: 1100px) {
+  /* Header dossier (titre + breadcrumb + badges) */
+  .dossier-rich-header {
+    padding: 10px 20px 12px 20px;
+  }
+  .dossier-rich-header__breadcrumb {
+    margin-bottom: 6px;
+  }
+  .dossier-rich-header__badges-row {
+    margin-bottom: 6px;
+  }
+  .dossier-rich-header .dossier-rich-header__title {
+    font-size: 1.55rem;
+  }
+
+  /* KPI cards (Documents / Échéance / Facturation) */
+  .dossier-kpi {
+    padding: 7px 12px;
+    min-width: 100px;
+  }
+  .dossier-kpi__label {
+    margin-bottom: 2px;
+  }
+  .dossier-kpi__value {
+    font-size: 1.25rem;
+  }
+  .dossier-kpi__value--accent {
+    font-size: 1.05rem;
+  }
+  .dossier-kpi__hint {
+    margin-top: 0;
+  }
+
+  /* Panneau latéral : Parties / Détails / Prochaine échéance */
+  .dossier-left-panel {
+    gap: 10px;
+    padding: 9px;
+  }
+  .dossier-left-section {
+    gap: 6px;
+  }
+  /* En compact, libellés redondants masqués pour gagner ~70-95px sur la liste
+     documents. Les 3 titres de section (PARTIES, DÉTAILS, PROCHAINE ÉCHÉANCE)
+     sont masqués ; les autres lignes (Magistrat, Nature, Ouvert le) restent.
+     Les blocs visuels restent intacts. */
+  .dossier-left-section--parties > .dossier-left-section__title {
+    display: none; /* "PARTIES" masqué — les 2 cards parlent d'elles-mêmes */
+  }
+  .dossier-left-section--details > .dossier-left-section__title {
+    display: none; /* "DÉTAILS" masqué — titre orphelin quand Magistrat/Nature/Ouvert-le sont vides ; gain ~24px pour la liste docs en demi-page */
+  }
+  .dossier-left-section--deadline > .dossier-left-section__title {
+    display: none; /* "PROCHAINE ÉCHÉANCE" masqué — la card date est claire */
+  }
+  /* "JURIDICTION" + chip tribunal masqués — déjà dans le breadcrumb + badge CPH.
+     Spécificité augmentée pour battre `.dossier-left-details dd { display: flex }`. */
+  .dossier-left-details dt.dossier-left-details__row--juridiction,
+  .dossier-left-details dd.dossier-left-details__row--juridiction {
+    display: none;
+  }
+  .dossier-left-details {
+    gap: 6px 12px;
+  }
+  .dossier-left-section__body {
+    gap: 6px;
+  }
+  .dossier-party-card {
+    padding: 7px 10px;
+  }
+  .dossier-next-deadline {
+    padding: 7px 10px;
+    gap: 10px;
+  }
+  .dossier-next-deadline__date {
+    padding: 3px 8px;
+    min-width: 40px;
+  }
+  .dossier-next-deadline__day {
+    font-size: 1.1rem;
+  }
+}

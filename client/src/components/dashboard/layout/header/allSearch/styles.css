@@ -1,0 +1,629 @@
+/* ==========================================================
+   AllSearch Modal — Design Premium Dark Glassmorphism
+   ========================================================== */
+
+/* --- Overlay : fond sombre avec flou --- */
+.all-search-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(4, 10, 22, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 5000;
+  animation: searchOverlayIn 200ms ease-out;
+}
+
+/* --- Conteneur modal : carte sombre avec bordure lumineuse --- */
+.all-search-modal-container {
+  background: linear-gradient(180deg, #141d31 0%, #0e1523 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 18px 50px -18px rgba(0, 0, 0, 0.65),
+    0 6px 24px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  width: 90%;
+  max-width: 620px;
+  max-height: 65vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  animation: searchModalIn 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --- Contenu interne --- */
+.all-search-modal {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* --- Conteneur principal input + résultats --- */
+.all-search-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+}
+
+/* --- Wrapper input : icône loupe + champ stylisé --- */
+.all-search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  flex-shrink: 0;
+  position: relative;
+  margin: 0;
+  background: #131c30;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0;
+  transition: background 200ms ease, border-color 200ms ease;
+}
+.all-search-input-wrapper:focus-within {
+  background: #172238;
+  border-bottom-color: rgba(120, 150, 210, 0.55);
+}
+
+/* --- Icône loupe --- */
+.all-search-icon {
+  flex-shrink: 0;
+  color: rgba(150, 162, 190, 0.6);
+  width: 22px;
+  height: 22px;
+  transition: color 250ms ease;
+}
+.all-search-input-wrapper:focus-within .all-search-icon {
+  color: #8fa6cc;
+}
+
+/* --- Input de recherche --- */
+.all-search-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 4px 16px 4px 4px;
+  font-size: 1.15rem;
+  font-family: inherit;
+  color: #e8ecf8;
+  flex: 1;
+  min-width: 0;
+  caret-color: #7c9cff;
+}
+.all-search-input::placeholder {
+  color: rgba(160, 175, 210, 0.5);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* --- Compteur de résultats --- */
+.all-search-result-count {
+  padding: 8px 22px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(155, 170, 205, 0.7);
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+  position: relative;
+  z-index: 2;
+}
+
+/* --- Conteneur des résultats --- */
+.results-container {
+  display: none;
+}
+.results-container.visible {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex-grow: 1;
+}
+
+/* --- Wrapper scroll pour les sections de résultats --- */
+.search-results-sections {
+  overflow-y: auto;
+  flex-grow: 1;
+  min-height: 0;
+}
+
+/* --- Scrollbar raffinée --- */
+.search-results-sections::-webkit-scrollbar {
+  width: 6px;
+}
+.search-results-sections::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+.search-results-sections::-webkit-scrollbar-thumb {
+  background: rgba(125, 145, 185, 0.28);
+  border-radius: 3px;
+}
+.search-results-sections::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 145, 185, 0.45);
+}
+
+/* ==========================================================
+   Headers de section (Dossiers / Contacts)
+   ========================================================== */
+.search-section-header {
+  padding: 8px 22px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.search-section-dossiers {
+  color: #5ab5d6;
+  background: linear-gradient(90deg, rgba(9, 119, 165, 0.15), rgba(9, 119, 165, 0.03));
+}
+.search-section-dossiers .dossier-type-icon {
+  color: #5ab5d6;
+}
+.search-section-contacts {
+  color: #7fa8d8;
+  background: linear-gradient(90deg, rgba(70, 110, 170, 0.16), rgba(70, 110, 170, 0.03));
+}
+.search-section-contacts .contact-type-icon {
+  color: #7fa8d8;
+}
+
+/* --- Liste des résultats dossiers --- */
+.listeSearchDossiers {
+  background-color: transparent;
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* --- Liste des résultats contacts --- */
+.listeSearchContacts {
+  background-color: transparent;
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* --- Scrollbar (legacy) --- */
+.listeSearchDossiers::-webkit-scrollbar,
+.listeSearchContacts::-webkit-scrollbar {
+  width: 6px;
+}
+.listeSearchDossiers::-webkit-scrollbar-track,
+.listeSearchContacts::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+.listeSearchDossiers::-webkit-scrollbar-thumb,
+.listeSearchContacts::-webkit-scrollbar-thumb {
+  background: rgba(125, 145, 185, 0.28);
+  border-radius: 3px;
+}
+.listeSearchDossiers::-webkit-scrollbar-thumb:hover,
+.listeSearchContacts::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 145, 185, 0.45);
+}
+
+/* --- Item résultat : base commune --- */
+.search-result-item {
+  padding: 12px 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  border-left: 3px solid transparent;
+  transition:
+    background-color 150ms ease,
+    border-left-color 150ms ease;
+  margin: 2px 8px;
+  border-radius: 0 8px 8px 0;
+  gap: 10px;
+}
+
+/* --- Dossier : accent bleu au hover --- */
+.search-result-dossier {
+  justify-content: space-between;
+}
+.search-result-dossier:hover,
+.search-result-dossier.is-selected {
+  background-color: rgba(9, 119, 165, 0.22);
+  border-left-color: #5ab5d6;
+}
+.search-result-dossier.is-selected {
+  box-shadow: inset 3px 0 0 #5ab5d6;
+}
+.search-result-dossier:active {
+  background-color: rgba(9, 119, 165, 0.32);
+}
+
+/* --- Contact : accent violet au hover / sélection clavier --- */
+.search-result-contact:hover,
+.search-result-contact.is-selected {
+  background-color: rgba(80, 120, 175, 0.22);
+  border-left-color: #7fa8d8;
+}
+.search-result-contact.is-selected {
+  box-shadow: inset 3px 0 0 #7fa8d8;
+}
+.search-result-contact:active {
+  background-color: rgba(80, 120, 175, 0.32);
+}
+
+/* --- Parties : typographie (dossiers) --- */
+.partie-pour-search,
+.partie-contre-search {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.partie-pour-search {
+  text-align: left;
+  font-weight: 500;
+  color: #dde3f0;
+}
+.partie-contre-search {
+  text-align: right;
+  color: rgba(180, 190, 220, 0.7);
+}
+.partie-separator-search {
+  margin: 0 12px;
+  color: rgba(160, 170, 210, 0.5);
+  flex-shrink: 0;
+  font-style: italic;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.search-result-dossier:hover .partie-pour-search {
+  color: #b8e0f0;
+}
+.search-result-dossier:hover .partie-contre-search {
+  color: #8fc5dc;
+}
+.search-result-dossier:hover .partie-separator-search {
+  color: #6ab0cc;
+}
+
+/* ==========================================================
+   Contact : icône, nom, badge
+   ========================================================== */
+.contact-type-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: rgba(160, 170, 210, 0.5);
+}
+.search-result-contact:hover .contact-type-icon {
+  color: #7fa8d8;
+}
+
+.contact-name-search {
+  flex: 1;
+  font-weight: 500;
+  color: #dde3f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.search-result-contact:hover .contact-name-search {
+  color: #bcd2f0;
+}
+
+/* --- Badges de type contact --- */
+.contact-type-badge {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.badge-physique {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93bbfd;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+.badge-morale {
+  background: rgba(234, 179, 8, 0.15);
+  color: #e5c56e;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+}
+.badge-moralePMP {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6dd8ac;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Hover states pour les badges */
+.search-result-contact:hover .badge-physique {
+  background: rgba(59, 130, 246, 0.3);
+}
+.search-result-contact:hover .badge-morale {
+  background: rgba(234, 179, 8, 0.25);
+}
+.search-result-contact:hover .badge-moralePMP {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+/* --- Icône dossier dans le header --- */
+.dossier-type-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+/* --- Messages : chargement et aucun résultat --- */
+.search-loading-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 20px;
+  color: rgba(160, 175, 220, 0.6);
+  font-size: 0.8125rem;
+}
+
+/* --- Spinner de chargement --- */
+.search-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid rgba(140, 120, 255, 0.15);
+  border-top-color: #7c9cff;
+  border-radius: 50%;
+  animation: searchSpin 700ms linear infinite;
+}
+
+.search-no-results-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 20px;
+  color: rgba(160, 175, 220, 0.6);
+  text-align: center;
+}
+.search-no-results-icon {
+  color: rgba(160, 170, 210, 0.3);
+}
+.search-no-results-message p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* --- Hint clavier : zone basse avec séparation subtile --- */
+.all-search-hint {
+  padding: 11px 22px;
+  background: rgba(0, 0, 0, 0.22);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: rgba(165, 178, 205, 0.5);
+  flex-shrink: 0;
+}
+.all-search-hint::before {
+  display: none;
+}
+.all-search-hint kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  padding: 2px 9px;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: rgba(195, 205, 225, 0.7);
+  line-height: 1.6;
+  min-width: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* --- Animations d'entrée --- */
+@keyframes searchOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes searchModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes searchSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================
+   MODE HIGH-CONTRAST (malvoyant)
+   ========================================================== */
+body.high-contrast-mode .all-search-overlay {
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: none;
+}
+body.high-contrast-mode .all-search-modal-container {
+  background: #000;
+  border: 2px solid var(--border-color-default, yellow);
+  box-shadow: none;
+}
+body.high-contrast-mode .all-search-input-wrapper {
+  background: #000;
+  border: 2px solid var(--border-color-default, yellow);
+}
+body.high-contrast-mode .all-search-input-wrapper::before {
+  display: none;
+}
+body.high-contrast-mode .all-search-input-wrapper:focus-within {
+  border-color: var(--highlight-color, #33ff33);
+  box-shadow: none;
+}
+body.high-contrast-mode .all-search-icon {
+  color: yellow;
+}
+body.high-contrast-mode .all-search-input {
+  background-color: transparent;
+  color: yellow;
+}
+body.high-contrast-mode .all-search-input::placeholder {
+  color: #ffff00cc;
+}
+body.high-contrast-mode .all-search-result-count {
+  background: #111;
+  color: yellow;
+  border-bottom-color: #333;
+}
+body.high-contrast-mode .listeSearchDossiers,
+body.high-contrast-mode .listeSearchContacts {
+  background-color: #000;
+}
+body.high-contrast-mode .search-section-header {
+  background: #111;
+  color: yellow;
+  border-bottom-color: #333;
+}
+body.high-contrast-mode .search-section-dossiers .dossier-type-icon,
+body.high-contrast-mode .search-section-contacts .contact-type-icon {
+  color: yellow;
+}
+body.high-contrast-mode .search-result-item {
+  color: yellow;
+  border-bottom: 1px solid #222;
+}
+body.high-contrast-mode .search-result-item:last-child {
+  border-bottom: none;
+}
+body.high-contrast-mode .search-result-item:hover {
+  background-color: var(--highlight-color, #33ff33);
+  color: #000;
+  border-left-color: yellow;
+}
+body.high-contrast-mode .partie-pour-search,
+body.high-contrast-mode .partie-contre-search {
+  color: yellow;
+}
+body.high-contrast-mode .search-result-item:hover .partie-pour-search,
+body.high-contrast-mode .search-result-item:hover .partie-contre-search {
+  color: #000;
+}
+body.high-contrast-mode .partie-separator-search {
+  color: #ddd;
+}
+body.high-contrast-mode .search-result-item:hover .partie-separator-search {
+  color: #000;
+}
+body.high-contrast-mode .contact-name-search {
+  color: yellow;
+}
+body.high-contrast-mode .search-result-item:hover .contact-name-search {
+  color: #000;
+}
+body.high-contrast-mode .contact-type-icon {
+  color: yellow;
+}
+body.high-contrast-mode .search-result-item:hover .contact-type-icon {
+  color: #000;
+}
+body.high-contrast-mode .contact-type-badge {
+  background: #222;
+  color: yellow;
+  border: 1px solid yellow;
+}
+body.high-contrast-mode .search-result-item:hover .contact-type-badge {
+  background: #000;
+  color: yellow;
+}
+body.high-contrast-mode .search-no-results-message,
+body.high-contrast-mode .search-loading-message {
+  background-color: #000;
+  color: yellow;
+}
+body.high-contrast-mode .search-no-results-icon {
+  color: yellow;
+}
+body.high-contrast-mode .search-loading-spinner {
+  border-color: #333;
+  border-top-color: yellow;
+}
+body.high-contrast-mode .all-search-hint {
+  background: #111;
+  border-top-color: #333;
+  color: #ccc;
+}
+body.high-contrast-mode .all-search-hint kbd {
+  background: #222;
+  border-color: yellow;
+  color: yellow;
+  box-shadow: none;
+}
+
+/* Scrollbar high-contrast */
+body.high-contrast-mode .search-results-sections::-webkit-scrollbar-track,
+body.high-contrast-mode .listeSearchDossiers::-webkit-scrollbar-track,
+body.high-contrast-mode .listeSearchContacts::-webkit-scrollbar-track {
+  background: #222;
+}
+body.high-contrast-mode .search-results-sections::-webkit-scrollbar-thumb,
+body.high-contrast-mode .listeSearchDossiers::-webkit-scrollbar-thumb,
+body.high-contrast-mode .listeSearchContacts::-webkit-scrollbar-thumb {
+  background: yellow;
+}
+body.high-contrast-mode .search-results-sections::-webkit-scrollbar-thumb:hover,
+body.high-contrast-mode .listeSearchDossiers::-webkit-scrollbar-thumb:hover,
+body.high-contrast-mode .listeSearchContacts::-webkit-scrollbar-thumb:hover {
+  background: var(--highlight-color, #33ff33);
+}
+
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — Modale recherche globale
+   ═══════════════════════════════════════ */
+@media (max-width: 600px) {
+  .all-search-modal-container {
+    width: 95%;
+    max-width: 95%;
+    max-height: 80vh;
+    border-radius: 14px;
+  }
+  .all-search-input-wrapper {
+    padding: 14px 16px;
+    margin: 0;
+    gap: 10px;
+  }
+  .all-search-icon {
+    width: 18px;
+    height: 18px;
+  }
+  .all-search-input {
+    font-size: 0.95rem;
+    padding: 4px 8px 4px 0;
+  }
+}

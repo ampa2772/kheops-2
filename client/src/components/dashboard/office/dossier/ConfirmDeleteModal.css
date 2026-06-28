@@ -1,0 +1,103 @@
+/* --- Overlay de la modale : les propriétés de base (position, flex, centering) sont fournies par .k-modal-overlay (_modal-base.css) --- */
+.modal-overlay-confirm-delete {
+  background-color: rgba(0, 0, 0, 0.75);
+  z-index: 15000; /* Au-dessus de tout */
+}
+
+/* --- Contenu de la modale --- */
+.modal-content-confirm-delete {
+  background-color: black;
+  color: yellow;
+  border: 2px solid yellow;
+  border-radius: 8px;
+  padding: 25px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 5px 20px rgba(255, 255, 0, 0.2);
+  position: relative;
+  text-align: center;
+}
+
+/* --- Bouton de fermeture (X) --- */
+.modal-close-button-confirm-delete {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+}
+.modal-close-button-confirm-delete:hover {
+  color: yellow;
+}
+.modal-close-button-confirm-delete img {
+  filter: brightness(0) invert(1);
+  width: 18px;
+  height: 18px;
+}
+
+/* --- Titre et message --- */
+.modal-content-confirm-delete h2 {
+  font-size: 1.4rem;
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: yellow;
+}
+
+.modal-content-confirm-delete p {
+  font-size: 1rem;
+  margin-bottom: 25px;
+  line-height: 1.5;
+  color: #ccc; /* Gris clair pour le texte secondaire */
+}
+
+.modal-content-confirm-delete p strong {
+  color: #ff4d4d; /* Rouge pour le nom du fichier, pour attirer l'attention */
+  font-weight: bold;
+}
+
+/* --- Boutons d'action --- */
+.modal-buttons-row-confirm-delete {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.modal-buttons-row-confirm-delete button {
+  padding: 10px 25px;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+/* Bouton Annuler */
+.modal-btn-cancel-confirm-delete {
+  background-color: black;
+  color: yellow;
+  border: 1px solid yellow;
+}
+.modal-btn-cancel-confirm-delete:hover {
+  background-color: yellow;
+  color: black;
+}
+
+/* Bouton Supprimer */
+.modal-btn-confirm-delete {
+  background-color: black;
+  color: #ff4d4d; /* Rouge */
+  border: 1px solid #ff4d4d;
+}
+.modal-btn-confirm-delete:hover {
+  background-color: #ff4d4d;
+  color: black;
+}

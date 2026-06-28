@@ -1,0 +1,385 @@
+/* =============================================================
+   BilanFacturation — Bilan de facturation d'un dossier
+   MODE NORMAL  = thème bleu nuit Kheops 2 (règles de base).
+   MODE ACCESSIBILITÉ = body.high-contrast-mode ré-override
+   UNIQUEMENT les couleurs (palette jaune/vert/noir historique) ;
+   le layout/positionnement est commun aux deux modes.
+   ============================================================= */
+
+.bilan-facturation-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: #0a1a27;
+}
+
+.bilan-facturation-container {
+    flex-grow: 1;
+    min-height: 0;
+    overflow-y: hidden;
+    display: flex;
+    flex-direction: row;
+    gap: 14px;
+    padding: 4px 4px 8px;
+    color: #e8eef5;
+}
+
+.bilan-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #0d2233 0%, #0a1a27 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.section-title {
+    text-align: center;
+    margin: 0;
+    padding: 12px 10px;
+    color: #5ab5d6;
+    background: transparent;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.bilan-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    background: transparent;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bilan-list::-webkit-scrollbar { width: 8px; }
+.bilan-list::-webkit-scrollbar-track { background: transparent; }
+.bilan-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+.bilan-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.24);
+    background-clip: padding-box;
+}
+
+.bilan-list-empty {
+    text-align: center;
+    padding: 20px;
+    color: #6f8499;
+    font-style: italic;
+}
+
+.bilan-message {
+    width: 100%;
+    text-align: center;
+    margin-top: 2rem;
+    color: #8fa6bb;
+    font-style: italic;
+    font-size: 1.1rem;
+}
+
+.bilan-warning-banner {
+    background: rgba(210, 160, 80, 0.12);
+    color: #e3b878;
+    border: 1px solid rgba(220, 175, 100, 0.35);
+    border-radius: 8px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.bilan-error-banner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 40px 30px;
+    margin: auto;
+    text-align: center;
+    background: rgba(231, 76, 60, 0.08);
+    border: 1px solid rgba(231, 76, 60, 0.45);
+    border-radius: 12px;
+    color: #e8746c;
+}
+
+.bilan-error-icon { font-size: 2.5rem; }
+
+.bilan-error-text strong {
+    display: block;
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+    color: #f3f7fb;
+}
+
+.bilan-error-text p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #8fa6bb;
+}
+
+.bilan-error-action-btn {
+    background: linear-gradient(135deg, #1aa3d8, #0977a5);
+    color: #fff;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 10px 24px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+    font-size: 1em;
+}
+
+.bilan-error-action-btn:hover { filter: brightness(1.08); }
+
+.bilan-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.9rem;
+    color: #e8eef5;
+    gap: 4px;
+}
+
+.bilan-item-date {
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 0.78rem;
+    color: #8fa6bb;
+    letter-spacing: 0.02em;
+}
+
+.bilan-item-title {
+    font-weight: 700;
+    font-size: 1em;
+    line-height: 1.25;
+    color: #6cc6e0;
+}
+
+.bilan-item-duration {
+    font-weight: 400;
+    font-size: 0.9em;
+    color: #8fa6bb;
+    margin-left: 6px;
+}
+
+.bilan-item-billing {
+    font-size: 0.8rem;
+    color: #5fb88a;
+    font-style: italic;
+    margin-top: 2px;
+}
+
+.facturation-summary-grid {
+    flex-shrink: 0;
+    padding: 14px 22px;
+    background: #0a1a27;
+    border-top: 1px solid rgba(56, 214, 196, 0.25);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 10px 22px;
+}
+
+.summary-cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+}
+
+.cell-right {
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    padding-left: 22px;
+}
+
+.cell-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 15px;
+}
+
+.summary-label {
+    color: #8fa6bb;
+    font-size: 1rem;
+}
+
+.summary-value {
+    font-size: 1.15em;
+    font-weight: 700;
+    color: #eef3f8;
+}
+
+.grand-total .summary-label {
+    color: #c3d3e1;
+}
+
+.grand-total .summary-value {
+    color: #38d6c4;
+    font-size: 1.35em;
+}
+
+.summary-cell--paid .summary-value {
+    color: #e8746c;
+}
+
+.button-cell { justify-content: center; }
+
+.generate-invoice-btn {
+    background: linear-gradient(135deg, #1aa3d8, #0977a5);
+    color: #fff;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 11px 22px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.15s ease, opacity 0.15s ease;
+    font-size: 1em;
+    width: 100%;
+}
+
+.generate-invoice-btn:hover:not(:disabled) { filter: brightness(1.08); }
+
+.generate-invoice-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: none;
+}
+
+/* =============================================================
+   MODE ACCESSIBILITÉ — couleurs historiques préservées
+   (jaune / vert clair / noir / bordures jaunes). N'override
+   QUE les couleurs : le layout reste celui défini ci-dessus.
+   ============================================================= */
+
+body.high-contrast-mode .bilan-facturation-wrapper {
+    background: black;
+}
+
+body.high-contrast-mode .bilan-facturation-container {
+    color: var(--highlight-color, yellow);
+}
+
+body.high-contrast-mode .bilan-section {
+    background: black;
+    border-color: var(--highlight-color, yellow);
+}
+
+body.high-contrast-mode .section-title {
+    color: yellow;
+    background: black;
+    border-bottom-color: var(--highlight-color, yellow);
+}
+
+body.high-contrast-mode .bilan-list {
+    background: black;
+}
+
+body.high-contrast-mode .bilan-list-empty { color: #888; }
+body.high-contrast-mode .bilan-message { color: yellow; }
+
+body.high-contrast-mode .bilan-list::-webkit-scrollbar-track { background: #222; }
+body.high-contrast-mode .bilan-list::-webkit-scrollbar-thumb {
+    background: yellow;
+    border: none;
+}
+body.high-contrast-mode .bilan-list::-webkit-scrollbar-thumb:hover {
+    background: var(--highlight-color, yellow);
+}
+
+body.high-contrast-mode .bilan-item {
+    background: black;
+    border-color: yellow;
+    color: yellow;
+}
+
+body.high-contrast-mode .bilan-item-date { color: yellow; }
+body.high-contrast-mode .bilan-item-title { color: yellow; }
+body.high-contrast-mode .bilan-item-duration { color: yellow; }
+body.high-contrast-mode .bilan-item-billing { color: lightgreen; }
+
+body.high-contrast-mode .facturation-summary-grid {
+    background: black;
+    border-top: 2px solid var(--highlight-color, yellow);
+}
+
+body.high-contrast-mode .cell-right {
+    border-left-color: var(--highlight-color, yellow);
+}
+
+body.high-contrast-mode .cell-bottom {
+    border-top-color: var(--highlight-color, yellow);
+}
+
+body.high-contrast-mode .summary-label { color: yellow; }
+body.high-contrast-mode .summary-value { color: yellow; }
+
+body.high-contrast-mode .grand-total .summary-value {
+    color: var(--k-success, #008047);
+}
+
+/* En accessibilité on garde la couleur historique (jaune) pour les
+   acomptes — pas le rouge du mode normal (demande : mêmes couleurs). */
+body.high-contrast-mode .summary-cell--paid .summary-value {
+    color: yellow;
+}
+
+body.high-contrast-mode .generate-invoice-btn {
+    background: black;
+    color: yellow;
+    border: 1px solid yellow;
+}
+
+body.high-contrast-mode .generate-invoice-btn:hover:not(:disabled) {
+    background: yellow;
+    color: black;
+    box-shadow: 0 0 8px yellow;
+    filter: none;
+}
+
+body.high-contrast-mode .generate-invoice-btn:disabled {
+    background: #333;
+    border-color: #555;
+    color: #888;
+}
+
+body.high-contrast-mode .bilan-error-banner {
+    background: black;
+    border: 2px solid #e74c3c;
+    color: #e74c3c;
+}
+
+body.high-contrast-mode .bilan-error-text strong { color: #e74c3c; }
+body.high-contrast-mode .bilan-error-text p { color: #ccc; }
+
+body.high-contrast-mode .bilan-error-action-btn {
+    background: black;
+    color: yellow;
+    border: 1px solid yellow;
+}
+
+body.high-contrast-mode .bilan-error-action-btn:hover {
+    background: yellow;
+    color: black;
+    box-shadow: 0 0 8px yellow;
+    filter: none;
+}
+
+body.high-contrast-mode .bilan-warning-banner {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+}

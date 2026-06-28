@@ -1,0 +1,220 @@
+/* ==========================================================
+   _darkNavyTheme.css — Thème "dark navy avec quadrillage blueprint"
+   partagé entre Bureau, Paramètres et CARPA, pour aligner
+   le visuel sur celui du wizard divorce CM (référence).
+
+   Source : variables et patterns repris de divorceCM.css
+   ========================================================== */
+
+:root,
+.OfficeHome,
+.parametres-container,
+.k-carpa-root {
+  --kdn-bg-deep: #0a1828;
+  --kdn-bg-surface: rgba(15, 32, 56, 0.7);
+  --kdn-bg-surface-elev: rgba(20, 42, 72, 0.85);
+  --kdn-input-bg: rgba(8, 22, 42, 0.65);
+  --kdn-input-border: rgba(120, 180, 240, 0.18);
+  --kdn-input-border-focus: #4dc9ff;
+  --kdn-text-primary: #e8f1ff;
+  --kdn-text-secondary: rgba(195, 215, 240, 0.85);
+  --kdn-text-muted: rgba(165, 195, 230, 0.72);
+  --kdn-accent: #4dc9ff;
+  --kdn-accent-deep: #2563eb;
+  --kdn-grid-line: rgba(120, 180, 240, 0.045);
+}
+
+/* ─── Quadrillage blueprint partagé ───
+   Posé via ::before en arrière-plan, sans gêner les enfants. */
+.OfficeHome::before,
+.parametres-container::before,
+.k-carpa-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--kdn-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--kdn-grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: 0 0;
+  z-index: 0;
+}
+
+/* Ces conteneurs deviennent positionnés pour ancrer le ::before. */
+.OfficeHome,
+.parametres-container,
+.k-carpa-root {
+  position: relative;
+}
+
+/* Enfants directs au-dessus du quadrillage. */
+.OfficeHome > *,
+.parametres-container > *,
+.k-carpa-root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+ * CARPA — migration dark navy
+ *
+ * Le module CARPA était entièrement en clair (fonds blancs,
+ * texte gris foncé). On surcharge les éléments principaux pour
+ * passer en dark navy cohérent avec le wizard divorce CM, sans
+ * réécrire l'ensemble de carpa.css.
+ * ============================================================ */
+
+.k-carpa-root {
+  background:
+    linear-gradient(135deg, #0a1828 0%, #0e2342 55%, #0a1c34 100%);
+  color: var(--kdn-text-primary);
+}
+
+/* Sections principales : passent en glass-morphism dark */
+.k-carpa-root .k-carpa-section {
+  background: var(--kdn-bg-surface);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  color: var(--kdn-text-primary);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.k-carpa-root .k-carpa-section-title {
+  color: var(--kdn-text-primary);
+}
+
+.k-carpa-root .k-carpa-section-subtitle {
+  color: var(--kdn-text-secondary);
+}
+
+/* Groupes bénéficiaires */
+.k-carpa-root .k-carpa-benef-group {
+  background: var(--kdn-bg-surface);
+  border-color: rgba(120, 180, 240, 0.15);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.k-carpa-root .k-carpa-benef-header {
+  background: var(--kdn-bg-surface-elev);
+  border-bottom-color: rgba(120, 180, 240, 0.15);
+  color: var(--kdn-text-primary);
+}
+
+.k-carpa-root .k-carpa-benef-header:hover {
+  background: rgba(20, 42, 72, 0.95);
+}
+
+.k-carpa-root .k-carpa-benef-name {
+  color: var(--kdn-text-primary);
+}
+
+.k-carpa-root .k-carpa-benef-summary {
+  color: var(--kdn-text-secondary);
+}
+
+.k-carpa-root .k-carpa-benef-balance {
+  color: var(--kdn-accent);
+}
+
+/* Op-card (cartes d'opérations) */
+.k-carpa-root .k-carpa-op-card {
+  background: var(--kdn-bg-surface-elev);
+  border-color: rgba(120, 180, 240, 0.18);
+  color: var(--kdn-text-primary);
+}
+
+.k-carpa-root .k-carpa-op-card:hover {
+  border-color: var(--kdn-accent);
+  background: rgba(20, 42, 72, 0.95);
+}
+
+.k-carpa-root .k-carpa-op-card .meta-line {
+  color: var(--kdn-text-secondary);
+}
+
+.k-carpa-root .k-carpa-op-card .montant.entree { color: #6ee7b7; }
+.k-carpa-root .k-carpa-op-card .montant.sortie { color: #fdba74; }
+
+/* Tableau */
+.k-carpa-root .k-carpa-table thead th {
+  background: var(--kdn-bg-surface-elev);
+  color: var(--kdn-text-secondary);
+  border-bottom-color: rgba(120, 180, 240, 0.18);
+}
+
+.k-carpa-root .k-carpa-table tbody tr {
+  border-bottom-color: rgba(120, 180, 240, 0.08);
+}
+
+.k-carpa-root .k-carpa-table tbody tr:hover {
+  background: rgba(77, 201, 255, 0.08);
+}
+
+.k-carpa-root .k-carpa-empty {
+  color: var(--kdn-text-muted);
+}
+
+/* Pastilles d'état : versions dark — fonds plus saturés sur dark */
+.k-carpa-root .k-carpa-etat-brouillon { background: rgba(120, 180, 240, 0.15); color: #cbd5e1; border-color: rgba(120, 180, 240, 0.3); }
+.k-carpa-root .k-carpa-etat-attention { background: rgba(245, 158, 11, 0.18); color: #fde68a; border-color: rgba(245, 158, 11, 0.5); }
+.k-carpa-root .k-carpa-etat-progres   { background: rgba(77, 201, 255, 0.18); color: #bae6fd; border-color: rgba(77, 201, 255, 0.5); }
+.k-carpa-root .k-carpa-etat-ok        { background: rgba(16, 185, 129, 0.18); color: #a7f3d0; border-color: rgba(16, 185, 129, 0.5); }
+.k-carpa-root .k-carpa-etat-bloque    { background: rgba(239, 68, 68, 0.18); color: #fecaca; border-color: rgba(239, 68, 68, 0.5); }
+.k-carpa-root .k-carpa-etat-annule    { background: rgba(120, 180, 240, 0.1); color: rgba(165, 195, 230, 0.6); border-color: rgba(120, 180, 240, 0.2); }
+
+.k-carpa-root .k-carpa-pastille-sens-entree { background: rgba(16, 185, 129, 0.18); color: #a7f3d0; border-color: rgba(16, 185, 129, 0.5); }
+.k-carpa-root .k-carpa-pastille-sens-sortie { background: rgba(249, 115, 22, 0.18); color: #fed7aa; border-color: rgba(249, 115, 22, 0.5); }
+
+/* Inputs/textareas dans CARPA — alignés sur le thème dark */
+.k-carpa-root input[type="text"],
+.k-carpa-root input[type="number"],
+.k-carpa-root input[type="date"],
+.k-carpa-root input[type="search"],
+.k-carpa-root select,
+.k-carpa-root textarea {
+  background: var(--kdn-input-bg);
+  border: 1px solid var(--kdn-input-border);
+  border-radius: 8px;
+  color: var(--kdn-text-primary);
+}
+
+.k-carpa-root input::placeholder,
+.k-carpa-root textarea::placeholder {
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-root input:focus,
+.k-carpa-root select:focus,
+.k-carpa-root textarea:focus {
+  outline: none;
+  border-color: var(--kdn-input-border-focus);
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.18);
+}
+
+/* Boutons CARPA : ghost variant ajusté pour dark */
+.k-carpa-root .k-carpa-btn-ghost {
+  color: var(--kdn-text-secondary);
+}
+
+.k-carpa-root .k-carpa-btn-ghost:hover {
+  background: rgba(120, 180, 240, 0.08);
+  color: var(--kdn-text-primary);
+}
+
+/* Note "masquées" pour les annulées */
+.k-carpa-root .k-carpa-hidden-note {
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-root .k-carpa-link-btn {
+  color: var(--kdn-accent);
+}
+
+/* Reset clair de la modale detail CARPA supprime en rc59 :
+   la modale est desormais nativement en dark navy (cf
+   carpa/carpaOperationDetail.css). */

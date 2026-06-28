@@ -1,0 +1,763 @@
+/* ==========================================================
+   _components.css
+   Composants UI réutilisables — Design System v2 (k2-*)
+
+   Ce fichier contient les styles pour :
+   - Boutons (primary, secondary, ghost, danger)
+   - Inputs & Labels
+   - Cartes (card)
+   - Badges (statut)
+   - Tableaux (table)
+   - Onglets (tabs)
+   - Séparateurs
+
+   Importé globalement dans App.js.
+   ========================================================== */
+
+/* ─────────────────────────────────────────────
+   BOUTONS
+   ───────────────────────────────────────────── */
+
+.k2-btn {
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-base);
+  font-weight: var(--k2-font-weight-medium);
+  line-height: var(--k2-line-height-tight);
+  padding: var(--k2-space-2) var(--k2-space-4);
+  border-radius: var(--k2-radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--k2-space-2);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color var(--k2-duration-normal) ease,
+              border-color var(--k2-duration-normal) ease,
+              color var(--k2-duration-normal) ease,
+              box-shadow var(--k2-duration-normal) ease,
+              transform var(--k2-duration-fast) ease;
+}
+
+.k2-btn:active {
+  transform: scale(0.97);
+}
+
+.k2-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- Primary --- */
+.k2-btn-primary {
+  background-color: var(--k2-primary-500);
+  color: #ffffff;
+  border: 1px solid var(--k2-primary-500);
+  box-shadow: var(--k2-shadow-xs);
+}
+
+.k2-btn-primary:hover:not(:disabled) {
+  background-color: var(--k2-primary-600);
+  border-color: var(--k2-primary-600);
+  box-shadow: var(--k2-shadow-sm);
+}
+
+.k2-btn-primary:focus-visible {
+  box-shadow: var(--k2-shadow-ring);
+}
+
+/* --- Secondary --- */
+.k2-btn-secondary {
+  background-color: var(--k2-surface-primary);
+  color: var(--k2-gray-700);
+  border: 1px solid var(--k2-gray-300);
+  box-shadow: var(--k2-shadow-xs);
+}
+
+.k2-btn-secondary:hover:not(:disabled) {
+  background-color: var(--k2-gray-50);
+  border-color: var(--k2-gray-400);
+}
+
+.k2-btn-secondary:focus-visible {
+  box-shadow: var(--k2-shadow-ring);
+}
+
+/* --- Ghost --- */
+.k2-btn-ghost {
+  background-color: transparent;
+  color: var(--k2-gray-600);
+  border: 1px solid transparent;
+}
+
+.k2-btn-ghost:hover:not(:disabled) {
+  background-color: var(--k2-gray-100);
+  color: var(--k2-gray-700);
+}
+
+/* --- Danger --- */
+.k2-btn-danger {
+  background-color: var(--k2-error-500);
+  color: #ffffff;
+  border: 1px solid var(--k2-error-500);
+  box-shadow: var(--k2-shadow-xs);
+}
+
+.k2-btn-danger:hover:not(:disabled) {
+  background-color: var(--k2-error-700);
+  border-color: var(--k2-error-700);
+}
+
+/* --- Tailles --- */
+.k2-btn-sm {
+  font-size: var(--k2-font-size-xs);
+  padding: var(--k2-space-1) var(--k2-space-3);
+}
+
+.k2-btn-lg {
+  font-size: var(--k2-font-size-md);
+  padding: var(--k2-space-3) var(--k2-space-6);
+}
+
+
+/* ─────────────────────────────────────────────
+   INPUTS & LABELS
+   ───────────────────────────────────────────── */
+
+.k2-label {
+  display: block;
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-xs);
+  font-weight: var(--k2-font-weight-medium);
+  color: var(--k2-gray-700);
+  margin-bottom: var(--k2-space-1);
+  letter-spacing: 0.01em;
+}
+
+.k2-label-required::after {
+  content: ' *';
+  color: var(--k2-error-500);
+}
+
+.k2-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-base);
+  line-height: var(--k2-line-height-base);
+  color: var(--k2-gray-900);
+  background-color: var(--k2-surface-primary);
+  border: 1px solid var(--k2-gray-300);
+  border-radius: var(--k2-radius-sm);
+  box-shadow: var(--k2-shadow-xs);
+  transition: border-color var(--k2-duration-normal) ease,
+              box-shadow var(--k2-duration-normal) ease;
+  box-sizing: border-box;
+}
+
+.k2-input:focus {
+  outline: none;
+  border-color: var(--k2-primary-500);
+  box-shadow: var(--k2-shadow-ring);
+}
+
+.k2-input::placeholder {
+  color: var(--k2-gray-400);
+}
+
+.k2-input:disabled {
+  background-color: var(--k2-gray-50);
+  color: var(--k2-gray-400);
+  cursor: not-allowed;
+}
+
+/* Input avec erreur */
+.k2-input-error {
+  border-color: var(--k2-error-500);
+}
+
+.k2-input-error:focus {
+  box-shadow: 0 0 0 4px rgba(240, 68, 56, 0.12);
+}
+
+/* Texte d'aide / erreur sous l'input */
+.k2-input-hint {
+  font-size: var(--k2-font-size-xs);
+  color: var(--k2-gray-500);
+  margin-top: var(--k2-space-1);
+}
+
+.k2-input-error-text {
+  font-size: var(--k2-font-size-xs);
+  color: var(--k2-error-500);
+  margin-top: var(--k2-space-1);
+}
+
+/* Select */
+.k2-select {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-base);
+  color: var(--k2-gray-900);
+  background-color: var(--k2-surface-primary);
+  border: 1px solid var(--k2-gray-300);
+  border-radius: var(--k2-radius-sm);
+  box-shadow: var(--k2-shadow-xs);
+  transition: border-color var(--k2-duration-normal) ease,
+              box-shadow var(--k2-duration-normal) ease;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667085' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  box-sizing: border-box;
+}
+
+.k2-select:focus {
+  outline: none;
+  border-color: var(--k2-primary-500);
+  box-shadow: var(--k2-shadow-ring);
+}
+
+/* Textarea */
+.k2-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-base);
+  line-height: var(--k2-line-height-base);
+  color: var(--k2-gray-900);
+  background-color: var(--k2-surface-primary);
+  border: 1px solid var(--k2-gray-300);
+  border-radius: var(--k2-radius-sm);
+  box-shadow: var(--k2-shadow-xs);
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color var(--k2-duration-normal) ease,
+              box-shadow var(--k2-duration-normal) ease;
+  box-sizing: border-box;
+}
+
+.k2-textarea:focus {
+  outline: none;
+  border-color: var(--k2-primary-500);
+  box-shadow: var(--k2-shadow-ring);
+}
+
+/* Groupe de formulaire réutilisable */
+.k2-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+
+/* ─────────────────────────────────────────────
+   CARTES
+   ───────────────────────────────────────────── */
+
+.k2-card {
+  background-color: var(--k2-surface-primary);
+  border: 1px solid var(--k2-gray-200);
+  border-radius: var(--k2-radius-md);
+  box-shadow: var(--k2-shadow-sm);
+  overflow: hidden;
+  transition: box-shadow var(--k2-duration-slow) ease,
+              border-color var(--k2-duration-slow) ease;
+}
+
+.k2-card:hover {
+  box-shadow: var(--k2-shadow-md);
+  border-color: var(--k2-gray-300);
+}
+
+/* Variante sans hover effect (pour formulaires) */
+.k2-card-static {
+  background-color: var(--k2-surface-primary);
+  border: 1px solid var(--k2-gray-200);
+  border-radius: var(--k2-radius-md);
+  box-shadow: var(--k2-shadow-sm);
+  overflow: hidden;
+}
+
+.k2-card-header {
+  padding: var(--k2-space-4) var(--k2-space-5);
+  border-bottom: 1px solid var(--k2-gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.k2-card-header-title {
+  margin: 0;
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-base);
+  font-weight: var(--k2-font-weight-semibold);
+  color: var(--k2-gray-800);
+  line-height: var(--k2-line-height-tight);
+}
+
+.k2-card-body {
+  padding: var(--k2-space-5);
+}
+
+.k2-card-footer {
+  padding: var(--k2-space-4) var(--k2-space-5);
+  border-top: 1px solid var(--k2-gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--k2-space-3);
+}
+
+
+/* ─────────────────────────────────────────────
+   BADGES
+   ───────────────────────────────────────────── */
+
+.k2-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k2-space-1);
+  padding: 2px 8px;
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-xs);
+  font-weight: var(--k2-font-weight-medium);
+  line-height: 1.5;
+  border-radius: var(--k2-radius-full);
+  white-space: nowrap;
+}
+
+.k2-badge-success {
+  background-color: var(--k2-success-50);
+  color: var(--k2-success-700);
+}
+
+.k2-badge-error {
+  background-color: var(--k2-error-50);
+  color: var(--k2-error-700);
+}
+
+.k2-badge-warning {
+  background-color: var(--k2-warning-50);
+  color: var(--k2-warning-700);
+}
+
+.k2-badge-info {
+  background-color: var(--k2-info-50);
+  color: var(--k2-primary-700);
+}
+
+.k2-badge-neutral {
+  background-color: var(--k2-gray-100);
+  color: var(--k2-gray-700);
+}
+
+/* Badge avec point indicateur */
+.k2-badge-dot::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+
+/* ─────────────────────────────────────────────
+   TABLEAUX
+   ───────────────────────────────────────────── */
+
+.k2-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-base);
+}
+
+.k2-table thead th {
+  padding: var(--k2-space-3) var(--k2-space-4);
+  text-align: left;
+  font-size: var(--k2-font-size-xs);
+  font-weight: var(--k2-font-weight-medium);
+  color: var(--k2-gray-500);
+  background-color: var(--k2-gray-50);
+  border-bottom: 1px solid var(--k2-gray-200);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.k2-table tbody td {
+  padding: var(--k2-space-3) var(--k2-space-4);
+  border-bottom: 1px solid var(--k2-gray-200);
+  color: var(--k2-gray-700);
+  vertical-align: middle;
+}
+
+.k2-table tbody tr {
+  transition: background-color var(--k2-duration-fast) ease;
+}
+
+.k2-table tbody tr:hover {
+  background-color: var(--k2-gray-50);
+}
+
+.k2-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Cellule d'action (boutons à droite) */
+.k2-table-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+
+/* ─────────────────────────────────────────────
+   ONGLETS (TABS)
+   ───────────────────────────────────────────── */
+
+.k2-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--k2-gray-200);
+}
+
+.k2-tab {
+  padding: var(--k2-space-3) var(--k2-space-4);
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-base);
+  font-weight: var(--k2-font-weight-medium);
+  color: var(--k2-gray-500);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--k2-duration-normal) ease,
+              border-color var(--k2-duration-normal) ease;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+
+.k2-tab:hover {
+  color: var(--k2-gray-700);
+}
+
+.k2-tab.k2-tab-active {
+  color: var(--k2-primary-500);
+  border-bottom-color: var(--k2-primary-500);
+  font-weight: var(--k2-font-weight-semibold);
+}
+
+.k2-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--k2-shadow-ring);
+  border-radius: var(--k2-radius-xs) var(--k2-radius-xs) 0 0;
+}
+
+
+/* ─────────────────────────────────────────────
+   SÉPARATEURS
+   ───────────────────────────────────────────── */
+
+.k2-divider {
+  height: 1px;
+  background-color: var(--k2-gray-200);
+  border: none;
+  margin: var(--k2-space-4) 0;
+}
+
+.k2-divider-light {
+  height: 1px;
+  background-color: var(--k2-gray-100);
+  border: none;
+  margin: var(--k2-space-3) 0;
+}
+
+
+/* ─────────────────────────────────────────────
+   TYPOGRAPHIE HELPERS v2
+   ───────────────────────────────────────────── */
+
+.k2-page-title {
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-2xl);
+  font-weight: var(--k2-font-weight-bold);
+  color: var(--k2-gray-900);
+  line-height: var(--k2-line-height-tight);
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+.k2-section-title {
+  font-family: var(--k2-font-family);
+  font-size: var(--k2-font-size-lg);
+  font-weight: var(--k2-font-weight-semibold);
+  color: var(--k2-gray-800);
+  line-height: 1.33;
+  margin: 0;
+}
+
+.k2-text-muted {
+  color: var(--k2-gray-500);
+  font-size: var(--k2-font-size-sm);
+}
+
+.k2-text-caption {
+  color: var(--k2-gray-400);
+  font-size: var(--k2-font-size-xs);
+}
+
+
+/* ─────────────────────────────────────────────
+   TOGGLE SWITCH v2
+   ───────────────────────────────────────────── */
+
+.k2-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.k2-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.k2-toggle-track {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--k2-gray-300);
+  border-radius: var(--k2-radius-full);
+  transition: background-color var(--k2-duration-slow) ease;
+}
+
+.k2-toggle-track::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  box-shadow: var(--k2-shadow-sm);
+  transition: transform var(--k2-duration-slow) var(--k2-ease-out);
+}
+
+.k2-toggle input:checked + .k2-toggle-track {
+  background-color: var(--k2-primary-500);
+}
+
+.k2-toggle input:checked + .k2-toggle-track::before {
+  transform: translateX(20px);
+}
+
+.k2-toggle input:focus-visible + .k2-toggle-track {
+  box-shadow: var(--k2-shadow-ring);
+}
+
+
+/* ─────────────────────────────────────────────
+   ANIMATIONS v2
+   ───────────────────────────────────────────── */
+
+@keyframes k2-fade-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes k2-slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes k2-slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.k2-animate-fade-in {
+  animation: k2-fade-in var(--k2-duration-modal) var(--k2-ease-out) both;
+}
+
+.k2-animate-slide-up {
+  animation: k2-slide-up var(--k2-duration-modal) var(--k2-ease-out) both;
+}
+
+.k2-animate-slide-down {
+  animation: k2-slide-down var(--k2-duration-modal) var(--k2-ease-out) both;
+}
+
+
+/* ─────────────────────────────────────────────
+   LAYOUT HELPERS v2
+   ───────────────────────────────────────────── */
+
+.k2-flex         { display: flex; }
+.k2-flex-col     { display: flex; flex-direction: column; }
+.k2-flex-center  { display: flex; align-items: center; justify-content: center; }
+.k2-flex-between { display: flex; align-items: center; justify-content: space-between; }
+.k2-flex-wrap    { flex-wrap: wrap; }
+
+.k2-gap-1 { gap: var(--k2-space-1); }
+.k2-gap-2 { gap: var(--k2-space-2); }
+.k2-gap-3 { gap: var(--k2-space-3); }
+.k2-gap-4 { gap: var(--k2-space-4); }
+.k2-gap-6 { gap: var(--k2-space-6); }
+.k2-gap-8 { gap: var(--k2-space-8); }
+
+/* Conteneur principal centré avec max-width */
+.k2-content-container {
+  max-width: var(--k2-content-max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+
+/* ─────────────────────────────────────────────
+   HIGH-CONTRAST MODE — Surcharges v2
+   ───────────────────────────────────────────── */
+
+body.high-contrast-mode .k2-btn-primary {
+  background-color: yellow;
+  color: black;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k2-btn-secondary {
+  background-color: black;
+  color: yellow;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k2-btn-ghost {
+  color: yellow;
+}
+
+body.high-contrast-mode .k2-btn-ghost:hover:not(:disabled) {
+  background-color: rgba(255, 255, 0, 0.1);
+}
+
+body.high-contrast-mode .k2-card,
+body.high-contrast-mode .k2-card-static {
+  background-color: #000;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k2-card-header {
+  border-bottom-color: yellow;
+}
+
+body.high-contrast-mode .k2-card-header-title {
+  color: yellow;
+}
+
+body.high-contrast-mode .k2-input,
+body.high-contrast-mode .k2-select,
+body.high-contrast-mode .k2-textarea {
+  background-color: #000;
+  color: yellow;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k2-label {
+  color: yellow;
+}
+
+body.high-contrast-mode .k2-tabs {
+  border-bottom-color: yellow;
+}
+
+body.high-contrast-mode .k2-tab {
+  color: #ccc;
+}
+
+body.high-contrast-mode .k2-tab.k2-tab-active {
+  color: yellow;
+  border-bottom-color: yellow;
+}
+
+body.high-contrast-mode .k2-table thead th {
+  background-color: #111;
+  color: yellow;
+  border-bottom-color: yellow;
+}
+
+body.high-contrast-mode .k2-table tbody td {
+  color: yellow;
+  border-bottom-color: rgba(255, 255, 0, 0.2);
+}
+
+body.high-contrast-mode .k2-table tbody tr:hover {
+  background-color: rgba(255, 255, 0, 0.05);
+}
+
+body.high-contrast-mode .k2-badge {
+  border: 1px solid currentColor;
+}
+
+body.high-contrast-mode .k2-divider,
+body.high-contrast-mode .k2-divider-light {
+  background-color: rgba(255, 255, 0, 0.3);
+}
+
+body.high-contrast-mode .k2-toggle-track {
+  background-color: #333;
+  border: 1px solid yellow;
+}
+
+body.high-contrast-mode .k2-toggle input:checked + .k2-toggle-track {
+  background-color: yellow;
+}
+
+body.high-contrast-mode .k2-toggle-track::before {
+  background-color: yellow;
+}
+
+body.high-contrast-mode .k2-toggle input:checked + .k2-toggle-track::before {
+  background-color: black;
+}
+
+body.high-contrast-mode .k2-page-title,
+body.high-contrast-mode .k2-section-title {
+  color: yellow;
+}
+
+body.high-contrast-mode .k2-text-muted {
+  color: #ccc;
+}
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE — Ajustements pour très petits écrans
+   (autorise le wrap plutôt que de rogner le contenu)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 420px) {
+  /* Les boutons peuvent autoriser un wrap plutôt que débordement */
+  .k2-btn {
+    white-space: normal;
+    padding: var(--k2-space-2) var(--k2-space-3);
+  }
+}
+
+@media (max-width: 768px) {
+  /* Tableaux — autoriser scroll horizontal contrôlé si nécessaire */
+  .k2-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

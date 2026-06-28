@@ -1,0 +1,65 @@
+/* Kheops_2/client/src/components/dashboard/office/agenda/ConfirmDeleteEventModal.css */
+/* Overlay : les propriétés de base (position, flex, centering) sont fournies par .k-modal-overlay (_modal-base.css) */
+.confirm-delete-modal-overlay-kheops {
+  z-index: 1080; /* Au-dessus de EventDetailModal (qui est à 1070) */
+}
+
+.confirm-delete-modal-kheops {
+  background-color: #202124;
+  color: #e8eaed;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  width: 320px;
+  max-width: 80%;
+  text-align: center;
+  font-family: 'Roboto', Arial, sans-serif;
+}
+
+.confirm-delete-modal-kheops h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.confirm-delete-modal-kheops p {
+  margin-bottom: 25px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.confirm-delete-modal-actions-kheops {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-delete-modal-btn-kheops {
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.confirm-delete-modal-btn-kheops.cancel-btn-kheops {
+  background-color: transparent;
+  color: #8ab4f8; /* Bleu Google pour Annuler */
+  border: 1px solid #5f6368;
+}
+
+.confirm-delete-modal-btn-kheops.cancel-btn-kheops:hover {
+  background-color: rgba(138, 180, 248, 0.1); /* Léger fond bleu au survol */
+}
+
+.confirm-delete-modal-btn-kheops.delete-btn-kheops {
+  background-color: #d93025; /* Rouge pour Supprimer */
+  color: #fff;
+}
+
+.confirm-delete-modal-btn-kheops.delete-btn-kheops:hover {
+  background-color: #e04940; /* Rouge plus clair au survol */
+}

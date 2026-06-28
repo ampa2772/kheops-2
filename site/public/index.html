@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="KHEOPS 2 — Logiciel de gestion pour cabinet d'avocat. Dossiers, agenda, facturation, documents. 100 % local, sans abonnement. Téléchargement Windows." />
+  <meta name="theme-color" content="#0b1220" />
+  <title>KHEOPS 2 — Logiciel de gestion pour cabinet d'avocat</title>
+  <link rel="icon" type="image/png" href="logo-v4.png" />
+  <link rel="stylesheet" href="style.css?v=3" />
+</head>
+<body>
+
+  <!-- ============== NAVBAR ============== -->
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a class="nav-brand" href="#top">
+        <span class="logo-frame">
+          <img class="logo" src="logo-v4.png" alt="KHEOPS 2" />
+        </span>
+        <span class="nav-brand-text">KHEOPS 2</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#fonctionnalites">Fonctionnalités</a></li>
+        <li><a href="#telechargement">Téléchargement</a></li>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#support">Support</a></li>
+      </ul>
+      <a class="nav-cta" href="#telechargement">
+        <span class="nav-cta-icon" aria-hidden="true">⬇</span>
+        Télécharger
+      </a>
+    </div>
+  </nav>
+
+  <!-- ============== HERO ============== -->
+  <header id="top" class="hero">
+    <div class="container hero-inner">
+
+      <div class="hero-text">
+        <span class="badge">
+          <span class="badge-dot" aria-hidden="true"></span>
+          Disponible pour Windows 10 / 11
+          <span class="badge-version">v2.0.18-rc1</span>
+        </span>
+
+        <h1 class="hero-title">
+          La gestion <br />
+          de cabinet, <br />
+          <span class="grad">enfin maîtrisée.</span>
+        </h1>
+
+        <p class="hero-lead">
+          KHEOPS 2 est une application de bureau conçue pour aider
+          les avocats à organiser leurs dossiers, documents, agendas
+          et facturation — sans cloud imposé, sans dépendance,
+          sans abonnement.
+        </p>
+
+        <div class="hero-cta-row">
+          <a class="btn btn-primary" href="https://storage.googleapis.com/kheops-2-app-download/KHEOPS2-Setup.exe" download="KHEOPS2-Setup.exe">
+            <span class="btn-icon" aria-hidden="true">⬇</span>
+            Télécharger l'application
+          </a>
+          <a class="btn btn-ghost" href="#fonctionnalites">
+            Découvrir les fonctionnalités
+            <span class="btn-arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+
+        <ul class="hero-stats">
+          <li>
+            <strong>100%</strong>
+            <span>Local & privé</span>
+          </li>
+          <li>
+            <strong>0 €</strong>
+            <span>Abonnement</span>
+          </li>
+          <li>
+            <strong>~159 Mo</strong>
+            <span>Téléchargement</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- ====== APP MOCKUP ====== -->
+      <div class="hero-mockup" aria-hidden="true">
+        <div class="mockup-frame">
+          <div class="mockup-titlebar">
+            <span class="mockup-dot mockup-dot-r"></span>
+            <span class="mockup-dot mockup-dot-y"></span>
+            <span class="mockup-dot mockup-dot-g"></span>
+            <span class="mockup-title">KHEOPS 2 — Dossiers</span>
+          </div>
+          <div class="mockup-tabs">
+            <span class="mockup-tab is-active">Tous</span>
+            <span class="mockup-tab">En cours</span>
+            <span class="mockup-tab">Archivés</span>
+          </div>
+          <div class="mockup-list">
+            <div class="mockup-row">
+              <span class="mockup-row-icon" style="background:rgba(239,68,68,0.18);color:#ef4444;">📁</span>
+              <div class="mockup-row-text">
+                <span class="mockup-row-title">Abily Stevan c/ Delmont Jerome</span>
+                <span class="mockup-row-sub">N° JR2024 · Audience 25 avr.</span>
+              </div>
+              <span class="mockup-row-amount">938 €</span>
+            </div>
+            <div class="mockup-row">
+              <span class="mockup-row-icon" style="background:rgba(34,211,238,0.18);color:#22d3ee;">📁</span>
+              <div class="mockup-row-text">
+                <span class="mockup-row-title">Daleau Gilbert c/ Le Bon Vincent</span>
+                <span class="mockup-row-sub">N° JR2155 · Pacs</span>
+              </div>
+              <span class="mockup-row-amount">1 749 €</span>
+            </div>
+            <div class="mockup-row">
+              <span class="mockup-row-icon" style="background:rgba(245,158,11,0.18);color:#f59e0b;">📁</span>
+              <div class="mockup-row-text">
+                <span class="mockup-row-title">Toto Le gentil c/ Abily Stevan</span>
+                <span class="mockup-row-sub">N° P-Camo · Tutelle</span>
+              </div>
+              <span class="mockup-row-amount">304 €</span>
+            </div>
+            <div class="mockup-row mockup-row-muted">
+              <span class="mockup-row-icon" style="background:rgba(168,85,247,0.18);color:#a855f7;">📁</span>
+              <div class="mockup-row-text">
+                <span class="mockup-row-title">Martin c/ Société Brialec</span>
+                <span class="mockup-row-sub">N° JR2089 · Salle 4</span>
+              </div>
+              <span class="mockup-row-amount">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toast déplacé hors du frame pour pouvoir dépasser à gauche -->
+        <div class="mockup-toast">
+          <span class="mockup-toast-icon">🔒</span>
+          <div class="mockup-toast-text">
+            <strong>100% local</strong>
+            <span>Aucune donnée externe</span>
+          </div>
+        </div>
+
+        <div class="mockup-glow" aria-hidden="true"></div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ============== FONCTIONNALITÉS ============== -->
+  <section id="fonctionnalites" class="section">
+    <div class="container">
+      <span class="eyebrow">Fonctionnalités</span>
+      <h2 class="section-title">
+        Tout ce dont un cabinet a besoin,<br />
+        <span class="muted">dans une seule application.</span>
+      </h2>
+      <p class="section-lead">
+        Conçu autour du quotidien d'un avocat : dossiers, agenda, facturation, documents
+        — interconnectés et accessibles d'un seul clic.
+      </p>
+
+      <div class="features-grid">
+        <article class="feature">
+          <span class="feature-icon" style="--ic-color:#22d3ee;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v10a2 2 0 0 1-2 2H3z"/></svg>
+          </span>
+          <h3>Dossiers</h3>
+          <p>Centralisez parties, pièces, échanges et todo. Recherche instantanée, archivage propre.</p>
+        </article>
+
+        <article class="feature">
+          <span class="feature-icon" style="--ic-color:#a855f7;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+          </span>
+          <h3>Agenda</h3>
+          <p>Audiences, RDV, échéances. Vue mois, semaine, jour, liste avec catégories colorées.</p>
+        </article>
+
+        <article class="feature">
+          <span class="feature-icon" style="--ic-color:#22c55e;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 5-7"/></svg>
+          </span>
+          <h3>Facturation</h3>
+          <p>Suivi des paiements en kanban. Synthèse de revenus, KPIs, export comptable.</p>
+        </article>
+
+        <article class="feature">
+          <span class="feature-icon" style="--ic-color:#f59e0b;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
+          </span>
+          <h3>Documents</h3>
+          <p>En-tête personnalisable, signature numérique, génération de courriers et conclusions.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== SHOWCASE 1 — DOSSIERS ============== -->
+  <section class="section showcase">
+    <div class="container">
+      <div class="showcase-head">
+        <span class="show-eyebrow">
+          <span class="show-eyebrow-bullet">✦</span>
+          <span>AVOCATS D'EXPÉRIENCE</span>
+          <span class="show-eyebrow-arrow">→</span>
+          <span>ÉCRANS À CONSIDÉRER</span>
+          <span class="show-eyebrow-bullet">✦</span>
+        </span>
+        <h2 class="showcase-title">
+          Une interface pensée pour les<br />
+          avocats, pas pour les développeurs.
+        </h2>
+      </div>
+
+      <div class="app-mock" aria-hidden="true">
+        <div class="app-titlebar">
+          <span class="mockup-dot mockup-dot-r"></span>
+          <span class="mockup-dot mockup-dot-y"></span>
+          <span class="mockup-dot mockup-dot-g"></span>
+          <span class="app-titlebar-name">KHEOPS 2</span>
+        </div>
+        <div class="app-body">
+          <aside class="app-side">
+            <div class="app-side-logo">
+              <img src="logo-v4.png" alt="" />
+            </div>
+            <button class="app-side-btn is-active" title="Dossiers">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v10a2 2 0 0 1-2 2H3z"/></svg>
+            </button>
+            <button class="app-side-btn" title="Agenda">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+            </button>
+            <button class="app-side-btn" title="Facturation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 5-7"/></svg>
+            </button>
+            <button class="app-side-btn" title="Documents">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            </button>
+            <button class="app-side-btn" title="Recherche">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            </button>
+            <div class="app-side-spacer"></div>
+            <button class="app-side-btn" title="Paramètres">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+            </button>
+          </aside>
+
+          <main class="app-main">
+            <div class="app-topbar">
+              <span class="app-crumb">
+                <span>Dossiers</span>
+                <span class="app-crumb-sep">›</span>
+                <span>Civil</span>
+                <span class="app-crumb-sep">›</span>
+                <span class="app-crumb-cur">Abily Stevan</span>
+              </span>
+              <div class="app-topbar-tools">
+                <span class="app-pill">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                  Rechercher
+                </span>
+                <span class="app-avatar">A</span>
+              </div>
+            </div>
+
+            <div class="app-content">
+              <div class="app-doss-head">
+                <span class="app-doss-tag">DOSSIER ACTIF</span>
+                <h3 class="app-doss-title">Abily Stevan <em>c/</em> Delmont Jerome</h3>
+                <div class="app-doss-meta">
+                  <span class="app-meta-chip"><span class="meta-dot meta-dot-cyan"></span>Civil — Détention</span>
+                  <span class="app-meta-chip">N° JR2024-118</span>
+                  <span class="app-meta-chip">Audience 25 avr.</span>
+                </div>
+              </div>
+
+              <div class="app-doss-tabs">
+                <span class="app-doss-tab is-active">Pièces</span>
+                <span class="app-doss-tab">Notes</span>
+                <span class="app-doss-tab">Échanges</span>
+                <span class="app-doss-tab">Facturation</span>
+              </div>
+
+              <div class="app-doss-list">
+                <div class="app-doss-row">
+                  <span class="app-row-ic" style="--c:#22d3ee;">📄</span>
+                  <div class="app-row-text">
+                    <span class="app-row-t">Conclusions en défense</span>
+                    <span class="app-row-s">Pièce n°4 · 12 avr. 2026</span>
+                  </div>
+                  <span class="app-row-state st-cyan">Validé</span>
+                </div>
+                <div class="app-doss-row is-hot">
+                  <span class="app-row-ic" style="--c:#ec4899;background:rgba(236,72,153,0.18);color:#ec4899;">⚡</span>
+                  <div class="app-row-text">
+                    <span class="app-row-t">Assignation à comparaître</span>
+                    <span class="app-row-s">Pièce n°5 · à signifier sous 10 jours</span>
+                  </div>
+                  <span class="app-row-state st-pink">Urgent</span>
+                </div>
+                <div class="app-doss-row">
+                  <span class="app-row-ic" style="--c:#a855f7;background:rgba(168,85,247,0.18);color:#a855f7;">📑</span>
+                  <div class="app-row-text">
+                    <span class="app-row-t">Pièces adverses — bordereau</span>
+                    <span class="app-row-s">Pièce n°6 · reçu le 18 avr.</span>
+                  </div>
+                  <span class="app-row-state st-mute">Reçu</span>
+                </div>
+                <div class="app-doss-row">
+                  <span class="app-row-ic" style="--c:#22c55e;background:rgba(34,197,94,0.18);color:#22c55e;">✓</span>
+                  <div class="app-row-text">
+                    <span class="app-row-t">Convention d'honoraires signée</span>
+                    <span class="app-row-s">Pièce n°1 · 02 avr. 2026</span>
+                  </div>
+                  <span class="app-row-state st-green">Signé</span>
+                </div>
+              </div>
+            </div>
+
+            <aside class="app-aside">
+              <div class="app-aside-card">
+                <span class="app-aside-eb">CLIENT</span>
+                <strong class="app-aside-name">Stevan Abily</strong>
+                <span class="app-aside-sub">stevan.abily@example.fr</span>
+                <span class="app-aside-sub">+33 6 12 34 56 78</span>
+              </div>
+              <div class="app-aside-card">
+                <span class="app-aside-eb">PROCHAINE AUDIENCE</span>
+                <strong class="app-aside-name">25 avril 2026</strong>
+                <span class="app-aside-sub">TGI — Salle 4 · 09h30</span>
+              </div>
+              <div class="app-aside-card app-aside-bal">
+                <span class="app-aside-eb">SOLDE</span>
+                <strong class="app-aside-name">938 €</strong>
+                <span class="app-aside-sub st-amber">Reste à régler</span>
+              </div>
+            </aside>
+          </main>
+        </div>
+
+        <div class="app-toast app-toast-br">
+          <span class="app-toast-icon">€</span>
+          <div class="app-toast-text">
+            <strong>Échéance — Facturation</strong>
+            <span>938 € à recouvrer avant le 5 mai</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== SHOWCASE 2 — FACTURATION ============== -->
+  <section class="section showcase">
+    <div class="container">
+      <div class="showcase-head">
+        <span class="show-eyebrow">
+          <span class="show-eyebrow-bullet">✦</span>
+          <span>ARGENT</span>
+          <span class="show-eyebrow-arrow">→</span>
+          <span>MODULE</span>
+          <span class="show-eyebrow-arrow">→</span>
+          <span>FACTURATION</span>
+          <span class="show-eyebrow-bullet">✦</span>
+        </span>
+        <h2 class="showcase-title">
+          Vos revenus, vos impayés, votre<br />
+          trésorerie — en un coup d'œil.
+        </h2>
+      </div>
+
+      <div class="app-mock" aria-hidden="true">
+        <div class="app-titlebar">
+          <span class="mockup-dot mockup-dot-r"></span>
+          <span class="mockup-dot mockup-dot-y"></span>
+          <span class="mockup-dot mockup-dot-g"></span>
+          <span class="app-titlebar-name">KHEOPS 2 — Facturation</span>
+        </div>
+        <div class="app-body">
+          <aside class="app-side">
+            <div class="app-side-logo"><img src="logo-v4.png" alt="" /></div>
+            <button class="app-side-btn" title="Dossiers">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v10a2 2 0 0 1-2 2H3z"/></svg>
+            </button>
+            <button class="app-side-btn" title="Agenda">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+            </button>
+            <button class="app-side-btn is-active" title="Facturation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 5-7"/></svg>
+            </button>
+            <button class="app-side-btn" title="Documents">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            </button>
+            <button class="app-side-btn" title="Recherche">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            </button>
+            <div class="app-side-spacer"></div>
+          </aside>
+
+          <main class="app-main app-main-fact">
+            <div class="app-topbar">
+              <div class="app-fact-head">
+                <span class="app-fact-eb">KANBAN DES PAIEMENTS</span>
+                <h3>Facturation <span>· Payés · Partiel · En retard</span></h3>
+              </div>
+              <span class="app-pill app-pill-cyan">+ Nouvelle facture</span>
+            </div>
+
+            <div class="kanban">
+              <div class="kanban-col">
+                <div class="kanban-head">
+                  <span class="kanban-dot" style="background:#22c55e;"></span>
+                  Payés
+                  <span class="kanban-count">3</span>
+                </div>
+                <div class="kanban-card kc-green">
+                  <div class="kc-row1">
+                    <span class="kc-name">Daleau c/ Le Bon</span>
+                    <span class="kc-amt">1 749 €</span>
+                  </div>
+                  <div class="kc-row2"><span>Facture #2148</span><span>14 avr.</span></div>
+                  <div class="kc-bar"><span style="width:100%;background:#22c55e"></span></div>
+                </div>
+                <div class="kanban-card kc-green">
+                  <div class="kc-row1">
+                    <span class="kc-name">SCI Lemoine</span>
+                    <span class="kc-amt">2 200 €</span>
+                  </div>
+                  <div class="kc-row2"><span>Facture #2152</span><span>17 avr.</span></div>
+                  <div class="kc-bar"><span style="width:100%;background:#22c55e"></span></div>
+                </div>
+                <div class="kanban-card kc-green">
+                  <div class="kc-row1">
+                    <span class="kc-name">Martinez Cie</span>
+                    <span class="kc-amt">820 €</span>
+                  </div>
+                  <div class="kc-row2"><span>Facture #2155</span><span>21 avr.</span></div>
+                  <div class="kc-bar"><span style="width:100%;background:#22c55e"></span></div>
+                </div>
+              </div>
+
+              <div class="kanban-col">
+                <div class="kanban-head">
+                  <span class="kanban-dot" style="background:#f59e0b;"></span>
+                  Partiel
+                  <span class="kanban-count">2</span>
+                </div>
+                <div class="kanban-card kc-amber">
+                  <div class="kc-row1">
+                    <span class="kc-name">Toto c/ Abily</span>
+                    <span class="kc-amt">304 / 600 €</span>
+                  </div>
+                  <div class="kc-row2"><span>Facture #2140</span><span>échéance 30 avr.</span></div>
+                  <div class="kc-bar"><span style="width:50%;background:#f59e0b"></span></div>
+                </div>
+                <div class="kanban-card kc-amber">
+                  <div class="kc-row1">
+                    <span class="kc-name">Brialec SAS</span>
+                    <span class="kc-amt">600 / 1 200 €</span>
+                  </div>
+                  <div class="kc-row2"><span>Facture #2143</span><span>échéance 02 mai</span></div>
+                  <div class="kc-bar"><span style="width:50%;background:#f59e0b"></span></div>
+                </div>
+              </div>
+
+              <div class="kanban-col">
+                <div class="kanban-head">
+                  <span class="kanban-dot" style="background:#ef4444;"></span>
+                  En retard
+                  <span class="kanban-count">2</span>
+                </div>
+                <div class="kanban-card kc-red">
+                  <div class="kc-row1">
+                    <span class="kc-name">Abily c/ Delmont</span>
+                    <span class="kc-amt">938 €</span>
+                  </div>
+                  <div class="kc-row2"><span>Facture #2128</span><span>+ 8 jours de retard</span></div>
+                  <div class="kc-bar"><span style="width:25%;background:#ef4444"></span></div>
+                </div>
+                <div class="kanban-card kc-red">
+                  <div class="kc-row1">
+                    <span class="kc-name">Garnier Hervé</span>
+                    <span class="kc-amt">450 €</span>
+                  </div>
+                  <div class="kc-row2"><span>Facture #2131</span><span>+ 14 jours</span></div>
+                  <div class="kc-bar"><span style="width:15%;background:#ef4444"></span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="kpi-row">
+              <div class="kpi-card">
+                <span class="kpi-label">ENCAISSÉ</span>
+                <strong class="kpi-val">4 869 €</strong>
+                <span class="kpi-trend st-green">▲ 12%</span>
+              </div>
+              <div class="kpi-card">
+                <span class="kpi-label">EN ATTENTE</span>
+                <strong class="kpi-val">1 514 €</strong>
+                <span class="kpi-trend st-amber">▲ 4%</span>
+              </div>
+              <div class="kpi-card">
+                <span class="kpi-label">EN RETARD</span>
+                <strong class="kpi-val">1 388 €</strong>
+                <span class="kpi-trend st-red">▼ 3%</span>
+              </div>
+              <div class="kpi-card">
+                <span class="kpi-label">TAUX PAIEMENT</span>
+                <strong class="kpi-val">75 %</strong>
+                <span class="kpi-trend st-cyan">▲ 6 pts</span>
+              </div>
+            </div>
+          </main>
+        </div>
+
+        <div class="app-toast app-toast-bl">
+          <span class="app-toast-icon">📊</span>
+          <div class="app-toast-text">
+            <strong>Graphique flottant</strong>
+            <span>Visualisez les évolutions</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== SHOWCASE 3 — AGENDA ============== -->
+  <section class="section showcase">
+    <div class="container">
+      <div class="showcase-head">
+        <span class="show-eyebrow">
+          <span class="show-eyebrow-bullet">✦</span>
+          <span>KHEOPS</span>
+          <span class="show-eyebrow-arrow">→</span>
+          <span>MODULE</span>
+          <span class="show-eyebrow-arrow">→</span>
+          <span>AGENDA</span>
+          <span class="show-eyebrow-bullet">✦</span>
+        </span>
+        <h2 class="showcase-title">
+          Audiences, RDV et échéances —<br />
+          jamais oubliés, toujours visibles.
+        </h2>
+      </div>
+
+      <div class="app-mock" aria-hidden="true">
+        <div class="app-titlebar">
+          <span class="mockup-dot mockup-dot-r"></span>
+          <span class="mockup-dot mockup-dot-y"></span>
+          <span class="mockup-dot mockup-dot-g"></span>
+          <span class="app-titlebar-name">KHEOPS 2 — Agenda</span>
+        </div>
+        <div class="app-body">
+          <aside class="app-side">
+            <div class="app-side-logo"><img src="logo-v4.png" alt="" /></div>
+            <button class="app-side-btn" title="Dossiers">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v10a2 2 0 0 1-2 2H3z"/></svg>
+            </button>
+            <button class="app-side-btn is-active" title="Agenda">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+            </button>
+            <button class="app-side-btn" title="Facturation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 5-7"/></svg>
+            </button>
+            <button class="app-side-btn" title="Documents">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            </button>
+            <button class="app-side-btn" title="Recherche">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            </button>
+            <div class="app-side-spacer"></div>
+          </aside>
+
+          <main class="app-main app-main-agenda">
+            <div class="app-topbar">
+              <div class="agenda-views">
+                <span class="agenda-view is-active">Mois</span>
+                <span class="agenda-view">Semaine</span>
+                <span class="agenda-view">Jour</span>
+                <span class="agenda-view">Liste</span>
+              </div>
+              <h3 class="agenda-month">Avril <span>2026</span></h3>
+              <span class="app-pill app-pill-cyan">+ Évènement</span>
+            </div>
+
+            <div class="agenda-grid">
+              <div class="agenda-dow">Lun</div>
+              <div class="agenda-dow">Mar</div>
+              <div class="agenda-dow">Mer</div>
+              <div class="agenda-dow">Jeu</div>
+              <div class="agenda-dow">Ven</div>
+              <div class="agenda-dow">Sam</div>
+              <div class="agenda-dow">Dim</div>
+
+              <div class="agenda-cell is-out"><span class="ag-d">30</span></div>
+              <div class="agenda-cell is-out"><span class="ag-d">31</span></div>
+              <div class="agenda-cell"><span class="ag-d">1</span></div>
+              <div class="agenda-cell"><span class="ag-d">2</span><span class="ag-ev ev-cyan">Audience TGI</span></div>
+              <div class="agenda-cell"><span class="ag-d">3</span></div>
+              <div class="agenda-cell"><span class="ag-d">4</span></div>
+              <div class="agenda-cell"><span class="ag-d">5</span></div>
+
+              <div class="agenda-cell"><span class="ag-d">6</span><span class="ag-ev ev-purple">RDV Daleau</span></div>
+              <div class="agenda-cell"><span class="ag-d">7</span></div>
+              <div class="agenda-cell"><span class="ag-d">8</span><span class="ag-ev ev-amber">Échéance pièces</span></div>
+              <div class="agenda-cell"><span class="ag-d">9</span></div>
+              <div class="agenda-cell"><span class="ag-d">10</span><span class="ag-ev ev-cyan">Audience CA</span></div>
+              <div class="agenda-cell"><span class="ag-d">11</span></div>
+              <div class="agenda-cell"><span class="ag-d">12</span></div>
+
+              <div class="agenda-cell"><span class="ag-d">13</span></div>
+              <div class="agenda-cell"><span class="ag-d">14</span><span class="ag-ev ev-purple">RDV Brialec</span></div>
+              <div class="agenda-cell"><span class="ag-d">15</span><span class="ag-ev ev-cyan">Plaidoirie</span></div>
+              <div class="agenda-cell is-today"><span class="ag-d">16</span><span class="ag-ev ev-amber">Conclusions</span></div>
+              <div class="agenda-cell"><span class="ag-d">17</span></div>
+              <div class="agenda-cell"><span class="ag-d">18</span></div>
+              <div class="agenda-cell"><span class="ag-d">19</span></div>
+
+              <div class="agenda-cell"><span class="ag-d">20</span><span class="ag-ev ev-cyan">Audience TGI</span></div>
+              <div class="agenda-cell"><span class="ag-d">21</span></div>
+              <div class="agenda-cell"><span class="ag-d">22</span><span class="ag-ev ev-purple">RDV Martinez</span></div>
+              <div class="agenda-cell"><span class="ag-d">23</span></div>
+              <div class="agenda-cell"><span class="ag-d">24</span><span class="ag-ev ev-amber">Pièces adverses</span></div>
+              <div class="agenda-cell"><span class="ag-d">25</span><span class="ag-ev ev-pink">Audience Abily</span></div>
+              <div class="agenda-cell"><span class="ag-d">26</span></div>
+
+              <div class="agenda-cell"><span class="ag-d">27</span></div>
+              <div class="agenda-cell"><span class="ag-d">28</span><span class="ag-ev ev-cyan">Plaidoirie</span></div>
+              <div class="agenda-cell"><span class="ag-d">29</span></div>
+              <div class="agenda-cell"><span class="ag-d">30</span><span class="ag-ev ev-amber">Échéance facture</span></div>
+              <div class="agenda-cell is-out"><span class="ag-d">1</span></div>
+              <div class="agenda-cell is-out"><span class="ag-d">2</span></div>
+              <div class="agenda-cell is-out"><span class="ag-d">3</span></div>
+            </div>
+
+            <aside class="agenda-aside">
+              <span class="ag-aside-eb">VOS 3 PROCHAINS ÉVÈNEMENTS</span>
+              <div class="ag-aside-card">
+                <span class="ag-bullet ev-pink"></span>
+                <div>
+                  <strong>Audience Abily c/ Delmont</strong>
+                  <span>25 avr · 09h30 · Salle 4</span>
+                </div>
+              </div>
+              <div class="ag-aside-card">
+                <span class="ag-bullet ev-purple"></span>
+                <div>
+                  <strong>RDV Martinez</strong>
+                  <span>22 avr · 14h00 · Cabinet</span>
+                </div>
+              </div>
+              <div class="ag-aside-card">
+                <span class="ag-bullet ev-amber"></span>
+                <div>
+                  <strong>Conclusions à déposer</strong>
+                  <span>16 avr · avant minuit</span>
+                </div>
+              </div>
+            </aside>
+          </main>
+        </div>
+
+        <div class="app-toast app-toast-br">
+          <span class="app-toast-icon">📅</span>
+          <div class="app-toast-text">
+            <strong>Audience, RDV, Téléphone…</strong>
+            <span>Catégorisez chaque évènement</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== TÉLÉCHARGEMENT ============== -->
+  <section id="telechargement" class="section">
+    <div class="container">
+      <span class="eyebrow">Téléchargement</span>
+      <h2 class="section-title">Téléchargez KHEOPS 2 pour Windows.</h2>
+      <p class="section-lead">
+        Installateur signé, mise à jour automatique. Gratuit pendant la phase de lancement.
+      </p>
+
+      <div class="download-card">
+        <div class="download-card-left">
+          <span class="download-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+          </span>
+          <div class="download-card-info">
+            <span class="download-card-eyebrow">Installateur officiel</span>
+            <span class="download-card-filename">KHEOPS 2 Setup.exe</span>
+            <span class="download-card-meta">Application de bureau pour cabinets d'avocats</span>
+            <span class="download-card-platform">⊞ Windows 10 · 11 · 64-bit</span>
+          </div>
+        </div>
+        <div class="download-card-right">
+          <div class="download-spec-row">
+            <div class="download-spec">
+              <span class="download-spec-label">Version</span>
+              <span class="download-spec-value">2.0.18-rc1</span>
+            </div>
+            <div class="download-spec">
+              <span class="download-spec-label">Taille</span>
+              <span class="download-spec-value">~159 Mo</span>
+            </div>
+            <div class="download-spec">
+              <span class="download-spec-label">Format</span>
+              <span class="download-spec-value">.exe</span>
+            </div>
+          </div>
+          <a class="btn btn-primary btn-full" href="https://storage.googleapis.com/kheops-2-app-download/KHEOPS2-Setup.exe" download="KHEOPS2-Setup.exe">
+            <span class="btn-icon" aria-hidden="true">⬇</span>
+            Télécharger maintenant
+          </a>
+          <p class="download-card-note">⏳ Quelques minutes selon votre connexion</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== INSTALLATION ============== -->
+  <section id="installation" class="section">
+    <div class="container">
+      <span class="eyebrow">Installation</span>
+      <h2 class="section-title">4 étapes, 2 minutes.</h2>
+      <p class="section-lead">
+        Le programme d'installation s'occupe de tout. Aucune dépendance externe à installer.
+      </p>
+
+      <ol class="steps">
+        <li class="step">
+          <span class="step-num">01</span>
+          <div class="step-body">
+            <h3>Cliquez sur le bouton de téléchargement</h3>
+            <p>Le fichier <code>KHEOPS2-Setup.exe</code> sera enregistré dans votre dossier <strong>Téléchargements</strong>.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num">02</span>
+          <div class="step-body">
+            <h3>Ouvrez l'installateur</h3>
+            <p>Double-cliquez sur le fichier depuis votre navigateur ou depuis l'Explorateur Windows.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num">03</span>
+          <div class="step-body">
+            <h3>Suivez l'assistant</h3>
+            <p>Validez les étapes par défaut. L'installation prend généralement moins d'une minute.</p>
+            <div class="callout">
+              <span class="callout-icon">⚠</span>
+              <p>
+                Windows peut afficher un avertissement <strong>SmartScreen</strong> car l'éditeur n'est pas encore enregistré officiellement.
+                Cliquez sur <em>« Informations complémentaires »</em> puis <em>« Exécuter quand même »</em> pour lancer l'installation.
+              </p>
+            </div>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num">04</span>
+          <div class="step-body">
+            <h3>Lancez KHEOPS 2</h3>
+            <p>L'application est accessible depuis le <strong>Bureau</strong> ou le <strong>menu Démarrer</strong>. Au premier lancement, vous serez guidé pour créer votre profil.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============== CONFIGURATION ============== -->
+  <section class="section">
+    <div class="container">
+      <span class="eyebrow">Configuration requise</span>
+      <h2 class="section-title">Léger. Compatible. Discret.</h2>
+
+      <div class="reqs-grid">
+        <div class="req">
+          <span class="req-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></svg>
+          </span>
+          <span class="req-label">Système</span>
+          <strong>Windows 10 ou 11</strong>
+          <span class="req-meta">64 bits</span>
+        </div>
+        <div class="req">
+          <span class="req-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="9" ry="3"/><path d="M3 6v6c0 1.7 4 3 9 3s9-1.3 9-3V6"/><path d="M3 12v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+          </span>
+          <span class="req-label">Espace disque</span>
+          <strong>1 Go disponible</strong>
+          <span class="req-meta">minimum</span>
+        </div>
+        <div class="req">
+          <span class="req-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12a7 7 0 0 1 14 0"/><path d="M2 8a11 11 0 0 1 20 0"/><circle cx="12" cy="18" r="1.5"/></svg>
+          </span>
+          <span class="req-label">Connexion internet</span>
+          <strong>Pour le téléchargement</strong>
+          <span class="req-meta">et certaines fonctions</span>
+        </div>
+        <div class="req">
+          <span class="req-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4-8-12V5l8-3 8 3v5c0 8-8 12-8 12z"/><path d="M9 12l2 2 4-4"/></svg>
+          </span>
+          <span class="req-label">Droits</span>
+          <strong>Compte utilisateur</strong>
+          <span class="req-meta">avec autorisation</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== DÉSINSTALLATION + INTÉGRITÉ ============== -->
+  <section class="section">
+    <div class="container">
+      <div class="dual-grid">
+
+        <article class="card-block">
+          <h3 class="card-title">
+            <span class="card-title-icon">🗑</span>
+            Désinstallation
+          </h3>
+          <p>
+            Pour désinstaller KHEOPS 2, ouvrez les <strong>Paramètres
+            Windows</strong> → <strong>Applications</strong>, recherchez « KHEOPS 2 » puis
+            cliquez sur <strong>Désinstaller</strong>. La désinstallation est propre et
+            complète : aucune trace résiduelle ni clé de registre orpheline.
+          </p>
+        </article>
+
+        <article class="card-block card-integrity">
+          <h3 class="card-title">
+            <span class="card-title-icon">🔐</span>
+            Vérification d'intégrité
+            <span class="card-tag">Optionnel</span>
+          </h3>
+          <p>
+            Comparez l'empreinte SHA-256 du fichier téléchargé à la valeur
+            ci-dessous pour vous assurer qu'il n'a pas été altéré :
+          </p>
+
+          <div class="hash-box">
+            <code class="hash-value">830e8cdb5a88750742402e0eabdb2fb72f2f9721474e49ae359ef58c3b34e516</code>
+            <button class="hash-copy" type="button" data-copy="830e8cdb5a88750742402e0eabdb2fb72f2f9721474e49ae359ef58c3b34e516">Copier</button>
+          </div>
+
+          <div class="terminal">
+            <div class="terminal-bar">
+              <span class="terminal-dot terminal-dot-r"></span>
+              <span class="terminal-dot terminal-dot-y"></span>
+              <span class="terminal-dot terminal-dot-g"></span>
+              <span class="terminal-title">PowerShell</span>
+            </div>
+            <pre class="terminal-body"><span class="terminal-prompt">PS&gt;</span> <span class="terminal-cmd">Get-FileHash</span> "$env:USERPROFILE\Downloads\KHEOPS2-Setup.exe" -Algorithm SHA256</pre>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== SUPPORT / CONTACT ============== -->
+  <section id="support" class="section">
+    <div class="container">
+      <article class="contact-card">
+        <span class="contact-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+        </span>
+        <h3>Une question ? Un retour ?</h3>
+        <p>
+          Pour toute question, problème d'installation ou suggestion d'amélioration,
+          écrivez-nous — nous répondons sous 48 h.
+        </p>
+        <a class="btn btn-primary" href="mailto:apma2772@gmail.com">
+          <span class="btn-icon" aria-hidden="true">✉</span>
+          apma2772@gmail.com
+        </a>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============== FOOTER ============== -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="logo-frame logo-frame-sm">
+          <img class="logo" src="logo-v4.png" alt="" />
+        </span>
+        <span>© <span id="year">2026</span> KHEOPS 2 — Tous droits réservés.</span>
+      </div>
+      <div class="footer-version">
+        <span class="footer-build">Build stable</span>
+        <span class="footer-tag">v2.0.18-rc1</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Copier le hash SHA256
+    document.querySelectorAll('.hash-copy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = btn.getAttribute('data-copy');
+        navigator.clipboard.writeText(v).then(() => {
+          const original = btn.textContent;
+          btn.textContent = '✓ Copié';
+          btn.classList.add('is-copied');
+          setTimeout(() => { btn.textContent = original; btn.classList.remove('is-copied'); }, 1600);
+        });
+      });
+    });
+
+    // Smooth scroll pour les ancres internes
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const href = a.getAttribute('href');
+        if (href.length > 1) {
+          const tgt = document.querySelector(href);
+          if (tgt) {
+            e.preventDefault();
+            tgt.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

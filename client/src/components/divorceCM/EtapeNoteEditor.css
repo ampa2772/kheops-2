@@ -1,0 +1,353 @@
+/* client/src/components/divorceCM/EtapeNoteEditor.css
+ *
+ * Editeur de note inspire du ruban Word : toolbar horizontale en haut sur
+ * une ou deux lignes, groupee par categorie (Police / Style / Paragraphe /
+ * Outils), boutons compacts en ligne, et zone d'ecriture qui occupe la
+ * majorite de la modale.
+ */
+
+.k-dcm-note-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 16500;
+  padding: 1.25rem;
+  animation: k-dcm-note-fade-in 150ms ease-out;
+}
+
+@keyframes k-dcm-note-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.k-dcm-note-modal {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  width: 100%;
+  max-width: 1100px;
+  height: 90vh;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #1f2937;
+  animation: k-dcm-note-pop 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+@keyframes k-dcm-note-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ============================================================
+ * Header (titre + ferme)
+ * ============================================================ */
+.k-dcm-note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+  background: #f3f6fc;
+  border-bottom: 1px solid #d6dbe6;
+  flex-shrink: 0;
+}
+
+.k-dcm-note-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.k-dcm-note-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-weight: normal;
+}
+
+.k-dcm-note-close {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  width: auto;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.k-dcm-note-close:hover {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ============================================================
+ * RUBAN — toolbar horizontale compacte
+ * ============================================================ */
+.k-dcm-note-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  padding: 0.45rem 0.5rem;
+  background: #fafbfd;
+  border-bottom: 1px solid #d6dbe6;
+  flex-shrink: 0;
+}
+
+.k-dcm-note-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-right: 1px solid #e5e7eb;
+}
+
+.k-dcm-note-group:last-child {
+  border-right: none;
+}
+
+.k-dcm-note-group-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.k-dcm-note-group-label {
+  font-size: 0.65rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 1px;
+}
+
+/* Boutons du ruban : reset width et compact */
+.k-dcm-note-ribbon button {
+  width: auto;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: #1f2937;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background-color 100ms ease, border-color 100ms ease;
+}
+
+.k-dcm-note-ribbon button:hover {
+  background: #e0e7ff;
+  border-color: #c7d2fe;
+}
+
+.k-dcm-note-ribbon button:active {
+  background: #c7d2fe;
+}
+
+.k-dcm-note-ribbon button.is-active {
+  background: #c7d2fe;
+  border-color: #818cf8;
+}
+
+.k-dcm-note-ribbon select {
+  width: auto;
+  height: 26px;
+  padding: 0 22px 0 6px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: #1f2937;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path fill='%236b7280' d='M5 7.5L1 3h8z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+}
+
+.k-dcm-note-ribbon select:hover {
+  border-color: #818cf8;
+}
+
+.k-dcm-note-ribbon select.font-family { min-width: 130px; }
+.k-dcm-note-ribbon select.font-size   { min-width: 56px; }
+
+.k-dcm-note-divider {
+  width: 1px;
+  background: #d1d5db;
+  margin: 4px 0;
+}
+
+/* Pastilles de couleur */
+.k-dcm-note-color-row {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.k-dcm-note-color-swatch {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
+  border-radius: 3px;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+  transition: transform 100ms ease, box-shadow 100ms ease;
+}
+
+.k-dcm-note-color-swatch:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px #818cf8;
+}
+
+/* Boutons icônes typographiques (B / I / U / S) */
+.k-dcm-note-ribbon .ic-bold      { font-weight: 800; font-family: serif; }
+.k-dcm-note-ribbon .ic-italic    { font-style: italic; font-family: serif; }
+.k-dcm-note-ribbon .ic-underline { text-decoration: underline; font-family: serif; }
+.k-dcm-note-ribbon .ic-strike    { text-decoration: line-through; font-family: serif; }
+
+/* ============================================================
+ * Zone d'edition (page Word-like)
+ * ============================================================ */
+.k-dcm-note-canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  background: #ecedf1;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.k-dcm-note-editor {
+  width: 100%;
+  max-width: 800px;
+  min-height: 100%;
+  background: #ffffff;
+  border: 1px solid #d6dbe6;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 2rem 2.25rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #1f2937;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.k-dcm-note-editor:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15), 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.k-dcm-note-editor:empty::before {
+  content: 'Saisissez votre note ici. Selectionnez du texte puis utilisez le ruban en haut pour formater.';
+  color: #9ca3af;
+  font-style: italic;
+  pointer-events: none;
+}
+
+.k-dcm-note-editor p { margin: 0 0 0.6rem 0; }
+/* App.css applique `ul { list-style: none }` au global, ce qui supprime les
+   puces partout. On force les puces et numeros DANS la zone d'edition pour
+   qu'elles soient visibles. */
+.k-dcm-note-editor ul,
+.k-dcm-note-editor ol {
+  margin: 0 0 0.6rem 0;
+  padding-left: 1.75rem;
+}
+.k-dcm-note-editor ul { list-style: disc outside; }
+.k-dcm-note-editor ol { list-style: decimal outside; }
+.k-dcm-note-editor li { margin: 0.15rem 0; }
+.k-dcm-note-editor h1 { font-size: 1.3rem; margin: 0.5rem 0; font-weight: 700; }
+.k-dcm-note-editor h2 { font-size: 1.15rem; margin: 0.5rem 0; font-weight: 700; }
+
+/* ============================================================
+ * Footer (Annuler / Enregistrer)
+ * ============================================================ */
+.k-dcm-note-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: #f3f6fc;
+  border-top: 1px solid #d6dbe6;
+  flex-shrink: 0;
+}
+
+.k-dcm-note-footer .k-dcm-btn {
+  width: auto;
+}
+
+.k-dcm-note-status {
+  margin-right: auto;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* ============================================================
+ * Affichage de la note rendue dans la checklist
+ * ============================================================ */
+.k-dcm-checklist-note-rendered {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  background: #f3f4f6;
+  border-left: 3px solid #6366f1;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #1f2937;
+  word-wrap: break-word;
+}
+
+.k-dcm-checklist-note-rendered p { margin: 0 0 0.3rem 0; }
+.k-dcm-checklist-note-rendered p:last-child { margin-bottom: 0; }
+.k-dcm-checklist-note-rendered ul,
+.k-dcm-checklist-note-rendered ol {
+  margin: 0.2rem 0 0.3rem 0;
+  padding-left: 1.4rem;
+}
+.k-dcm-checklist-note-rendered ul { list-style: disc outside; }
+.k-dcm-checklist-note-rendered ol { list-style: decimal outside; }
+
+/* ============================================================
+ * Responsive
+ * ============================================================ */
+@media (max-width: 900px) {
+  .k-dcm-note-overlay { padding: 0.5rem; }
+  .k-dcm-note-modal { height: 95vh; max-height: 95vh; border-radius: 6px; }
+  .k-dcm-note-canvas { padding: 0.6rem; }
+  .k-dcm-note-editor { padding: 1rem 1.2rem; }
+  .k-dcm-note-group { padding: 2px 5px; }
+  .k-dcm-note-group-label { display: none; }
+  .k-dcm-note-ribbon select.font-family { min-width: 90px; }
+}
+
+@media (max-width: 600px) {
+  .k-dcm-note-ribbon button { min-width: 26px; height: 26px; font-size: 0.8rem; padding: 0 4px; }
+  .k-dcm-note-color-swatch { width: 16px; height: 16px; min-width: 16px; }
+}

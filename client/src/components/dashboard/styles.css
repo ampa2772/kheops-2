@@ -1,0 +1,170 @@
+/* ==========================================================
+   Dashboard layout — Phase 2 Redesign (k2-* Design System)
+   Structure : Header + Sidebar + Content (fond clair)
+   ========================================================== */
+
+.dashboard {
+  display: grid;
+  grid-template-rows: var(--k2-header-height, 56px) 1fr;
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  background-color: var(--k2-surface-secondary, #f9fafb);
+}
+
+/* ─── Header ─── */
+.dashboard-header {
+  background-color: var(--k2-surface-header, var(--k-header-bg, var(--color-header-footer)));
+  padding: 0 var(--k2-space-4, 16px);
+  height: var(--k2-header-height, 56px);
+  max-height: var(--k2-header-height, 56px);
+  min-height: var(--k2-header-height, 56px);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Main container (sidebar + content) ─── */
+.dashboard-main {
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ─── Sidebar (ouverte) ─── */
+.dashboard-sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: var(--k2-surface-sidebar, var(--k-sidebar-bg, var(--side-bar-color)));
+  padding: var(--k2-space-2, 8px);
+  box-sizing: border-box;
+  width: var(--k2-sidebar-width-open, 240px);
+  flex-shrink: 0;
+  transition: width var(--k2-duration-modal, 250ms) var(--k2-ease-out, ease);
+  overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Sidebar (fermée — mode icône) ─── */
+.dashboard-sidebar-close {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: var(--k2-surface-sidebar, var(--k-sidebar-bg, var(--side-bar-color)));
+  padding: var(--k2-space-2, 8px);
+  box-sizing: border-box;
+  width: var(--k2-sidebar-width-closed, 120px);
+  flex-shrink: 0;
+  transition: width var(--k2-duration-modal, 250ms) var(--k2-ease-out, ease);
+  overflow-x: visible;
+  overflow-y: auto;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Zone de contenu principal (fond gradient) ─── */
+.dashboard-content {
+  flex: 1;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--k2-bg-gradient,
+    linear-gradient(145deg, #0f1b2d 0%, #132740 28%, #122f3d 52%, #0e3a3a 76%, #123830 100%)
+  );
+  background-attachment: fixed;
+}
+
+/* ─── Footer (masqué) ─── */
+.dashboard-footer {
+  background-color: var(--k2-surface-header, var(--k-header-bg, var(--color-header-footer)));
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — Sidebar compacte sur tablette/mobile
+   En dessous de 900px, la sidebar passe en mode icone-seule (60px) peu
+   importe le state Redux isSidebarOpen, pour ne pas voler 30%+ du viewport
+   au contenu principal.
+   ═══════════════════════════════════════ */
+@media (max-width: 900px) {
+  .dashboard-sidebar,
+  .dashboard-sidebar-close {
+    width: 60px;
+  }
+  /* Le boutonConteneur a 2 enfants : .boutonSideBar (icone) puis le titre.
+     On cache le 2eme et + pour conserver uniquement l'icone. */
+  .dashboard-sidebar .boutonConteneur > div:not(:first-child),
+  .dashboard-sidebar-close .boutonConteneur > div:not(:first-child) {
+    display: none;
+  }
+  .dashboard-sidebar .boutonConteneur,
+  .dashboard-sidebar-close .boutonConteneur {
+    gap: 0;
+    justify-content: center;
+  }
+  .dashboard-sidebar .sidebar-nav-item,
+  .dashboard-sidebar .selectedInSideBar,
+  .dashboard-sidebar .notSelectedInSideBar,
+  .dashboard-sidebar-close .sidebar-nav-item,
+  .dashboard-sidebar-close .selectedInSideBar,
+  .dashboard-sidebar-close .notSelectedInSideBar {
+    justify-content: center;
+    padding: 8px;
+    margin: 0 auto;
+    width: auto;
+  }
+  /* Bouton resize cache : sidebar deja en mode compact force */
+  .boutonResize,
+  .boutonResizeCenter {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-sidebar,
+  .dashboard-sidebar-close {
+    width: 48px;
+    padding: 4px;
+  }
+  .boutonSideBar,
+  .e-mails {
+    height: 18px;
+    width: 18px;
+  }
+  .dashboard-sidebar .sidebar-nav-item,
+  .dashboard-sidebar-close .sidebar-nav-item {
+    padding: 6px;
+  }
+}
+
+/* ─── High-contrast overrides ─── */
+body.high-contrast-mode .dashboard-header {
+  border-bottom: 2px solid var(--highlight-color);
+}
+
+body.high-contrast-mode .dashboard-main {
+  background-color: var(--color-main-bg);
+}
+
+body.high-contrast-mode .dashboard-sidebar,
+body.high-contrast-mode .dashboard-sidebar-close {
+  background-color: var(--k-sidebar-bg, var(--side-bar-color));
+  border-right: 2px solid var(--highlight-color);
+}
+
+body.high-contrast-mode .dashboard-content {
+  background-color: #000;
+}
+
+body.high-contrast-mode .dashboard-footer {
+  border-top: 2px solid var(--highlight-color);
+}

@@ -1,0 +1,344 @@
+/* client/src/components/divorceCM/documents/divorceCMDocs.css
+ *
+ * Styles dedies aux documents juridiques generes par le module divorce CM.
+ * Optimises pour l'impression (window.print) et la conversion PDF.
+ *
+ * Convention de nommage : tous les selecteurs prefixes en `.k-dcm-doc-*`.
+ */
+
+/* ============================================================
+ * Conteneur cache hors impression : ne se montre que pendant
+ * window.print() OU quand .preparing est ajoute.
+ * ============================================================ */
+.k-dcm-doc-print-area {
+  display: none;
+}
+
+.k-dcm-doc-print-area.preparing {
+  display: block;
+}
+
+/* Quand le document est rendu dans l'overlay d'apercu, on le force visible
+   meme sans la classe .preparing (le rendu React arrive apres le state-set,
+   donc on n'a plus besoin du toggle .preparing). */
+.k-dcm-doc-preview-overlay .k-dcm-doc-print-area {
+  display: block !important;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  .k-dcm-doc-print-area, .k-dcm-doc-print-area * {
+    visibility: visible !important;
+  }
+  .k-dcm-doc-print-area {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #fff;
+    color: #000;
+  }
+  .k-dcm-no-print {
+    display: none !important;
+  }
+  /* Forcer la couleur noire et fond blanc pour l'impression */
+  .k-dcm-doc-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+  /* Saut de page entre documents si plusieurs simultanes (rare) */
+  .k-dcm-doc-page + .k-dcm-doc-page {
+    page-break-before: always;
+  }
+}
+
+/* ============================================================
+ * Page A4 simulee (visible aussi a l'ecran pendant la preparation)
+ * ============================================================ */
+.k-dcm-doc-page {
+  width: 21cm;
+  min-height: 29.7cm;
+  padding: 2.5cm 2cm 2.5cm 2cm;
+  margin: 0 auto 1cm auto;
+  background: #fff;
+  color: #000;
+  font-family: 'Times New Roman', Times, Cambria, serif;
+  font-size: 11.5pt;
+  line-height: 1.55;
+  text-align: justify;
+  hyphens: auto;
+  box-sizing: border-box;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.1);
+}
+
+/* ============================================================
+ * Typographie generale
+ * ============================================================ */
+.k-dcm-doc-page h1 {
+  font-size: 16pt;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  margin: 0 0 0.6cm 0;
+  letter-spacing: 0.5px;
+}
+
+.k-dcm-doc-page h2 {
+  font-size: 13pt;
+  font-weight: 700;
+  margin: 0.6cm 0 0.3cm 0;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.k-dcm-doc-page h3 {
+  font-size: 12pt;
+  font-weight: 700;
+  margin: 0.45cm 0 0.2cm 0;
+  text-align: left;
+}
+
+.k-dcm-doc-page p {
+  margin: 0 0 0.35cm 0;
+  text-align: justify;
+}
+
+.k-dcm-doc-page strong { font-weight: 700; }
+.k-dcm-doc-page em { font-style: italic; }
+
+/* Numeros d'articles */
+.k-dcm-doc-article {
+  margin: 0.6cm 0 0.4cm 0;
+}
+
+.k-dcm-doc-article-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 0.3cm;
+  font-size: 12pt;
+}
+
+/* ============================================================
+ * Bloc de presentation (entre les soussignes)
+ * ============================================================ */
+.k-dcm-doc-bloc-partie {
+  margin: 0.4cm 0;
+  padding-left: 0.5cm;
+  white-space: pre-line;       /* preserve les retours de ligne du helper */
+  text-align: left;
+}
+
+.k-dcm-doc-soussigne {
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 0.5cm 0 0.2cm 0;
+  text-align: center;
+}
+
+.k-dcm-doc-et {
+  text-align: center;
+  font-weight: 700;
+  margin: 0.3cm 0;
+}
+
+.k-dcm-doc-represente {
+  font-style: italic;
+  margin: 0.15cm 0 0.4cm 0.5cm;
+}
+
+/* ============================================================
+ * En-tete entete (avocat / cabinet)
+ * ============================================================ */
+.k-dcm-doc-letterhead {
+  margin-bottom: 1cm;
+  padding-bottom: 0.4cm;
+  border-bottom: 1px solid #000;
+  font-size: 10pt;
+}
+
+.k-dcm-doc-letterhead-cabinet {
+  font-weight: 700;
+  font-size: 12pt;
+  margin-bottom: 0.15cm;
+}
+
+.k-dcm-doc-letterhead-coords {
+  font-size: 9.5pt;
+  line-height: 1.35;
+}
+
+/* ============================================================
+ * Adresse destinataire (pour les courriers)
+ * ============================================================ */
+.k-dcm-doc-destinataire {
+  margin: 0.8cm 0 0.6cm auto;
+  width: 9cm;
+  text-align: left;
+  font-size: 11pt;
+  line-height: 1.4;
+}
+
+.k-dcm-doc-references {
+  font-size: 9.5pt;
+  margin-bottom: 0.6cm;
+}
+
+.k-dcm-doc-objet {
+  font-weight: 700;
+  margin: 0.5cm 0 0.4cm 0;
+  text-decoration: underline;
+}
+
+.k-dcm-doc-rar {
+  font-size: 9.5pt;
+  font-style: italic;
+  margin-bottom: 0.6cm;
+}
+
+/* ============================================================
+ * Listes
+ * ============================================================ */
+.k-dcm-doc-page ul,
+.k-dcm-doc-page ol {
+  margin: 0.2cm 0 0.4cm 0.5cm;
+  padding-left: 0.5cm;
+}
+
+.k-dcm-doc-page li {
+  margin-bottom: 0.12cm;
+}
+
+/* ============================================================
+ * Bloc signature
+ * ============================================================ */
+.k-dcm-doc-signatures {
+  margin-top: 1.2cm;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8cm;
+}
+
+.k-dcm-doc-signature-bloc {
+  border-top: 1px solid #000;
+  padding-top: 0.4cm;
+}
+
+.k-dcm-doc-signature-titre {
+  font-weight: 700;
+  margin-bottom: 0.2cm;
+}
+
+.k-dcm-doc-signature-mention {
+  font-size: 9.5pt;
+  font-style: italic;
+  margin: 0.3cm 0;
+}
+
+.k-dcm-doc-signature-line {
+  margin-top: 1.2cm;
+  border-top: 1px dotted #555;
+  width: 100%;
+}
+
+/* ============================================================
+ * Citations / mentions legales
+ * ============================================================ */
+.k-dcm-doc-citation {
+  font-size: 10pt;
+  font-style: italic;
+  margin: 0.3cm 0;
+  padding-left: 0.5cm;
+  border-left: 2px solid #999;
+  color: #333;
+}
+
+/* ============================================================
+ * Tableaux pour la liste des pieces / bordereau
+ * ============================================================ */
+.k-dcm-doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.4cm 0;
+  font-size: 10.5pt;
+}
+
+.k-dcm-doc-table th,
+.k-dcm-doc-table td {
+  border: 1px solid #000;
+  padding: 0.2cm 0.3cm;
+  text-align: left;
+}
+
+.k-dcm-doc-table th {
+  background: #f0f0f0;
+  font-weight: 700;
+}
+
+.k-dcm-doc-checkbox {
+  display: inline-block;
+  width: 12pt;
+  height: 12pt;
+  border: 1.5px solid #000;
+  margin-right: 0.2cm;
+  vertical-align: middle;
+}
+
+/* ============================================================
+ * UI library section dans le panneau dossier
+ * ============================================================ */
+.k-dcm-docs-library {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.k-dcm-doc-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.k-dcm-doc-card-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #1e3a8a;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.k-dcm-doc-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #1e40af;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.k-dcm-doc-card-desc {
+  font-size: 0.78rem;
+  color: #6b7280;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.k-dcm-doc-card-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}

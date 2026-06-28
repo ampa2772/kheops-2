@@ -1,0 +1,61 @@
+/* ==========================================================
+   Notifications styles — Phase 1 Redesign
+   ========================================================== */
+
+.notifications-logo {
+  width: var(--k-header-icon-size, 20px);
+  height: var(--k-header-icon-size, 20px);
+}
+
+/* Conteneur pour la cloche et le badge */
+.notification-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Badge de notification — affine */
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background-color: var(--k-danger, #dc3545);
+  color: #fff;
+  border-radius: var(--k-radius-full);
+  padding: 1px 4px;
+  font-size: 10px;
+  font-weight: var(--k-font-weight-bold);
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 2px solid var(--k-header-bg, var(--color-header-footer));
+  line-height: 1;
+  animation: k-badge-pop 300ms var(--k-ease-out) both;
+}
+
+@keyframes k-badge-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ========== MODE MALVOYANT ========== */
+
+body.high-contrast-mode .notification-badge {
+  background-color: yellow;
+  color: black;
+  border-color: black;
+  font-weight: var(--k-font-weight-bold);
+}

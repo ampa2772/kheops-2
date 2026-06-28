@@ -1,0 +1,53 @@
+/* ==========================================================
+   _header-small.css
+   Micro-styles consolides pour les sous-composants du header
+   ========================================================== */
+
+/* Source: currentsUsers/currentsUsersIcon */
+.currents-users-change-icon {
+  height: var(--k-header-icon-size, 20px);
+  width: var(--k-header-icon-size, 20px);
+  cursor: pointer;
+}
+
+/* Source: currentUser/currentUserAffiche */
+.current-user-affiche {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--k-font-size-sm);
+}
+
+/* Source: currentUser/currentUserChangeIcon */
+.current-user-change-icon {
+  width: var(--k-header-icon-size, 20px);
+  height: var(--k-header-icon-size, 20px);
+}
+
+/* Source: currentUser (container) */
+.current-user-aff-icon {
+  display: flex;
+  gap: var(--k-space-2);
+  align-items: center;
+  cursor: pointer;
+}
+
+/* Source: dossierModifCreateForm/dossierCreateIcon */
+.create-icon {
+  width: 23px;
+  height: 23px;
+  cursor: pointer;
+}
+
+/* Source: mainUser (container) */
+.main-user {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2);
+  cursor: pointer;
+}
+
+/* Source: title */
+.title {
+  font-weight: var(--k-font-weight-semibold);
+  font-size: var(--k-font-size-md);
+  letter-spacing: 0.01em;
+}

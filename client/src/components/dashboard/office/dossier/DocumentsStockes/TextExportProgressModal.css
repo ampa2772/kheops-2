@@ -1,0 +1,102 @@
+.text-export-modal-overlay {
+  z-index: 10001;
+}
+
+.text-export-modal-content {
+  background-color: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 450px;
+  color: var(--k-primary-800, #043a4f);
+}
+
+.text-export-modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.text-export-status {
+  text-align: center;
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+  color: #555;
+}
+
+.text-export-progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.text-export-progress-bar-fill {
+  height: 100%;
+  background-color: var(--k-primary-800, #043a4f);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.text-export-current-doc {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.text-export-success {
+  text-align: center;
+  color: #2e7d32;
+  font-weight: bold;
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.text-export-filename {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #555;
+  word-break: break-all;
+  margin-bottom: 8px;
+}
+
+.text-export-warning {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #e65100;
+  margin-bottom: 8px;
+}
+
+.text-export-error {
+  text-align: center;
+  color: #c62828;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.text-export-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.text-export-btn {
+  padding: 8px 24px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: bold;
+  background-color: var(--k-primary-800, #043a4f);
+  color: var(--k-bg-white, #fff);
+}
+
+.text-export-btn:hover {
+  background-color: var(--k-primary-700, #064963);
+}

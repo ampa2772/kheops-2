@@ -1,0 +1,292 @@
+/* ==========================================================
+   _security-section.css
+   Styles de l'onglet "Securite" dans la page Parametres.
+   Support du mode malvoyant (body.high-contrast-mode).
+   ========================================================== */
+
+.k-security-section {
+  padding: 20px 24px;
+  max-width: 780px;
+}
+
+.k-security-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: #003923;
+}
+
+.k-security-intro {
+  color: #444;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.k-security-intro strong {
+  color: #008047;
+}
+
+/* --- Avertissements --- */
+.k-security-warning {
+  background-color: #fff8e6;
+  border-left: 4px solid #f0a500;
+  padding: 12px 14px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #5c3a00;
+  line-height: 1.45;
+  margin: 12px 0;
+}
+
+.k-security-warning strong {
+  color: #5c3a00;
+}
+
+/* --- Carte d'etat --- */
+.k-security-card {
+  background-color: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin: 18px 0;
+}
+
+.k-security-state {
+  font-size: 1.05rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+.k-security-state--on {
+  background-color: #e6f5ec;
+  color: #006838;
+  border: 1px solid #008047;
+}
+
+.k-security-state--locked {
+  background-color: #fff4e0;
+  color: #8a5400;
+  border: 1px solid #d18b00;
+}
+
+.k-security-state--off {
+  background-color: #fdf0f0;
+  color: #80232b;
+  border: 1px solid #c0383f;
+}
+
+.k-security-meta {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.k-security-meta-row {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+}
+
+.k-security-meta-row dt {
+  flex: 0 0 200px;
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.k-security-meta-row dd {
+  margin: 0;
+  flex: 1;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+/* --- Actions --- */
+.k-security-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 24px 0;
+}
+
+.k-security-btn {
+  padding: 9px 16px;
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.k-security-btn:hover {
+  background-color: #f4f4f4;
+  border-color: #777;
+}
+
+.k-security-btn--primary {
+  background-color: #008047;
+  color: #fff;
+  border-color: #008047;
+}
+
+.k-security-btn--primary:hover {
+  background-color: #006838;
+  border-color: #006838;
+}
+
+.k-security-btn--danger {
+  background-color: #fff;
+  color: #c0383f;
+  border-color: #c0383f;
+}
+
+.k-security-btn--danger:hover {
+  background-color: #fdf0f0;
+}
+
+/* --- Fonctionnalites a venir --- */
+.k-security-future {
+  margin-top: 18px;
+  padding: 16px 18px;
+  background-color: #f7f9fb;
+  border: 1px dashed #b8c4d0;
+  border-radius: 8px;
+}
+
+.k-security-future h3 {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  color: #2a4a6a;
+}
+
+.k-security-future ul {
+  margin: 0;
+  padding-left: 22px;
+  color: #4a5a6a;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.k-security-future li + li {
+  margin-top: 6px;
+}
+
+/* --- Mini-modale de confirmation --- */
+.k-security-confirm-overlay {
+  z-index: 1100;
+}
+
+.k-security-confirm-box {
+  width: var(--k-security-confirm-w, min(480px, 95vw));
+}
+
+.k-security-confirm-message {
+  margin: 0;
+  line-height: 1.5;
+  color: #333;
+}
+
+/* ============================================================
+   MODE MALVOYANT (high-contrast)
+   ============================================================ */
+
+body.high-contrast-mode .k-security-section {
+  background-color: #000;
+  color: yellow;
+}
+
+body.high-contrast-mode .k-security-title,
+body.high-contrast-mode .k-security-intro,
+body.high-contrast-mode .k-security-intro strong {
+  color: yellow;
+}
+
+body.high-contrast-mode .k-security-card {
+  background-color: #000;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k-security-state--on {
+  background-color: #001a0d;
+  color: yellow;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k-security-state--locked {
+  background-color: #1a1500;
+  color: yellow;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k-security-state--off {
+  background-color: #1a0000;
+  color: #ffaaaa;
+  border-color: #ff4d4d;
+}
+
+body.high-contrast-mode .k-security-meta-row dt,
+body.high-contrast-mode .k-security-meta-row dd {
+  color: yellow;
+}
+
+body.high-contrast-mode .k-security-warning {
+  background-color: #1a1500;
+  border-left-color: yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .k-security-warning strong {
+  color: yellow;
+}
+
+body.high-contrast-mode .k-security-btn {
+  background-color: #000;
+  color: yellow;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k-security-btn:hover {
+  background-color: #222;
+}
+
+body.high-contrast-mode .k-security-btn--primary {
+  background-color: #000;
+  color: yellow;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k-security-btn--primary:hover {
+  background-color: #222;
+}
+
+body.high-contrast-mode .k-security-btn--danger {
+  background-color: #000;
+  color: #ffaaaa;
+  border-color: #ff4d4d;
+}
+
+body.high-contrast-mode .k-security-future {
+  background-color: #000;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .k-security-future h3,
+body.high-contrast-mode .k-security-future ul {
+  color: yellow;
+}
+
+body.high-contrast-mode .k-security-confirm-box {
+  background-color: #000;
+  border: 2px solid yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .k-security-confirm-message {
+  color: yellow;
+}

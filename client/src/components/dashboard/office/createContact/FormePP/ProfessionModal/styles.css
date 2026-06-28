@@ -1,0 +1,612 @@
+/* ==========================================================================
+   ProfessionModal — Competition-Grade Premium Design
+   Crystal Edition — Chef-d'oeuvre CSS
+   ========================================================================== */
+
+/* -------------------------------------------------------
+   0. KEYFRAMES
+   ------------------------------------------------------- */
+
+@keyframes professionModalIn {
+  from { opacity: 0; transform: scale(0.88) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes professionOverlayIn {
+  from { opacity: 0; backdrop-filter: blur(0); }
+  to   { opacity: 1; backdrop-filter: blur(6px); }
+}
+
+@keyframes headerShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes addBtnPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(138, 180, 248, 0.25); }
+  50%      { box-shadow: 0 0 0 6px rgba(138, 180, 248, 0); }
+}
+
+@keyframes searchGlow {
+  0%, 100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); }
+  50%      { box-shadow: 0 2px 12px rgba(14, 165, 209, 0.12), 0 0 20px rgba(138, 180, 248, 0.06); }
+}
+
+/* -------------------------------------------------------
+   1. TRIGGER FIELD
+   ------------------------------------------------------- */
+
+.profession-selector {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  user-select: none;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.profession-selector:hover {
+  border-color: rgba(138, 180, 248, 0.4);
+  box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.1);
+}
+
+/* -------------------------------------------------------
+   2. OVERLAY — Frosted glass
+   ------------------------------------------------------- */
+
+.profession-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(4, 20, 36, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Doit passer au-dessus de `.modal-overlay-top` (20000 !important) du workflow
+     createPartie, sinon la modale Profession est masquee quand on cree un contact
+     depuis la creation/modification d'un dossier. */
+  z-index: 21000;
+  animation: professionOverlayIn 250ms ease both;
+  cursor: pointer;
+}
+
+/* -------------------------------------------------------
+   3. MODAL CONTAINER — Crystalline card
+   ------------------------------------------------------- */
+
+.profession-modal {
+  position: relative;
+  background:
+    linear-gradient(170deg,
+      rgba(14, 165, 209, 0.95) 0%,
+      rgba(11, 126, 166, 0.97) 18%,
+      rgba(7, 109, 144, 0.98) 40%,
+      rgba(5, 90, 120, 0.98) 65%,
+      rgba(4, 58, 79, 0.99) 100%
+    );
+  border-radius: 20px;
+  border: 1px solid rgba(138, 180, 248, 0.2);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    0 0 80px rgba(14, 165, 209, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  width: 520px;
+  max-width: 92vw;
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: auto;
+  animation: professionModalIn 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Reflet subtil en haut de la modale */
+.profession-modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%);
+  pointer-events: none;
+  border-radius: 20px 20px 0 0;
+  z-index: 0;
+}
+
+/* -------------------------------------------------------
+   4. CLOSE BUTTON — Floating circle
+   ------------------------------------------------------- */
+
+.profession-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.15rem;
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1;
+  padding: 0;
+  z-index: 3;
+}
+
+.profession-modal-close:hover {
+  background: rgba(220, 53, 69, 0.55);
+  border-color: rgba(220, 53, 69, 0.4);
+  color: #fff;
+  transform: scale(1.08);
+  box-shadow: 0 0 16px rgba(220, 53, 69, 0.25);
+}
+
+.profession-modal-close:active {
+  transform: scale(0.95);
+}
+
+/* -------------------------------------------------------
+   5. HEADER — Full-width luminous band (bord a bord)
+   ------------------------------------------------------- */
+
+.profession-modal-header {
+  position: relative;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #fff;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(138, 180, 248, 0.25);
+  text-align: center;
+  padding: 22px 0 14px;
+  margin: 0;
+  border-bottom: 1px solid rgba(138, 180, 248, 0.12);
+  background: rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* Shimmer lumineux sur le header */
+.profession-modal-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(138, 180, 248, 0.06) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(138, 180, 248, 0.06) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: headerShimmer 6s linear infinite;
+  pointer-events: none;
+}
+
+/* Ligne lumineuse en bas du header */
+.profession-modal-header::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(138, 180, 248, 0.4) 30%,
+    rgba(14, 165, 209, 0.6) 50%,
+    rgba(138, 180, 248, 0.4) 70%,
+    transparent
+  );
+  z-index: 1;
+}
+
+/* -------------------------------------------------------
+   6. SEARCH INPUT — Floating glass field (marges coherentes)
+   ------------------------------------------------------- */
+
+.profession-modal-search {
+  width: 66%;
+  margin: 14px auto 0;
+  padding: 12px 16px;
+  border: 1.5px solid rgba(138, 180, 248, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.97);
+  color: #1a2a3a;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition:
+    border-color 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    background 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  animation: searchGlow 4s ease-in-out infinite;
+}
+
+.profession-modal-search:focus {
+  outline: none;
+  border-color: #8ab4f8;
+  background: linear-gradient(180deg, #f4f9ff 0%, #fff 100%);
+  box-shadow:
+    0 0 0 3px rgba(138, 180, 248, 0.2),
+    0 0 24px rgba(14, 165, 209, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.06);
+  animation: none;
+}
+
+.profession-modal-search::placeholder {
+  color: #8896a4;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* -------------------------------------------------------
+   7. LIST — Scrollbar collee au bord droit
+   Le padding-right est reduit pour que la scrollbar
+   soit quasi collee au bord de la modale.
+   Les items ont leur propre marge interne.
+   ------------------------------------------------------- */
+
+.profession-modal-list {
+  flex: 1;
+  min-height: 0;
+  max-height: 350px;
+  overflow-y: auto;
+  padding: 10px 6px 6px 14px;
+  position: relative;
+  z-index: 1;
+}
+
+/* -------------------------------------------------------
+   8. LIST ITEMS — Glassmorphic cards
+   ------------------------------------------------------- */
+
+.profession-modal-item {
+  min-height: 40px;
+  border-radius: 10px;
+  padding: 0 14px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(138, 180, 248, 0.06);
+  margin-bottom: 4px;
+  margin-right: 4px;
+  transition: all 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.01em;
+  position: relative;
+  overflow: hidden;
+}
+
+.profession-modal-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #8ab4f8, #0ea5d1);
+  border-radius: 0 3px 3px 0;
+  opacity: 0;
+  transform: scaleY(0.5);
+  transition: all 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profession-modal-item:hover {
+  background: linear-gradient(135deg, rgba(138, 180, 248, 0.15), rgba(14, 165, 209, 0.1));
+  border-color: rgba(138, 180, 248, 0.25);
+  color: #fff;
+  box-shadow:
+    0 2px 12px rgba(14, 165, 209, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transform: translateX(4px);
+  padding-left: 18px;
+}
+
+.profession-modal-item:hover::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.profession-modal-item:active {
+  transform: translateX(4px) scale(0.99);
+  transition-duration: 80ms;
+}
+
+/* Keyboard-highlighted item — same visual as :hover */
+.profession-modal-item--active {
+  background: linear-gradient(135deg, rgba(138, 180, 248, 0.15), rgba(14, 165, 209, 0.1));
+  border-color: rgba(138, 180, 248, 0.25);
+  color: #fff;
+  box-shadow:
+    0 2px 12px rgba(14, 165, 209, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transform: translateX(4px);
+  padding-left: 18px;
+}
+
+.profession-modal-item--active::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+/* -------------------------------------------------------
+   9. EMPTY STATE
+   ------------------------------------------------------- */
+
+.profession-modal-empty {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.8125rem;
+  padding: 28px 0;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+/* -------------------------------------------------------
+   10. ADD BUTTON — Glowing dashed call-to-action
+   ------------------------------------------------------- */
+
+.profession-modal-add {
+  width: auto;
+  padding: 11px 28px;
+  margin: 4px auto 16px;
+  display: block;
+  text-align: center;
+  background: rgba(138, 180, 248, 0.06);
+  border: 1.5px dashed rgba(138, 180, 248, 0.3);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  animation: addBtnPulse 3s ease-in-out infinite;
+}
+
+.profession-modal-add:hover {
+  background: linear-gradient(135deg, rgba(138, 180, 248, 0.15), rgba(14, 165, 209, 0.1));
+  border-style: solid;
+  border-color: rgba(138, 180, 248, 0.5);
+  color: #fff;
+  box-shadow:
+    0 0 20px rgba(14, 165, 209, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  animation: none;
+}
+
+.profession-modal-add:active {
+  transform: translateY(0);
+  transition-duration: 80ms;
+}
+
+/* -------------------------------------------------------
+   11. SCROLLBAR — Ultra-thin crystal, collee au bord
+   ------------------------------------------------------- */
+
+.profession-modal-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.profession-modal-list::-webkit-scrollbar-track {
+  background: rgba(138, 180, 248, 0.04);
+  border-radius: 0 0 20px 0;
+}
+
+.profession-modal-list::-webkit-scrollbar-thumb {
+  background: rgba(138, 180, 248, 0.3);
+  border-radius: 4px;
+}
+
+.profession-modal-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(138, 180, 248, 0.55);
+}
+
+/* -------------------------------------------------------
+   12. RESPONSIVE
+   ------------------------------------------------------- */
+
+@media (max-width: 560px) {
+  .profession-modal {
+    width: 95vw;
+    border-radius: 16px;
+  }
+
+  .profession-modal-search {
+    margin: 10px 10px 0;
+    padding: 10px 14px;
+  }
+
+  .profession-modal-list {
+    padding: 8px 4px 6px 10px;
+  }
+
+  .profession-modal-item {
+    min-height: 38px;
+    padding: 0 12px;
+  }
+}
+
+@media (max-height: 700px) {
+  .profession-modal {
+    max-height: 85vh;
+  }
+
+  .profession-modal-list {
+    max-height: 250px;
+  }
+
+  .profession-modal-header {
+    padding: 16px 0 10px;
+  }
+}
+
+/* ==========================================================================
+   MODE MALVOYANT (HIGH-CONTRAST) — Modale Profession
+   Palette : jaune vif (#FFE500) sur fond noir, contrastes appuyes
+   ========================================================================== */
+
+body.high-contrast-mode .profession-modal-overlay {
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.high-contrast-mode .profession-modal {
+  background: linear-gradient(170deg, #FFE500 0%, #8a7a00 18%, #000000 45%, #000000 100%) !important;
+  border: 2px solid #FFE500 !important;
+  box-shadow: 0 0 30px rgba(255, 229, 0, 0.45), 0 12px 28px rgba(0, 0, 0, 0.85) !important;
+}
+
+body.high-contrast-mode .profession-modal::before {
+  display: none !important;
+}
+
+/* En-tete : barre noire, texte jaune */
+body.high-contrast-mode .profession-modal-header {
+  background: #000 !important;
+  color: #FFE500 !important;
+  text-shadow: none !important;
+  border-bottom: 2px solid #FFE500 !important;
+}
+
+body.high-contrast-mode .profession-modal-header::after,
+body.high-contrast-mode .profession-modal-header::before {
+  display: none !important;
+}
+
+/* Bouton fermer : pastille jaune sur noir */
+body.high-contrast-mode .profession-modal-close {
+  background: #FFE500 !important;
+  border: 2px solid #000 !important;
+  color: #000 !important;
+  font-weight: 700 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.high-contrast-mode .profession-modal-close:hover {
+  background: #000 !important;
+  color: #FFE500 !important;
+  border-color: #FFE500 !important;
+  box-shadow: 0 0 18px rgba(255, 229, 0, 0.6) !important;
+}
+
+/* Champ de recherche : noir sur jaune */
+body.high-contrast-mode .profession-modal-search {
+  background: #000 !important;
+  color: #FFE500 !important;
+  border: 2px solid #FFE500 !important;
+  box-shadow: 0 0 14px rgba(255, 229, 0, 0.35) !important;
+  animation: none !important;
+}
+
+body.high-contrast-mode .profession-modal-search::placeholder {
+  color: rgba(255, 229, 0, 0.55) !important;
+}
+
+body.high-contrast-mode .profession-modal-search:focus {
+  background: #000 !important;
+  color: #FFE500 !important;
+  border-color: #FFE500 !important;
+  box-shadow: 0 0 0 3px rgba(255, 229, 0, 0.4), 0 0 24px rgba(255, 229, 0, 0.5) !important;
+}
+
+/* Items de la liste : fond noir, bordure jaune en pointilles, texte jaune */
+body.high-contrast-mode .profession-modal-item {
+  background: #000 !important;
+  color: #FFE500 !important;
+  border: 2px dashed #FFE500 !important;
+  font-weight: 600 !important;
+}
+
+body.high-contrast-mode .profession-modal-item::before {
+  background: #FFE500 !important;
+}
+
+body.high-contrast-mode .profession-modal-item:hover,
+body.high-contrast-mode .profession-modal-item--active {
+  background: #FFE500 !important;
+  color: #000 !important;
+  border: 2px solid #000 !important;
+  box-shadow: 0 0 12px rgba(255, 229, 0, 0.65) !important;
+}
+
+body.high-contrast-mode .profession-modal-item:hover::before,
+body.high-contrast-mode .profession-modal-item--active::before {
+  background: #000 !important;
+}
+
+/* Etat vide */
+body.high-contrast-mode .profession-modal-empty {
+  color: #FFE500 !important;
+  font-weight: 600 !important;
+}
+
+/* Bouton d'ajout */
+body.high-contrast-mode .profession-modal-add {
+  background: #000 !important;
+  color: #FFE500 !important;
+  border: 2px dashed #FFE500 !important;
+  animation: none !important;
+}
+
+body.high-contrast-mode .profession-modal-add:hover {
+  background: #FFE500 !important;
+  color: #000 !important;
+  border: 2px solid #000 !important;
+  box-shadow: 0 0 18px rgba(255, 229, 0, 0.6) !important;
+}
+
+/* Scrollbar */
+body.high-contrast-mode .profession-modal-list::-webkit-scrollbar-track {
+  background: #000 !important;
+}
+
+body.high-contrast-mode .profession-modal-list::-webkit-scrollbar-thumb {
+  background: #FFE500 !important;
+}
+
+body.high-contrast-mode .profession-modal-list::-webkit-scrollbar-thumb:hover {
+  background: #cccc00 !important;
+}
+
+/* Champ d'origine sur le formulaire (selecteur qui ouvre la modale) */
+body.high-contrast-mode .profession-selector:hover {
+  border-color: #FFE500 !important;
+  box-shadow: 0 0 0 2px rgba(255, 229, 0, 0.3) !important;
+}

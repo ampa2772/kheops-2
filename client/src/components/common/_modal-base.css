@@ -1,0 +1,186 @@
+/* ==========================================================
+   _modal-base.css
+   Classes de base partagées pour tous les modaux de Kheops 2.
+   
+   UTILISATION FUTURE : Les composants modaux pourront utiliser 
+   ces classes en plus de (ou à la place de) leurs classes 
+   spécifiques, afin de supprimer le code dupliqué.
+   
+   Ce fichier ne modifie rien tant qu'il n'est pas importé.
+   ========================================================== */
+
+/* --- Overlay (fond semi-transparent derrière le modal) --- */
+.k-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* z-index à définir par chaque modal via une classe spécifique */
+}
+
+/* Variantes d'opacité pour les overlays */
+.k-modal-overlay--light {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.k-modal-overlay--dark {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+.k-modal-overlay--transparent {
+  background-color: transparent;
+}
+
+/* --- Boîte de contenu du modal --- */
+.k-modal-box {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+  max-height: min(90vh, 100vh - 2rem);
+  min-height: auto;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tailles prédéfinies — utilisent min() pour un fallback fluide */
+.k-modal-box--small {
+  width: var(--k-modal-w-sm, min(400px, 95vw));
+}
+
+.k-modal-box--medium {
+  width: var(--k-modal-w-md, min(600px, 95vw));
+}
+
+.k-modal-box--large {
+  width: var(--k-modal-w-lg, min(900px, 95vw));
+}
+
+/* --- Header du modal --- */
+.k-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.k-modal-header h2,
+.k-modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* --- Bouton de fermeture × --- */
+.k-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+  line-height: 1;
+}
+
+.k-modal-close:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+/* --- Corps du modal --- */
+.k-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* --- Footer du modal (boutons d'action) --- */
+.k-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+/* --- Boutons standards dans les modaux --- */
+.k-modal-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+.k-modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.k-modal-btn--primary {
+  background-color: #008047;
+  color: #ffffff;
+}
+
+.k-modal-btn--primary:hover:not(:disabled) {
+  background-color: #006838;
+}
+
+.k-modal-btn--danger {
+  background-color: #dc3545;
+  color: #ffffff;
+}
+
+.k-modal-btn--danger:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.k-modal-btn--cancel {
+  background-color: #6c757d;
+  color: #ffffff;
+}
+
+.k-modal-btn--cancel:hover:not(:disabled) {
+  background-color: #5a6268;
+}
+
+
+/* --- Support mode malvoyant --- */
+body.high-contrast-mode .k-modal-overlay {
+  background-color: rgba(0, 0, 0, 0.85);
+}
+
+body.high-contrast-mode .k-modal-box {
+  background-color: #000000;
+  border: 2px solid var(--highlight-color, #33ff33);
+  color: yellow;
+}
+
+body.high-contrast-mode .k-modal-header {
+  border-bottom-color: var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .k-modal-footer {
+  border-top-color: var(--highlight-color, #33ff33);
+}
+
+body.high-contrast-mode .k-modal-close {
+  color: yellow;
+}
+
+body.high-contrast-mode .k-modal-close:hover {
+  background-color: #333;
+}

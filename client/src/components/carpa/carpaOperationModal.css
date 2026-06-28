@@ -1,0 +1,348 @@
+/* ============================================================
+ * carpaOperationModal.css — Refonte dark navy de la modale
+ * "Nouvelle / Modifier opération CARPA" (rc59).
+ *
+ * Cohérent avec carpaOperationDetail.css : mêmes variables
+ * --kdn-*, mêmes patterns (badge teal carré, eyebrow orange,
+ * fond gradient navy, sections glass-morphism, boutons teal).
+ *
+ * Surcharge ciblée via .k-carpa-form-modal pour ne pas impacter
+ * les autres modales du module.
+ * ============================================================ */
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal {
+  background:
+    radial-gradient(ellipse at top left, rgba(45, 80, 130, 0.35) 0%, transparent 55%),
+    linear-gradient(160deg, #0a1828 0%, #0d2138 55%, #0a1c34 100%);
+  color: var(--kdn-text-primary);
+  border: 1px solid rgba(120, 180, 240, 0.15);
+  box-shadow:
+    0 28px 60px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  width: min(960px, 100%);
+}
+
+/* ─── Header ───────────────────────────────────────────────── */
+.k-carpa-form-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid rgba(120, 180, 240, 0.12);
+  background: rgba(10, 24, 42, 0.55);
+}
+
+.k-carpa-form-modal-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(77, 201, 255, 0.95), rgba(37, 99, 235, 0.85));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0a1828;
+  box-shadow:
+    0 0 0 1px rgba(77, 201, 255, 0.35),
+    0 6px 16px rgba(77, 201, 255, 0.22);
+  flex-shrink: 0;
+}
+
+.k-carpa-form-modal-badge svg {
+  width: 22px;
+  height: 22px;
+  stroke: #0a1828;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.k-carpa-form-modal-header-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.k-carpa-form-modal-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-form-modal-eyebrow-sens {
+  color: #fb923c;
+  font-weight: 700;
+}
+
+.k-carpa-form-modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--kdn-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.k-carpa-form-modal-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(120, 180, 240, 0.22);
+  background: rgba(15, 32, 56, 0.7);
+  color: var(--kdn-text-secondary);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.k-carpa-form-modal-close:hover {
+  background: rgba(20, 42, 72, 0.95);
+  color: var(--kdn-text-primary);
+  border-color: rgba(120, 180, 240, 0.4);
+}
+
+/* ─── Body ─────────────────────────────────────────────────── */
+.k-carpa-form-modal .k-carpa-modal-body {
+  padding: 1.2rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: transparent;
+  color: var(--kdn-text-primary);
+}
+
+/* Grid pour aligner les champs en 2 colonnes (override clair) */
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 1rem;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-field-full {
+  grid-column: 1 / -1;
+}
+
+/* Champ : label en haut, input/select dessous */
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-field label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-field .help {
+  font-size: 0.72rem;
+  color: var(--kdn-text-muted);
+  line-height: 1.35;
+}
+
+/* Inputs / selects / textareas */
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal input[type="text"],
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal input[type="number"],
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal input[type="date"],
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal input[type="search"],
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal select,
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal textarea {
+  background: var(--kdn-input-bg);
+  border: 1px solid var(--kdn-input-border);
+  color: var(--kdn-text-primary);
+  border-radius: 7px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.9rem;
+  width: 100%;
+  font-family: inherit;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal input::placeholder,
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal textarea::placeholder {
+  color: var(--kdn-text-muted);
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal input:focus,
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal select:focus,
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal textarea:focus {
+  outline: none;
+  border-color: var(--kdn-input-border-focus);
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.15);
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal input:disabled,
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal select:disabled,
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Icone de date — versions claires pour input type="date" sur fond sombre */
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.75) brightness(1.1);
+  cursor: pointer;
+}
+
+/* ─── Section Bénéficiaire ────────────────────────────────── */
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-section {
+  background: rgba(15, 32, 56, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  color: var(--kdn-text-primary);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.k-carpa-form-modal-section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.1rem;
+}
+
+.k-carpa-form-modal-section-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(77, 201, 255, 0.12);
+  border: 1px solid rgba(77, 201, 255, 0.28);
+  color: #7dd3fc;
+  flex-shrink: 0;
+}
+
+.k-carpa-form-modal-section-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.k-carpa-form-modal-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--kdn-text-primary);
+  margin: 0;
+  line-height: 1.25;
+}
+
+/* ─── Alerte (erreurs) ─────────────────────────────────────── */
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-alerte {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fecaca;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-alerte-icon {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fecaca;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ─── Footer ──────────────────────────────────────────────── */
+.k-carpa-form-modal-footer {
+  padding: 1rem 1.4rem;
+  border-top: 1px solid rgba(120, 180, 240, 0.12);
+  background: rgba(10, 24, 42, 0.55);
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.k-carpa-form-modal-footer-legal {
+  flex: 1;
+  font-size: 0.75rem;
+  color: var(--kdn-text-muted);
+  line-height: 1.4;
+  min-width: 200px;
+}
+
+.k-carpa-form-modal-footer-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+/* Boutons */
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-btn-primary {
+  background: linear-gradient(135deg, #4dc9ff, #2563eb);
+  border: 1px solid rgba(77, 201, 255, 0.6);
+  color: #0a1828;
+  border-radius: 7px;
+  padding: 0.5rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(120, 180, 240, 0.25);
+  color: var(--kdn-text-secondary);
+  border-radius: 7px;
+  padding: 0.48rem 0.95rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-btn-ghost:hover {
+  background: rgba(20, 42, 72, 0.7);
+  color: var(--kdn-text-primary);
+}
+
+/* ─── Responsive : 1 colonne sur petit écran / demi-page ──── */
+@media (max-width: 720px) {
+  .k-carpa-root .k-carpa-modal.k-carpa-form-modal .k-carpa-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

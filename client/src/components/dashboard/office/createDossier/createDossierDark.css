@@ -1,0 +1,642 @@
+/* ============================================================
+ * createDossierDark.css — Refonte dark navy du wrapper de
+ * création / édition de dossier (rc61).
+ *
+ * Surcharge tous les enfants via la classe racine
+ * .k-create-dossier-dark, sans toucher au styles.css existant.
+ *
+ * Cohérent avec carpaOperationDetail.css / carpaOperationModal.css :
+ * mêmes variables --kdn-* (ré-déclarées localement pour ne pas
+ * dépendre du chargement d'un autre fichier).
+ * ============================================================ */
+
+.k-create-dossier-dark {
+  --kdn-bg-deep: #0a1828;
+  --kdn-bg-surface: rgba(15, 32, 56, 0.7);
+  --kdn-bg-surface-elev: rgba(20, 42, 72, 0.85);
+  --kdn-input-bg: rgba(8, 22, 42, 0.65);
+  --kdn-input-border: rgba(120, 180, 240, 0.18);
+  --kdn-input-border-focus: #4dc9ff;
+  --kdn-text-primary: #e8f1ff;
+  --kdn-text-secondary: rgba(195, 215, 240, 0.85);
+  --kdn-text-muted: rgba(165, 195, 230, 0.72);
+  --kdn-accent: #4dc9ff;
+  --kdn-accent-deep: #2563eb;
+}
+
+/* ─── Fond global ─────────────────────────────────────────── */
+.k-create-dossier-dark.createDosMain {
+  background:
+    radial-gradient(ellipse at top left, rgba(45, 80, 130, 0.35) 0%, transparent 55%),
+    linear-gradient(160deg, #0a1828 0%, #0d2138 55%, #0a1c34 100%);
+  color: var(--kdn-text-primary);
+}
+
+.k-create-dossier-dark .create_DossierMainForm {
+  background: transparent;
+}
+
+/* ─── Bandeau header dark navy ────────────────────────────── */
+.k-create-dossier-dark .k-cdd-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.1rem 1.4rem 1.2rem;
+  border-bottom: 1px solid rgba(120, 180, 240, 0.12);
+  background: rgba(10, 24, 42, 0.55);
+  position: relative;
+  z-index: 1;
+}
+
+.k-create-dossier-dark .k-cdd-banner-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(77, 201, 255, 0.95), rgba(37, 99, 235, 0.85));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0a1828;
+  box-shadow:
+    0 0 0 1px rgba(77, 201, 255, 0.35),
+    0 6px 16px rgba(77, 201, 255, 0.22);
+  flex-shrink: 0;
+}
+
+.k-create-dossier-dark .k-cdd-banner-badge svg {
+  width: 22px;
+  height: 22px;
+  stroke: #0a1828;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.k-create-dossier-dark .k-cdd-banner-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.k-create-dossier-dark .k-cdd-banner-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fb923c;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.k-create-dossier-dark .k-cdd-banner-eyebrow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7dd3fc;
+  box-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
+}
+
+.k-create-dossier-dark .k-cdd-banner-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--kdn-text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.k-create-dossier-dark .k-cdd-banner-sub {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--kdn-text-muted);
+  line-height: 1.4;
+}
+
+.k-create-dossier-dark .k-cdd-banner-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.7rem;
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #7dd3fc;
+  background: rgba(77, 201, 255, 0.12);
+  border: 1px solid rgba(77, 201, 255, 0.32);
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* ─── Barre d'onglets (3 pills horizontaux) ───────────────── */
+.k-create-dossier-dark .createDossier-header {
+  background: rgba(10, 24, 42, 0.55);
+  border-bottom: 1px solid rgba(120, 180, 240, 0.12);
+  padding: 0.6rem 1.4rem 0.9rem;
+  flex-shrink: 0;
+}
+
+.k-create-dossier-dark .createDossierSideBar {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.6rem;
+  background: transparent;
+  border: none;
+  flex: 1;
+  padding: 0;
+  border-radius: 0;
+  margin: 0;
+}
+
+/* Désactive l'animation de hover existante */
+.k-create-dossier-dark .createDossierSideBar.is-hovering-child {
+  background: transparent;
+}
+
+.k-create-dossier-dark .k-cdd-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  background: rgba(15, 32, 56, 0.55);
+  border: 1px solid rgba(120, 180, 240, 0.18);
+  color: var(--kdn-text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: inherit;
+}
+
+.k-create-dossier-dark .k-cdd-tab:hover {
+  background: rgba(20, 42, 72, 0.85);
+  border-color: rgba(120, 180, 240, 0.3);
+  color: var(--kdn-text-primary);
+}
+
+.k-create-dossier-dark .k-cdd-tab.active {
+  background: rgba(77, 201, 255, 0.14);
+  border-color: rgba(77, 201, 255, 0.5);
+  color: #7dd3fc;
+  box-shadow: 0 0 0 1px rgba(77, 201, 255, 0.25),
+              inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.k-create-dossier-dark .k-cdd-tab.active .k-cdd-tab-icon {
+  color: #7dd3fc;
+}
+
+.k-create-dossier-dark .k-cdd-tab-icon {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--kdn-text-muted);
+  flex-shrink: 0;
+}
+
+.k-create-dossier-dark .k-cdd-tab-label {
+  font-weight: 500;
+}
+
+.k-create-dossier-dark .k-cdd-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: rgba(77, 201, 255, 0.18);
+  border: 1px solid rgba(77, 201, 255, 0.35);
+  color: #7dd3fc;
+  font-size: 0.74rem;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+}
+
+.k-create-dossier-dark .k-cdd-tab:not(.active) .k-cdd-tab-badge {
+  background: rgba(120, 180, 240, 0.1);
+  border-color: rgba(120, 180, 240, 0.22);
+  color: var(--kdn-text-muted);
+}
+
+/* ─── Conteneur du formulaire interne (formDossier) ───────── */
+.k-create-dossier-dark .formDossier {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.2rem 1.4rem;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ─── Onglet Dossier : champs et sections ─────────────────── */
+.k-create-dossier-dark .textarea_container {
+  background: var(--kdn-bg-surface);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Type de dossier (Juridiction) */
+.k-create-dossier-dark .select_type_dossier,
+.k-create-dossier-dark .input_dossier,
+.k-create-dossier-dark .open_description_modal_button {
+  background: var(--kdn-input-bg) !important;
+  border: 1px solid var(--kdn-input-border) !important;
+  color: var(--kdn-text-primary) !important;
+  border-radius: 8px !important;
+  padding: 0.7rem 0.9rem !important;
+  font-size: 0.92rem !important;
+  font-family: inherit !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  box-sizing: border-box !important;
+  line-height: 1.4 !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.k-create-dossier-dark .select_type_dossier {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.k-create-dossier-dark .select_type_dossier::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M3 11l9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9z'/></svg>") center/contain no-repeat;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M3 11l9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9z'/></svg>") center/contain no-repeat;
+  color: #7dd3fc;
+}
+
+.k-create-dossier-dark .select_type_dossier .show_select_option {
+  flex: 1;
+  color: var(--kdn-text-primary);
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+  height: auto !important;
+}
+
+.k-create-dossier-dark .select_type_dossier:not(.affaire-selected) .show_select_option {
+  color: var(--kdn-text-muted);
+}
+
+.k-create-dossier-dark .input_dossier::placeholder {
+  color: var(--kdn-text-muted);
+}
+
+.k-create-dossier-dark .input_dossier:focus,
+.k-create-dossier-dark .select_type_dossier:focus,
+.k-create-dossier-dark .open_description_modal_button:focus {
+  outline: none !important;
+  border-color: var(--kdn-input-border-focus) !important;
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.15) !important;
+}
+
+.k-create-dossier-dark .open_description_modal_button {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  text-align: left;
+  color: var(--kdn-text-muted) !important;
+  font-style: normal;
+}
+
+.k-create-dossier-dark .open_description_modal_button::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z'/><path fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M14 3v6h6M8 13h8M8 17h5'/></svg>") center/contain no-repeat;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z'/><path fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M14 3v6h6M8 13h8M8 17h5'/></svg>") center/contain no-repeat;
+  color: #7dd3fc;
+}
+
+.k-create-dossier-dark .open_description_modal_button:hover {
+  background: rgba(20, 42, 72, 0.8) !important;
+  color: var(--kdn-text-secondary) !important;
+}
+
+/* ─── Section Responsables ────────────────────────────────── */
+.k-create-dossier-dark .responsable-dossier {
+  background: var(--kdn-bg-surface);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  color: var(--kdn-text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.k-create-dossier-dark .responsables-dossier-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kdn-text-muted);
+  margin: 0;
+}
+
+.k-create-dossier-dark .responsables-dossier-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.k-create-dossier-dark .responsables-dossier-liste > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.6rem 0.85rem;
+  background: rgba(8, 22, 42, 0.55);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.k-create-dossier-dark .responsables-dossier-liste > div:hover {
+  border-color: rgba(120, 180, 240, 0.25);
+  background: rgba(15, 32, 56, 0.8);
+}
+
+.k-create-dossier-dark .affiche_responsable {
+  flex: 1;
+  font-size: 0.92rem;
+  color: var(--kdn-text-primary);
+}
+
+.k-create-dossier-dark .initials,
+.k-create-dossier-dark .inSuppr {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(77, 201, 255, 0.95), rgba(37, 99, 235, 0.85));
+  color: #0a1828;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(77, 201, 255, 0.35);
+}
+
+.k-create-dossier-dark .inSuppr {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.5);
+}
+
+.k-create-dossier-dark .inSuppr img,
+.k-create-dossier-dark .initials img {
+  filter: brightness(0) saturate(100%) invert(96%) sepia(8%) saturate(245%) hue-rotate(186deg) brightness(105%);
+  width: 16px;
+  height: 16px;
+}
+
+/* Liste interne de office users (modale d'ajout responsable) */
+.k-create-dossier-dark .list-officeUser-form {
+  background: rgba(8, 22, 42, 0.65);
+  border: 1px solid rgba(120, 180, 240, 0.18);
+  border-radius: 10px;
+  padding: 0.5rem;
+}
+
+.k-create-dossier-dark .officeUser-dossier-form {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  background: rgba(15, 32, 56, 0.55);
+  border: 1px solid rgba(120, 180, 240, 0.12);
+  border-radius: 8px;
+  margin-bottom: 0.35rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.k-create-dossier-dark .officeUser-dossier-form:hover {
+  background: rgba(20, 42, 72, 0.85);
+  border-color: rgba(77, 201, 255, 0.35);
+}
+
+.k-create-dossier-dark .affiche_officeUser-form {
+  color: var(--kdn-text-primary);
+  font-size: 0.9rem;
+}
+
+.k-create-dossier-dark .initials_officeUser-form {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(77, 201, 255, 0.18);
+  color: #7dd3fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.k-create-dossier-dark .container_add_responsable_button button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(77, 201, 255, 0.14);
+  border: 1px solid rgba(77, 201, 255, 0.4);
+  color: #7dd3fc;
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  width: auto;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.k-create-dossier-dark .container_add_responsable_button button:hover {
+  background: rgba(77, 201, 255, 0.22);
+  border-color: rgba(77, 201, 255, 0.6);
+}
+
+.k-create-dossier-dark .container_add_responsable_button button img {
+  filter: brightness(0) saturate(100%) invert(76%) sepia(54%) saturate(1175%) hue-rotate(178deg) brightness(102%);
+  width: 14px;
+  height: 14px;
+}
+
+/* ─── Bouton "Créer une partie" ───────────────────────────── */
+.k-create-dossier-dark .form_partie_container {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.k-create-dossier-dark .bouton_form_partie {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(77, 201, 255, 0.14);
+  border: 1px solid rgba(77, 201, 255, 0.4);
+  color: #7dd3fc;
+  border-radius: 8px;
+  padding: 0.55rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  width: auto;
+  transition: background 0.15s ease;
+}
+
+.k-create-dossier-dark .bouton_form_partie:hover {
+  background: rgba(77, 201, 255, 0.22);
+}
+
+.k-create-dossier-dark .bouton_form_partie img {
+  filter: brightness(0) saturate(100%) invert(76%) sepia(54%) saturate(1175%) hue-rotate(178deg) brightness(102%);
+  width: 14px;
+  height: 14px;
+}
+
+/* ─── Onglet Parties et Contacts : conteneurs internes ────── */
+.k-create-dossier-dark .createPartie,
+.k-create-dossier-dark .createContact,
+.k-create-dossier-dark .createContact-container,
+.k-create-dossier-dark .parties-board,
+.k-create-dossier-dark .partie-card,
+.k-create-dossier-dark .contact-card {
+  background: var(--kdn-bg-surface) !important;
+  border: 1px solid rgba(120, 180, 240, 0.12) !important;
+  color: var(--kdn-text-primary) !important;
+}
+
+.k-create-dossier-dark input[type="text"],
+.k-create-dossier-dark input[type="number"],
+.k-create-dossier-dark input[type="email"],
+.k-create-dossier-dark input[type="tel"],
+.k-create-dossier-dark input[type="search"],
+.k-create-dossier-dark input[type="date"],
+.k-create-dossier-dark select,
+.k-create-dossier-dark textarea {
+  background: var(--kdn-input-bg);
+  border: 1px solid var(--kdn-input-border);
+  color: var(--kdn-text-primary);
+  border-radius: 7px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.k-create-dossier-dark input::placeholder,
+.k-create-dossier-dark textarea::placeholder {
+  color: var(--kdn-text-muted);
+}
+
+.k-create-dossier-dark input:focus,
+.k-create-dossier-dark select:focus,
+.k-create-dossier-dark textarea:focus {
+  outline: none;
+  border-color: var(--kdn-input-border-focus);
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.15);
+}
+
+.k-create-dossier-dark label {
+  color: var(--kdn-text-secondary);
+}
+
+.k-create-dossier-dark h1,
+.k-create-dossier-dark h2,
+.k-create-dossier-dark h3,
+.k-create-dossier-dark h4 {
+  color: var(--kdn-text-primary);
+}
+
+/* ─── Bouton de soumission (bas) ──────────────────────────── */
+.k-create-dossier-dark .bottom {
+  background: linear-gradient(135deg, #4dc9ff, #2563eb);
+  border: 1px solid rgba(77, 201, 255, 0.6);
+  color: #0a1828;
+  border-radius: 8px;
+  padding: 0.65rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+  margin: 1rem 1.4rem 1.2rem;
+  width: auto;
+  align-self: flex-start;
+}
+
+.k-create-dossier-dark .bottom:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.k-create-dossier-dark .bottom:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ─── Modales internes (Description, TypeDossier) ─────────── */
+.k-create-dossier-dark .modal-overlay-for-create-contact {
+  background: rgba(5, 12, 24, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.k-create-dossier-dark .modal-content-for-create-contact {
+  background: rgba(13, 33, 56, 0.95);
+  border: 1px solid rgba(120, 180, 240, 0.18);
+  color: var(--kdn-text-primary);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* ─── Responsive : empile les onglets sur petit écran ─────── */
+@media (max-width: 720px) {
+  .k-create-dossier-dark .createDossierSideBar {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+  .k-create-dossier-dark .k-cdd-banner {
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 1rem 1rem 1.1rem;
+  }
+  .k-create-dossier-dark .k-cdd-banner-pill {
+    align-self: flex-start;
+  }
+}

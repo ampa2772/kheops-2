@@ -1,0 +1,50 @@
+.centered-content {
+  display: flex;
+  justify-content: center;
+  /* align-items: center; */
+  height: 100%;  
+  border-radius: 10px;
+  /* margin-top: 4px; */
+  gap: 40px; /* Augmentation de l'écart pour un meilleur espacement */
+}
+
+/*
+ * CORRECTION : Cible les <div> enfants directs (les wrappers HoverToSpeak)
+ * pour annuler leur style `width: 100%` qui les éloigne.
+ */
+.centered-content > div {
+    width: auto !important;
+}
+
+.dossier-icon {
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  transition: transform var(--k-duration-normal, 200ms) var(--k-ease-out, ease);
+}
+
+.dossier-icon:hover {
+  transform: scale(1.1);
+}
+
+.dossier-icon:active {
+  transform: scale(0.95);
+}
+
+/* === NOUVEAUX STYLES POUR LE MODE CONTRASTE ÉLEVÉ === */
+
+/* Cible le conteneur de la modale (la boîte blanche) */
+body.high-contrast-mode .modal-content {
+    background-color: black;
+    border: 2px solid yellow;
+}
+
+/* Cible le titre "Créer un nouveau..." */
+body.high-contrast-mode .modal-content h2 {
+    color: yellow;
+}
+
+/* Cible les icônes (SVG) pour les colorer en jaune */
+body.high-contrast-mode .dossier-icon {
+    filter: var(--icon-filter);
+}
