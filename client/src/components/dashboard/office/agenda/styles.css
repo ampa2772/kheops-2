@@ -850,6 +850,23 @@
 .upcoming-item.cat-reunion   { --evt-color: var(--cat-reunion); }
 .upcoming-item.cat-personnel { --evt-color: var(--cat-personnel); }
 .upcoming-item.cat-task      { --evt-color: var(--cat-task); }
+/* Agenda Outlook (lecture seule) : bleu Microsoft, item non cliquable */
+.upcoming-item.cat-outlook   { --evt-color: #0078d4; cursor: default; }
+
+.outlook-agenda-hint { line-height: 1.5; }
+.outlook-retry-btn {
+  display: block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--ag-border);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.outlook-retry-btn:hover { background-color: rgba(255,255,255,0.06); }
 
 .upcoming-date {
   display: flex;

@@ -8,6 +8,7 @@ import {
   IconClock,
   IconPin,
 } from '../categories';
+import OutlookAgendaCard from './OutlookAgendaCard';
 
 const DOW_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const DOW_FULL = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
@@ -221,6 +222,10 @@ const AgendaSidebar = ({
           )}
         </div>
       </div>
+
+      {/* Rendez-vous Outlook (lecture seule) — ne s'affiche que si un compte
+          Microsoft est relié ; se retire silencieusement sinon. */}
+      <OutlookAgendaCard />
 
       <div className="agenda-sidebar-card">
         <div className="sidebar-section-header">
