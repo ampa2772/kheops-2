@@ -490,9 +490,10 @@ router.post('/operations/:id/pieces', auth, asyncHandler(async (req, res) => {
   const op = await CarpaOperation.findOne({ _id: req.params.id, ownerUserId });
   if (!op) return res.status(404).json({ message: 'Operation introuvable.' });
 
+  const pieceDocumentId = documentId && mongoose.Types.ObjectId.isValid(documentId) ? documentId : undefined;
   op.pieces.push({
     categoriePiece,
-    documentId: documentId && mongoose.Types.ObjectId.isValid(documentId) ? documentId : undefined,
+    documentId: pieceDocumentId,
     nomFichier: nomFichier || '',
     fournieLe: new Date(),
   });
@@ -500,12 +501,22 @@ router.post('/operations/:id/pieces', auth, asyncHandler(async (req, res) => {
 
   await op.save();
 
+  // A21 — audit documentaire : on trace AUSSI le document attache (documentId),
+  // pas seulement la categorie. Sans cela, une substitution de fichier
+  // (retrait + ajout d'une piece de meme categorie) etait indetectable.
   await carpaAudit.writeAudit({
     operationId: op._id,
     dossierId: op.dossierId,
     ownerUserId,
     officeUserId,
     action: 'piece_add',
+    champsModifies: {
+      piece: {
+        categoriePiece,
+        documentId: pieceDocumentId ? String(pieceDocumentId) : null,
+        nomFichier: nomFichier || '',
+      },
+    },
     resume: `Ajout piece ${categoriePiece}` + (nomFichier ? ` (${nomFichier})` : ''),
   });
 
@@ -526,7 +537,13 @@ router.delete('/operations/:id/pieces/:pieceId', auth, asyncHandler(async (req, 
 
   const piece = op.pieces.id(req.params.pieceId);
   if (!piece) return res.status(404).json({ message: 'Piece introuvable.' });
-  const cat = piece.categoriePiece;
+  // A21 — audit documentaire : photographier la piece AVANT suppression
+  // (document attache inclus) pour que le retrait soit pleinement tracable.
+  const pieceSnapshot = {
+    categoriePiece: piece.categoriePiece,
+    documentId: piece.documentId ? String(piece.documentId) : null,
+    nomFichier: piece.nomFichier || '',
+  };
   piece.deleteOne();
   op.lastModifiedByOfficeUserId = officeUserId;
 
@@ -538,7 +555,9 @@ router.delete('/operations/:id/pieces/:pieceId', auth, asyncHandler(async (req, 
     ownerUserId,
     officeUserId,
     action: 'piece_remove',
-    resume: `Retrait piece ${cat}`,
+    champsModifies: { piece: pieceSnapshot },
+    resume: `Retrait piece ${pieceSnapshot.categoriePiece}`
+      + (pieceSnapshot.nomFichier ? ` (${pieceSnapshot.nomFichier})` : ''),
   });
 
   res.json({ operation: op.toObject() });

@@ -8,6 +8,9 @@ const { asyncHandler } = require("../../middlewares/folder-middleWare");
 const { log: secLog, EVT } = require('../../utils/securityLogger');
 const { ensureDossierOwnership } = require('../../utils/ownershipHelpers');
 const audit = require('../../utils/auditLogger');
+// A20 — validation structurelle du snapshot Aide juridictionnelle.
+const validateBody = require('../../middlewares/validateBody');
+const { aideJuridictionnelleSchema } = require('../../validation/aideJuridictionnelleSchema');
 
 // — chemins corrigés (deux niveaux au-dessus) —
 const Dossier = require("../../models/Folder/Dossier");
@@ -1309,7 +1312,7 @@ router.get('/dossier/:dossierId/aide-juridictionnelle', auth, asyncHandler(async
  *          sections fournies par la modale).
  * @access  Privé
  */
-router.put('/dossier/:dossierId/aide-juridictionnelle', auth, asyncHandler(async (req, res) => {
+router.put('/dossier/:dossierId/aide-juridictionnelle', auth, validateBody(aideJuridictionnelleSchema), asyncHandler(async (req, res) => {
   const { dossierId } = req.params;
 
   // SECURITE : check UserDossier

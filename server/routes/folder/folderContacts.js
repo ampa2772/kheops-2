@@ -118,8 +118,13 @@ async function propagatePersonnesChargeToDossiers(contactId, userId) {
 // - Synchronise les champs etat civil + adresse + contact des epoux
 // - Ajoute/met a jour les enfants du divorce a partir des personnesCharge
 //   de type 'enfant' du contact (dedoublonnage par nom+prenoms+dateNaissance)
-// - NE supprime jamais d'enfant deja saisi : laisse l'utilisateur garder la
-//   main sur la liste finale du divorce
+// - A22 (chemin REMOVE) : retire les entrees PROPAGEES (reconnaissables a leur
+//   pchId) dont la personne a charge n'est plus rattachee a AUCUN des deux
+//   epoux du divorce. Les entrees saisies A LA MAIN dans le divorce (sans
+//   pchId) ne sont JAMAIS touchees : l'utilisateur garde la main dessus.
+//   Limite assumee : une personne encore rattachee a un epoux est conservee
+//   meme si son type a change (enfant<->adulte) — on ne supprime jamais dans
+//   le doute.
 // ========================================================================
 async function propagateContactToDivorces(contactId, updatedContact, userId) {
   if (!contactId || !updatedContact) return 0;
@@ -147,6 +152,28 @@ async function propagateContactToDivorces(contactId, updatedContact, userId) {
     : [];
   const enfantsPCH = pchs.filter(p => !p.type || String(p.type).toLowerCase() === 'enfant');
   const adultesPCH = pchs.filter(p => String(p.type || '').toLowerCase() === 'adulte');
+
+  // A22 — chemin REMOVE : pour savoir si une entree propagee (pchId) est
+  // encore legitime, il faut connaitre les personnes a charge des DEUX epoux
+  // (l'entree a pu etre propagee par l'autre conjoint). On precharge les
+  // liaisons des contacts « autre epoux » de tous les divorces concernes.
+  const ownPchIds = new Set(pcIds.map(String));
+  const otherContactIds = new Set();
+  for (const div of divorces) {
+    for (const slot of ['epoux1', 'epoux2']) {
+      const cid = div[slot]?.contactId ? String(div[slot].contactId) : null;
+      if (cid && cid !== contactIdStr) otherContactIds.add(cid);
+    }
+  }
+  const otherLiaisons = otherContactIds.size
+    ? await ContactPersonneCharge.find({ contact: { $in: [...otherContactIds] } }).lean()
+    : [];
+  const pchIdsByContact = new Map(); // contactIdStr -> Set(pchIdStr)
+  for (const l of otherLiaisons) {
+    const c = String(l.contact);
+    if (!pchIdsByContact.has(c)) pchIdsByContact.set(c, new Set());
+    pchIdsByContact.get(c).add(String(l.personneCharge));
+  }
 
   // Champs Contact -> Epoux (mapping fidele a handleSelectContact cote client)
   const epouxFieldsFromContact = (c) => ({
@@ -252,6 +279,23 @@ async function propagateContactToDivorces(contactId, updatedContact, userId) {
       div.markModified('enfants');
     }
 
+    // A22 — retrait : une entree propagee (pchId) n'est conservee que si sa
+    // personne a charge est encore rattachee a l'un des deux epoux. Les
+    // entrees manuelles (sans pchId) sont toujours conservees.
+    const validPchIds = new Set(ownPchIds);
+    for (const slot of ['epoux1', 'epoux2']) {
+      const cid = div[slot]?.contactId ? String(div[slot].contactId) : null;
+      if (cid && cid !== contactIdStr) {
+        for (const id of (pchIdsByContact.get(cid) || [])) validPchIds.add(id);
+      }
+    }
+    const keptEnfants = enfants.filter((e) => !e.pchId || validPchIds.has(String(e.pchId)));
+    if (keptEnfants.length !== enfants.length) {
+      div.enfants = keptEnfants;
+      div.markModified('enfants');
+      changed = true;
+    }
+
     // Synchro adultes a charge : meme logique que les enfants, dans la
     // section adultesCharge.
     const adultes = div.adultesCharge || [];
@@ -297,6 +341,14 @@ async function propagateContactToDivorces(contactId, updatedContact, userId) {
     }
     if (adultesChanged) {
       div.adultesCharge = adultes;
+      div.markModified('adultesCharge');
+      changed = true;
+    }
+
+    // A22 — retrait cote adultes a charge (meme regle que les enfants).
+    const keptAdultes = adultes.filter((a) => !a.pchId || validPchIds.has(String(a.pchId)));
+    if (keptAdultes.length !== adultes.length) {
+      div.adultesCharge = keptAdultes;
       div.markModified('adultesCharge');
       changed = true;
     }
@@ -1216,3 +1268,5 @@ router.post(
 );
 
 module.exports = router;
+// Exposé pour les tests unitaires (A22 — chemin remove de la propagation).
+module.exports.propagateContactToDivorces = propagateContactToDivorces;
