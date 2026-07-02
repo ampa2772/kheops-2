@@ -83,13 +83,18 @@ describe('contactPMPubliqueSlice etat initial', () => {
 // ========================================================================
 
 describe('contactPMPubliqueSlice EMAIL_ALREADY_EXISTS_PMP', () => {
-  test('definit emailExistsError et errorField', () => {
+  // Le handler EMAIL_ALREADY_EXISTS_PMP a ete volontairement desactive dans le
+  // reducer (voir contactPMPubliqueSlice.js : "Desactive : pas de blocage pour
+  // email duplique"). L'action est toujours dispatchee par le thunk sur un 409
+  // mais elle ne modifie plus l'etat. Le test verifie donc que emailExistsError
+  // et errorField restent a null (aucun blocage cote formulaire).
+  test('ne modifie pas l etat (handler desactive)', () => {
     const state = reducer(getBase(), {
       type: 'EMAIL_ALREADY_EXISTS_PMP',
       payload: { message: 'Email deja utilise', field: 'email' },
     });
-    expect(state.validation.emailExistsError).toBe('Email deja utilise');
-    expect(state.validation.errorField).toBe('email');
+    expect(state.validation.emailExistsError).toBeNull();
+    expect(state.validation.errorField).toBeNull();
   });
 });
 
@@ -436,7 +441,14 @@ describe('contactPMPubliqueSlice thunk updateContactPMPublique', () => {
       },
     };
     await updateContactPMPublique('c1', contactData, 'tok', options)(dispatch, getState);
-    const types = dispatch.mock.calls.map(c => (typeof c[0] === 'function' ? 'thunk' : c[0].type));
+    // Certaines actions dispatchees sont le retour de thunks mockes (ex.
+    // fetchCurrentDossier) qui, sous babel-jest, renvoient undefined depuis la
+    // factory de mock hoistee. On filtre donc les valeurs null/undefined et les
+    // fonctions avant de lire .type, comme dans les autres tests de ce bloc.
+    const types = dispatch.mock.calls
+      .map(c => c[0])
+      .filter(a => a != null && typeof a !== 'function')
+      .map(a => a.type);
     expect(types).toContain('UPDATE_CONTACT_PM_PUBLIQUE_SUCCESS');
     expect(types).toContain('RESET_CONTACT_PM_PUBLIQUE_PMP');
   });
@@ -484,7 +496,12 @@ describe('contactPMPubliqueSlice thunk updateContactPMPublique', () => {
       modificationType: 'partieItself',
     };
     await updateContactPMPublique('c1', contactData, 'tok', options)(dispatch, getState);
-    const types = dispatch.mock.calls.map(c => (typeof c[0] === 'function' ? 'thunk' : c[0].type));
+    // fetchCurrentDossier (thunk mocke) est dispatche et renvoie undefined sous
+    // babel-jest : on filtre null/undefined et fonctions avant de lire .type.
+    const types = dispatch.mock.calls
+      .map(c => c[0])
+      .filter(a => a != null && typeof a !== 'function')
+      .map(a => a.type);
     expect(types).toContain('UPDATE_PARTIE');
   });
 
@@ -492,7 +509,12 @@ describe('contactPMPubliqueSlice thunk updateContactPMPublique', () => {
     apiClient.put.mockResolvedValue({ data: { _id: 'c1' } });
     const options = { modificationType: 'contactLinkedToDossier' };
     await updateContactPMPublique('c1', contactData, 'tok', options)(dispatch, getState);
-    const types = dispatch.mock.calls.map(c => (typeof c[0] === 'function' ? 'thunk' : c[0].type));
+    // fetchCurrentDossier (thunk mocke) est dispatche et renvoie undefined sous
+    // babel-jest : on filtre null/undefined et fonctions avant de lire .type.
+    const types = dispatch.mock.calls
+      .map(c => c[0])
+      .filter(a => a != null && typeof a !== 'function')
+      .map(a => a.type);
     expect(types).toContain('UPDATE_SELECTED_CONTACT');
     expect(types).toContain('RESET_CONTACT_PM_PUBLIQUE_PMP');
   });

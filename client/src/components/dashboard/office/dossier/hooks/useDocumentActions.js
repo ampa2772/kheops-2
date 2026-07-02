@@ -9,9 +9,11 @@ import {
   deleteSubfolder,
   moveDocumentToSubfolder,
 } from '../../../../../redux/slices/currentDossierSlice';
+import { useToast } from '../../../../common/notifications/useToast';
 
 export const useDocumentActions = () => {
   const dispatch = useDispatch();
+  const toast = useToast();
   const { dossier: currentDossier } = useSelector(state => state.currentDossier);
   const token = useSelector(state => state.login.token);
 
@@ -23,9 +25,16 @@ export const useDocumentActions = () => {
 
   const handleDuplicateDocument = useCallback((doc) => {
     if (!currentDossier?._id || !token) return;
-    dispatch(duplicateDocumentInDossier(currentDossier._id, doc, token));
+    // Le serveur peut refuser (409) : document stocké en nuage dont la copie
+    // physique n'est pas encore prise en charge — on affiche son message
+    // plutôt que d'échouer en silence.
+    Promise.resolve(dispatch(duplicateDocumentInDossier(currentDossier._id, doc, token)))
+      .catch((error) => {
+        const serverMsg = error?.response?.data?.message;
+        toast.error(serverMsg || 'La duplication du document a échoué.');
+      });
     setMiniModalItemId(null);
-  }, [dispatch, currentDossier, token]);
+  }, [dispatch, currentDossier, token, toast]);
 
   const handleRenameDocument = useCallback((doc) => {
     setRenameValue(doc.nomDocument.replace(/\.[^/.]+$/, ''));

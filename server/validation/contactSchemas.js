@@ -61,13 +61,50 @@ const optionalShortText = (max) => Joi.string().allow('', null).max(max).optiona
 const flexibleObject = Joi.object().unknown(true);
 
 // ----------------------------------------------------------------------------
+// Bloc contact BORNE (defense en profondeur, 2026-07-02)
+// ----------------------------------------------------------------------------
+// Les champs free-text les plus exposes sont limites en LONGUEUR pour bloquer
+// le stockage de payloads geants (DoS / bloat DB via un `nom` de plusieurs Mo,
+// possible car bodyParser.json limit=10mb en amont). On garde `.unknown(true)`
+// => tout autre champ (structure riche PP/PM : detailMariage, interlocuteur, ...)
+// reste accepte TEL QUEL. IMPORTANT : PAS de `.trim()`/`.lowercase()` ici — on
+// ne veut pas MUTER la donnee (validateBody remplace req.body par la valeur
+// validee). On se contente de valider la longueur, sans transformer.
+const boundedText = (max) => Joi.string().allow('', null).max(max).messages({
+  'string.max': `Champ trop long (max ${max} caracteres).`,
+  'string.base': 'Champ texte attendu.',
+});
+
+const CONTACT_TEXT_LIMITS = {
+  nom: boundedText(300),
+  nomDeNaissance: boundedText(300),
+  prenoms: boundedText(300),
+  raisonSociale: boundedText(400),
+  denomination: boundedText(400),
+  adresse: boundedText(1000),
+  ville: boundedText(200),
+  codePostal: boundedText(20),
+  telephone: boundedText(50),
+  profession: boundedText(300),
+  nationalite: boundedText(150),
+  paysNaissance: boundedText(150),
+  villeNaissance: boundedText(200),
+  email: Joi.string().allow('', null).max(254).messages({
+    'string.max': 'Email trop long (max 254 caracteres).',
+  }),
+};
+
+// Bloc contact : champs connus bornes en longueur + reste libre (unknown).
+const boundedContactBlock = Joi.object(CONTACT_TEXT_LIMITS).unknown(true);
+
+// ----------------------------------------------------------------------------
 // Personne Physique (PP)
 // ----------------------------------------------------------------------------
 
 // POST /contact   body = { contact: {...}, options: { contactType, userId,
 //                          detailMariage: {...}, personnesCharge: [...] } }
 const createContactSchema = Joi.object({
-  contact: flexibleObject.required().messages({
+  contact: boundedContactBlock.required().messages({
     'any.required': "Le champ 'contact' est requis.",
     'object.base': "Le champ 'contact' doit etre un objet.",
   }),
@@ -76,7 +113,7 @@ const createContactSchema = Joi.object({
 
 // PUT /contact/:id   body = { contact: {...}, options: { personnesCharge: [...] } }
 const updateContactSchema = Joi.object({
-  contact: flexibleObject.required().messages({
+  contact: boundedContactBlock.required().messages({
     'any.required': "Le champ 'contact' est requis.",
     'object.base': "Le champ 'contact' doit etre un objet.",
   }),
@@ -89,7 +126,7 @@ const updateContactSchema = Joi.object({
 
 // POST /contactPM   body = { contact: {...}, user: {...} }
 const createContactPMSchema = Joi.object({
-  contact: flexibleObject.required().messages({
+  contact: boundedContactBlock.required().messages({
     'any.required': "Le champ 'contact' est requis.",
     'object.base': "Le champ 'contact' doit etre un objet.",
   }),
@@ -100,7 +137,7 @@ const createContactPMSchema = Joi.object({
 
 // PUT /contactPM/:id   body = { contact: {...} }
 const updateContactPMSchema = Joi.object({
-  contact: flexibleObject.required().messages({
+  contact: boundedContactBlock.required().messages({
     'any.required': "Le champ 'contact' est requis.",
     'object.base': "Le champ 'contact' doit etre un objet.",
   }),
@@ -112,7 +149,7 @@ const updateContactPMSchema = Joi.object({
 
 // POST /contactPMPublique   body = { contactData: {...}, user: {...} }
 const createContactPMPubliqueSchema = Joi.object({
-  contactData: flexibleObject.required().messages({
+  contactData: boundedContactBlock.required().messages({
     'any.required': "Le champ 'contactData' est requis.",
     'object.base': "Le champ 'contactData' doit etre un objet.",
   }),
@@ -121,7 +158,7 @@ const createContactPMPubliqueSchema = Joi.object({
 
 // PUT /contactPMPublique/:id   body = { contactData: {...} }
 const updateContactPMPubliqueSchema = Joi.object({
-  contactData: flexibleObject.required().messages({
+  contactData: boundedContactBlock.required().messages({
     'any.required': "Le champ 'contactData' est requis.",
     'object.base': "Le champ 'contactData' doit etre un objet.",
   }),
@@ -170,7 +207,7 @@ const findOrCreateTribunalSchema = Joi.object({
 
 // POST /contact/:contactId/personne-charge   body = { personneCharge: {...}, dossierId? }
 const createPersonneChargeSchema = Joi.object({
-  personneCharge: flexibleObject.required().messages({
+  personneCharge: boundedContactBlock.required().messages({
     'any.required': "Le champ 'personneCharge' est requis.",
     'object.base': "Le champ 'personneCharge' doit etre un objet.",
   }),
@@ -179,11 +216,30 @@ const createPersonneChargeSchema = Joi.object({
 
 // PUT /personne-charge/:pcId   body = { data: {...}, dossierId? }
 const updatePersonneChargeSchema = Joi.object({
-  data: flexibleObject.required().messages({
+  data: boundedContactBlock.required().messages({
     'any.required': "Le champ 'data' est requis.",
     'object.base': "Le champ 'data' doit etre un objet.",
   }),
   dossierId: objectIdField.optional().allow('', null),
+});
+
+// ----------------------------------------------------------------------------
+// Divorce CM — POST /api/divorce-cm/save-as-contact
+// ----------------------------------------------------------------------------
+// Cette route creait un Contact + des PersonneCharge SANS validateBody (bypass
+// identifie a l'audit 2026-07-02). On la borne ici : `data` = bloc contact
+// borne, `personnesCharge` = tableau borne (<=50 items) de blocs contact bornes.
+// Le handler ne lit que { kind, data, personnesCharge } → stripUnknown top-level
+// sans risque ; `.unknown(true)` sur data/items preserve les champs riches.
+const saveAsContactSchema = Joi.object({
+  kind: Joi.string().allow('', null).max(50).optional(),
+  data: boundedContactBlock.required().messages({
+    'any.required': "Le champ 'data' est requis.",
+    'object.base': "Le champ 'data' doit etre un objet.",
+  }),
+  personnesCharge: Joi.array().items(boundedContactBlock).max(50).optional().messages({
+    'array.max': 'Trop de personnes a charge (max 50).',
+  }),
 });
 
 module.exports = {
@@ -197,4 +253,5 @@ module.exports = {
   findOrCreateTribunalSchema,
   createPersonneChargeSchema,
   updatePersonneChargeSchema,
+  saveAsContactSchema,
 };

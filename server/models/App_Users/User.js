@@ -153,6 +153,22 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  // --- Multi-tenant / cabinet (AUTH-002) ---
+  // Cabinet (Tenant) auquel appartient l'utilisateur. Nullable au début : les
+  // comptes existants et ceux créés via OAuth sont rattachés à la volée par
+  // tenantService.resolveTenantId (1 utilisateur = 1 cabinet par défaut).
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tenant',
+    default: null,
+    index: true,
+  },
+  // Rôle applicatif au sein du cabinet.
+  role: {
+    type: String,
+    enum: ['avocat', 'collaborateur', 'secretaire', 'admin'],
+    default: 'avocat',
+  },
 });
 
 module.exports = mongoose.model('User', UserSchema);

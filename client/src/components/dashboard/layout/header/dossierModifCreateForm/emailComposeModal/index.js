@@ -3,10 +3,12 @@ import ReactDOM from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { debounce } from 'lodash';
 import apiClient from '../../../../../../services/apiClient';
+import mailAccountService from '../../../../../../services/mailAccountService';
 import { closeEmailComposeModal } from '../../../../../../redux/slices/layoutSlice';
 import { searchAllUserContacts } from '../../../../../../redux/slices/allSearchSlice';
 import useComboboxKeyboard from '../../../../../../hooks/useComboboxKeyboard';
 import BaseModal from '../../../../../common/BaseModal';
+import MailAccountSetupModal from '../../../../office/mails/MailAccountSetupModal';
 import PieceJointeIcon from '../../../../../../assets/piece-jointe.svg';
 import './emailComposeModal.css';
 
@@ -26,6 +28,18 @@ function buildRecipientLabel({ email, companyName, personName, role }) {
     identity = personName;
   }
   return identity ? `${identity} — ${email}` : email;
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      resolve(result.includes(',') ? result.split(',')[1] : result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 /**
@@ -51,6 +65,8 @@ const EmailComposeModal = () => {
   const [status, setStatus] = useState(null);
   const [showGlobalSuggestions, setShowGlobalSuggestions] = useState(false);
   const [emailChoices, setEmailChoices] = useState(null);
+  const [genericAccounts, setGenericAccounts] = useState([]);
+  const [showMailSetupModal, setShowMailSetupModal] = useState(false);
 
   // --- Refs ---
   const manualInputRef = useRef(null);
@@ -60,6 +76,8 @@ const EmailComposeModal = () => {
 
   // --- Redux ---
   const kheopsToken = useSelector(s => s.login.token);
+  const user = useSelector(s => s.login.user);
+  const hasOAuthMail = !!(user?.googleRefreshToken || user?.microsoftRefreshToken);
   const { allUserContactsResults, loadingAllUserContacts } = useSelector(
     s => s.globalContactsSearch
   );
@@ -73,6 +91,19 @@ const EmailComposeModal = () => {
       if (closeModal) dispatch(closeEmailComposeModal());
     }, 3000);
   }, [dispatch]);
+
+  useEffect(() => {
+    if (hasOAuthMail) return;
+    let cancelled = false;
+    mailAccountService.listAccounts()
+      .then((accounts) => {
+        if (!cancelled) setGenericAccounts(accounts);
+      })
+      .catch(() => {
+        if (!cancelled) setGenericAccounts([]);
+      });
+    return () => { cancelled = true; };
+  }, [hasOAuthMail]);
 
   // --- Autocomplete destinataires ---
 
@@ -338,16 +369,39 @@ const EmailComposeModal = () => {
     setStatus(null);
 
     try {
-      const formData = new FormData();
-      formData.append('to', recipientsArray.map(r => r.email).join(', '));
-      formData.append('subject', subject || '(Sans objet)');
-      formData.append('body', body);
+      if (hasOAuthMail) {
+        const formData = new FormData();
+        formData.append('to', recipientsArray.map(r => r.email).join(', '));
+        formData.append('subject', subject || '(Sans objet)');
+        formData.append('body', body);
 
-      if (attachments.length > 0 && attachments[0].file) {
-        formData.append('attachment', attachments[0].file);
+        if (attachments.length > 0 && attachments[0].file) {
+          formData.append('attachment', attachments[0].file);
+        }
+
+        await apiClient.post('/api/mails/send-email', formData);
+      } else {
+        const account = genericAccounts.find(item => item.status === 'active') || genericAccounts[0];
+        if (!account) {
+          setShowMailSetupModal(true);
+          showStatusMessage('Connectez une boîte IMAP/SMTP avant l’envoi.', 'error');
+          return;
+        }
+        const genericAttachments = attachments.length > 0 && attachments[0].file
+          ? [{
+              filename: attachments[0].file.name,
+              contentBase64: await fileToBase64(attachments[0].file),
+              contentType: attachments[0].file.type || 'application/octet-stream',
+            }]
+          : [];
+        await mailAccountService.sendMail({
+          accountId: account.id,
+          to: recipientsArray.map(r => r.email).join(', '),
+          subject: subject || '(Sans objet)',
+          text: body,
+          attachments: genericAttachments,
+        });
       }
-
-      await apiClient.post('/api/mails/send-email', formData);
       showStatusMessage('Email envoy\u00E9 avec succ\u00E8s.', 'success', true);
     } catch (err) {
       const errMsg = err.response?.data?.message || err.message;
@@ -440,6 +494,16 @@ const EmailComposeModal = () => {
 
   return (
     <>
+      <MailAccountSetupModal
+        isOpen={showMailSetupModal}
+        userEmail={user?.email}
+        onClose={() => setShowMailSetupModal(false)}
+        onAccountCreated={(account) => {
+          setGenericAccounts((current) => [account, ...current.filter((item) => item.id !== account.id)]);
+          setShowMailSetupModal(false);
+        }}
+      />
+
       <BaseModal
         isOpen={true}
         onClose={handleClose}

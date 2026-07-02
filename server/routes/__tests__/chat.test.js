@@ -43,6 +43,36 @@ jest.mock('../../models/App_Users/User', () => ({
     },
 }));
 
+// rc38 : les routes résolvent un OfficeUser actif (resolveActiveOfficeUserId →
+// UserOfficeUser/OfficeUser) et vérifient l'appartenance du destinataire
+// (ensureOfficeUserOwnership, A14). Le modèle User n'est plus utilisé par la route.
+// On mocke l'OfficeUser principal avec le MÊME _id que l'utilisateur courant :
+// ainsi le service reçoit userId = 'userA' et les assertions existantes tiennent.
+jest.mock('../../models/App_Users/modelsLiaisons/UserOfficeUser', () => ({
+    find: (query) => {
+        const uid = query && query.user;
+        const links = [
+            { officeUser: { _id: uid, mainOfficeUser: true, prenomOfficeUser: 'Alice', nomOfficeUser: 'Avocate', roleOfficeUser: 'avocat', isAvocat: true } },
+            { officeUser: { _id: 'userB', mainOfficeUser: false, prenomOfficeUser: 'Bob', nomOfficeUser: 'Bobson', roleOfficeUser: 'secretaire', isAvocat: false } },
+        ];
+        return { populate: () => ({ lean: async () => links }) };
+    },
+    findOne: () => ({ lean: async () => null }),
+}));
+jest.mock('../../models/App_Users/OfficeUser', () => ({
+    find: () => ({ select: () => Promise.resolve([
+        { _id: 'userB', prenomOfficeUser: 'Bob', nomOfficeUser: 'Bobson', roleOfficeUser: 'secretaire', isAvocat: false, mainOfficeUser: false },
+        { _id: 'userC', prenomOfficeUser: 'Carol', nomOfficeUser: 'Carolson', roleOfficeUser: 'avocat', isAvocat: true, mainOfficeUser: false },
+    ]) }),
+    findOne: () => ({ lean: async () => null }),
+}));
+jest.mock('../../utils/ownershipHelpers', () => ({
+    ensureOfficeUserOwnership: jest.fn().mockResolvedValue(true),
+    ensureDossierOwnership: jest.fn().mockResolvedValue(true),
+    ensureContactOwnership: jest.fn().mockResolvedValue(true),
+    ensureDocOwnership: jest.fn().mockResolvedValue({ ok: true }),
+}));
+
 const express = require('express');
 const http = require('http');
 const router = require('../chat');
@@ -169,7 +199,7 @@ describe('POST /api/chat/messages', () => {
         expect(r.status).toBe(201);
         expect(r.body.message._id).toBe('m99');
         expect(mockSendMessage).toHaveBeenCalledWith({
-            senderId: 'userA', recipientId: 'userB', text: 'hello', attachment: undefined,
+            senderId: 'userA', recipientId: 'userB', text: 'hello', attachment: undefined, encryptedPayload: undefined,
         });
     });
 

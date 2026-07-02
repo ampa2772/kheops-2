@@ -10,6 +10,7 @@ const UserDossier = require("../../models/Folder/modelsLiaisons/UserDossier");
 
 // — chemins corrigés (deux niveaux au-dessus) —
 const Dossier = require("../../models/Folder/Dossier");
+const { getAccessibleUserIds } = require("../../services/cabinetAccess");
 
 // ========================================================================
 // Routes pour la facturation des dossiers
@@ -226,7 +227,7 @@ router.get('/invoice-details/:invoiceId', auth, asyncHandler(async (req, res) =>
   // SECURITE rc37 : restreindre la recherche aux dossiers du user.
   // Sans ce filtre, l'API renvoyait le detail (billedItems, montants, status,
   // payments) de N'IMPORTE QUELLE facture en devinant l'invoiceId.
-  const userDossierLinks = await UserDossier.find({ user: req.user }).select('dossier').lean();
+  const userDossierLinks = await UserDossier.find({ user: { $in: await getAccessibleUserIds(req.user) } }).select('dossier').lean();
   const userDossierIds = userDossierLinks.map((l) => l.dossier);
   if (userDossierIds.length === 0) {
     return res.status(404).json({ message: 'Facture non trouvée.' });

@@ -4,6 +4,8 @@ import { createSlice } from '@reduxjs/toolkit';
 import apiClient from '../../services/apiClient';
 import { initSocket } from '../../services/socketService';
 import { showToast } from './notificationsSlice';
+// Compagnon Word (mode web) : génération serveur + ouverture dans Microsoft Word.
+import { openDocumentInWord } from '../../services/companion/companionClient';
 
 // ========================================================================
 // Action type constants (migrated from dossierActions.js — Phase 9D)
@@ -565,12 +567,23 @@ export const createDocumentInDossier = (dossierId, templateFileName, token, user
         }
         dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 95, step: 'Finalisation...' } });
       } else {
-        // Mode Web — Socket.IO
-        dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 70, step: 'Génération du document...' } });
-        const socket = initSocket();
-        if (socket) {
-          const payload = { type: 'create-folder', data: { folderName: newDocMetadata._id, clientData: { dossier: dossierComplet, user, recipients }, templateFileName: templateFileName, finalDocumentName: newDocMetadata.nomDocument } };
-          socket.emit('message', JSON.stringify(payload));
+        // Mode Web — génération CÔTÉ SERVEUR puis ouverture via le COMPAGNON Word.
+        // (Remplace l'ancien Socket.IO vers l'app desktop complète.)
+        // 1) Le serveur fabrique le .docx (modèle + données du dossier) et l'enregistre
+        //    sous documents/<docId>.docx.
+        dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 60, step: 'Génération du document...' } });
+        await apiClient.post(`/api/word/${newDocMetadata._id}/generate`, {
+          templateName: templateFileName,
+          clientData: { dossier: dossierComplet, recipients, userProfile: user },
+        });
+        // 2) On demande au compagnon local d'ouvrir le document dans Microsoft Word.
+        //    Si le compagnon est absent, le document reste généré et stocké ; seule
+        //    l'ouverture automatique échoue (l'utilisateur sera invité à l'installer).
+        dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 90, step: 'Ouverture dans Word...' } });
+        try {
+          await openDocumentInWord(newDocMetadata._id, { fileName: newDocMetadata.nomDocument });
+        } catch (companionErr) {
+          console.warn('[createDocumentInDossier] Ouverture compagnon impossible (document généré et stocké):', companionErr.message);
         }
       }
     } else {

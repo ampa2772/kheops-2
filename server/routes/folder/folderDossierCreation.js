@@ -27,6 +27,8 @@ const ContactPM = require("../../models/Folder/ContactPM");
 const ContactPMPublique = require("../../models/Folder/ContactPMPublique");
 
 const snapshotService = require("../../services/snapshotService");
+const { getAccessibleUserIds } = require("../../services/cabinetAccess");
+const { ensureDossierOwnership, ensureContactOwnership } = require("../../utils/ownershipHelpers");
 
 
 // ========================================================================
@@ -75,10 +77,16 @@ router.post(
 // ------------------------------------------------------------------------
 // Liaisons : ContactPartie, DossierPartie, ContactRole, DossierContact
 // ------------------------------------------------------------------------
+// SECURITE rc38 (A1) : ces routes bas-niveau créent des LIENS entre des
+// dossier/contact identifiés par le corps de la requête. Sans contrôle
+// d'appartenance, elles constituent des primitives IDOR d'écriture (rattacher
+// son contact au dossier d'un autre cabinet, etc.). On vérifie donc l'ownership
+// de chaque id de dossier/contact présent dans le body.
 router.post(
   "/contactpartie",
   auth,
   asyncHandler(async (req, res) => {
+    if (req.body.contact && !(await ensureContactOwnership(req, res, req.body.contact))) return;
     const contactPartie = new ContactPartie(req.body);
     await contactPartie.save();
     res.json(contactPartie);
@@ -89,6 +97,7 @@ router.post(
   "/dossierpartie",
   auth,
   asyncHandler(async (req, res) => {
+    if (req.body.dossier && !(await ensureDossierOwnership(req, res, req.body.dossier))) return;
     const dossierPartie = new DossierPartie(req.body);
     await dossierPartie.save();
     res.json(dossierPartie);
@@ -99,6 +108,7 @@ router.post(
   "/contactrole",
   auth,
   asyncHandler(async (req, res) => {
+    if (req.body.contact && !(await ensureContactOwnership(req, res, req.body.contact))) return;
     const contactRole = new ContactRole(req.body);
     await contactRole.save();
     res.json(contactRole);
@@ -109,6 +119,8 @@ router.post(
   "/dossiercontact",
   auth,
   asyncHandler(async (req, res) => {
+    if (req.body.dossier && !(await ensureDossierOwnership(req, res, req.body.dossier))) return;
+    if (req.body.contact && !(await ensureContactOwnership(req, res, req.body.contact))) return;
     const dossierContact = new DossierContact(req.body);
     await dossierContact.save();
     res.json(dossierContact);
@@ -182,19 +194,40 @@ router.post(
       return Contact;
     };
 
+    // SECURITE rc38 (A1) : l'ancien upsert `findOneAndUpdate({_id}, {...c, userId},
+    // {upsert:true})` permettait d'ÉCRASER puis de S'APPROPRIER (userId=attaquant)
+    // le Contact d'un autre cabinet en passant son _id. On n'écrit désormais dans
+    // le master QUE si le contact n'existe pas encore (création) ou s'il appartient
+    // déjà au cabinet courant. Un _id référençant un contact d'un AUTRE cabinet est
+    // refusé (la requête entière échoue pour éviter tout embarquement illégitime).
+    const accessibleIds = await getAccessibleUserIds(userId);
+    const foreignRefs = [];
     try {
       await Promise.all(
-        collected.map((c) => {
+        collected.map(async (c) => {
           const Model = getModelForContact(c);
-          return Model.findOneAndUpdate(
-            { _id: c._id },
-            { ...c, userId },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-          );
+          const existing = await Model.findById(c._id).select('userId').lean();
+          if (existing) {
+            const ownerId = existing.userId ? String(existing.userId) : null;
+            if (ownerId && !accessibleIds.includes(ownerId)) {
+              foreignRefs.push(String(c._id));
+              return; // ne PAS écraser un contact d'un autre cabinet
+            }
+            await Model.updateOne({ _id: c._id }, { ...c, userId });
+          } else {
+            await Model.create({ ...c, _id: c._id, userId });
+          }
         })
       );
     } catch (upsertErr) {
       console.warn("Upsert contact warning :", upsertErr.message);
+    }
+
+    if (foreignRefs.length > 0) {
+      console.warn(`[createDossier] ACCESS_DENIED : contacts hors cabinet référencés par user ${userId}: ${foreignRefs.join(', ')}`);
+      return res.status(403).json({
+        message: "Accès refusé : un ou plusieurs contacts référencés n'appartiennent pas à votre cabinet.",
+      });
     }
 
     /* 3️⃣ – création du dossier principal */

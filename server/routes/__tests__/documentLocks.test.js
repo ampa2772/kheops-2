@@ -23,6 +23,45 @@ jest.mock('../../models/App_Users/User', () => ({
     })),
 }));
 
+// rc38 (A1) : le contrôle d'appartenance des documents est désormais central.
+// Pour les tests d'intégration route+service (sans Mongo) on simule un cabinet
+// dont les documents "possédés" sont DOC_A et DOC_B (voir plus bas). DOC_C
+// représente un document d'un AUTRE cabinet (jamais dans l'ensemble possédé).
+const DOC_A = 'aaaaaaaaaaaaaaaaaaaaaaaa';
+const DOC_B = 'bbbbbbbbbbbbbbbbbbbbbbbb';
+const DOC_C = 'cccccccccccccccccccccccc';
+
+// ensureDocOwnership (utilisé par /acquire) : happy path — le doc appartient au
+// cabinet. Les tests d'isolation dédiés vivent dans les tests unitaires ciblés.
+jest.mock('../../utils/ownershipHelpers', () => ({
+    ensureDocOwnership: jest.fn().mockResolvedValue({ ok: true }),
+    ensureDossierOwnership: jest.fn(),
+    ensureContactOwnership: jest.fn(),
+    ensureOfficeUserOwnership: jest.fn(),
+}));
+
+jest.mock('../../services/cabinetAccess', () => ({
+    getAccessibleUserIds: jest.fn().mockResolvedValue(['userA']),
+}));
+jest.mock('../../models/Folder/modelsLiaisons/UserDossier', () => ({
+    find: () => ({ select: () => ({ lean: async () => [{ dossier: 'DOSSIER1' }] }) }),
+}));
+// Le cabinet possède DOC_A et DOC_B (embarqués dans DOSSIER1). DOC_C n'y est pas.
+jest.mock('../../models/Folder/Dossier', () => ({
+    find: () => ({
+        select: () => ({
+            lean: async () => [{
+                dossier: {
+                    documents: [
+                        { _id: 'aaaaaaaaaaaaaaaaaaaaaaaa' },
+                        { _id: 'bbbbbbbbbbbbbbbbbbbbbbbb' },
+                    ],
+                },
+            }],
+        }),
+    }),
+}));
+
 const express = require('express');
 const http = require('http');
 const router = require('../documentLocks');
@@ -143,31 +182,44 @@ describe('POST /api/document-locks/:docId/release', () => {
 });
 
 describe('GET /api/document-locks', () => {
-    it('liste tous les verrous quand sans paramètre', async () => {
-        await request('POST', '/api/document-locks/doc1/acquire');
+    // rc38 (A1) : la liste sans docIds NE DOIT PLUS énumérer tous les verrous
+    // (l'ancien comportement fuitait displayName/email des détenteurs de tous
+    // les cabinets). On renvoie désormais une liste vide.
+    it('🔒 sans paramètre docIds → liste vide (pas d\'énumération globale)', async () => {
+        await request('POST', `/api/document-locks/${DOC_A}/acquire`);
         mockCurrentUserId = 'userB';
-        await request('POST', '/api/document-locks/doc2/acquire');
+        await request('POST', `/api/document-locks/${DOC_B}/acquire`);
 
         const r = await request('GET', '/api/document-locks');
         expect(r.status).toBe(200);
-        expect(r.body.locks).toHaveLength(2);
+        expect(r.body.locks).toEqual([]);
         expect(r.body.currentUserId).toBe('userB');
     });
 
-    it('filtre sur les docIds passés en query string', async () => {
-        await request('POST', '/api/document-locks/doc1/acquire');
-        await request('POST', '/api/document-locks/doc2/acquire');
-        await request('POST', '/api/document-locks/doc3/acquire');
+    it('filtre sur les docIds du cabinet passés en query string', async () => {
+        await request('POST', `/api/document-locks/${DOC_A}/acquire`);
+        await request('POST', `/api/document-locks/${DOC_B}/acquire`);
 
-        const r = await request('GET', '/api/document-locks?docIds=doc1,doc3');
+        const r = await request('GET', `/api/document-locks?docIds=${DOC_A},${DOC_B}`);
         expect(r.status).toBe(200);
         expect(r.body.locks).toHaveLength(2);
         const ids = r.body.locks.map(l => l.docId).sort();
-        expect(ids).toEqual(['doc1', 'doc3']);
+        expect(ids).toEqual([DOC_A, DOC_B]);
     });
 
-    it('renvoie une liste vide si aucun verrou ne matche', async () => {
-        const r = await request('GET', '/api/document-locks?docIds=nope1,nope2');
+    it('🔒 filtre les docIds d\'un AUTRE cabinet (isolation)', async () => {
+        // On verrouille un doc possédé (DOC_A) et un doc d'un autre cabinet (DOC_C).
+        await request('POST', `/api/document-locks/${DOC_A}/acquire`);
+        await request('POST', `/api/document-locks/${DOC_C}/acquire`);
+
+        const r = await request('GET', `/api/document-locks?docIds=${DOC_A},${DOC_C}`);
+        expect(r.status).toBe(200);
+        // Seul DOC_A (du cabinet) remonte ; DOC_C est filtré → pas de fuite d'identité.
+        expect(r.body.locks.map(l => l.docId)).toEqual([DOC_A]);
+    });
+
+    it('renvoie une liste vide si aucun docId possédé ne matche', async () => {
+        const r = await request('GET', `/api/document-locks?docIds=${DOC_C}`);
         expect(r.body.locks).toEqual([]);
     });
 });

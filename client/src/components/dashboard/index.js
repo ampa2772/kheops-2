@@ -9,6 +9,7 @@ import Office from './office';
 import Modal from './layout/header/currentUser/currentUserChangeModal'; // <<< NOUVEL IMPORT
 import ChatPanel from '../chat/ChatPanel';
 import EncryptionGate from '../encryption/EncryptionGate';
+import CompanionManager from '../companion/CompanionManager';
 
 
 const Dashboard = () => {
@@ -41,6 +42,12 @@ const Dashboard = () => {
           Le composant rend lui-meme rien quand le cabinet est deverrouille
           ou en etat initial. */}
       <EncryptionGate />
+
+      {/* Compagnon Electron mince : detection silencieuse au login + boite
+          d'installation non-intrusive si absent. Remplace l'ancienne
+          <ElectronDownloadBanner /> (retiree : erreur d'archi + fuite de
+          secrets). N'affiche RIEN si le compagnon est present. */}
+      <CompanionManager />
 
       {isMetricsAvailable && (
         <header className="dashboard-header" role="banner">

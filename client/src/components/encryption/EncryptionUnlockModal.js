@@ -6,16 +6,23 @@
 //   - la machine n'a pas la MasterKey en RAM (safeStorage absent ou
 //     dechiffrement local impossible).
 //
-// Bloquante = pas de fermeture par Echap, pas de clic-dehors.
-// L'utilisateur DOIT saisir la phrase pour acceder au tableau de bord, OU
-// utiliser sa feuille de secours (lien de recovery — fonctionnalite a
-// implementer dans un lot ulterieur, mais le lien est present pour le futur).
+// Bloquante pour l'ACCES AUX DONNEES (pas de fermeture par Echap ni clic-dehors) :
+// pour acceder au tableau de bord protege, l'utilisateur doit saisir la phrase,
+// OU utiliser sa feuille de secours.
+//
+// MAIS jamais bloquante pour la SESSION : un bouton « Se deconnecter / changer
+// de compte » est TOUJOURS accessible (handleLogout ci-dessous). Regle UX
+// absolue — la phrase secrete protege les donnees, elle n'enferme jamais
+// l'utilisateur dans une session dont il ne peut pas sortir.
 //
 // Voir DESIGN_CHIFFREMENT_E2E.md sections 6.2 et 6.6.
 
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import BaseModal from '../common/BaseModal';
 import useCabinetCrypto from '../../hooks/useCabinetCrypto';
+import { performLogout } from '../../redux/slices/authSlice';
 import './_encryption-modals.css';
 import '../common/_modal-base.css';
 
@@ -25,6 +32,8 @@ const EncryptionUnlockModal = ({
   onUseRecoverySheet,
 }) => {
   const crypto = useCabinetCrypto({ autoFetch: false });
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [passphrase, setPassphrase] = useState('');
   const [persistLocally, setPersistLocally] = useState(true);
@@ -54,6 +63,18 @@ const EncryptionUnlockModal = ({
 
   const handleRecoveryClick = () => {
     if (typeof onUseRecoverySheet === 'function') onUseRecoverySheet();
+  };
+
+  // Echappatoire NON-BLOQUANTE. Regle UX absolue : meme sans connaitre la
+  // phrase secrete, l'utilisateur doit TOUJOURS pouvoir se deconnecter et
+  // changer de compte. La phrase secrete protege les donnees, elle n'enferme
+  // jamais la session.
+  //
+  // On delegue a performLogout (authSlice) qui centralise la deconnexion
+  // complete : verrouillage du cabinet (oubli de la MasterKey), logout cloud
+  // Electron, vidage du JWT et retour au login.
+  const handleLogout = () => {
+    dispatch(performLogout({ navigate }));
   };
 
   return (
@@ -124,7 +145,16 @@ const EncryptionUnlockModal = ({
             </button>
           </div>
         </div>
-        <div className="k-modal-footer">
+        <div className="k-modal-footer" style={{ justifyContent: 'space-between' }}>
+          <button
+            type="button"
+            className="k-modal-btn k-modal-btn--cancel"
+            onClick={handleLogout}
+            disabled={submitting}
+            title="Quitter cette session sans saisir la phrase secrete"
+          >
+            Se deconnecter / changer de compte
+          </button>
           <button
             type="submit"
             className="k-modal-btn k-modal-btn--primary"

@@ -18,6 +18,8 @@ const router = express.Router();
 
 const auth = require('../middlewares/middleware-auth');
 const { asyncHandler } = require('../middlewares/folder-middleWare');
+const validateBody = require('../middlewares/validateBody');
+const { saveAsContactSchema } = require('../validation/contactSchemas');
 
 const Dossier = require('../models/Folder/Dossier');
 const DivorceCMData = require('../models/Divorce/DivorceCMData');
@@ -31,6 +33,7 @@ const User = require('../models/App_Users/User');
 
 const constants = require('../services/divorceCMConstants');
 const audit = require('../utils/auditLogger');
+const { getAccessibleUserIds } = require('../services/cabinetAccess');
 
 // ============================================================
 // Helpers
@@ -203,8 +206,20 @@ async function propagateDivorceToContacts(divorceData) {
   }
   if (epouxByContact.size === 0) return;
 
+  // SECURITE rc38 (A1) : les contactId des époux viennent du corps de la
+  // requête. Sans contrôle d'appartenance, un user pouvait ÉCRASER le Contact
+  // (nom, adresse, email…) d'un AUTRE cabinet et lui rattacher des PersonneCharge
+  // en passant son _id. On restreint la propagation aux contacts du cabinet.
+  const accessibleUserIds = await getAccessibleUserIds(ownerUserId);
+
   for (const [contactId, info] of epouxByContact.entries()) {
     if (!mongoose.Types.ObjectId.isValid(contactId)) continue;
+
+    const ownsContact = await UserContact.findOne({ user: { $in: accessibleUserIds }, contact: contactId }).lean();
+    if (!ownsContact) {
+      console.warn(`[propagateDivorceToContacts] ACCESS_DENIED contact=${contactId} hors cabinet de owner=${ownerUserId} — propagation ignorée.`);
+      continue;
+    }
 
     // 1) Mise a jour du Contact (idempotent : Mongoose ne re-ecrit que si
     // les champs changent reellement avec findByIdAndUpdate + new)
@@ -668,7 +683,7 @@ router.get('/search-contacts', auth, asyncHandler(async (req, res) => {
   // SECURITE rc37 (M-07) : restreindre la recherche aux contacts du cabinet
   // courant (UserContact). Sans ce filtre, l'endpoint search-contacts du
   // wizard divorce CM retournait tous les contacts de la base.
-  const userContactLinks = await UserContact.find({ user: ownerUserId })
+  const userContactLinks = await UserContact.find({ user: { $in: await getAccessibleUserIds(ownerUserId) } })
     .select('contact')
     .lean();
   const userContactIds = userContactLinks.map((l) => l.contact);
@@ -765,7 +780,7 @@ router.get('/search-contacts', auth, asyncHandler(async (req, res) => {
 // pas encore dans la base de contacts).
 // Body : { kind: 'epoux'|'avocat'|'notaire', data: {...} }
 // ============================================================
-router.post('/save-as-contact', auth, asyncHandler(async (req, res) => {
+router.post('/save-as-contact', auth, validateBody(saveAsContactSchema), asyncHandler(async (req, res) => {
   const ownerUserId = getOwnerUserId(req);
   if (!ownerUserId) return res.status(401).json({ message: 'Non authentifie.' });
 

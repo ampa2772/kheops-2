@@ -5,7 +5,8 @@ import ReactDOM from 'react-dom';
 import './styles.css';
 
 import { updateDocumentColor, updateSubfolder } from '../../../../../redux/slices/currentDossierSlice';
-import { initSocket } from '../../../../../services/socketService';
+// Compagnon Electron mince (mode web) : ouverture des .docx dans Microsoft Word.
+import { openDocumentInWord, triggerCompanionInstall } from '../../../../../services/companion/companionClient';
 
 // Verrouillage collaboratif de documents (cross-PC)
 import { useDocumentLock } from '../../../../../hooks/useDocumentLock';
@@ -914,18 +915,33 @@ const DocumentList = ({
       }
       return;
     }
-    // Fallback WebSocket (mode navigateur)
+    // ── Mode WEB (navigateur) : ouverture dans Microsoft Word via le
+    //    COMPAGNON Electron mince (agent local sur 127.0.0.1). Remplace
+    //    l'ancien fallback Socket.IO vers l'app desktop complete. ──────────
+    const ext = (doc?.nomDocument || '').split('.').pop()?.toLowerCase();
+    const isWord = ext === 'doc' || ext === 'docx';
+    if (!isWord) {
+      toast.info("L'ouverture locale via le compagnon Kheops concerne les documents Word (.docx).");
+      return;
+    }
     try {
-      const socket = initSocket();
-      if (socket && socket.connected) {
-        socket.emit('message', JSON.stringify({ type: 'display-file', data: doc }));
-      } else {
-        toast.error("La connexion avec l'application de bureau Kheops n'est pas active.");
-        console.error('[SocketService] Impossible d\'ouvrir le document car le WebSocket n\'est pas connecté.');
-      }
+      await openDocumentInWord(doc._id, { fileName: doc.nomDocument });
+      toast.info('Ouverture dans Microsoft Word…', { title: 'Compagnon Kheops' });
     } catch (error) {
-      console.error("Erreur lors de l'envoi de la commande d'ouverture:", error);
-      toast.error("Une erreur est survenue lors de la communication avec l'application de bureau.");
+      console.error("[Companion] Ouverture impossible:", error);
+      // Compagnon absent : proposer un téléchargement EN UN CLIC de l'installeur.
+      const wantInstall = window.confirm(
+        "Le compagnon Kheops n'est pas installé sur cet ordinateur.\n\n"
+        + "Il est nécessaire pour ouvrir les documents dans Microsoft Word.\n\n"
+        + "Voulez-vous télécharger l'installateur maintenant ?"
+      );
+      if (wantInstall) {
+        triggerCompanionInstall();
+        toast.info(
+          "Téléchargement en cours. Ouvrez le fichier téléchargé, laissez-le s'installer (une fenêtre bleue Windows peut demander « Informations complémentaires » → « Exécuter quand même »), puis réessayez d'ouvrir le document.",
+          { title: 'Installation du compagnon' }
+        );
+      }
     }
   };
 

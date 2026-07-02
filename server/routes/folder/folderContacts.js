@@ -53,6 +53,8 @@ const {
 // Helper de propagation des modifications dans les copies embarquées des dossiers
 const propagateEntityToDossiers = require("../../services/propagateEntityToDossiers");
 
+const { getAccessibleUserIds } = require("../../services/cabinetAccess");
+
 // ========================================================================
 // Helper : propage les personnes à charge actuelles d'un contact dans tous
 // les dossiers de l'utilisateur où ce contact figure (en tant que partie).
@@ -72,7 +74,7 @@ async function propagatePersonnesChargeToDossiers(contactId, userId) {
     : [];
 
   // 2. Trouver tous les dossiers de l'utilisateur
-  const userDossierLinks = await UserDossier.find({ user: userId }).select("dossier").lean();
+  const userDossierLinks = await UserDossier.find({ user: { $in: await getAccessibleUserIds(userId) } }).select("dossier").lean();
   const userDossierIds = userDossierLinks.map((link) => link.dossier);
   if (userDossierIds.length === 0) return 0;
 
@@ -350,6 +352,155 @@ async function isEmailInUse(email) {
 // ========================================================================
 // Routes pour les contacts
 // ========================================================================
+
+// ------------------------------------------------------------------------
+// GET /contacts — Annuaire complet du cabinet
+// Renvoie les 3 catégories de contacts (personnes physiques, personnes
+// morales privées, personnes morales publiques) accessibles à l'utilisateur,
+// cloisonnées par cabinet via getAccessibleUserIds (comme la recherche).
+// Utilisé par l'écran "Contacts" (annuaire).
+// ------------------------------------------------------------------------
+router.get(
+  "/contacts",
+  auth,
+  asyncHandler(async (req, res) => {
+    // Cloisonnement cabinet : uniquement les contacts liés aux users du/des
+    // même(s) cabinet(s) que l'utilisateur authentifié (req.user issu du JWT).
+    const accessibleUserIds = await getAccessibleUserIds(req.user);
+
+    // 1) Liaisons user -> contact pour chaque catégorie.
+    const [liensPP, liensPM, liensPMP] = await Promise.all([
+      UserContact.find({ user: { $in: accessibleUserIds } })
+        .select("contact")
+        .lean(),
+      UserContactPM.find({ user: { $in: accessibleUserIds } })
+        .select("contactPM")
+        .lean(),
+      UserContactPMPublique.find({ user: { $in: accessibleUserIds } })
+        .select("contactPMPublique")
+        .lean(),
+    ]);
+
+    const idsPP = liensPP.map((l) => l.contact).filter(Boolean);
+    const idsPM = liensPM.map((l) => l.contactPM).filter(Boolean);
+    const idsPMP = liensPMP.map((l) => l.contactPMPublique).filter(Boolean);
+
+    // 2) Documents réels des 3 collections.
+    const [physiques, organisationsPrivees, organisationsPubliques] =
+      await Promise.all([
+        Contact.find({ _id: { $in: idsPP } }).lean(),
+        ContactPM.find({ _id: { $in: idsPM } }).lean(),
+        ContactPMPublique.find({ _id: { $in: idsPMP } }).lean(),
+      ]);
+
+    // 3) Tri alphabétique sur la clé d'affichage de chaque catégorie.
+    physiques.sort((a, b) =>
+      String(a.nom || "").localeCompare(String(b.nom || ""), "fr")
+    );
+    organisationsPrivees.sort((a, b) =>
+      String(a.raisonSociale || "").localeCompare(
+        String(b.raisonSociale || ""),
+        "fr"
+      )
+    );
+    organisationsPubliques.sort((a, b) =>
+      String(a.denomination || "").localeCompare(
+        String(b.denomination || ""),
+        "fr"
+      )
+    );
+
+    res.json({
+      physiques,
+      organisationsPrivees,
+      organisationsPubliques,
+      counts: {
+        physiques: physiques.length,
+        organisationsPrivees: organisationsPrivees.length,
+        organisationsPubliques: organisationsPubliques.length,
+        total:
+          physiques.length +
+          organisationsPrivees.length +
+          organisationsPubliques.length,
+      },
+    });
+  })
+);
+
+// ------------------------------------------------------------------------
+// GET /contacts/:id/dossiers — Dossiers dans lesquels ce contact apparaît
+// Cherche via DossierContact (lien direct écrit pour chaque contact) ET via
+// la chaîne Partie → ContactPartie → DossierPartie. Cloisonné cabinet
+// (ensureContactOwnership + filtrage des dossiers accessibles via UserDossier).
+// Sert le bouton « Dossiers liés » de l'annuaire.
+// ------------------------------------------------------------------------
+router.get(
+  "/contacts/:id/dossiers",
+  auth,
+  asyncHandler(async (req, res) => {
+    const id = req.params.id;
+
+    if (!(await ensureContactOwnership(req, res, id))) return;
+
+    const DossierContact = require("../../models/Folder/modelsLiaisons/DossierContact");
+    const ContactPartie = require("../../models/Folder/modelsLiaisons/ContactPartie");
+    const Partie = require("../../models/Folder/Partie");
+    const DossierPartie = require("../../models/Folder/modelsLiaisons/DossierPartie");
+    const Dossier = require("../../models/Folder/Dossier");
+    const UserDossier = require("../../models/Folder/modelsLiaisons/UserDossier");
+
+    // 1) Lien direct contact ↔ dossier.
+    const directLinks = await DossierContact.find({ contact: id }).select("dossier").lean();
+    const dossierIdSet = new Set(directLinks.map((l) => String(l.dossier)).filter(Boolean));
+
+    // 2) Lien via une « partie » (Partie.contact ou ContactPartie) → DossierPartie.
+    const [parties, cpLinks] = await Promise.all([
+      Partie.find({ contact: id }).select("_id").lean(),
+      ContactPartie.find({ contact: id }).select("partie").lean(),
+    ]);
+    const partieIds = [
+      ...parties.map((p) => p._id),
+      ...cpLinks.map((l) => l.partie).filter(Boolean),
+    ];
+    if (partieIds.length) {
+      const dpLinks = await DossierPartie.find({ partie: { $in: partieIds } })
+        .select("dossier")
+        .lean();
+      dpLinks.forEach((l) => {
+        if (l.dossier) dossierIdSet.add(String(l.dossier));
+      });
+    }
+
+    const dossierIds = [...dossierIdSet];
+    if (!dossierIds.length) return res.json({ dossiers: [] });
+
+    // 3) Cloisonnement : ne garder que les dossiers du/des cabinet(s) accessibles.
+    const accessibleUserIds = await getAccessibleUserIds(req.user);
+    const ownerLinks = await UserDossier.find({
+      user: { $in: accessibleUserIds },
+      dossier: { $in: dossierIds },
+    })
+      .select("dossier")
+      .lean();
+    const accessibleSet = new Set(ownerLinks.map((l) => String(l.dossier)));
+    const finalIds = dossierIds.filter((d) => accessibleSet.has(d));
+    if (!finalIds.length) return res.json({ dossiers: [] });
+
+    const docs = await Dossier.find({ _id: { $in: finalIds } })
+      .select("reference dossier")
+      .lean();
+
+    const dossiers = docs
+      .map((d) => ({
+        id: String(d._id),
+        reference: d.reference || "",
+        nom: (d.dossier && d.dossier.dossier && d.dossier.dossier.nom) || "",
+      }))
+      .sort((a, b) => String(b.reference).localeCompare(String(a.reference), "fr", { numeric: true }));
+
+    res.json({ dossiers });
+  })
+);
 
 // ------------------------------------------------------------------------
 // Route pour obtenir un contact par ID
@@ -1023,7 +1174,7 @@ router.post(
     // un cabinet pouvait recuperer la fiche d'un tribunal cree par un autre
     // cabinet (info disclosure + pollution).
     const userId = req.user;
-    const userPubLinks = await UserContactPMPublique.find({ user: userId })
+    const userPubLinks = await UserContactPMPublique.find({ user: { $in: await getAccessibleUserIds(userId) } })
       .select('contactPMPublique')
       .lean();
     const userPubIds = userPubLinks.map((l) => l.contactPMPublique);

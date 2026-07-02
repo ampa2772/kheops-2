@@ -75,7 +75,10 @@ const Login = (props) => {
   const handleGoogleLogin = () => {
     setDisplayError(null);
     setOauthRedirecting('google');
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    // Origine du backend : en web hébergé = l'URL du site (Cloud Run) ;
+    // dans Electron = http://localhost:5000 (le renderer charge le serveur
+    // embarqué). window.location.origin couvre les deux sans fallback localhost.
+    const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
     const googleAuthUrl = `${apiUrl}/api/auth/google`;
     if (window.electron?.openExternal) {
       window.electron.openExternal(googleAuthUrl);
@@ -87,7 +90,10 @@ const Login = (props) => {
   const handleMicrosoftLogin = () => {
     setDisplayError(null);
     setOauthRedirecting('microsoft');
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    // Origine du backend : en web hébergé = l'URL du site (Cloud Run) ;
+    // dans Electron = http://localhost:5000 (le renderer charge le serveur
+    // embarqué). window.location.origin couvre les deux sans fallback localhost.
+    const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
     const microsoftAuthUrl = `${apiUrl}/api/auth/microsoft`;
     if (window.electron?.openExternal) {
       window.electron.openExternal(microsoftAuthUrl);
@@ -251,6 +257,10 @@ const Login = (props) => {
           </svg>
           <span>Se connecter avec Microsoft</span>
         </button>
+
+        <p className="auth-any-email-hint">
+          Google et Microsoft sont facultatifs&nbsp;: vous pouvez utiliser Kheops avec n'importe quelle adresse e-mail.
+        </p>
 
         <button type="button" className="switch-button" onClick={props.toggleRegister}>
           Créer nouveau compte

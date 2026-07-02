@@ -5,6 +5,8 @@ import { setAccessibilityMode, updateBillingSettings } from '../../../../redux/s
 import ProfileSection from './ProfileSection';
 import BuildInfoSection from './BuildInfoSection';
 import DossierColorsSection from './DossierColorsSection';
+import StorageProviderSection from './StorageProviderSection';
+import CabinetMembersSection from './CabinetMembersSection';
 import SecuritySection from '../../../encryption/SecuritySection';
 import HoverToSpeak from '../../../common/HoverToSpeak';
 import { speak, stopSpeaking } from '../../../../services/speechService';
@@ -194,6 +196,22 @@ const Parametres = () => {
             onClick={() => setActiveTab('dossierColors')}
           >
             Couleurs
+          </button>
+        </HoverToSpeak>
+        <HoverToSpeak textToSpeak="Onglet Rangement des documents">
+          <button
+            className={activeTab === 'storage' ? 'tab-active' : ''}
+            onClick={() => setActiveTab('storage')}
+          >
+            Rangement
+          </button>
+        </HoverToSpeak>
+        <HoverToSpeak textToSpeak="Onglet Membres du cabinet">
+          <button
+            className={activeTab === 'members' ? 'tab-active' : ''}
+            onClick={() => setActiveTab('members')}
+          >
+            Cabinet
           </button>
         </HoverToSpeak>
         <HoverToSpeak textToSpeak="Onglet Securite et phrase secrete">
@@ -443,6 +461,14 @@ const Parametres = () => {
 
       {activeTab === 'dossierColors' && (
         <DossierColorsSection />
+      )}
+
+      {activeTab === 'storage' && (
+        <StorageProviderSection />
+      )}
+
+      {activeTab === 'members' && (
+        <CabinetMembersSection />
       )}
 
       {activeTab === 'security' && (

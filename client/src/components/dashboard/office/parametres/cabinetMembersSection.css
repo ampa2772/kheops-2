@@ -1,0 +1,58 @@
+/* Section « Membres du cabinet » (Paramètres — R5b). */
+
+.cab-members { max-width: 720px; }
+.cab-members__intro { color: #6b7a90; margin: 4px 0 18px; font-size: 14px; }
+.cab-members h3 { font-size: 15px; margin: 18px 0 10px; }
+.cab-members__empty { color: #8696ab; font-size: 13px; }
+.cab-members__hint { color: #8696ab; font-size: 12px; margin: 4px 0 10px; }
+
+.cab-invite-row,
+.cab-member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cab-member-info { display: flex; flex-direction: column; gap: 2px; }
+.cab-member-name { font-weight: 600; }
+.cab-member-meta { font-size: 12px; color: #8696ab; }
+
+.cab-status--active { color: #3fbf6b; }
+.cab-status--pending { color: #e2a23c; }
+.cab-status--revoked { color: #e2574c; }
+
+.cab-invite-fields { display: flex; gap: 8px; flex-wrap: wrap; }
+.cab-invite-fields input,
+.cab-invite-fields select {
+  flex: 1 1 180px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  font: inherit;
+}
+
+.cab-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cab-btn:disabled { opacity: .6; cursor: default; }
+.cab-btn--primary { background: #f5c518; color: #1a1300; }
+.cab-btn--ghost { background: transparent; color: #aab8cc; border: 1px solid rgba(255, 255, 255, 0.14); }
+
+.cab-members__msg { margin-top: 14px; font-size: 13px; }
+.cab-members__msg--ok { color: #3fbf6b; }
+.cab-members__msg--err { color: #e2574c; }

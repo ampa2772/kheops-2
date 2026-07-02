@@ -45,15 +45,15 @@ describe('SideBar', () => {
     expect(screen.getByRole('navigation')).toBeInTheDocument();
   });
 
-  it('rend les 8 liens de navigation', () => {
+  it('rend les 12 liens de navigation', () => {
     renderSidebar();
     const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(8);
+    expect(links).toHaveLength(12);
   });
 
   it('chaque lien a un aria-label correspondant', () => {
     renderSidebar();
-    const labels = ['Bureau', 'Dossiers', 'Agenda', 'Taches', 'Facturation', 'Graphiques', 'Mails', 'Parametres'];
+    const labels = ['Bureau', 'Dossiers', 'Contacts', 'Agenda', 'Taches', 'Facturation', 'CARPA', 'Bilan', 'Graphiques', 'Mails', 'Notices', 'Parametres'];
     labels.forEach(label => {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     });

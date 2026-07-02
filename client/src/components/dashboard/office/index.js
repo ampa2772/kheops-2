@@ -8,6 +8,7 @@ import './_office-small.css';
 // Voir buildInfo.js — ameliorations bundle B-7.
 const CreateDossier     = lazy(() => import('./createDossier'));
 const CreateContact     = lazy(() => import('./createContact'));
+const ContactsList      = lazy(() => import('./contactsList'));
 const MailsComponent    = lazy(() => import('./mails'));
 const AgendaDossier     = lazy(() => import('./agenda'));
 const Parametres        = lazy(() => import('./parametres'));
@@ -40,6 +41,7 @@ const Office = () => {
           <Route path="createDossier/*" element={<CreateDossier />} />
           <Route path="createDivorceCM" element={<DivorceCMWizard />} />
           <Route path="createContact" element={<CreateContact />} />
+          <Route path="contacts" element={<ContactsList />} />
           <Route path="dossier" element={<Dossier />} />
           <Route path="mails" element={<MailsComponent />} />
           <Route path="agenda" element={<AgendaDossier />} />

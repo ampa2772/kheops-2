@@ -29,7 +29,7 @@ afterEach(() => {
 // --- Reducer Tests ---
 
 describe('dataSlice reducer', () => {
-  const initialState = { matchingPaysNaissance: [], matchingProfessions: [], matchingNationalities: [] };
+  const initialState = { matchingPaysNaissance: [], matchingProfessions: [], matchingNationalities: [], allProfessions: [] };
 
   test('retourne l état initial par défaut', () => {
     expect(reducer(undefined, { type: '@@INIT' })).toEqual(initialState);

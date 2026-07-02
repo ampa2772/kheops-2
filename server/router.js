@@ -26,11 +26,23 @@ const documentRoutes = require('./routes/documents');
 // --- Verrouillage collaboratif de documents ---
 const documentLocksRouter = require('./routes/documentLocks');
 
+// --- Flux "Ouvrir dans Word" via le compagnon mince (download/sync/jeton) ---
+const wordRouter = require('./routes/word');
+
+// --- R5b : membres du cabinet (partage multi-identifiants) ---
+const cabinetMembersRouter = require('./routes/cabinetMembers');
+
+// --- Stockage documentaire multi-provider (managed_gcs / Drive / OneDrive) ---
+const storageRouter = require('./routes/storage');
+
 // --- Chat collaboratif (texte + vocaux + fichiers) ---
 const chatRouter = require('./routes/chat');
 
 // --- NOUVELLE IMPORTATION pour les routes Gmail ---
 const { mailRouter } = require('./routes/mails'); // Importer le routeur depuis mails.js
+
+// --- IMAP/SMTP generique pour boites mail non Google/Microsoft ---
+const mailAccountsRouter = require('./routes/mailAccounts');
 
 // --- NOUVELLE IMPORTATION pour les routes Agenda ---
 const agendaRoutes = require('./routes/agendaRoutes');
@@ -71,11 +83,23 @@ router.use('/documents', documentRoutes); // Préfixe /api/documents/...
 // Verrouillage collaboratif (acquire/heartbeat/release/list)
 router.use('/document-locks', documentLocksRouter); // Préfixe /api/document-locks/...
 
+// Flux Word via le compagnon mince (jeton compagnon, download, sync)
+router.use('/word', wordRouter); // Préfixe /api/word/...
+
+// Membres du cabinet (R5b)
+router.use('/cabinet-members', cabinetMembersRouter); // Préfixe /api/cabinet-members/...
+
+// Stockage documentaire multi-provider
+router.use('/storage', storageRouter); // Préfixe /api/storage/...
+
 // Chat collaboratif
 router.use('/chat', chatRouter); // Préfixe /api/chat/...
 
 // --- NOUVELLE UTILISATION pour les routes Gmail ---
 router.use('/mails', mailRouter); // Préfixe /api/mails/...
+
+// IMAP/SMTP generique
+router.use('/mail', mailAccountsRouter); // Préfixe /api/mail/...
 
 // --- NOUVELLE UTILISATION pour les routes Agenda ---
 router.use('/agenda', agendaRoutes); // Préfixe /api/agenda/...

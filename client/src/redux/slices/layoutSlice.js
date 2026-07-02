@@ -4,6 +4,60 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import apiClient from '../../services/apiClient';
+import { mailAccountService } from '../../services/mailAccountService';
+
+// ========================================================================
+// Source des notifications mail :
+//  - Compte connecté via Google/Microsoft  → API OAuth  (/api/mails/*).
+//  - Compte GÉNÉRIQUE (e-mail/mot de passe, sans OAuth) → boîte IMAP configurée
+//    (/api/mail/* via mailAccountService). Évite l'erreur « Authentification
+//    Google ou Microsoft requise » pour les comptes Yahoo/Orange/OVH/etc.
+// ========================================================================
+const userHasOAuthMail = (user) => !!(user?.googleRefreshToken || user?.microsoftRefreshToken);
+
+const formatImapFrom = (from) => {
+  if (!from) return 'N/A';
+  if (typeof from === 'string') return from;
+  if (Array.isArray(from)) {
+    return from.map((a) => (a && (a.name || a.address)) || a).filter(Boolean).join(', ') || 'N/A';
+  }
+  if (typeof from === 'object') return from.name || from.address || 'N/A';
+  return 'N/A';
+};
+
+const mapImapNotification = (email) => ({
+  id: email.id,
+  from: formatImapFrom(email.from),
+  subject: email.subject || '(Sans objet)',
+  snippet: email.text || '',
+  unread: Array.isArray(email.flags) ? !email.flags.includes('\\Seen') : false,
+  date: email.date || email.internalDate || null,
+  attachments: email.attachments || [],
+  source: 'imap',
+});
+
+const mapImapDetail = (message) => ({
+  id: message.id,
+  from: formatImapFrom(message.from),
+  to: formatImapFrom(message.to),
+  subject: message.subject || '(Sans objet)',
+  body: message.html || (message.text ? `<pre>${message.text}</pre>` : ''),
+  attachments: (message.attachments || []).map((att, index) => ({
+    attachmentId: String(index),
+    filename: att.filename,
+    mimeType: att.mime,
+    size: att.size,
+    source: 'imap',
+  })),
+  source: 'imap',
+});
+
+// Boîte IMAP active (première active, sinon première) pour l'aperçu de l'en-tête.
+const getActiveImapAccountId = async () => {
+  const accounts = await mailAccountService.listAccounts();
+  const acc = accounts.find((a) => a.status === 'active') || accounts[0] || null;
+  return acc ? acc.id : null;
+};
 
 // ========================================================================
 // Helpers localStorage — gestion des notifications lues
@@ -37,10 +91,17 @@ export const fetchNotificationCount = createAsyncThunk(
   'layout/fetchNotificationCount',
   async (_, { getState, rejectWithValue }) => {
     try {
-      const { token } = getState().login;
+      const { token, user } = getState().login;
       if (!token) return rejectWithValue("Utilisateur non authentifié");
-      const res = await apiClient.get('/api/mails/notifications/count');
-      return res.data.notificationCount;
+      if (userHasOAuthMail(user)) {
+        const res = await apiClient.get('/api/mails/notifications/count');
+        return res.data.notificationCount;
+      }
+      // Compte générique (IMAP) : nombre de messages non lus sur la 1re page de la boîte active.
+      const accountId = await getActiveImapAccountId();
+      if (!accountId) return 0;
+      const result = await mailAccountService.listMessages(accountId, { folder: 'INBOX', page: 1, pageSize: 20 });
+      return (result.messages || []).filter((m) => (Array.isArray(m.flags) ? !m.flags.includes('\\Seen') : false)).length;
     } catch (error) {
       console.error("Erreur lors de la récupération du nombre de notifications:", error);
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -56,18 +117,32 @@ export const fetchNotifications = createAsyncThunk(
   'layout/fetchNotifications',
   async (pageToken = null, { getState, rejectWithValue }) => {
     try {
-      const { token } = getState().login;
+      const { token, user } = getState().login;
       if (!token) return rejectWithValue("Utilisateur non authentifié");
 
-      const cacheBuster = `_=${new Date().getTime()}`;
-      const url = pageToken
-        ? `/api/mails/notifications/list?pageToken=${pageToken}&${cacheBuster}`
-        : `/api/mails/notifications/list?${cacheBuster}`;
+      if (userHasOAuthMail(user)) {
+        const cacheBuster = `_=${new Date().getTime()}`;
+        const url = pageToken
+          ? `/api/mails/notifications/list?pageToken=${pageToken}&${cacheBuster}`
+          : `/api/mails/notifications/list?${cacheBuster}`;
+        const res = await apiClient.get(url);
+        return {
+          ...res.data,
+          fetchedAt: new Date().toISOString(),
+          isInitialLoad: !pageToken,
+        };
+      }
 
-      const res = await apiClient.get(url);
-
+      // Compte générique (IMAP) : aperçu de la boîte active.
+      const accountId = await getActiveImapAccountId();
+      if (!accountId) {
+        return { notifications: [], nextPageToken: null, fetchedAt: new Date().toISOString(), isInitialLoad: !pageToken };
+      }
+      const page = pageToken ? Number(pageToken) : 1;
+      const result = await mailAccountService.listMessages(accountId, { folder: 'INBOX', page, pageSize: 20 });
       return {
-        ...res.data,
+        notifications: (result.messages || []).map(mapImapNotification),
+        nextPageToken: result.hasMore ? String(page + 1) : null,
         fetchedAt: new Date().toISOString(),
         isInitialLoad: !pageToken,
       };
@@ -86,10 +161,15 @@ export const fetchNotificationDetail = createAsyncThunk(
   'layout/fetchNotificationDetail',
   async (emailId, { getState, rejectWithValue }) => {
     try {
-      const { token } = getState().login;
+      const { token, user } = getState().login;
       if (!token) return rejectWithValue("Utilisateur non authentifié");
-      const res = await apiClient.get(`/api/mails/email/${emailId}`);
-      return res.data;
+      if (userHasOAuthMail(user)) {
+        const res = await apiClient.get(`/api/mails/email/${emailId}`);
+        return res.data;
+      }
+      // Compte générique (IMAP)
+      const message = await mailAccountService.getMessage(emailId);
+      return mapImapDetail(message);
     } catch (error) {
       console.error(`Erreur lors de la récupération des détails de l'email ${emailId}:`, error);
       return rejectWithValue(error.response?.data?.message || error.message);

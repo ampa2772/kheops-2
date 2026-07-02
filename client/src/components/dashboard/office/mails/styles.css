@@ -84,6 +84,15 @@
   flex-shrink: 0;
 }
 
+.mail-account-current {
+  color: var(--k2-accent-spring, #00dc82);
+  font-weight: var(--k2-font-weight-semibold, 600);
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .status-sending { color: var(--k2-warning-500, #f79009); }
 .status-loading-more { color: rgba(255, 255, 255, 0.4); }
 .status-loading { color: var(--k2-text-on-gradient-muted, rgba(255, 255, 255, 0.55)); }
@@ -110,6 +119,28 @@
   border-radius: var(--k2-radius-sm, 6px);
   margin: 15px 0;
   flex-shrink: 0;
+}
+
+.mail-account-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px 0;
+  color: var(--k2-text-on-gradient, rgba(255, 255, 255, 0.92));
+}
+
+.mail-account-selector label {
+  font-size: var(--k2-font-size-sm, 13px);
+  color: var(--k2-text-on-gradient-muted, rgba(255, 255, 255, 0.55));
+}
+
+.mail-account-selector select {
+  max-width: min(360px, 100%);
+  padding: 7px 10px;
+  border: 1px solid var(--k2-bg-input-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--k2-radius-sm, 6px);
+  background: var(--k2-bg-input, rgba(255, 255, 255, 0.07));
+  color: var(--k2-text-on-gradient, rgba(255, 255, 255, 0.92));
 }
 
 .mail-content {
@@ -247,6 +278,25 @@
   /* Contraste WCAG AA : 0.75 ~ 6:1 sur fond sombre */
   color: rgba(255, 255, 255, 0.75);
   font-style: italic;
+}
+
+.mail-empty-setup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 16px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.mail-empty-setup button {
+  width: auto;
+  padding: 8px 14px;
+  border: 1px solid rgba(0, 220, 130, 0.4);
+  border-radius: var(--k2-radius-sm, 6px);
+  background: rgba(0, 220, 130, 0.12);
+  color: var(--k2-accent-spring, #00dc82);
+  cursor: pointer;
 }
 
 /* ---------- VUE DÉTAIL ---------- */
@@ -515,4 +565,146 @@ body.high-contrast-mode .mail-attachment-item {
 body.high-contrast-mode .mail-attachment-download {
   color: yellow;
   border-color: yellow;
+}
+
+/* ---------- MODALE CONFIGURATION IMAP/SMTP ---------- */
+.mail-account-setup-overlay {
+  z-index: 4500;
+}
+
+.mail-account-setup {
+  width: min(780px, 94vw);
+  max-height: min(92vh, 920px);
+  background: #102033;
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--k2-radius-md, 8px);
+}
+
+.mail-account-setup .k-modal-header,
+.mail-account-setup .k-modal-footer {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.mail-account-setup .k-modal-close {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.mail-account-setup__body {
+  padding: 18px 20px 0;
+  overflow-y: auto;
+}
+
+.mail-account-setup__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mail-account-setup__full {
+  grid-column: 1 / -1;
+}
+
+.mail-account-setup label,
+.mail-account-setup fieldset {
+  min-width: 0;
+}
+
+.mail-account-setup label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mail-account-setup label span,
+.mail-account-setup legend {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mail-account-setup input,
+.mail-account-setup select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--k2-radius-sm, 6px);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.mail-account-setup input:focus,
+.mail-account-setup select:focus {
+  outline: none;
+  border-color: var(--k2-accent-spring, #00dc82);
+  box-shadow: 0 0 0 3px rgba(0, 220, 130, 0.12);
+}
+
+.mail-account-setup__sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.mail-account-setup fieldset {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--k2-radius-md, 8px);
+}
+
+.mail-account-setup__note {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+}
+
+.mail-account-setup__check {
+  flex-direction: row !important;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.mail-account-setup__check input {
+  width: auto;
+}
+
+.mail-account-setup__status {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--k2-radius-sm, 6px);
+}
+
+.mail-account-setup__status--success {
+  color: var(--k2-accent-spring, #00dc82);
+  background: rgba(0, 220, 130, 0.08);
+  border: 1px solid rgba(0, 220, 130, 0.25);
+}
+
+.mail-account-setup__status--error {
+  color: #ffb3ad;
+  background: rgba(240, 68, 56, 0.1);
+  border: 1px solid rgba(240, 68, 56, 0.28);
+}
+
+@media (max-width: 720px) {
+  .mail-content.mail-content--split,
+  .mail-account-setup__grid,
+  .mail-account-setup__sections {
+    grid-template-columns: 1fr;
+  }
+
+  .mail-nav-buttons {
+    width: 100%;
+  }
+
+  .mail-status-indicators {
+    width: 100%;
+    margin-left: 0;
+  }
 }

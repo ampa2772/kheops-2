@@ -6,13 +6,18 @@
 // Responsabilites :
 //   1. Declencher la recuperation de l'etat de chiffrement au mount
 //      (via le hook useCabinetCrypto, qui le fait deja automatiquement).
-//   2. Afficher la bonne modale selon le statut :
-//      - 'not_configured' (et pas encore reporte) : modale d'enrolement
-//        (situation A, reportable avec bouton "Plus tard")
-//      - 'reminded_later' : aucune modale, mais affichage de la banniere
-//        de rappel + un bouton "Configurer" qui la relance
-//      - 'configured_locked' : modale BLOQUANTE de saisie de phrase
-//        (situation B)
+//   2. Afficher la bonne UI selon le statut :
+//      - 'not_configured' / 'reminded_later' : protection OPTIONNELLE — AUCUNE
+//        modale automatique. On affiche seulement un bandeau non-bloquant
+//        (EncryptionReminderBanner) invitant a proteger ses donnees ; la modale
+//        d'enrolement ne s'ouvre que si l'utilisateur clique « Proteger ».
+//        L'utilisateur peut fermer le bandeau (croix) et travailler
+//        normalement. Le bandeau reapparait a la prochaine connexion tant que
+//        la protection n'est pas activee (pas de "ne plus afficher" persistant).
+//      - 'configured_locked' : modale de saisie de phrase (situation B). Elle
+//        garde l'acces aux DONNEES protegees, mais reste NON-BLOQUANTE pour la
+//        SESSION (bouton « Se deconnecter / changer de compte » toujours
+//        accessible — cf. EncryptionUnlockModal).
 //      - 'unlocked' : rien, l'app fonctionne normalement
 //
 // Le composant ne rend AUCUN contenu propre quand tout est verrouille
@@ -26,6 +31,7 @@ import EncryptionSetupModal from './EncryptionSetupModal';
 import EncryptionUnlockModal from './EncryptionUnlockModal';
 import EncryptionRecoveryModal from './EncryptionRecoveryModal';
 import EncryptionReminderBanner from './EncryptionReminderBanner';
+import { ENCRYPTION_DISABLED } from '../../redux/slices/encryptionSlice';
 
 const EncryptionGate = ({ showBanner = true }) => {
   const crypto = useCabinetCrypto({ autoFetch: true });
@@ -58,18 +64,23 @@ const EncryptionGate = ({ showBanner = true }) => {
     }
   }, [crypto.isUnlocked]);
 
-  // Si statut "not_configured" et pas encore reporte : ouvrir la modale
-  // d'enrolement automatiquement au premier rendu apres recuperation du
-  // statut. On verifie que l'ownerUserId est disponible (sinon on attend).
-  useEffect(() => {
-    if (!crypto.ownerUserId) return;
-    if (crypto.loading) return;
-    if (crypto.status === 'not_configured' && !setupOpen) {
-      setSetupOpen(true);
-    }
-  }, [crypto.ownerUserId, crypto.loading, crypto.status, setupOpen]);
+  // NON-BLOQUANT (regle UX, cf. consigne §11-12) : on n'ouvre PLUS
+  // automatiquement la modale d'enrolement au statut 'not_configured'. La
+  // protection par phrase secrete est OPTIONNELLE : on se contente d'afficher
+  // un bandeau non-bloquant (plus bas) invitant a proteger ses donnees. La
+  // modale ne s'ouvre que si l'utilisateur clique explicitement sur le bouton
+  // « Proteger mes donnees » du bandeau (handleStartConfigure). L'utilisateur
+  // peut travailler normalement sans jamais activer la protection.
 
   // ----- Rendu selon le statut -----
+
+  // KILL SWITCH : système de chiffrement désactivé → aucune modale (ni
+  // déverrouillage par phrase secrète, ni configuration, ni bannière). Le
+  // hook useCabinetCrypto ci-dessus continue de tourner et force le main
+  // process en "non protégé" (cf. ENCRYPTION_DISABLED dans encryptionSlice).
+  if (ENCRYPTION_DISABLED) {
+    return null;
+  }
 
   const status = crypto.status;
 
@@ -121,7 +132,7 @@ const EncryptionGate = ({ showBanner = true }) => {
         />
       )}
       {showBanner &&
-        status === 'reminded_later' &&
+        (status === 'not_configured' || status === 'reminded_later') &&
         !sessionDismissed && (
           <EncryptionReminderBanner
             onConfigure={handleStartConfigure}

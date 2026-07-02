@@ -1,9 +1,12 @@
 // Kheops_2/client/src/components/dashboard/office/mails/index.js
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import DOMPurify from 'dompurify';
+import { sanitizeEmailHtml } from '../../../../utils/sanitizeEmailHtml';
+import { classifyMailError } from '../../../../utils/mailErrorMessage';
 import apiClient from '../../../../services/apiClient';
+import mailAccountService from '../../../../services/mailAccountService';
 import { useSelector } from 'react-redux'; // Utiliser Redux pour l'état d'authentification Kheops
 import { useToast } from '../../../common/notifications/useToast';
+import MailAccountSetupModal from './MailAccountSetupModal';
 import './styles.css'; // Importer les styles
 
 
@@ -74,6 +77,64 @@ function formatBytes(bytes, decimals = 2) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
+
+function formatAddressList(value) {
+    if (!value) return 'N/A';
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) {
+        return value
+            .map((entry) => {
+                if (typeof entry === 'string') return entry;
+                const label = entry.name ? `${entry.name} <${entry.address || ''}>` : entry.address;
+                return label || '';
+            })
+            .filter(Boolean)
+            .join(', ') || 'N/A';
+    }
+    return 'N/A';
+}
+
+function mapGenericEmailListItem(email) {
+    return {
+        id: email.id,
+        from: formatAddressList(email.from),
+        subject: email.subject || '(Sans objet)',
+        snippet: email.text || '',
+        unread: Array.isArray(email.flags) ? !email.flags.includes('\\Seen') : false,
+        date: email.date || email.internalDate || null,
+        attachments: email.attachments || [],
+        source: 'imap',
+    };
+}
+
+function mapGenericEmailDetail(message) {
+    return {
+        id: message.id,
+        from: formatAddressList(message.from),
+        to: formatAddressList(message.to),
+        subject: message.subject || '(Sans objet)',
+        body: message.html || (message.text ? `<pre>${message.text}</pre>` : ''),
+        attachments: (message.attachments || []).map((att, index) => ({
+            attachmentId: String(index),
+            filename: att.filename,
+            mimeType: att.mime,
+            size: att.size,
+            source: 'imap',
+        })),
+    };
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = String(reader.result || '');
+            resolve(result.includes(',') ? result.split(',')[1] : result);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
 // --- Fin Helpers UI ---
 
 // --- Composant Principal Mails ---
@@ -97,32 +158,83 @@ const MailsComponent = () => {
     const [attachment, setAttachment] = useState(null);
     const fileInputRef = useRef(null);
     const listContainerRef = useRef(null);        // conteneur à surveiller pour l’infinite‑scroll
+    const initialLoadStartedRef = useRef(false);
 
     const [sendError, setSendError] = useState(null);
     const [sendSuccess, setSendSuccess] = useState(null);
     const [isSending, setIsSending] = useState(false);
+    const [mailAccounts, setMailAccounts] = useState([]);
+    const [selectedMailAccountId, setSelectedMailAccountId] = useState(null);
+    const [isAccountsLoading, setIsAccountsLoading] = useState(false);
+    const [showSetupModal, setShowSetupModal] = useState(false);
 
     // --- Sélecteur Redux ---
     const isAuthenticated = useSelector((state) => state.login.isAuthenticated);
-    const kheopsToken = useSelector((state) => state.login.token);
+    const user = useSelector((state) => state.login.user);
+    const hasOAuthMail = !!(user?.googleRefreshToken || user?.microsoftRefreshToken);
+    // Boîte IMAP sélectionnée = SOURCE ACTIVE. Une boîte IMAP peut désormais être
+    // ajoutée ET lue même par un compte connecté via Google/Microsoft (sélecteur unifié).
+    const selectedMailAccount = mailAccounts.find((account) => account.id === selectedMailAccountId) || null;
+    // Source de lecture/envoi : IMAP si une boîte IMAP est sélectionnée ; sinon la
+    // messagerie OAuth (Gmail/Outlook) du compte si disponible ; sinon rien (→ config).
+    const readFromImap = !!selectedMailAccount;
 
     // --- Configuration API (apiClient gère auth automatiquement) ---
 
     // --- Fonctions API ---
     const handleApiError = (error, context) => {
         console.error(`Erreur API (${context}):`, error.response?.data || error.message);
-        const errorMessage = error.response?.data?.message || `Erreur lors de ${context}.`;
-        if (error.response?.status === 401 || error.response?.status === 403) {
-            console.warn(`Erreur ${error.response.status} détectée. Session Kheops potentiellement invalide.`);
+        // A18 : classer l'erreur (réseau/IMAP/session) pour un message clair.
+        const info = classifyMailError(error);
+        // Seule une VRAIE expiration de session Kheops vide la boîte affichée.
+        // Une panne réseau/IMAP passagère (transient) ou un souci d'identifiants
+        // mail conserve la liste : on n'efface pas le travail de l'utilisateur.
+        if (info.category === 'session') {
+            console.warn('Session Kheops invalide : nettoyage de la vue mail.');
             clearPersistedEmailData();
             setEmails([]);
             setNextPageToken(null);
             setHasMoreEmails(true);
             setView('list');
-            return `Session expirée ou invalide (${error.response.status}). Veuillez vous reconnecter.`;
         }
-        return errorMessage;
+        return info.message;
     };
+
+    const resetMailboxState = useCallback(() => {
+        initialLoadStartedRef.current = false;
+        setEmails([]);
+        setNextPageToken(null);
+        setHasMoreEmails(true);
+        setSelectedEmailId(null);
+        setSelectedEmailDetail(null);
+        setDetailError(null);
+        setView('list');
+        clearPersistedEmailData();
+    }, []);
+
+    const refreshGenericAccounts = useCallback(async ({ openSetupIfEmpty = true } = {}) => {
+        if (!isAuthenticated) return [];
+        setIsAccountsLoading(true);
+        try {
+            const accounts = await mailAccountService.listAccounts();
+            setMailAccounts(accounts);
+            if (!hasOAuthMail) {
+                // Compte sans OAuth : la boîte IMAP est la source principale → auto-sélection
+                // + proposition de configuration si aucune boîte n'existe encore.
+                const nextAccount = accounts.find((account) => account.status === 'active') || accounts[0] || null;
+                setSelectedMailAccountId(nextAccount?.id || null);
+                setShowSetupModal(openSetupIfEmpty && accounts.length === 0);
+            }
+            // Compte OAuth : on NE sélectionne PAS de boîte IMAP par défaut (Gmail/Outlook
+            // reste la vue par défaut) ; l'utilisateur peut en ajouter/choisir une via le sélecteur.
+            return accounts;
+        } catch (err) {
+            setError(handleApiError(err, 'chargement comptes mail'));
+            return [];
+        } finally {
+            setIsAccountsLoading(false);
+        }
+    }, [isAuthenticated, hasOAuthMail]);
 
     // Récupérer les emails (liste initiale ou page suivante)
     const fetchEmails = useCallback(async (token = null, isInitialLoad = false) => {
@@ -139,21 +251,44 @@ const MailsComponent = () => {
         setError(null);
 
         try {
-            const url = token ? `/api/mails/emails?pageToken=${token}` : '/api/mails/emails';
-            const response = await apiClient.get(url);
+            let newEmails = [];
+            let newToken = null;
+            let newHasMore = false;
 
-            const { emails: newEmails = [], nextPageToken: newToken } = response.data;
-            const newHasMore = !!newToken;
+            if (readFromImap) {
+                const accountId = selectedMailAccount.id;
+                const page = token ? Number(token) : 1;
+                const result = await mailAccountService.listMessages(accountId, {
+                    folder: 'INBOX',
+                    page,
+                    pageSize: 20,
+                });
+                newEmails = (result.messages || []).map(mapGenericEmailListItem);
+                newHasMore = !!result.hasMore;
+                newToken = newHasMore ? String(page + 1) : null;
+            } else if (hasOAuthMail) {
+                const url = token ? `/api/mails/emails?pageToken=${token}` : '/api/mails/emails';
+                const response = await apiClient.get(url);
+                newEmails = response.data.emails || [];
+                newToken = response.data.nextPageToken || null;
+                newHasMore = !!newToken;
+            } else {
+                // Ni boîte IMAP sélectionnée, ni messagerie OAuth → proposer la configuration.
+                setShowSetupModal(true);
+                return;
+            }
 
             setEmails(currentEmails => {
                 const updated = isLoadingFirstPage ? newEmails : [...currentEmails, ...newEmails];
-                saveToLocalStorage(LOCAL_STORAGE_KEYS.EMAILS, updated);
+                if (!readFromImap) saveToLocalStorage(LOCAL_STORAGE_KEYS.EMAILS, updated);
                 return updated;
             });
             setNextPageToken(newToken || null);
             setHasMoreEmails(newHasMore);
-            saveToLocalStorage(LOCAL_STORAGE_KEYS.NEXT_PAGE_TOKEN, newToken || null);
-            saveToLocalStorage(LOCAL_STORAGE_KEYS.HAS_MORE_EMAILS, newHasMore);
+            if (!readFromImap) {
+                saveToLocalStorage(LOCAL_STORAGE_KEYS.NEXT_PAGE_TOKEN, newToken || null);
+                saveToLocalStorage(LOCAL_STORAGE_KEYS.HAS_MORE_EMAILS, newHasMore);
+            }
 
         } catch (error) {
             const errorMessage = handleApiError(error, context);
@@ -172,7 +307,7 @@ const MailsComponent = () => {
             if (isLoadingFirstPage) setIsLoading(false);
             else setIsLoadingMore(false);
         }
-    }, [isLoading, isDetailLoading, isSending, isLoadingMore, kheopsToken]);
+    }, [isLoading, isDetailLoading, isSending, isLoadingMore, readFromImap, hasOAuthMail, selectedMailAccount, selectedMailAccountId]);
 
     // Charger les détails d'un email
     const fetchEmailDetail = useCallback(async (id) => {
@@ -182,8 +317,13 @@ const MailsComponent = () => {
         setDetailError(null);
         setSelectedEmailDetail(null);
         try {
-            const response = await apiClient.get(`/api/mails/email/${id}`);
-            setSelectedEmailDetail(response.data);
+            if (readFromImap) {
+                const message = await mailAccountService.getMessage(id);
+                setSelectedEmailDetail(mapGenericEmailDetail(message));
+            } else {
+                const response = await apiClient.get(`/api/mails/email/${id}`);
+                setSelectedEmailDetail(response.data);
+            }
             
         } catch (error) {
             const errorMessage = handleApiError(error, `chargement détail email ${id}`);
@@ -197,7 +337,7 @@ const MailsComponent = () => {
         } finally {
             setIsDetailLoading(false);
         }
-    }, [isDetailLoading, isLoading, isSending, kheopsToken]);
+    }, [isDetailLoading, isLoading, isSending, readFromImap]);
 
     // Envoyer un email
     const handleSendEmail = async (e) => {
@@ -207,16 +347,35 @@ const MailsComponent = () => {
         setSendError(null);
         setSendSuccess(null);
 
-        const formData = new FormData();
-        formData.append('to', to);
-        formData.append('subject', subject);
-        formData.append('body', body);
-        if (attachment) {
-            formData.append('attachment', attachment);
-        }
-
         try {
-            await apiClient.post('/api/mails/send-email', formData);
+            if (readFromImap) {
+                const attachments = attachment
+                    ? [{
+                        filename: attachment.name,
+                        contentBase64: await fileToBase64(attachment),
+                        contentType: attachment.type || 'application/octet-stream',
+                    }]
+                    : [];
+                await mailAccountService.sendMail({
+                    accountId: selectedMailAccount.id,
+                    to,
+                    subject,
+                    text: body,
+                    attachments,
+                });
+            } else if (hasOAuthMail) {
+                const formData = new FormData();
+                formData.append('to', to);
+                formData.append('subject', subject);
+                formData.append('body', body);
+                if (attachment) {
+                    formData.append('attachment', attachment);
+                }
+                await apiClient.post('/api/mails/send-email', formData);
+            } else {
+                setShowSetupModal(true);
+                throw new Error('Aucun compte mail connecté.');
+            }
             setSendSuccess('Email envoyé avec succès !');
             setTo('');
             setSubject('');
@@ -225,7 +384,9 @@ const MailsComponent = () => {
             if (fileInputRef.current) fileInputRef.current.value = "";
             setTimeout(() => { setSendSuccess(null); }, 5000);
         } catch (error) {
-            const errorMessage = handleApiError(error, 'envoi email');
+            const errorMessage = error.message === 'Aucun compte mail connecté.'
+                ? error.message
+                : handleApiError(error, 'envoi email');
             setSendError(errorMessage);
             setTimeout(() => { setSendError(null); }, 7000);
         } finally {
@@ -245,10 +406,12 @@ const MailsComponent = () => {
     const handleDownloadAttachment = async (messageId, attachmentId, filename, mimeType) => {
         if (isAnyOperationInProgress) return;
         try {
-            const response = await apiClient.get(
-                `/api/mails/email/${messageId}/attachment/${attachmentId}?filename=${encodeURIComponent(filename)}&mimeType=${encodeURIComponent(mimeType)}`,
-                { responseType: 'blob' } // Important: on attend des données binaires
-            );
+            const response = readFromImap
+                ? await mailAccountService.downloadAttachment(messageId, attachmentId)
+                : await apiClient.get(
+                    `/api/mails/email/${messageId}/attachment/${attachmentId}?filename=${encodeURIComponent(filename)}&mimeType=${encodeURIComponent(mimeType)}`,
+                    { responseType: 'blob' } // Important: on attend des données binaires
+                );
 
             // Créer un lien temporaire pour le téléchargement
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -279,9 +442,11 @@ const MailsComponent = () => {
     fetchEmailsRef.current = fetchEmails;
 
     useEffect(() => {
-        if (isAuthenticated && emails.length === 0 && !isLoading && !isDetailLoading && !isSending) {
+        if (isAuthenticated && !initialLoadStartedRef.current && emails.length === 0 && !isLoading && !isDetailLoading && !isSending) {
+            initialLoadStartedRef.current = true;
             fetchEmailsRef.current(null, true);
         } else if (!isAuthenticated) {
+            initialLoadStartedRef.current = false;
             clearPersistedEmailData();
             setEmails([]);
             setNextPageToken(null);
@@ -292,7 +457,24 @@ const MailsComponent = () => {
             setSelectedEmailId(null);
             setView('list');
         }
-    }, [isAuthenticated]); // stable ref pattern — pas de eslint-disable nécessaire
+    }, [isAuthenticated, emails.length, isLoading, isDetailLoading, isSending]);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        // Charger les comptes IMAP pour TOUS (OAuth ou non) → permet d'ajouter/choisir
+        // une boîte IMAP même connecté via Google/Microsoft. Configuration auto-proposée
+        // uniquement pour les comptes sans OAuth (les comptes OAuth ont Gmail/Outlook par défaut).
+        refreshGenericAccounts({ openSetupIfEmpty: !hasOAuthMail });
+    }, [isAuthenticated, hasOAuthMail, refreshGenericAccounts]);
+
+    useEffect(() => {
+        // Une boîte IMAP vient d'être sélectionnée (par n'importe quel compte) →
+        // recharger la liste depuis cette boîte IMAP.
+        if (!isAuthenticated || !selectedMailAccountId) return;
+        resetMailboxState();
+        initialLoadStartedRef.current = true;
+        fetchEmailsRef.current(null, true);
+    }, [isAuthenticated, selectedMailAccountId, resetMailboxState]);
 
     useEffect(() => {
         const container = listContainerRef.current || window;
@@ -376,6 +558,10 @@ const MailsComponent = () => {
     };
 
     const handleComposeClick = () => {
+        if (!readFromImap && !hasOAuthMail) {
+            setShowSetupModal(true);
+            return;
+        }
         if (isLoading || isSending || isDetailLoading) return;
         setView('compose');
         setSendError(null);
@@ -398,6 +584,18 @@ const MailsComponent = () => {
 
     return (
         <div className="mail-container" style={{ opacity: isAnyOperationInProgress ? 0.7 : 1 }}>
+            <MailAccountSetupModal
+                isOpen={showSetupModal}
+                userEmail={user?.email}
+                onClose={() => setShowSetupModal(false)}
+                onAccountCreated={(account) => {
+                    setShowSetupModal(false);
+                    setMailAccounts((current) => [account, ...current.filter((item) => item.id !== account.id)]);
+                    setSelectedMailAccountId(account.id);
+                    resetMailboxState();
+                }}
+            />
+
             {/* Barre de navigation interne aux mails */}
             <nav className="mail-nav">
                 {/* ---- CONTENEUR FLEX POUR LES DEUX BOUTONS ---- */}
@@ -408,9 +606,19 @@ const MailsComponent = () => {
                     <button onClick={handleComposeClick} disabled={view === 'compose' || isAnyOperationInProgress}>
                         Nouveau message
                     </button>
+                    <button onClick={() => setShowSetupModal(true)} disabled={isAnyOperationInProgress || isAccountsLoading}>
+                        Ajouter une boîte mail
+                    </button>
                 </div>
 
                 <div className="mail-status-indicators">
+                    {readFromImap && selectedMailAccount && (
+                        <span className="mail-account-current">{selectedMailAccount.email}</span>
+                    )}
+                    {!readFromImap && hasOAuthMail && (
+                        <span className="mail-account-current">Messagerie principale (Gmail/Outlook)</span>
+                    )}
+                    {isAccountsLoading && <span className="status-loading">Comptes...</span>}
                     {isLoading && <span className="status-loading">Chargement liste...</span>}
                     {isDetailLoading && <span className="status-loading">Chargement détail...</span>}
                     {isSending && <span className="status-sending">Envoi...</span>}
@@ -422,6 +630,22 @@ const MailsComponent = () => {
 
             {error && <p className="mail-error-global">Erreur : {error}</p>}
             {sendSuccess && view !== 'compose' && <p className="mail-success-global">{sendSuccess}</p>}
+            {((hasOAuthMail && mailAccounts.length >= 1) || mailAccounts.length > 1) && (
+                <div className="mail-account-selector">
+                    <label htmlFor="mail-account-select">Compte</label>
+                    <select
+                        id="mail-account-select"
+                        value={selectedMailAccountId || ''}
+                        onChange={(e) => setSelectedMailAccountId(e.target.value || null)}
+                        disabled={isAnyOperationInProgress}
+                    >
+                        {hasOAuthMail && <option value="">Messagerie principale (Gmail/Outlook)</option>}
+                        {mailAccounts.map((account) => (
+                            <option key={account.id} value={account.id}>{account.email}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
 
             <div
                 className={`mail-content ${view === 'detail' ? 'mail-content--split' : ''}`}
@@ -435,10 +659,19 @@ const MailsComponent = () => {
                 {(view === 'list' || view === 'detail') && (
                     <div className="mail-list-panel">
                         {isLoading && emails.length === 0 && !error && <p className="mail-loading-message">Chargement des emails...</p>}
-                        {!isLoading && emails.length === 0 && !error && <p className="mail-empty-message">Votre boîte de réception principale est vide.</p>}
+                        {!isLoading && emails.length === 0 && !error && !readFromImap && hasOAuthMail && <p className="mail-empty-message">Votre boîte de réception principale est vide.</p>}
+                        {!isLoading && emails.length === 0 && !error && readFromImap && selectedMailAccount && <p className="mail-empty-message">Votre boîte de réception principale est vide.</p>}
+                        {!isLoading && emails.length === 0 && !error && !readFromImap && !hasOAuthMail && (
+                            <div className="mail-empty-setup">
+                                <p>Aucune boîte mail n'est connectée.</p>
+                                <button type="button" onClick={() => setShowSetupModal(true)}>
+                                    Connecter une boîte IMAP/SMTP
+                                </button>
+                            </div>
+                        )}
 
                         {emails.length > 0 && (
-                            <ul className="mail-list" role="list">
+                            <ul className="mail-list">
                                 {emails.map((email) => {
                                     // Gmail conventionne labelIds pour marquer lu/non-lu.
                                     // On ne l'a pas toujours cote client, donc fallback
@@ -497,7 +730,7 @@ const MailsComponent = () => {
                                 <p><strong>De :</strong> {decodeHtmlEntities(selectedEmailDetail.from)}</p>
                                 <p style={{ marginBottom: '15px' }}><strong>Objet :</strong> {decodeHtmlEntities(selectedEmailDetail.subject)}</p>
                                 <hr />
-                                <div className="mail-body" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedEmailDetail.body) }} />
+                                <div className="mail-body" dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(selectedEmailDetail.body) }} />
 
                                 {selectedEmailDetail.attachments && selectedEmailDetail.attachments.length > 0 && (
                                     <div className="mail-attachments-section">

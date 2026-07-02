@@ -6,9 +6,17 @@ jest.mock('../../middlewares/middleware-auth', () => (req, res, next) => {
   next();
 });
 
+// rc37 : les routes GET/POST vérifient désormais l'appartenance au dossier via
+// ensureDossierOwnership, et GET /:id lit par findOne({_id, ownerId}) (plus
+// findById). On mocke donc l'ownership (OK par défaut) et l'audit.
+jest.mock('../../utils/ownershipHelpers', () => ({
+  ensureDossierOwnership: jest.fn().mockResolvedValue(true),
+}));
+jest.mock('../../utils/auditLogger', () => ({ create: jest.fn(), update: jest.fn(), delete: jest.fn() }));
+
 // Mock des modeles Mongoose
 const mockJsonDocumentFind = jest.fn();
-const mockJsonDocumentFindById = jest.fn();
+const mockJsonDocumentFindOne = jest.fn();
 const mockJsonDocumentFindOneAndUpdate = jest.fn();
 const mockJsonDocumentFindOneAndDelete = jest.fn();
 const mockJsonDocumentSave = jest.fn();
@@ -19,7 +27,7 @@ jest.mock('../../models/JsonDocuments/JsonDocument', () => {
     this.save = mockJsonDocumentSave.mockResolvedValue(this);
   });
   MockJsonDocument.find = (...args) => mockJsonDocumentFind(...args);
-  MockJsonDocument.findById = (...args) => mockJsonDocumentFindById(...args);
+  MockJsonDocument.findOne = (...args) => mockJsonDocumentFindOne(...args);
   MockJsonDocument.findOneAndUpdate = (...args) => mockJsonDocumentFindOneAndUpdate(...args);
   MockJsonDocument.findOneAndDelete = (...args) => mockJsonDocumentFindOneAndDelete(...args);
   return MockJsonDocument;
@@ -132,7 +140,7 @@ describe('Routes /api/documents', () => {
   // ===================== GET /:id =====================
   describe('GET /api/documents/:id', () => {
     it('retourne un document par ID', async () => {
-      mockJsonDocumentFindById.mockResolvedValue({
+      mockJsonDocumentFindOne.mockResolvedValue({
         _id: 'doc1', name: 'Mon document', encryptedContent: 'data...',
       });
 
@@ -143,7 +151,7 @@ describe('Routes /api/documents', () => {
     });
 
     it('retourne 404 si le document n existe pas', async () => {
-      mockJsonDocumentFindById.mockResolvedValue(null);
+      mockJsonDocumentFindOne.mockResolvedValue(null);
 
       const res = await makeRequest('GET', '/api/documents/inexistant');
 

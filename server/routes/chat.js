@@ -15,6 +15,7 @@ const chatService = require('../services/chatService');
 const OfficeUser = require('../models/App_Users/OfficeUser');
 const UserOfficeUser = require('../models/App_Users/modelsLiaisons/UserOfficeUser');
 const Message = require('../models/Chat/Message');
+const { ensureOfficeUserOwnership } = require('../utils/ownershipHelpers');
 const { log: chatLog } = require('../services/chatLogger');
 const { log: secLog, EVT } = require('../utils/securityLogger');
 
@@ -82,26 +83,58 @@ try {
     // proprement avec un 500 si l'utilisateur tente d'envoyer un attachement.
 }
 
-const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => {
-        const now = new Date();
-        const yyyy = String(now.getUTCFullYear());
-        const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
-        const dir = path.join(UPLOADS_ROOT, yyyy, mm);
-        fs.mkdirSync(dir, { recursive: true });
-        cb(null, dir);
-    },
-    filename: (_req, file, cb) => {
-        const safeBase = (file.originalname || 'file')
-            .replace(/[^\w.\-]/g, '_').slice(0, 80);
-        const stamp = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
-        cb(null, `${stamp}__${safeBase}`);
-    },
-});
+// Stockage des attachements via la couche fileStorage AGNOSTIQUE (Phase 4).
+// En mode LOCAL (defaut), on force la racine sur UPLOADS_ROOT : les fichiers
+// sont ecrits EXACTEMENT au meme endroit qu'avant (yyyy/mm/<stamp>__<nom>) et
+// les storageKey deja en base restent valides — comportement Electron inchange.
+// En mode GCS (GCS_BUCKET defini), les memes cles sont ecrites dans le bucket.
+const { buildFileStorage } = require('../services/fileStorage');
+const { createStorageEngine } = require('../services/multerStorageEngine');
+
+const chatStorage = buildFileStorage({ ...process.env, FILE_STORAGE_LOCAL_ROOT: UPLOADS_ROOT });
+
+// A15 : politique commune des PJ (taille + types dangereux), partagée avec le mail.
+const { assertAttachmentAllowed, maxAttachmentBytes } = require('../services/attachmentPolicy');
+
 const upload = multer({
-    storage,
-    limits: { fileSize: 25 * 1024 * 1024 }, // 25 Mo max (audio + fichier joint)
+    storage: createStorageEngine({
+        storage: chatStorage,
+        keyFn: (_req, file) => {
+            const now = new Date();
+            const yyyy = String(now.getUTCFullYear());
+            const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+            const safeBase = (file.originalname || 'file')
+                .replace(/[^\w.\-]/g, '_').slice(0, 80);
+            const stamp = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+            return `${yyyy}/${mm}/${stamp}__${safeBase}`;
+        },
+    }),
+    // A15 : plafond de taille aligné sur la politique commune (source unique).
+    limits: { fileSize: maxAttachmentBytes() },
+    // A15 : refuse les types dangereux AVANT stockage (le fichier n'est pas écrit).
+    fileFilter: (req, file, cb) => {
+        try {
+            assertAttachmentAllowed({ filename: file.originalname, mime: file.mimetype });
+            cb(null, true);
+        } catch (e) {
+            req._attachmentRejected = e; // relayé en 415 par le handler
+            cb(null, false);
+        }
+    },
 });
+
+// Wrapper multer : mappe les erreurs (dépassement de taille → 413) au lieu de 500.
+function chatUpload(req, res, next) {
+    upload.single('file')(req, res, (err) => {
+        if (err) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({ error: 'ATTACHMENT_TOO_LARGE', message: 'Fichier trop volumineux.' });
+            }
+            return res.status(400).json({ error: 'UPLOAD_ERROR', message: err.message });
+        }
+        return next();
+    });
+}
 
 // Hook optionnel branché par server/index.js pour diffuser via Socket.io.
 // Forme : (message) => void
@@ -236,6 +269,13 @@ router.post('/messages', auth, async (req, res) => {
         const meOfficeUserId = await resolveActiveOfficeUserId(req);
         if (!meOfficeUserId) return res.status(400).json({ error: 'OfficeUser actif introuvable' });
 
+        // SECURITE rc38 (A1) : le destinataire doit être un OfficeUser du même
+        // cabinet. Sans ce contrôle, un user pouvait envoyer un message (spam /
+        // phishing interne) dans la boîte d'un membre d'un AUTRE cabinet en
+        // connaissant simplement son OfficeUser._id. ensureOfficeUserOwnership
+        // écrit lui-même la réponse 403 en cas de refus.
+        if (!(await ensureOfficeUserOwnership(req, res, recipientId))) return;
+
         const msg = await chatService.sendMessage({
             senderId: meOfficeUserId,
             recipientId,
@@ -294,10 +334,20 @@ router.get('/unread-count', auth, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/chat/attachments/upload   — multipart, retourne { storageKey, ... }
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/attachments/upload', auth, upload.single('file'), async (req, res) => {
+router.post('/attachments/upload', auth, chatUpload, async (req, res) => {
     try {
+        // A15 : type refusé par le fileFilter → 415 (le fichier n'a pas été stocké).
+        if (req._attachmentRejected) {
+            const e = req._attachmentRejected;
+            return res.status(e.statusCode || 415).json({
+                error: e.code || 'ATTACHMENT_TYPE_BLOCKED',
+                message: e.message,
+            });
+        }
         if (!req.file) return res.status(400).json({ error: 'Aucun fichier' });
-        const relPath = path.relative(UPLOADS_ROOT, req.file.path).replace(/\\/g, '/');
+        // La cle est posee par le moteur de stockage (identique a l'ancien
+        // chemin relatif en mode local : yyyy/mm/<stamp>__<nom>).
+        const relPath = req.file.storageKey;
         const durationSec = req.body && req.body.durationSec
             ? parseFloat(req.body.durationSec) : null;
         res.status(201).json({
@@ -323,12 +373,18 @@ router.get('/attachments/*', auth, async (req, res) => {
 
         // Sécurité 1 : interdire toute traversée
         const normalized = path.normalize(requested).replace(/^(\.\.[/\\])+/, '');
-        const absPath = path.join(UPLOADS_ROOT, normalized);
-        if (!absPath.startsWith(UPLOADS_ROOT)) {
-            return res.status(400).json({ error: 'Chemin invalide' });
-        }
-        if (!fs.existsSync(absPath)) {
-            return res.status(404).json({ error: 'Fichier introuvable' });
+        // En mode LOCAL (defaut), on verifie l'existence sur disque comme avant.
+        // En mode GCS, l'objet est servi par redirection (existence implicite +
+        // controle de propriete ci-dessous).
+        let absPath = null;
+        if (chatStorage.kind === 'local') {
+            absPath = path.join(UPLOADS_ROOT, normalized);
+            if (!absPath.startsWith(UPLOADS_ROOT)) {
+                return res.status(400).json({ error: 'Chemin invalide' });
+            }
+            if (!fs.existsSync(absPath)) {
+                return res.status(404).json({ error: 'Fichier introuvable' });
+            }
         }
 
         // SECURITE rc37 (C-15) : verifier que le storageKey appartient a un
@@ -361,7 +417,13 @@ router.get('/attachments/*', auth, async (req, res) => {
             return res.status(403).json({ error: 'Acces refuse.' });
         }
 
-        res.sendFile(absPath);
+        // Servir selon le backend
+        if (chatStorage.kind === 'local') {
+            return res.sendFile(absPath);
+        }
+        // GCS : redirection vers une URL signee temporaire (1h)
+        const signedUrl = await chatStorage.getSignedUrl(normalized, { expiresInSec: 3600 });
+        return res.redirect(302, signedUrl);
     } catch (err) {
         console.error('[chat/attachments/get]', err.message);
         res.status(500).json({ error: err.message });

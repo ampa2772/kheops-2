@@ -509,8 +509,13 @@ describe('layoutSlice thunks async', () => {
     });
   });
 
-  const runThunk = async (thunk, arg, token) => {
-    const getState = () => ({ login: { token } });
+  // Par défaut on simule un utilisateur avec messagerie OAuth (Google) : les
+  // thunks notifications branchent sur les endpoints OAuth `/api/mails/*` quand
+  // `user.googleRefreshToken`/`microsoftRefreshToken` est présent, sinon sur la
+  // messagerie générique IMAP (`mailAccountService` → `/api/mail/*`). Les tests
+  // ci-dessous couvrent le chemin OAuth.
+  const runThunk = async (thunk, arg, token, user = { googleRefreshToken: 'g-refresh-token' }) => {
+    const getState = () => ({ login: { token, user } });
     const result = await thunk(arg)(dispatch, getState, undefined);
     return result;
   };

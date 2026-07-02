@@ -7,6 +7,7 @@ import axios from 'axios'; // Conservé uniquement pour setAuthToken (axios.defa
 import apiClient from '../../services/apiClient';
 // Import statique (remplace les require() dynamiques dans les thunks)
 import { loadOfficeUsers } from './officeUserSlice';
+import { lockCabinetEncryption } from './encryptionSlice';
 
 // ========================================================================
 // Helpers
@@ -446,6 +447,55 @@ export const loadUserFromLocalStorage = () => (dispatch) => {
   } else {
     dispatch({ type: 'AUTH_ERROR' });
   }
+};
+
+/**
+ * performLogout — Deconnexion COMPLETE et centralisee.
+ *
+ * Regroupe en un seul endroit ce qui etait auparavant duplique entre le menu
+ * principal (mainUserModal) et la modale de phrase secrete. Ordre des
+ * operations :
+ *   1. Verrouille le cabinet : oublie la MasterKey en RAM ET sur disque
+ *      (removeDisk:true). Decision produit "poste partage" — aucune cle ne
+ *      doit subsister apres deconnexion sur un PC de cabinet, sinon
+ *      l'utilisateur suivant pourrait acceder aux donnees du precedent.
+ *      C'est la separation stricte auth/chiffrement (la session se ferme,
+ *      la cle disparait). Sans effet tant que le chiffrement est desactive.
+ *   2. Deconnecte la session cloud Electron (Microsoft ou Google), best-effort.
+ *   3. Vide le JWT + le localStorage et repasse isAuthenticated=false (logout()).
+ *   4. Redirige vers l'ecran de login si un navigate est fourni.
+ *
+ * Tous les appels Electron/crypto sont gardes : ils ne peuvent JAMAIS empecher
+ * la deconnexion (regle UX absolue — ne jamais pieger l'utilisateur).
+ *
+ * @param {object} [opts]
+ * @param {function} [opts.navigate]  react-router navigate, pour revenir a '/'
+ */
+export const performLogout = ({ navigate } = {}) => async (dispatch, getState) => {
+  const user = getState().login && getState().login.user;
+  const isMicrosoftUser = !!(user && user.microsoftRefreshToken);
+
+  // 1. Verrouiller le cabinet (best-effort, ne bloque jamais la deconnexion).
+  try {
+    await dispatch(lockCabinetEncryption({ removeDisk: true }));
+  } catch (_e) { /* best-effort */ }
+
+  // 2. Deconnexion cloud Electron (best-effort, gardee).
+  try {
+    if (isMicrosoftUser) {
+      if (window.electronAPI && window.electronAPI.logoutMicrosoft) {
+        await window.electronAPI.logoutMicrosoft();
+      }
+    } else if (window.electronAPI && window.electronAPI.logoutGoogle) {
+      await window.electronAPI.logoutGoogle();
+    }
+  } catch (_e) { /* best-effort */ }
+
+  // 3. Deconnexion Kheops (JWT + localStorage).
+  dispatch(logout());
+
+  // 4. Retour a l'ecran de login.
+  if (navigate) navigate('/');
 };
 
 // ========================================================================

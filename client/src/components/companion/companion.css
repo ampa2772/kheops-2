@@ -1,0 +1,80 @@
+/* Compagnon Kheops — boite d'installation non-intrusive (login).
+   Volontairement discrete : centree, fermable, jamais une banniere collante. */
+
+.k-companion-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 15, 26, 0.55);
+  backdrop-filter: blur(2px);
+  padding: 16px;
+}
+
+.k-companion-card {
+  width: 100%;
+  max-width: 440px;
+  background: #0f1c2e;
+  color: #e8eef7;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.k-companion-icon {
+  font-size: 32px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.k-companion-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.k-companion-text {
+  margin: 0 0 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #c4d0e0;
+}
+
+.k-companion-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.k-companion-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.k-companion-btn--primary {
+  background: #f5c518;
+  color: #1a1300;
+}
+.k-companion-btn--primary:hover { filter: brightness(1.05); }
+
+.k-companion-btn--ghost {
+  background: transparent;
+  color: #aab8cc;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.k-companion-btn--ghost:hover { color: #e8eef7; }
+
+.k-companion-note {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: #8696ab;
+}

@@ -5,8 +5,8 @@
 // fournit les actions disponibles :
 //   - Configurer la protection (si pas encore active)
 //   - Verrouiller cet ordinateur (efface la MasterKey en RAM)
+//   - Generer la feuille de secours (poste deverrouille uniquement)
 //   - Changer la phrase secrete (V3+, affiche un placeholder)
-//   - Imprimer la feuille de secours (V3+, affiche un placeholder)
 //
 // Voir DESIGN_CHIFFREMENT_E2E.md sections 6 et 8.1.
 
@@ -20,6 +20,11 @@ const SecuritySection = () => {
   const [setupOpen, setSetupOpen] = useState(false);
   const [confirmLockOpen, setConfirmLockOpen] = useState(false);
   const [confirmForgetOpen, setConfirmForgetOpen] = useState(false);
+
+  // Generation de la feuille de secours depuis un poste deja deverrouille.
+  const [generatingSheet, setGeneratingSheet] = useState(false);
+  const [recoverySheetPath, setRecoverySheetPath] = useState(null);
+  const [sheetError, setSheetError] = useState(null);
 
   // Etat d'affichage
   const enabled = crypto.enabled;
@@ -64,6 +69,47 @@ const SecuritySection = () => {
     // demarrage de Kheops sur ce poste.
     await crypto.lockCabinet({ removeDisk: true });
     setConfirmForgetOpen(false);
+  };
+
+  // Genere une feuille de secours a partir de la MasterKey en RAM (poste
+  // deverrouille). N'a PAS besoin de la phrase : utile pour produire la
+  // feuille depuis un poste qui marche afin de debloquer un autre poste.
+  const getElectronCrypto = () =>
+    (typeof window !== 'undefined' && window.electron && window.electron.crypto)
+      ? window.electron.crypto
+      : null;
+
+  const handleGenerateRecoverySheet = async () => {
+    setSheetError(null);
+    const electronCrypto = getElectronCrypto();
+    if (!electronCrypto) {
+      setSheetError('Module crypto indisponible (application desktop requise).');
+      return;
+    }
+    setGeneratingSheet(true);
+    try {
+      const res = await electronCrypto.generateRecoverySheet({});
+      if (res && res.ok) {
+        setRecoverySheetPath(res.path);
+      } else if (res && res.canceled) {
+        // Boite de dialogue annulee : ne rien faire.
+      } else {
+        setSheetError((res && res.error) || 'Echec de la generation de la feuille de secours.');
+      }
+    } catch (err) {
+      setSheetError(err.message || 'Erreur inattendue.');
+    } finally {
+      setGeneratingSheet(false);
+    }
+  };
+
+  const handleOpenRecoverySheet = async () => {
+    const electronCrypto = getElectronCrypto();
+    if (!electronCrypto || !recoverySheetPath) return;
+    const res = await electronCrypto.openRecoverySheet(recoverySheetPath);
+    if (!res || !res.ok) {
+      setSheetError((res && res.error) || 'Impossible d\'ouvrir le document.');
+    }
   };
 
   return (
@@ -137,6 +183,15 @@ const SecuritySection = () => {
           <>
             <button
               type="button"
+              className="k-security-btn k-security-btn--primary"
+              onClick={handleGenerateRecoverySheet}
+              disabled={generatingSheet}
+              title="Genere un document a imprimer permettant de recuperer l'acces sans la phrase. Possible uniquement depuis un poste deja deverrouille."
+            >
+              {generatingSheet ? 'Generation en cours...' : 'Generer ma feuille de secours'}
+            </button>
+            <button
+              type="button"
               className="k-security-btn"
               onClick={() => setConfirmLockOpen(true)}
               title="Vide la phrase secrete de la memoire active. Elle sera rechargee automatiquement au prochain demarrage."
@@ -155,15 +210,49 @@ const SecuritySection = () => {
         )}
       </div>
 
+      {/* === Resultat generation feuille de secours === */}
+      {enabled && isUnlocked && (sheetError || recoverySheetPath) && (
+        <div className="k-security-card">
+          {sheetError && <div className="k-security-warning">{sheetError}</div>}
+          {recoverySheetPath && (
+            <>
+              <p>
+                <strong>Feuille de secours enregistree</strong> dans :
+                <br />
+                <code style={{ wordBreak: 'break-all' }}>{recoverySheetPath}</code>
+              </p>
+              <p>
+                Imprimez-la (ou conservez le PDF) puis, sur l'autre ordinateur,
+                cliquez sur <strong>« J'ai perdu ma phrase, j'utilise ma feuille
+                de secours »</strong> sur l'ecran de deverrouillage et saisissez
+                les deux elements indiques sur la feuille.
+              </p>
+              <div className="k-security-actions">
+                <button
+                  type="button"
+                  className="k-security-btn"
+                  onClick={handleOpenRecoverySheet}
+                >
+                  Ouvrir le document pour l'imprimer
+                </button>
+                <button
+                  type="button"
+                  className="k-security-btn"
+                  onClick={handleGenerateRecoverySheet}
+                  disabled={generatingSheet}
+                >
+                  Generer une nouvelle copie
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* === Fonctionnalites a venir === */}
       <div className="k-security-future">
         <h3>Fonctionnalites a venir</h3>
         <ul>
-          <li>
-            <strong>Imprimer ma feuille de secours</strong> — disponible dans la
-            prochaine mise a jour. Permettra de generer un document a imprimer
-            en deux exemplaires pour recuperer l'acces en cas d'oubli total.
-          </li>
           <li>
             <strong>Changer ma phrase secrete</strong> — disponible dans une
             mise a jour ulterieure. Permettra de renouveler la phrase, par

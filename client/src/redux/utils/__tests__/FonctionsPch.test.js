@@ -41,46 +41,38 @@ describe('buildStatusMaritaux', () => {
 // --- initialiserErreurs ---
 
 describe('initialiserErreurs', () => {
-  test('crée des erreurs pour champsCommuns uniquement si type enfant', () => {
+  // La validation a été désactivée dans le code de prod : initialiserErreurs
+  // retourne désormais un objet d'erreurs vide (tous les champs sont optionnels).
+  // Les tests reflètent ce comportement actuel.
+  test('retourne un objet vide pour type enfant (validation désactivée)', () => {
     const personne = { ...structurePersonne };
     const errors = initialiserErreurs(personne, 'enfant');
 
-    champsCommuns.forEach((champ) => {
-      expect(errors).toHaveProperty(champ);
-    });
-    champsAdulte.forEach((champ) => {
-      expect(errors).not.toHaveProperty(champ);
-    });
+    expect(errors).toEqual({});
   });
 
-  test('crée des erreurs pour champsCommuns + champsAdulte si type adulte', () => {
+  test('retourne un objet vide pour type adulte (validation désactivée)', () => {
     const personne = { ...structurePersonne };
     const errors = initialiserErreurs(personne, 'adulte');
 
-    [...champsCommuns, ...champsAdulte].forEach((champ) => {
-      expect(errors).toHaveProperty(champ);
-    });
+    expect(errors).toEqual({});
   });
 
-  test('marque les champs remplis comme sans erreur (false)', () => {
+  test('ne marque aucun champ rempli ni vide (validation désactivée)', () => {
     const personne = { ...structurePersonne, nom: 'Dupont', prenoms: 'Jean' };
     const errors = initialiserErreurs(personne, 'enfant');
 
-    expect(errors.nom).toBe(false);
-    expect(errors.prenoms).toBe(false);
-    expect(errors.adresse).toBe(true); // vide => erreur
+    expect(errors).not.toHaveProperty('nom');
+    expect(errors).not.toHaveProperty('prenoms');
+    expect(errors).not.toHaveProperty('adresse');
+    expect(errors).toEqual({});
   });
 
-  test('défaut à type enfant quand type non spécifié', () => {
+  test('retourne un objet vide quand type non spécifié (défaut enfant)', () => {
     const personne = { ...structurePersonne };
     const errors = initialiserErreurs(personne);
 
-    champsCommuns.forEach((champ) => {
-      expect(errors).toHaveProperty(champ);
-    });
-    champsAdulte.forEach((champ) => {
-      expect(errors).not.toHaveProperty(champ);
-    });
+    expect(errors).toEqual({});
   });
 });
 
@@ -111,24 +103,27 @@ describe('estChaineVide', () => {
 // --- verifierErreurs ---
 
 describe('verifierErreurs', () => {
+  // La validation a été désactivée dans le code de prod : verifierErreurs
+  // retourne désormais toujours false (aucun champ n'est signalé en erreur,
+  // tous sont optionnels). Les tests reflètent ce comportement actuel.
   test('retourne false pour email quand type est enfant', () => {
     expect(verifierErreurs({ email: '' }, 'email', 'enfant')).toBe(false);
   });
 
-  test('retourne true pour email vide quand type est adulte', () => {
-    expect(verifierErreurs({ email: '' }, 'email', 'adulte')).toBe(true);
+  test('retourne false pour email vide quand type est adulte (validation désactivée)', () => {
+    expect(verifierErreurs({ email: '' }, 'email', 'adulte')).toBe(false);
   });
 
-  test('retourne true pour un champ commun vide', () => {
-    expect(verifierErreurs({ nom: '' }, 'nom', 'enfant')).toBe(true);
+  test('retourne false pour un champ commun vide (validation désactivée)', () => {
+    expect(verifierErreurs({ nom: '' }, 'nom', 'enfant')).toBe(false);
   });
 
   test('retourne false pour un champ commun rempli', () => {
     expect(verifierErreurs({ nom: 'Dupont' }, 'nom', 'enfant')).toBe(false);
   });
 
-  test('retourne true pour un champ adulte vide quand type adulte', () => {
-    expect(verifierErreurs({ profession: '' }, 'profession', 'adulte')).toBe(true);
+  test('retourne false pour un champ adulte vide quand type adulte (validation désactivée)', () => {
+    expect(verifierErreurs({ profession: '' }, 'profession', 'adulte')).toBe(false);
   });
 
   test('retourne false pour un champ adulte quand type enfant', () => {
@@ -265,12 +260,12 @@ describe('updateNavigationArrows', () => {
 
 describe('updateErrors', () => {
   test('réinitialise toutes les erreurs quand propriete est type', () => {
+    // Validation désactivée : quand propriete === 'type', updateErrors délègue à
+    // initialiserErreurs qui retourne désormais un objet vide.
     const personne = { ...structurePersonne, nom: 'Dupont' };
     const result = updateErrors(personne, 'type', 'adulte', {});
 
-    expect(result.nom).toBe(false); // rempli
-    expect(result.adresse).toBe(true); // vide
-    expect(result).toHaveProperty('profession'); // champ adulte inclus
+    expect(result).toEqual({});
   });
 
   test('met à jour uniquement l erreur spécifique pour un autre champ', () => {

@@ -178,8 +178,17 @@ describe('pchSlice modifierPersonne', () => {
   });
 
   test('recalcule errorCounts apres modification', () => {
+    // La validation des champs est volontairement désactivée dans le code
+    // (FonctionsPch.verifierErreurs renvoie toujours false → tous les champs
+    // sont optionnels). modifierPersonne recalcule néanmoins listeErrorCounts
+    // via validateForm(listeErrors[index]) : on vérifie l'invariant de
+    // recalcul (compteur défini = nombre d'erreurs actives), et non l'ancien
+    // comportement où vider "nom" produisait une erreur.
     const state = reducer(getEditState(), modifierPersonne({ propriete: 'nom', valeur: '' }));
-    expect(state.listeErrorCounts[0]).toBeGreaterThanOrEqual(1);
+    const expectedCount = Object.values(state.listeErrors[0]).filter(Boolean).length;
+    expect(state.listeErrorCounts[0]).toBe(expectedCount);
+    // Le champ est bien modifié même si aucune erreur n'est levée.
+    expect(state.liste[0].nom).toBe('');
   });
 
   // Non-régression: villeNaissance doit être modifiable en signature positionnelle

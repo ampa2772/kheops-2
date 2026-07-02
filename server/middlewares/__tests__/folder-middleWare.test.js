@@ -134,31 +134,29 @@ describe('folder-middleWare', () => {
   });
 
   // ===================== validateContactData =====================
-  describe('validateContactData', () => {
-    it('appelle next() si contact.nom est present', () => {
+  // NOTE 2026-07-02 : validateContactData / validateContactPMData /
+  // validateContactPMPubliqueData sont VOLONTAIREMENT des no-op côté middleware
+  // ("Désactivé : aucun champ requis" dans folder-middleWare.js). La validation
+  // structurelle et de longueur des contacts est désormais assurée par les schémas
+  // Joi (validation/contactSchemas.js) via validateBody sur les routes. Ces tests
+  // vérifient donc le CONTRAT ACTUEL : pass-through (next() appelé, aucun 400).
+  describe('validateContactData (no-op — validation déléguée à Joi)', () => {
+    it('appelle next() sans 400 même si contact est absent', () => {
+      const req = { body: {} };
+
+      validateContactData(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it('appelle next() quand un contact est fourni', () => {
       const req = { body: { contact: { nom: 'Dupont' } } };
 
       validateContactData(req, res, next);
 
       expect(next).toHaveBeenCalled();
-    });
-
-    it('retourne 400 si contact est absent', () => {
-      const req = { body: {} };
-
-      validateContactData(req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.send).toHaveBeenCalledWith('Le champ nom du contact est requis.');
-    });
-
-    it('retourne 400 si contact.nom est absent', () => {
-      const req = { body: { contact: { email: 'test@test.com' } } };
-
-      validateContactData(req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.send).toHaveBeenCalledWith('Le champ nom du contact est requis.');
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
@@ -192,58 +190,44 @@ describe('folder-middleWare', () => {
   });
 
   // ===================== validateContactPMData =====================
-  describe('validateContactPMData', () => {
-    it('appelle next() si raisonSociale est presente', () => {
+  describe('validateContactPMData (no-op — validation déléguée à Joi)', () => {
+    it('appelle next() sans 400 même si contact est absent', () => {
+      const req = { body: {} };
+
+      validateContactPMData(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it('appelle next() quand une raisonSociale est fournie', () => {
       const req = { body: { contact: { raisonSociale: 'SAS Test' } } };
 
       validateContactPMData(req, res, next);
 
       expect(next).toHaveBeenCalled();
-    });
-
-    it('retourne 400 si raisonSociale est absente', () => {
-      const req = { body: { contact: {} } };
-
-      validateContactPMData(req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.send).toHaveBeenCalledWith('Le champ raison sociale est requis.');
-    });
-
-    it('retourne 400 si contact est absent du body', () => {
-      const req = { body: {} };
-
-      validateContactPMData(req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
   // ===================== validateContactPMPubliqueData =====================
-  describe('validateContactPMPubliqueData', () => {
-    it('appelle next() si denomination est presente', () => {
+  describe('validateContactPMPubliqueData (no-op — validation déléguée à Joi)', () => {
+    it('appelle next() sans 400 même si contactData est absent', () => {
+      const req = { body: {} };
+
+      validateContactPMPubliqueData(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it('appelle next() quand une denomination est fournie', () => {
       const req = { body: { contactData: { denomination: 'Ministere' } } };
 
       validateContactPMPubliqueData(req, res, next);
 
       expect(next).toHaveBeenCalled();
-    });
-
-    it('retourne 400 si denomination est absente', () => {
-      const req = { body: { contactData: {} } };
-
-      validateContactPMPubliqueData(req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.send).toHaveBeenCalledWith('Le champ dénomination est requis.');
-    });
-
-    it('retourne 400 si contactData est absent du body', () => {
-      const req = { body: {} };
-
-      validateContactPMPubliqueData(req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 

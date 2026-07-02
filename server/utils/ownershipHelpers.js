@@ -24,6 +24,8 @@ const UserContactPMPublique = require('../models/Folder/modelsLiaisons/UserConta
 const UserOfficeUser = require('../models/App_Users/modelsLiaisons/UserOfficeUser');
 const Dossier = require('../models/Folder/Dossier');
 const { log: secLog, EVT } = require('./securityLogger');
+// R5b : partage intra-cabinet. Renvoie [self] par défaut (aucune régression solo).
+const { getAccessibleUserIds } = require('../services/cabinetAccess');
 
 const TAG = '[OwnershipHelpers]';
 
@@ -42,7 +44,8 @@ async function ensureDossierOwnership(req, res, dossierId) {
     res.status(401).json({ message: 'Non authentifie.' });
     return false;
   }
-  const link = await UserDossier.findOne({ user: userId, dossier: dossierId }).lean();
+  const accessibleIds = await getAccessibleUserIds(userId);
+  const link = await UserDossier.findOne({ user: { $in: accessibleIds }, dossier: dossierId }).lean();
   if (!link) {
     console.warn(`${TAG} ACCESS_DENIED dossier ${dossierId} pour user ${userId} (route ${req.method} ${req.originalUrl})`);
     secLog(EVT.ACCESS_DENIED, {
@@ -73,10 +76,11 @@ async function ensureContactOwnership(req, res, contactId) {
     res.status(401).json({ message: 'Non authentifie.' });
     return false;
   }
+  const accessibleIds = await getAccessibleUserIds(userId);
   const [physLink, pmLink, pmPubLink] = await Promise.all([
-    UserContact.findOne({ user: userId, contact: contactId }).lean(),
-    UserContactPM.findOne({ user: userId, contactPM: contactId }).lean(),
-    UserContactPMPublique.findOne({ user: userId, contactPMPublique: contactId }).lean(),
+    UserContact.findOne({ user: { $in: accessibleIds }, contact: contactId }).lean(),
+    UserContactPM.findOne({ user: { $in: accessibleIds }, contactPM: contactId }).lean(),
+    UserContactPMPublique.findOne({ user: { $in: accessibleIds }, contactPMPublique: contactId }).lean(),
   ]);
   if (!physLink && !pmLink && !pmPubLink) {
     console.warn(`${TAG} ACCESS_DENIED contact ${contactId} pour user ${userId} (route ${req.method} ${req.originalUrl})`);
@@ -107,7 +111,8 @@ async function ensureOfficeUserOwnership(req, res, officeUserId) {
     res.status(401).json({ message: 'Non authentifie.' });
     return false;
   }
-  const link = await UserOfficeUser.findOne({ user: userId, officeUser: officeUserId }).lean();
+  const accessibleIds = await getAccessibleUserIds(userId);
+  const link = await UserOfficeUser.findOne({ user: { $in: accessibleIds }, officeUser: officeUserId }).lean();
   if (!link) {
     console.warn(`${TAG} ACCESS_DENIED officeUser ${officeUserId} pour user ${userId} (route ${req.method} ${req.originalUrl})`);
     secLog(EVT.ACCESS_DENIED, {
@@ -139,7 +144,8 @@ async function ensureDocOwnership(req, res, docId) {
     res.status(401).json({ message: 'Non authentifie.' });
     return { ok: false };
   }
-  const userDossierLinks = await UserDossier.find({ user: userId }).select('dossier').lean();
+  const accessibleIds = await getAccessibleUserIds(userId);
+  const userDossierLinks = await UserDossier.find({ user: { $in: accessibleIds } }).select('dossier').lean();
   const dossierIds = userDossierLinks.map((l) => l.dossier);
   if (dossierIds.length === 0) {
     console.warn(`${TAG} ACCESS_DENIED doc ${docId} : user ${userId} n'a aucun dossier`);

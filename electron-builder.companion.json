@@ -1,0 +1,36 @@
+{
+  "appId": "com.kheops2.companion",
+  "productName": "Kheops 2 Companion",
+  "directories": {
+    "app": "electron-companion",
+    "output": "dist-companion"
+  },
+  "files": [
+    "**/*",
+    "!**/*.md",
+    "!**/__tests__/**",
+    "!**/*.test.js"
+  ],
+  "extraResources": [],
+  "asar": true,
+  "win": {
+    "target": "nsis",
+    "icon": "electron-app/icon.ico"
+  },
+  "mac": {
+    "target": "dmg",
+    "category": "public.app-category.productivity",
+    "icon": "electron-app/icon.ico"
+  },
+  "artifactName": "KHEOPS2-Companion-Setup.${ext}",
+  "nsis": {
+    "oneClick": true,
+    "perMachine": false,
+    "allowElevation": false,
+    "runAfterFinish": true,
+    "createDesktopShortcut": false,
+    "createStartMenuShortcut": false,
+    "shortcutName": "Kheops 2 Companion",
+    "deleteAppDataOnUninstall": false
+  }
+}

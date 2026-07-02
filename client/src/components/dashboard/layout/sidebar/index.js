@@ -4,6 +4,7 @@ import './styles.css';
 import OfficeHomeLink from './officeHomeLink';
 import BoutonResizeBar from './boutonResizeBar';
 import OfficeDossierLink from './dossierLink';
+import ContactsLink from './contactsLink';
 import AgendaLink from './agendaLink';
 import TodoListLink from './todoList';
 import FacturationLink from './facturationLink';
@@ -19,6 +20,7 @@ import Tooltip from '../../../common/Tooltip';
 const NAV_ITEMS = [
   { path: '/dashboard/',            label: 'Bureau',      speech: 'Acceder au bureau',         Component: OfficeHomeLink,    exact: true },
   { path: '/dashboard/dossier',     label: 'Dossiers',    speech: 'Gerer les dossiers',        Component: OfficeDossierLink, startsWith: ['/dashboard/dossier', '/dashboard/createDossier'] },
+  { path: '/dashboard/contacts',    label: 'Contacts',    speech: "Ouvrir l'annuaire des contacts", Component: ContactsLink,   startsWith: ['/dashboard/contacts', '/dashboard/createContact'] },
   { path: '/dashboard/agenda',      label: 'Agenda',      speech: "Consulter l'agenda",        Component: AgendaLink,        exact: true },
   { path: '/dashboard/todolist',    label: 'Taches',      speech: 'Voir la liste des taches',  Component: TodoListLink,      exact: true },
   { path: '/dashboard/facturation', label: 'Facturation', speech: 'Acceder a la facturation',  Component: FacturationLink,   exact: true },

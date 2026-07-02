@@ -37,6 +37,8 @@ const ContactContactDirect = require('../../models/Folder/modelsLiaisons/Contact
 const OfficeUser = require("../../models/App_Users/OfficeUser");
 const snapshotService = require("../../services/snapshotService");
 const propagateEntityToDossiers = require("../../services/propagateEntityToDossiers");
+const { getAccessibleUserIds } = require('../../services/cabinetAccess');
+const { getCabinetRole, canDeleteDossier } = require('../../services/cabinetRoles');
 
 // ========================================================================
 // Routes d'interaction avec les dossiers
@@ -85,7 +87,7 @@ router.get(
       // Non bloquant : la query principale continue meme si le rattrapage echoue.
     }
 
-    const userDossiers = await UserDossier.find({ user: userId }).select("dossier");
+    const userDossiers = await UserDossier.find({ user: { $in: await getAccessibleUserIds(userId) } }).select("dossier");
     console.log(`[last-25-dossiers] UserDossier trouvés: ${userDossiers.length}`);
 
     if (userDossiers.length === 0) {
@@ -136,16 +138,21 @@ router.put(
     // ContactPMPublique / OfficeUser. Sans ce check, n'importe quel user
     // pouvait modifier le profil d'un OfficeUser ou contact d'un autre cabinet
     // (via fallback multi-collections).
+    //
+    // rc38 (A2) : le check doit utiliser getAccessibleUserIds (perimetre CABINET),
+    // pas `user: userId` brut, sinon un collaborateur du meme cabinet se voit
+    // refuser la modification d'un contact partage (regression du partage R5b).
     {
       const UserContactM = require('../../models/Folder/modelsLiaisons/UserContact');
       const UserContactPMM = require('../../models/Folder/modelsLiaisons/UserContactPM');
       const UserContactPMPubliqueM = require('../../models/Folder/modelsLiaisons/UserContactPMPublique');
       const UserOfficeUserM = require('../../models/App_Users/modelsLiaisons/UserOfficeUser');
+      const accessibleIds = await getAccessibleUserIds(userId);
       const [pLink, pmLink, pubLink, ouLink] = await Promise.all([
-        UserContactM.findOne({ user: userId, contact: entityIdToUpdate }).lean(),
-        UserContactPMM.findOne({ user: userId, contactPM: entityIdToUpdate }).lean(),
-        UserContactPMPubliqueM.findOne({ user: userId, contactPMPublique: entityIdToUpdate }).lean(),
-        UserOfficeUserM.findOne({ user: userId, officeUser: entityIdToUpdate }).lean(),
+        UserContactM.findOne({ user: { $in: accessibleIds }, contact: entityIdToUpdate }).lean(),
+        UserContactPMM.findOne({ user: { $in: accessibleIds }, contactPM: entityIdToUpdate }).lean(),
+        UserContactPMPubliqueM.findOne({ user: { $in: accessibleIds }, contactPMPublique: entityIdToUpdate }).lean(),
+        UserOfficeUserM.findOne({ user: { $in: accessibleIds }, officeUser: entityIdToUpdate }).lean(),
       ]);
       if (!pLink && !pmLink && !pubLink && !ouLink) {
         console.warn(`[updateEntityInDossier] ACCESS_DENIED entity=${entityIdToUpdate} user=${userId} type=${entityType}`);
@@ -157,6 +164,16 @@ router.put(
         }, req);
         return res.status(403).json({ message: "Acces refuse : cette entite n'appartient pas a votre cabinet." });
       }
+    }
+
+    // rc38 (A2) : le dossier initiateur est charge PUIS renvoye tel quel a la fin
+    // (Etape 4). Sans verification d'appartenance, un attaquant pouvait passer un
+    // dossierId d'un AUTRE cabinet et recuperer son contenu integral dans la
+    // reponse (fuite en lecture cross-cabinet). On valide l'appartenance AVANT
+    // toute mutation pour echouer tot. dossierId reste optionnel : s'il est absent,
+    // on ne renvoie simplement pas de dossier initiateur.
+    if (initiatingDossierId) {
+      if (!(await ensureDossierOwnership(req, res, initiatingDossierId))) return;
     }
 
     // Étape 1: Mettre à jour l'entité maître
@@ -214,11 +231,16 @@ router.put(
     const nbPropagated = await propagateEntityToDossiers(entityIdToUpdate, updatedEntityMaster.toObject(), userId);
     console.log(`[updateEntityInDossier] Propagation terminée : ${nbPropagated} dossier(s) mis à jour.`);
 
-    // Étape 4: Récupérer le dossier initiateur mis à jour pour le renvoyer
-    const finalUpdatedDossier = await Dossier.findById(initiatingDossierId);
-    if (!finalUpdatedDossier) {
-      console.error(`[PROPAGATION] Erreur critique: Le dossier initiateur ${initiatingDossierId} n'a pas été retrouvé après la mise à jour.`);
-      return res.status(404).json({ message: "Le dossier initiateur est introuvable après la mise à jour." });
+    // Étape 4: Récupérer le dossier initiateur mis à jour pour le renvoyer.
+    // Appartenance déjà vérifiée en amont (ensureDossierOwnership). dossierId
+    // est optionnel : sans lui, on renvoie la seule entité mise à jour.
+    let finalUpdatedDossier = null;
+    if (initiatingDossierId) {
+      finalUpdatedDossier = await Dossier.findById(initiatingDossierId);
+      if (!finalUpdatedDossier) {
+        console.error(`[PROPAGATION] Erreur critique: Le dossier initiateur ${initiatingDossierId} n'a pas été retrouvé après la mise à jour.`);
+        return res.status(404).json({ message: "Le dossier initiateur est introuvable après la mise à jour." });
+      }
     }
 
     res.json({
@@ -239,43 +261,56 @@ router.post(
   asyncHandler(async (req, res) => {
     const { searchTerm } = req.body;
 
-    if (!searchTerm || !searchTerm.trim()) {
+    // rc38 (A2) : searchTerm doit etre une chaine ; on borne sa longueur pour
+    // eviter les regex demesurees. Toute autre valeur (objet, tableau — vecteur
+    // d'injection d'operateur Mongo) est rejetee.
+    if (typeof searchTerm !== 'string' || !searchTerm.trim()) {
       return res.json([]);
     }
+    if (searchTerm.length > 100) {
+      return res.status(400).json({ message: 'Terme de recherche trop long (max 100 caractères).' });
+    }
+
+    // rc38 (A2) : le terme est interpole dans des $regex. Sans echappement des
+    // metacaracteres, un terme comme "(a+)+$" provoque un ReDoS et des tokens
+    // comme ".*" cassent la logique de recherche. On echappe systematiquement.
+    const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rawTerm = searchTerm.trim();
+    const safeTerm = escapeRegExp(rawTerm);
 
     // SECURITE rc37 : restreindre la recherche aux dossiers du user.
     // Sans ce filtre, l'API retournait tous les dossiers de la base qui
     // matchaient le terme (B-5 isolation cassee).
-    const userDossierLinks = await UserDossier.find({ user: req.user }).select('dossier').lean();
+    const userDossierLinks = await UserDossier.find({ user: { $in: await getAccessibleUserIds(req.user) } }).select('dossier').lean();
     const userDossierIds = userDossierLinks.map((l) => l.dossier);
     if (userDossierIds.length === 0) return res.json([]);
 
-    const searchParts = searchTerm.toLowerCase().split(" ").filter(Boolean);
+    const searchParts = rawTerm.toLowerCase().split(" ").filter(Boolean).map(escapeRegExp);
 
     const conditions = [
       // ── nomPartie (nom complet, Pour + Contre) ──
       {
         "dossier.parties.pour.nomPartie": {
-          $regex: `^${searchTerm.trim()}`,
+          $regex: `^${safeTerm}`,
           $options: "i",
         },
       },
       {
         "dossier.parties.contre.nomPartie": {
-          $regex: `^${searchTerm.trim()}`,
+          $regex: `^${safeTerm}`,
           $options: "i",
         },
       },
       // nomPartie avec espace après (mot entier)
       {
         "dossier.parties.pour.nomPartie": {
-          $regex: `^${searchTerm.trim()}\\s`,
+          $regex: `^${safeTerm}\\s`,
           $options: "i",
         },
       },
       {
         "dossier.parties.contre.nomPartie": {
-          $regex: `^${searchTerm.trim()}\\s`,
+          $regex: `^${safeTerm}\\s`,
           $options: "i",
         },
       },
@@ -283,13 +318,13 @@ router.post(
       // ── partieData.nom (nom de famille seul, Pour + Contre) ──
       {
         "dossier.parties.pour.partieData.nom": {
-          $regex: `^${searchTerm.trim()}`,
+          $regex: `^${safeTerm}`,
           $options: "i",
         },
       },
       {
         "dossier.parties.contre.partieData.nom": {
-          $regex: `^${searchTerm.trim()}`,
+          $regex: `^${safeTerm}`,
           $options: "i",
         },
       },
@@ -297,13 +332,13 @@ router.post(
       // ── partieData.prenoms (prénom seul, Pour + Contre) ──
       {
         "dossier.parties.pour.partieData.prenoms": {
-          $regex: `^${searchTerm.trim()}`,
+          $regex: `^${safeTerm}`,
           $options: "i",
         },
       },
       {
         "dossier.parties.contre.partieData.prenoms": {
-          $regex: `^${searchTerm.trim()}`,
+          $regex: `^${safeTerm}`,
           $options: "i",
         },
       },
@@ -311,25 +346,25 @@ router.post(
       // ── raisonSociale (PM privée, Pour + Contre) ──
       {
         "dossier.parties.pour.partieData.raisonSociale": {
-          $regex: `^${searchTerm.trim()}`,
+          $regex: `^${safeTerm}`,
           $options: "i",
         },
       },
       {
         "dossier.parties.pour.partieData.raisonSociale": {
-          $regex: `^${searchTerm.trim()}\\s`,
+          $regex: `^${safeTerm}\\s`,
           $options: "i",
         },
       },
       {
         "dossier.parties.contre.partieData.raisonSociale": {
-          $regex: `^${searchTerm.trim()}`,
+          $regex: `^${safeTerm}`,
           $options: "i",
         },
       },
       {
         "dossier.parties.contre.partieData.raisonSociale": {
-          $regex: `^${searchTerm.trim()}\\s`,
+          $regex: `^${safeTerm}\\s`,
           $options: "i",
         },
       },
@@ -337,25 +372,25 @@ router.post(
       // ── denomination (PM publique, Pour + Contre) ──
       {
         "dossier.parties.pour.partieData.denomination": {
-          $regex: `^${searchTerm.trim()}`,
+          $regex: `^${safeTerm}`,
           $options: "i",
         },
       },
       {
         "dossier.parties.pour.partieData.denomination": {
-          $regex: `^${searchTerm.trim()}\\s`,
+          $regex: `^${safeTerm}\\s`,
           $options: "i",
         },
       },
       {
         "dossier.parties.contre.partieData.denomination": {
-          $regex: `^${searchTerm.trim()}`,
+          $regex: `^${safeTerm}`,
           $options: "i",
         },
       },
       {
         "dossier.parties.contre.partieData.denomination": {
-          $regex: `^${searchTerm.trim()}\\s`,
+          $regex: `^${safeTerm}\\s`,
           $options: "i",
         },
       },
@@ -364,7 +399,7 @@ router.post(
       // mais dont le nom contient les noms des deux epoux : "DUPONT - MARTIN")
       {
         "dossier.dossier.nom": {
-          $regex: searchTerm.trim(),
+          $regex: safeTerm,
           $options: "i",
         },
       },
@@ -1172,10 +1207,25 @@ router.delete('/dossier/:dossierId', auth, asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Dossier introuvable." });
   }
 
-  // 2. Vérifier l'ownership (lien UserDossier)
-  const userDossierLink = await UserDossier.findOne({ user: userId, dossier: dossierId });
-  if (!userDossierLink) {
-    return res.status(403).json({ message: "Accès refusé : vous n'êtes pas lié à ce dossier." });
+  // 2. Vérifier l'appartenance au CABINET (rc38/A7) : ensureDossierOwnership
+  // utilise getAccessibleUserIds → un membre du cabinet peut supprimer un
+  // dossier partagé (au lieu de l'ancien check self-only qui cassait R5b),
+  // mais AUCUN dossier d'un autre cabinet n'est accessible.
+  if (!(await ensureDossierOwnership(req, res, dossierId))) return;
+
+  // 3. Garde de RÔLE (A7) : la suppression est une action destructrice et
+  // irréversible (cascade documents/événements). Seuls owner/admin/avocat
+  // peuvent supprimer ; secrétaire et collaborateur sont refusés.
+  const role = await getCabinetRole(userId);
+  if (!canDeleteDossier(role)) {
+    console.warn(`[DELETE dossier] ACCESS_DENIED role=${role} user=${userId} dossier=${dossierId}`);
+    secLog(EVT.ACCESS_DENIED, {
+      userId: String(userId),
+      resourceType: 'dossier',
+      resourceId: String(dossierId),
+      reason: `role-forbidden:${role}`,
+    }, req);
+    return res.status(403).json({ message: "Accès refusé : votre rôle ne permet pas de supprimer un dossier." });
   }
 
   // 3. Supprimer les événements/tâches liés via DossierEventLink
@@ -1194,6 +1244,19 @@ router.delete('/dossier/:dossierId', auth, asyncHandler(async (req, res) => {
 
   // 5. Supprimer le lien UserDossier
   await UserDossier.deleteMany({ dossier: dossierId });
+
+  // A17 : mettre en corbeille les documents stockés du dossier et RENDRE leur
+  // quota. Sans ça, ils devenaient des orphelins comptant l'espace à jamais.
+  let storageCleanup = { count: 0, releasedBytes: 0 };
+  try {
+    const { releaseDossierDocuments } = require('../../services/storage/maintenance');
+    storageCleanup = await releaseDossierDocuments({ dossierId });
+    if (storageCleanup.count > 0) {
+      console.log(`[DELETE dossier] ${storageCleanup.count} document(s) stocké(s) mis en corbeille, ${storageCleanup.releasedBytes} octet(s) rendus au quota.`);
+    }
+  } catch (storageErr) {
+    console.warn('[DELETE dossier] Nettoyage stockage échoué (non bloquant):', storageErr.message);
+  }
 
   // 6. Supprimer le dossier lui-même
   await Dossier.findByIdAndDelete(dossierId);

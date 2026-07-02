@@ -1,0 +1,36 @@
+# Contexte de build Cloud Run. On garde server/ + client/build/ (servi par le
+# serveur) et on exclut tout le reste pour un upload rapide et SANS secrets.
+
+# Dépendances (réinstallées via npm ci dans le Dockerfile)
+node_modules/
+**/node_modules/
+
+# Sources frontend non nécessaires au runtime (on ne garde que client/build/)
+client/src/
+client/public/
+client/coverage/
+
+# Electron, OCR, sites, gros binaires
+electron-app/
+site/
+*.traineddata
+Barreaux/
+
+# Artefacts de build / packaging
+dist/
+dist-rollback*/
+playwright-report/
+e2e/
+
+# Secrets et logs : NE JAMAIS envoyer (les secrets passent par Secret Manager)
+.env
+**/.env
+*.log
+_build_*.log
+debug_log.txt
+
+# Divers
+.git/
+.github/
+*.bat
+*.lnk

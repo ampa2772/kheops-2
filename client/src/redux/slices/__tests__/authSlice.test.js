@@ -32,6 +32,7 @@ import reducer, {
   loadUser,
   loadUserFromLocalStorage,
   verifyEmailToken,
+  performLogout,
 } from '../authSlice';
 
 beforeEach(() => {
@@ -561,6 +562,41 @@ describe('authSlice thunks classiques loadUserFromLocalStorage', () => {
     });
     loadUserFromLocalStorage()(dispatch);
     // user est null car "undefined" est filtre, donc dispatch loadUser
+    expect(dispatch).toHaveBeenCalledWith(expect.any(Function));
+  });
+});
+
+// --- Classic thunk performLogout (deconnexion non-bloquante) ---
+
+describe('authSlice performLogout', () => {
+  let dispatch, getState;
+
+  beforeEach(() => {
+    dispatch = jest.fn((action) => {
+      if (typeof action === 'function') return action(dispatch, getState);
+      return action;
+    });
+    getState = () => ({ login: { user: { _id: 'u1' } } });
+  });
+
+  test('deconnecte meme sans window.electron (mode web) : dispatch logout et revient au login', async () => {
+    const navigate = jest.fn();
+    await performLogout({ navigate })(dispatch, getState);
+    // L'action logout (auth/logout) a bien ete dispatchee (le reducer fera le
+    // nettoyage localStorage dans un vrai store ; ici on verifie le dispatch).
+    expect(dispatch).toHaveBeenCalledWith(logout());
+    // retour a l'ecran de login
+    expect(navigate).toHaveBeenCalledWith('/');
+  });
+
+  test('ne crash pas et resout meme si navigate non fourni', async () => {
+    await expect(performLogout()(dispatch, getState)).resolves.toBeUndefined();
+  });
+
+  test('tente de verrouiller le cabinet (dispatch lockCabinetEncryption) avant le logout', async () => {
+    const navigate = jest.fn();
+    await performLogout({ navigate })(dispatch, getState);
+    // lockCabinetEncryption est dispatche comme thunk (fonction) en best-effort
     expect(dispatch).toHaveBeenCalledWith(expect.any(Function));
   });
 });

@@ -111,15 +111,12 @@ router.post('/events', auth, validateBody(createEventSchema), asyncHandler(async
     eventEndDate = endDate;
   }
 
-  // Vérifier si le dossierId est valide et si le dossier existe (si dossierId est fourni)
+  // rc38 (A1) : si un dossierId est fourni, il doit appartenir au cabinet.
+  // Sans ce contrôle, on pouvait lier son événement au dossier d'un autre
+  // cabinet (référence cross-cabinet illégitime). ensureDossierOwnership
+  // couvre validité + existence + appartenance et répond lui-même en cas de refus.
   if (dossierId) {
-    if (!mongoose.Types.ObjectId.isValid(dossierId)) {
-      return res.status(400).json({ message: "L'ID du dossier fourni est invalide." });
-    }
-    const dossierExists = await Dossier.findById(dossierId);
-    if (!dossierExists) {
-      return res.status(404).json({ message: "Le dossier spécifié pour la liaison n'a pas été trouvé." });
-    }
+    if (!(await ensureDossierOwnership(req, res, dossierId))) return;
   }
 
   const newAgendaEvent = new AgendaEvent({
@@ -186,9 +183,11 @@ router.put('/events/:eventId', auth, validateBody(updateEventSchema), asyncHandl
   }
 
   // Gérer la liaison au dossier (permet de lier ou de délier)
+  // rc38 (A1) : le nouveau dossier de liaison doit appartenir au cabinet.
   if (dossierId === null) {
     eventToUpdate.dossier = null;
   } else if (dossierId && mongoose.Types.ObjectId.isValid(dossierId)) {
+    if (!(await ensureDossierOwnership(req, res, dossierId))) return;
     eventToUpdate.dossier = dossierId;
   }
 

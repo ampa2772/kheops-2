@@ -47,6 +47,35 @@ function getConnectedOfficeUserIds() {
 }
 
 /**
+ * A14 — ANTI-USURPATION DE PRÉSENCE. Enregistre (ou efface) l'OfficeUser actif
+ * d'un socket, mais UNIQUEMENT si cet OfficeUser appartient réellement à
+ * l'utilisateur authentifié du socket (lien UserOfficeUser). Sans ce contrôle,
+ * un client pouvait déclarer `presence:set-office-user` avec l'_id d'un
+ * OfficeUser d'un AUTRE utilisateur/cabinet et le faire apparaître « en ligne ».
+ *
+ * @returns {Promise<'set'|'cleared'|'rejected'>}
+ */
+async function setSocketPresence({ socketId, userId, officeUserId }) {
+    if (!officeUserId) {
+        presenceBySocket.delete(socketId);
+        return 'cleared';
+    }
+    const owned = await UserOfficeUser
+        .findOne({ user: String(userId), officeUser: String(officeUserId) })
+        .lean();
+    if (!owned) {
+        // Tentative d'usurpation (ou OfficeUser d'un autre compte) → on ignore.
+        presenceBySocket.delete(socketId);
+        return 'rejected';
+    }
+    presenceBySocket.set(socketId, String(officeUserId));
+    return 'set';
+}
+
+// Exposé pour les tests unitaires (isolation de l'état de présence).
+function _clearPresence() { presenceBySocket.clear(); }
+
+/**
  * Attache Socket.io à un serveur HTTP existant et configure le handler chat.
  *
  * @param {http.Server} httpServer
@@ -89,7 +118,12 @@ function attach(httpServer, { jwtSecret, corsOrigins } = {}) {
             if (rawToken && rawToken !== BYPASS_DEV_TOKEN) {
                 try {
                     const decoded = jwt.verify(rawToken, jwtSecret);
-                    const realUserId = decoded.user || decoded.id;
+                    // BUG rc38 : le payload JWT du projet est { user: { id } }.
+                    // `decoded.user || decoded.id` renvoyait alors l'OBJET user,
+                    // et String(objet) = "[object Object]" → room `user:[object Object]`
+                    // → tout le routage temps réel cassé en mode bypass. On extrait
+                    // désormais l'id comme la branche stricte plus bas.
+                    const realUserId = decoded.user?.id || decoded.user || decoded.id;
                     if (realUserId) {
                         socket.data.userId = String(realUserId);
                         log(`[Socket] HANDSHAKE BYPASS+JWT valide -> userId=${realUserId}`);
@@ -162,13 +196,22 @@ function attach(httpServer, { jwtSecret, corsOrigins } = {}) {
         // Presence : le client declare quel OfficeUser est actif sur sa session.
         // On stocke le mapping socketId -> officeUserId pour pouvoir lister les
         // OfficeUsers connectes via /api/presence/connected.
-        socket.on('presence:set-office-user', ({ officeUserId } = {}) => {
-            if (officeUserId) {
-                presenceBySocket.set(socket.id, String(officeUserId));
-                log(`[Presence] SET socketId=${socket.id} officeUser=${officeUserId}`);
-            } else {
-                presenceBySocket.delete(socket.id);
-                log(`[Presence] CLEAR socketId=${socket.id}`);
+        socket.on('presence:set-office-user', async ({ officeUserId } = {}) => {
+            try {
+                const outcome = await setSocketPresence({
+                    socketId: socket.id,
+                    userId: socket.data.userId,
+                    officeUserId,
+                });
+                if (outcome === 'set') {
+                    log(`[Presence] SET socketId=${socket.id} officeUser=${officeUserId}`);
+                } else if (outcome === 'rejected') {
+                    log(`[Presence] REJECTED (usurpation) socketId=${socket.id} user=${socket.data.userId} officeUser=${officeUserId}`);
+                } else {
+                    log(`[Presence] CLEAR socketId=${socket.id}`);
+                }
+            } catch (err) {
+                log(`[Presence] ERROR socketId=${socket.id} : ${err.message}`);
             }
         });
 
@@ -252,6 +295,8 @@ module.exports = {
     detach,
     serializeMessage,
     getConnectedOfficeUserIds,
+    setSocketPresence,
     MAX_RECONNECT_ATTEMPTS,
     _getIoForTesting,
+    _clearPresence,
 };

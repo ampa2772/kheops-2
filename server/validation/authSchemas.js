@@ -82,6 +82,10 @@ const registerSchema = Joi.object({
       'any.required': 'Code postal requis.',
     }),
   genre: genreField,
+  // AUTH-002 : champs optionnels (rétrocompat — les clients existants ne les
+  // envoient pas). cabinetName = nom du cabinet (Tenant) ; role = rôle applicatif.
+  cabinetName: Joi.string().trim().max(120).allow('', null).optional(),
+  role: Joi.string().valid('avocat', 'collaborateur', 'secretaire', 'admin').optional(),
 });
 
 const loginSchema = Joi.object({

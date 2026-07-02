@@ -52,6 +52,15 @@ jest.mock('../../models/Folder/Dossier', () => ({
   findById: (...args) => mockDossierFindById(...args),
 }));
 
+// rc37/A1 : les routes vérifient l'appartenance au dossier via
+// ensureDossierOwnership (qui écrit lui-même la réponse en cas de refus).
+// Par défaut on autorise ; les tests d'accès refusé surchargent.
+const mockEnsureDossierOwnership = jest.fn();
+jest.mock('../../utils/ownershipHelpers', () => ({
+  ensureDossierOwnership: (...args) => mockEnsureDossierOwnership(...args),
+}));
+jest.mock('../../utils/auditLogger', () => ({ create: jest.fn(), update: jest.fn(), delete: jest.fn() }));
+
 const mongoose = require('mongoose');
 const express = require('express');
 const router = require('../agendaRoutes');
@@ -106,6 +115,7 @@ describe('Routes /api/agenda', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mongoose.Types.ObjectId.isValid.mockReturnValue(true);
+    mockEnsureDossierOwnership.mockResolvedValue(true); // dossier accessible par défaut
   });
 
   // ===================== GET /tasks =====================
@@ -183,8 +193,10 @@ describe('Routes /api/agenda', () => {
         endDate: '2025-01-15T11:00:00Z',
       });
 
+      // La validation passe désormais par validateBody(createEventSchema) (Joi),
+      // qui renvoie un message générique « Données invalides. ».
       expect(res.status).toBe(400);
-      expect(res.body.message).toContain('titre');
+      expect(res.body.message).toMatch(/invalides|titre/i);
     });
 
     it('retourne 400 pour une tache sans deadline', async () => {
@@ -220,17 +232,22 @@ describe('Routes /api/agenda', () => {
       expect(res.status).toBe(400);
     });
 
-    it('retourne 404 si le dossier n existe pas', async () => {
-      mockDossierFindById.mockResolvedValue(null);
+    it('retourne 403 si le dossier n appartient pas au cabinet', async () => {
+      // A1 : la liaison à un dossier passe par ensureDossierOwnership, qui
+      // refuse (403) un dossier inaccessible — remplace l'ancien 404 « existe pas ».
+      mockEnsureDossierOwnership.mockImplementation(async (req, res) => {
+        res.status(403).json({ message: 'Acces refuse.' });
+        return false;
+      });
 
       const res = await makeRequest('POST', '/api/agenda/events', {
         title: 'Event',
         startDate: '2025-01-15T10:00:00Z',
         endDate: '2025-01-15T11:00:00Z',
-        dossierId: 'valid-id-but-not-found',
+        dossierId: '507f1f77bcf86cd799439011',
       });
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(403);
     });
   });
 

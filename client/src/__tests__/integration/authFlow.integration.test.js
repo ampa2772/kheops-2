@@ -59,13 +59,16 @@ describe('Flux d authentification (integration)', () => {
     it('affiche le texte KHEOPS 2', () => {
       renderWithProviders(<Home />, { route: '/' });
 
-      expect(screen.getByText('KHEOPS 2')).toBeInTheDocument();
+      // "KHEOPS 2" apparait a la fois dans le panneau home-left (<p>) et dans le
+      // badge de marque du composant Login (<span class="brand-text">), d'ou getAllByText.
+      expect(screen.getAllByText('KHEOPS 2').length).toBeGreaterThan(0);
     });
 
     it('affiche le formulaire de login par defaut', () => {
       renderWithProviders(<Home />, { route: '/' });
 
-      expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
+      // Le placeholder de l'email est desormais "vous@exemple.com".
+      expect(screen.getByPlaceholderText('vous@exemple.com')).toBeInTheDocument();
       expect(screen.getByText('Se connecter')).toBeInTheDocument();
     });
 
@@ -93,7 +96,7 @@ describe('Flux d authentification (integration)', () => {
     it('permet de saisir un email', () => {
       renderWithProviders(<Home />, { route: '/' });
 
-      const emailInput = screen.getByPlaceholderText('Email');
+      const emailInput = screen.getByPlaceholderText('vous@exemple.com');
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
 
       expect(emailInput.value).toBe('test@example.com');
@@ -116,8 +119,8 @@ describe('Flux d authentification (integration)', () => {
 
       fireEvent.click(screen.getByText('Créer nouveau compte'));
 
-      // Apres bascule, on devrait voir le formulaire register
-      expect(screen.getByText("S'inscrire")).toBeInTheDocument();
+      // Apres bascule, on devrait voir le formulaire register (bouton de soumission).
+      expect(screen.getByText('Créer mon compte')).toBeInTheDocument();
     });
 
     it('revenir au login depuis le register', () => {
@@ -125,7 +128,7 @@ describe('Flux d authentification (integration)', () => {
 
       // Aller vers register
       fireEvent.click(screen.getByText('Créer nouveau compte'));
-      expect(screen.getByText("S'inscrire")).toBeInTheDocument();
+      expect(screen.getByText('Créer mon compte')).toBeInTheDocument();
 
       // Revenir au login
       fireEvent.click(screen.getByText('Revenir à se connecter'));
@@ -160,7 +163,7 @@ describe('Flux d authentification (integration)', () => {
         route: '/?error=server_error',
       });
 
-      expect(screen.getByText('Erreur serveur lors de l\'authentification Google.')).toBeInTheDocument();
+      expect(screen.getByText('Erreur serveur lors de l\'authentification.')).toBeInTheDocument();
     });
   });
 

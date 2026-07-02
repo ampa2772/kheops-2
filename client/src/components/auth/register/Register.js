@@ -94,6 +94,8 @@ const Register = (props) => {
     address: '',
     city: '',
     postalCode: '',
+    cabinetName: '',
+    role: 'avocat',
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -112,13 +114,13 @@ const Register = (props) => {
   const rawError = useSelector((state) => state.login.error);
   const error = rawError && typeof rawError === 'object' ? rawError.message : rawError;
 
-  // Pourcentage de complétion du formulaire (8 champs)
-  const TOTAL_FIELDS = 8;
+  // Pourcentage de complétion : basé sur les champs REQUIS (cabinet/rôle sont facultatifs).
+  const REQUIRED_FIELDS = ['email', 'password', 'firstName', 'lastName', 'genre', 'address', 'city', 'postalCode'];
   const filledCount = useMemo(
-    () => Object.values(formData).filter((v) => String(v).trim() !== '').length,
+    () => REQUIRED_FIELDS.filter((k) => String(formData[k] || '').trim() !== '').length,
     [formData]
   );
-  const progressPercent = Math.round((filledCount / TOTAL_FIELDS) * 100);
+  const progressPercent = Math.round((filledCount / REQUIRED_FIELDS.length) * 100);
 
   return (
     <div className="form-container register-container">
@@ -307,6 +309,45 @@ const Register = (props) => {
                   autoComplete="postal-code"
                   placeholder="Code postal"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 04 — CABINET (facultatif) */}
+          <div className="form-section">
+            <div className="section-header">
+              <span className="section-number">04</span>
+              <span className="section-label">CABINET</span>
+              <span className="section-divider" aria-hidden="true" />
+            </div>
+            <div className="field-group">
+              <div className="input-wrapper">
+                <span className="input-icon" aria-hidden="true">{IconBuilding}</span>
+                <input
+                  type="text"
+                  name="cabinetName"
+                  value={formData.cabinetName}
+                  onChange={onChange}
+                  autoComplete="organization"
+                  placeholder="Nom du cabinet (facultatif)"
+                />
+              </div>
+            </div>
+            <div className="field-group">
+              <div className="input-wrapper">
+                <span className="input-icon" aria-hidden="true">{IconPerson}</span>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={onChange}
+                  className="register-role-select"
+                  aria-label="Rôle dans le cabinet"
+                >
+                  <option value="avocat">Avocat(e)</option>
+                  <option value="collaborateur">Collaborateur / Collaboratrice</option>
+                  <option value="secretaire">Secrétaire</option>
+                  <option value="admin">Administrateur</option>
+                </select>
               </div>
             </div>
           </div>

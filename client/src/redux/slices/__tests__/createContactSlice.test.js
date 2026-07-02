@@ -132,15 +132,24 @@ describe('createContactSlice SET_CONTACT_FIELD', () => {
     expect(state.formErrors.errorForm.nom).toBe(true);
   });
 
-  test('email met a jour validEmail', () => {
+  test('email met a jour la valeur et remet emailExistsError a null', () => {
     const state = reducer(getBase(), { type: 'SET_CONTACT_FIELD', payload: { field: 'email', value: 'a@b.com' } });
-    expect(state.formErrors.validEmail).toBe(true);
+    expect(state.contactDetails.contact.email).toBe('a@b.com');
     expect(state.formErrors.emailExistsError).toBeNull();
+    expect(state.formErrors.validEmail).toBe(true);
   });
 
-  test('email invalide met validEmail a false', () => {
+  // La validation d'email a ete DESACTIVEE cote reducer : updateNbErrors()
+  // (appele en fin de SET_CONTACT_FIELD) force toujours validEmail = true et
+  // nbErrors = 0 (cf. FonctionsCreateContact.updateNbErrors). Un email
+  // syntaxiquement invalide n'est donc plus signale par le store : la valeur
+  // est bien enregistree mais validEmail reste true. Le test verifie ce
+  // comportement actuel (plus l'ancienne mise a false).
+  test('email invalide : valeur enregistree, validEmail reste true (validation desactivee)', () => {
     const state = reducer(getBase(), { type: 'SET_CONTACT_FIELD', payload: { field: 'email', value: 'notanemail' } });
-    expect(state.formErrors.validEmail).toBe(false);
+    expect(state.contactDetails.contact.email).toBe('notanemail');
+    expect(state.formErrors.validEmail).toBe(true);
+    expect(state.formErrors.nbErrors).toBe(0);
   });
 
   test('changement genre recalcule maritalStatus et statusMaritauxGenre', () => {
@@ -189,10 +198,16 @@ describe('createContactSlice SET_CONTACT_FIELD', () => {
 // ========================================================================
 
 describe('createContactSlice EMAIL_ALREADY_EXISTS_PP', () => {
-  test('definit emailExistsError et met email en erreur', () => {
-    const state = reducer(getBase(), { type: 'EMAIL_ALREADY_EXISTS_PP', payload: { message: 'Existe deja' } });
-    expect(state.formErrors.emailExistsError).toBe('Existe deja');
-    expect(state.formErrors.errorForm.email).toBe(true);
+  // Le handler EMAIL_ALREADY_EXISTS_PP est desormais un no-op volontaire
+  // ("Desactive : pas de blocage pour email duplique", cf.
+  // createContactSlice.js). L'action ne doit donc plus positionner d'erreur :
+  // emailExistsError reste absent (undefined) et errorForm.email inchange
+  // (false a l'initialisation). Le test verifie ce comportement de non-blocage.
+  test('ne bloque plus sur email duplique (handler no-op)', () => {
+    const before = getBase();
+    const state = reducer(before, { type: 'EMAIL_ALREADY_EXISTS_PP', payload: { message: 'Existe deja' } });
+    expect(state.formErrors.emailExistsError).toBeUndefined();
+    expect(state.formErrors.errorForm.email).toBe(false);
   });
 });
 

@@ -57,9 +57,9 @@ describe('Login', () => {
     );
   };
 
-  it('rend le champ email avec placeholder "Email"', () => {
+  it('rend le champ email avec placeholder "vous@exemple.com"', () => {
     renderLogin();
-    expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('vous@exemple.com')).toBeInTheDocument();
   });
 
   it('rend le bouton "Se connecter"', () => {
@@ -86,7 +86,7 @@ describe('Login', () => {
 
   it('permet la saisie dans le champ email', async () => {
     renderLogin();
-    const emailInput = screen.getByPlaceholderText('Email');
+    const emailInput = screen.getByPlaceholderText('vous@exemple.com');
     await userEvent.type(emailInput, 'user@test.com');
     expect(emailInput).toHaveValue('user@test.com');
   });
@@ -98,7 +98,7 @@ describe('Login', () => {
 
   it('dispatch login au submit du formulaire', async () => {
     renderLogin();
-    const emailInput = screen.getByPlaceholderText('Email');
+    const emailInput = screen.getByPlaceholderText('vous@exemple.com');
     await userEvent.type(emailInput, 'user@test.com');
 
     const submitBtn = screen.getByText('Se connecter');
@@ -123,8 +123,11 @@ describe('Login', () => {
     expect(screen.getByText(/Aucun compte Kheops/)).toBeInTheDocument();
   });
 
-  it('affiche l\'erreur generique pour une erreur Google inconnue', () => {
+  it('affiche l\'erreur generique pour une erreur OAuth inconnue', () => {
+    // Pour un code d'erreur non reconnu, le composant affiche le message
+    // fallback generique "Une erreur est survenue lors de la connexion."
+    // (sans mention specifique du fournisseur Google/Microsoft).
     renderLogin({}, '/?error=unknown_error');
-    expect(screen.getByText(/Une erreur est survenue lors de la connexion avec Google/)).toBeInTheDocument();
+    expect(screen.getByText(/Une erreur est survenue lors de la connexion/)).toBeInTheDocument();
   });
 });

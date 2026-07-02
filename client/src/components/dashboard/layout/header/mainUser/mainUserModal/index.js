@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logout } from "../../../../../../redux/slices/authSlice";
+import { performLogout } from "../../../../../../redux/slices/authSlice";
 import { useToast } from '../../../../../common/notifications/useToast';
 import './styles.css';
 
@@ -47,20 +47,11 @@ const MainUserModal = ({ position, onClose }) => {
     }
   }, [isMicrosoftUser]);
 
-  const handleLogout = async () => {
-    // Déconnexion cloud côté Electron (supprime le token local)
-    if (isMicrosoftUser) {
-      if (window.electronAPI?.logoutMicrosoft) {
-        try { await window.electronAPI.logoutMicrosoft(); } catch (_) {}
-      }
-    } else {
-      if (window.electronAPI?.logoutGoogle) {
-        try { await window.electronAPI.logoutGoogle(); } catch (_) {}
-      }
-    }
-    // Déconnexion Kheops (supprime le JWT)
-    dispatch(logout());
-    navigate("/");
+  const handleLogout = () => {
+    // Déconnexion complète centralisée : verrouille le cabinet (oublie la
+    // MasterKey), déconnecte le cloud Electron, vide le JWT et revient au
+    // login. Voir performLogout dans authSlice.js.
+    dispatch(performLogout({ navigate }));
   };
 
   const handleReconnectCloud = async () => {

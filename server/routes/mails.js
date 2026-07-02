@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const mime = require('mime-types');
 const multer = require('multer');
+const { buildFileStorage } = require('../services/fileStorage');
 const MailComposer = require('nodemailer/lib/mail-composer');
 const auth = require('../middlewares/middleware-auth');
 const User = require('../models/App_Users/User');
@@ -38,6 +39,8 @@ const msGraphMail = require('../utils/microsoftGraphMail');
 // decryptIfNeeded, et seront chiffres lors d'une prochaine ecriture.
 const { decryptIfNeeded } = require('../utils/tokenCrypto');
 const audit = require('../utils/auditLogger');
+const { getAccessibleUserIds } = require('../services/cabinetAccess');
+const { escapeHtml } = require('../utils/escapeHtml');
 
 const router = express.Router();
 
@@ -238,9 +241,9 @@ async function getAllUserEmailsAndNamesFromDB(userId) {
   };
 
   const [userContacts, userContactsPM, userContactsPMPublique] = await Promise.all([
-    UserContact.find({ user: userId }).select('contact').lean(),
-    UserContactPM.find({ user: userId }).select('contactPM').lean(),
-    UserContactPMPublique.find({ user: userId }).select('contactPMPublique').lean(),
+    UserContact.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('contact').lean(),
+    UserContactPM.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('contactPM').lean(),
+    UserContactPMPublique.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('contactPMPublique').lean(),
   ]);
 
   const allContactIdsPhysique = userContacts.map(l => l.contact).filter(Boolean);
@@ -285,7 +288,7 @@ async function getAllUserEmailsAndNamesFromDB(userId) {
     }
   }
 
-  const userDossierLinks = await UserDossier.find({ user: userId }).select('dossier').lean();
+  const userDossierLinks = await UserDossier.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('dossier').lean();
   if (userDossierLinks.length > 0) {
     const dossierIds = userDossierLinks.map(link => link.dossier);
     const dossiers = await Dossier.find({ _id: { $in: dossierIds } }).lean();
@@ -467,7 +470,19 @@ router.post('/check-email-presence', requireMailAuth, async (req, res, next) => 
 
     const date = new Date(dateHeader).toLocaleDateString('fr-CA');
 
-    const candidateDossiers = await Dossier.find({ _id: { $in: candidateDossierIds } });
+    // SECURITE rc38 (A1) : ne considérer QUE les dossiers du cabinet courant.
+    // Sans ce filtre, un user pouvait sonder des dossierIds arbitraires (oracle
+    // d'existence + noms de sous-dossiers) appartenant à d'autres cabinets.
+    const accessibleDossierLinks = await UserDossier
+      .find({ user: { $in: await getAccessibleUserIds(req.user) } })
+      .select('dossier').lean();
+    const accessibleDossierSet = new Set(accessibleDossierLinks.map((l) => String(l.dossier)));
+    const scopedCandidateIds = candidateDossierIds.filter((id) => accessibleDossierSet.has(String(id)));
+    if (scopedCandidateIds.length === 0) {
+      return res.json({ dossiersContainingEmail: [] });
+    }
+
+    const candidateDossiers = await Dossier.find({ _id: { $in: scopedCandidateIds } });
     if (candidateDossiers.length === 0) {
       return res.json({ dossiersContainingEmail: [] });
     }
@@ -725,14 +740,30 @@ router.post('/send-email', [auth, getAuthenticatedMailContext, upload.single('at
         return res.status(400).json({ message: 'docId/nomDocument invalides.' });
       }
       const root = getFilesClientsRoot();
-      const fullPath = path.resolve(root, safeDocId, safeSubfolder, safeName);
-      const rootResolved = path.resolve(root);
-      if (!fullPath.startsWith(rootResolved + path.sep) && fullPath !== rootResolved) {
-        console.warn(`[mails/send-email] Path traversal bloque user=${req.user} fullPath="${fullPath}"`);
-        return res.status(400).json({ message: 'Chemin invalide.' });
-      }
-      if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
-        attachments.push({ filename: safeName, content: fs.readFileSync(fullPath), contentType: mime.lookup(fullPath) || "application/octet-stream" });
+      // Lecture du document client via la couche de stockage agnostique
+      // (Phase 4). En mode LOCAL (defaut, Electron) : comportement disque
+      // STRICTEMENT inchange. En mode GCS : lecture par cle docId/subfolder/nom.
+      const clientDocsStorage = buildFileStorage({ ...process.env, FILE_STORAGE_LOCAL_ROOT: root });
+
+      if (clientDocsStorage.kind === 'local') {
+        const fullPath = path.resolve(root, safeDocId, safeSubfolder, safeName);
+        const rootResolved = path.resolve(root);
+        if (!fullPath.startsWith(rootResolved + path.sep) && fullPath !== rootResolved) {
+          console.warn(`[mails/send-email] Path traversal bloque user=${req.user} fullPath="${fullPath}"`);
+          return res.status(400).json({ message: 'Chemin invalide.' });
+        }
+        if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+          attachments.push({ filename: safeName, content: fs.readFileSync(fullPath), contentType: mime.lookup(fullPath) || "application/octet-stream" });
+        }
+      } else {
+        // Stockage cloud (GCS) : cle = docId/subfolder/nom (structure identique
+        // a l'arborescence Files_Clients). Les composants sont deja sanitises
+        // (path.basename) ; sanitizeKey rejette en plus toute traversee.
+        const docKey = [safeDocId, safeSubfolder, safeName].filter(Boolean).join('/');
+        if (await clientDocsStorage.exists(docKey)) {
+          const content = await clientDocsStorage.read(docKey);
+          attachments.push({ filename: safeName, content, contentType: mime.lookup(safeName) || "application/octet-stream" });
+        }
       }
     }
 
@@ -748,7 +779,7 @@ router.post('/send-email', [auth, getAuthenticatedMailContext, upload.single('at
     // Google (existant)
     const { gmail } = req;
     const rawMessage = Buffer.from(await new MailComposer({
-      to: toList, subject: subject || '(Sans objet)', text: body, html: `<p>${body.replace(/\n/g, '<br>')}</p>`, attachments,
+      to: toList, subject: subject || '(Sans objet)', text: body, html: `<p>${escapeHtml(body).replace(/\n/g, '<br>')}</p>`, attachments,
     }).compile().build()).toString('base64url');
     const { data } = await gmail.users.messages.send({ userId: 'me', requestBody: { raw: rawMessage } });
     audit.create(req, 'email-sent', data.id, {

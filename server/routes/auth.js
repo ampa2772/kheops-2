@@ -813,10 +813,9 @@ router.post("/forgot-password/request-code", forgotPasswordLimiter, validateBody
             console.error(`[forgot-password/request-code] ❌ Échec d'envoi du code à ${user.email}`);
             console.error('[forgot-password/request-code] Cause :', emailErr?.message || emailErr);
             console.error('[forgot-password/request-code] Vérifiez :');
-            console.error('[forgot-password/request-code]   1. Variables YOUR_APP_CLIENT_ID / YOUR_TENANT_ID / YOUR_APP_CLIENT_SECRET dans .env');
-            console.error('[forgot-password/request-code]   2. La boîte Support-Kheops2@Kheops2.onmicrosoft.com existe et a une licence');
-            console.error('[forgot-password/request-code]   3. Permission "Mail.Send" (Application) accordée + admin consent dans Azure AD');
-            console.error('[forgot-password/request-code]   4. GET /api/health/email pour voir l\'état de la config');
+            console.error('[forgot-password/request-code]   1. Variables GMAIL_USER / GMAIL_APP_PASSWORD dans .env');
+            console.error('[forgot-password/request-code]   2. App Password Gmail valide (Google Account → Security → 2-Step Verification → App passwords)');
+            console.error('[forgot-password/request-code]   3. GET /api/health/email pour voir l\'état de la config');
             console.error('[forgot-password/request-code] ============================================');
             // Le client reçoit malgré tout la réponse générique pour ne pas leak l'info
         }
@@ -927,7 +926,7 @@ router.post("/forgot-password/set-new-password", verifyCodeLimiter, validateBody
 // Route d'inscription
 router.post("/register", registerLimiter, validateBody(registerSchema), async (req, res) => {
     try {
-        const { email, password, firstName, lastName, address, city, postalCode, genre } = req.body;
+        const { email, password, firstName, lastName, address, city, postalCode, genre, cabinetName, role } = req.body;
         // Le mot de passe est toujours requis à l'inscription pour initialiser le compte.
         if (!email || !password || !firstName || !lastName || !address || !city || !postalCode || !genre) {
             secLog(EVT.AUTH_LOGIN_FAILURE, { email: email || null, source: 'register', reason: 'missing-fields' }, req);
@@ -947,7 +946,19 @@ router.post("/register", registerLimiter, validateBody(registerSchema), async (r
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         const newUser = new User({ email, password: hashedPassword, firstName, lastName, address, city, postalCode, genre });
+        if (role) newUser.role = role; // AUTH-002 : rôle applicatif (avocat/collaborateur/secretaire/admin)
         await newUser.save();
+
+        // AUTH-002 : rattacher l'utilisateur à un cabinet (Tenant). 1 inscription = 1 cabinet.
+        // Non bloquant : si ça échoue, requireTenant créera le cabinet à la 1re requête tenant-scopée.
+        try {
+            const { createTenantForUser } = require('../services/tenantService');
+            newUser.tenantId = await createTenantForUser(newUser, cabinetName);
+            await newUser.save();
+        } catch (tenantErr) {
+            console.error('[register] Création du cabinet (tenant) échouée (fallback paresseux) :', tenantErr.message);
+        }
+
         let roleOfficeUser = (newUser.genre === 'Masculin') ? 'Avocat' : (newUser.genre === 'Feminin' ? 'Avocate' : 'Avocat(e)');
         const newOfficeUser = new OfficeUser({ prenomOfficeUser: newUser.firstName, nomOfficeUser: newUser.lastName, genre: newUser.genre, roleOfficeUser, mainOfficeUser: true, isAvocat: true });
         await newOfficeUser.save();

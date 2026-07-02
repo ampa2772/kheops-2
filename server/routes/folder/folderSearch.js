@@ -38,6 +38,8 @@ const nationalitesData = require("../../utils/Datas/nationalites.json");
 
 const { capitalizeNames } = require("../../utils/fonctions");
 
+const { getAccessibleUserIds } = require("../../services/cabinetAccess");
+
 // ========================================================================
 // Routes de récupération / recherche (communes, professions, etc.)
 // ========================================================================
@@ -149,7 +151,7 @@ router.get(
       const regexQuery = new RegExp("^" + safeQuery, "i");
 
       // Restreindre aux contacts lies au user (UserContact)
-      const userLinks = await UserContact.find({ user: req.user })
+      const userLinks = await UserContact.find({ user: { $in: await getAccessibleUserIds(req.user) } })
         .select('contact')
         .lean();
       const userContactIds = userLinks.map((l) => l.contact);
@@ -356,15 +358,15 @@ router.post(
     // On vérifie la liaison user->contact
     const [liaisonsPhysiques, liaisonsPM, liaisonsPMPubliques] = await Promise.all([
       UserContact.find({
-        user: user._id,
+        user: { $in: await getAccessibleUserIds(user._id) },
         contact: { $in: contactsPhysiquesIds },
       }).select("contact").lean(),
       UserContactPM.find({
-        user: user._id,
+        user: { $in: await getAccessibleUserIds(user._id) },
         contactPM: { $in: contactsPMIds },
       }).select("contactPM").lean(),
       UserContactPMPublique.find({
-        user: user._id,
+        user: { $in: await getAccessibleUserIds(user._id) },
         contactPMPublique: { $in: contactsPMPubliquesIds },
       }).select("contactPMPublique").lean(),
     ]);
@@ -470,15 +472,15 @@ router.post(
 
     const [liaisonsPhys, liaisonsPM, liaisonsPMPub] = await Promise.all([
       UserContact.find({
-        user: user._id,
+        user: { $in: await getAccessibleUserIds(user._id) },
         contact: { $in: contactsPhysiquesIds },
       }).select("contact"),
       UserContactPM.find({
-        user: user._id,
+        user: { $in: await getAccessibleUserIds(user._id) },
         contactPM: { $in: contactsPMIds },
       }).select("contactPM"),
       UserContactPMPublique.find({
-        user: user._id,
+        user: { $in: await getAccessibleUserIds(user._id) },
         contactPMPublique: { $in: contactsPMPubliquesIds },
       }).select("contactPMPublique"),
     ]);
@@ -552,9 +554,9 @@ router.post(
     // matchent le terme (B-5 isolation cassee, exploitable cross-cabinet).
     const userId = req.user;
     const [physLinks, pmLinks, pmPubLinks] = await Promise.all([
-      UserContact.find({ user: userId }).select('contact').lean(),
-      UserContactPM.find({ user: userId }).select('contactPM').lean(),
-      UserContactPMPublique.find({ user: userId }).select('contactPMPublique').lean(),
+      UserContact.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('contact').lean(),
+      UserContactPM.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('contactPM').lean(),
+      UserContactPMPublique.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('contactPMPublique').lean(),
     ]);
     const userContactIds = physLinks.map((l) => l.contact);
     const userPMIds = pmLinks.map((l) => l.contactPM);
@@ -642,7 +644,7 @@ router.post(
     }
 
     // 1. Trouver les dossiers liés à l'utilisateur
-    const userDossierLinks = await UserDossier.find({ user: userId }).select('dossier').lean();
+    const userDossierLinks = await UserDossier.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('dossier').lean();
     if (!userDossierLinks.length) {
       return res.json([]); // Pas de dossiers pour cet utilisateur
     }
@@ -680,9 +682,9 @@ router.post(
     // Logique multi-mots pour personne physique (ex: "Dupont Jean" -> nom^Dupont + prenoms^Jean)
     const searchParts = searchTerm.trim().toLowerCase().split(" ").filter(Boolean);
 
-    const userContactsPhysiques = await UserContact.find({ user: userId }).select('contact').lean();
-    const userContactsPM = await UserContactPM.find({ user: userId }).select('contactPM').lean();
-    const userContactsPMPublique = await UserContactPMPublique.find({ user: userId }).select('contactPMPublique').lean();
+    const userContactsPhysiques = await UserContact.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('contact').lean();
+    const userContactsPM = await UserContactPM.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('contactPM').lean();
+    const userContactsPMPublique = await UserContactPMPublique.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('contactPMPublique').lean();
 
     const contactIdsPhysiques = userContactsPhysiques.map(uc => uc.contact);
     const contactIdsPM = userContactsPM.map(uc => uc.contactPM);

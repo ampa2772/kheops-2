@@ -1,4 +1,12 @@
 // Tests unitaires — personneMoraleSlice.js
+//
+// NOTE (alignement 2026-07) : le slice a été fortement SIMPLIFIÉ.
+// Il n'y a plus de "représentant légal" (RL) ni de "contact direct" (CD)
+// séparés : tous les champs vivent désormais dans `personData` (dont des
+// champs `interlocuteur*`). De plus, la validation live des champs requis et
+// des emails a été DÉSACTIVÉE dans les reducers (formErrors init = false,
+// EMAIL_ALREADY_EXISTS_PM est un no-op). Les assertions ci-dessous reflètent
+// ce comportement ACTUEL, pas l'ancien.
 
 jest.mock('../../../services/apiClient', () => ({
   __esModule: true,
@@ -59,6 +67,16 @@ import {
 
 const getBase = () => reducer(undefined, { type: '@@INIT' });
 
+// Helper : mappe les args dispatchés vers leur `type`, en ignorant de façon
+// défensive les valeurs non-objet (thunks fonction, et surtout les thunks
+// mockés — p.ex. fetchCurrentDossier — qui peuvent retourner undefined dans
+// l'environnement de test).
+const dispatchedTypes = (dispatch) =>
+  dispatch.mock.calls
+    .map((c) => c[0])
+    .filter((a) => a != null && typeof a !== 'function')
+    .map((a) => a.type);
+
 // ========================================================================
 // Etat initial
 // ========================================================================
@@ -68,24 +86,29 @@ describe('personneMoraleSlice etat initial', () => {
     const state = getBase();
     expect(state.personData.contactType).toBe('morale');
     expect(state.personData.raisonSociale).toBe('');
-    expect(state.personData.genreRL).toBe('Masculin');
-    expect(state.representantLegal.nomRL).toBe('');
-    expect(state.contactDirect.nomCD).toBe('');
+    // Modèle simplifié : plus de RL/CD séparés ; interlocuteur principal à ''
+    expect(state.personData.interlocuteurNom).toBe('');
+    expect(state.personData.interlocuteurPrenom).toBe('');
+    expect(state.representantLegal).toBeUndefined();
+    expect(state.contactDirect).toBeUndefined();
   });
 
-  test('initialise les erreurs de formulaire', () => {
+  test('initialise les erreurs de formulaire (validation désactivée => false)', () => {
     const state = getBase();
-    expect(state.formErrors.raisonSociale).toBe(true);
-    expect(state.formErrors.siret).toBe(true);
-    expect(state.errorsCount).toBe(6); // 6 champs requis tous vides
+    // formErrorsInitialState = tous false (validation live désactivée)
+    expect(state.formErrors.raisonSociale).toBe(false);
+    expect(state.formErrors.siret).toBe(false);
+    expect(state.errorsCount).toBe(0); // aucune erreur comptée
   });
 
   test('initialise ErrorsMails', () => {
     const state = getBase();
-    expect(state.ErrorsMails.emailEntrepriseError).toBe(true);
-    expect(state.ErrorsMails.emailCDError).toBe(true);
-    expect(state.ErrorsMails.emailRLError).toBe(true);
+    // Modèle simplifié : seul emailEntrepriseError subsiste (init false)
+    expect(state.ErrorsMails.emailEntrepriseError).toBe(false);
     expect(state.ErrorsMails.emailExistsError).toBeNull();
+    expect(state.ErrorsMails.errorField).toBeNull();
+    expect(state.ErrorsMails.emailCDError).toBeUndefined();
+    expect(state.ErrorsMails.emailRLError).toBeUndefined();
   });
 });
 
@@ -94,13 +117,14 @@ describe('personneMoraleSlice etat initial', () => {
 // ========================================================================
 
 describe('personneMoraleSlice EMAIL_ALREADY_EXISTS_PM', () => {
-  test('definit emailExistsError et errorField', () => {
+  test('est un no-op : ne bloque plus sur email dupliqué', () => {
+    // Le reducer a été désactivé (pas de blocage email dupliqué).
     const state = reducer(getBase(), {
       type: 'EMAIL_ALREADY_EXISTS_PM',
       payload: { message: 'Cet email existe deja', field: 'emailEntreprise' },
     });
-    expect(state.ErrorsMails.emailExistsError).toBe('Cet email existe deja');
-    expect(state.ErrorsMails.errorField).toBe('emailEntreprise');
+    expect(state.ErrorsMails.emailExistsError).toBeNull();
+    expect(state.ErrorsMails.errorField).toBeNull();
   });
 });
 
@@ -112,107 +136,87 @@ describe('personneMoraleSlice RESET_FORM_PMP', () => {
     });
     state = reducer(state, { type: 'RESET_FORM_PMP' });
     expect(state.personData.raisonSociale).toBe('');
-    expect(state.formErrors.raisonSociale).toBe(true);
+    expect(state.formErrors.raisonSociale).toBe(false);
     expect(Storage.prototype.removeItem).toHaveBeenCalledWith('personneMoraleData');
   });
 });
 
 describe('personneMoraleSlice SET_PERSONNE_MORALE_FIELD', () => {
-  test('met a jour un champ personData (raisonSociale)', () => {
+  test('met a jour un champ personData (raisonSociale) sans toucher formErrors', () => {
     const state = reducer(getBase(), {
       type: 'SET_PERSONNE_MORALE_FIELD',
       payload: { field: 'raisonSociale', value: 'Ma Societe' },
     });
     expect(state.personData.raisonSociale).toBe('Ma Societe');
+    // Validation live désactivée : formErrors reste inchangé (false)
     expect(state.formErrors.raisonSociale).toBe(false);
   });
 
-  test('met a jour un champ suffixe CD dans contactDirect', () => {
+  test('met a jour un champ interlocuteurNom dans personData', () => {
     const state = reducer(getBase(), {
       type: 'SET_PERSONNE_MORALE_FIELD',
-      payload: { field: 'nomCD', value: 'Durand' },
+      payload: { field: 'interlocuteurNom', value: 'Durand' },
     });
-    expect(state.contactDirect.nomCD).toBe('Durand');
+    expect(state.personData.interlocuteurNom).toBe('Durand');
   });
 
-  test('met a jour un champ suffixe RL dans representantLegal', () => {
+  test('met a jour un champ interlocuteurPrenom dans personData', () => {
     const state = reducer(getBase(), {
       type: 'SET_PERSONNE_MORALE_FIELD',
-      payload: { field: 'nomRL', value: 'Martin' },
+      payload: { field: 'interlocuteurPrenom', value: 'Martin' },
     });
-    expect(state.representantLegal.nomRL).toBe('Martin');
+    expect(state.personData.interlocuteurPrenom).toBe('Martin');
   });
 
-  test('recalcule nom_CompletCD apres update nomCD', () => {
-    let state = reducer(getBase(), {
+  test('met a jour un champ quelconque (villePM) dans personData', () => {
+    const state = reducer(getBase(), {
       type: 'SET_PERSONNE_MORALE_FIELD',
-      payload: { field: 'prenomCD', value: 'Jean' },
+      payload: { field: 'villePM', value: 'Paris' },
     });
-    state = reducer(state, {
-      type: 'SET_PERSONNE_MORALE_FIELD',
-      payload: { field: 'nomCD', value: 'Dupont' },
-    });
-    expect(state.contactDirect.nom_CompletCD).toBe('Jean Dupont');
+    expect(state.personData.villePM).toBe('Paris');
   });
 
-  test('recalcule nom_CompletRL apres update prenomRL', () => {
-    let state = reducer(getBase(), {
-      type: 'SET_PERSONNE_MORALE_FIELD',
-      payload: { field: 'nomRL', value: 'Martin' },
-    });
-    state = reducer(state, {
-      type: 'SET_PERSONNE_MORALE_FIELD',
-      payload: { field: 'prenomRL', value: 'Sophie' },
-    });
-    expect(state.representantLegal.nom_CompletRL).toBe('Sophie Martin');
-  });
-
-  test('valide emailEntreprise et reset emailExistsError', () => {
-    // D'abord definir une erreur
-    let state = reducer(getBase(), {
-      type: 'EMAIL_ALREADY_EXISTS_PM',
-      payload: { message: 'existe', field: 'emailEntreprise' },
-    });
-    state = reducer(state, {
+  test('stocke emailEntreprise et laisse emailExistsError a null', () => {
+    // Le reducer remet explicitement emailExistsError/errorField à null quand on
+    // tape emailEntreprise. (EMAIL_ALREADY_EXISTS_PM étant un no-op, on ne peut
+    // pas poser d'erreur au préalable ; on vérifie donc l'invariant final.)
+    const state = reducer(getBase(), {
       type: 'SET_PERSONNE_MORALE_FIELD',
       payload: { field: 'emailEntreprise', value: 'test@test.com' },
     });
-    expect(state.ErrorsMails.emailEntrepriseError).toBe(false);
+    expect(state.personData.emailEntreprise).toBe('test@test.com');
     expect(state.ErrorsMails.emailExistsError).toBeNull();
+    expect(state.ErrorsMails.errorField).toBeNull();
   });
 
-  test('valide emailCD', () => {
+  test('stocke interlocuteurEmail et laisse emailExistsError a null', () => {
     const state = reducer(getBase(), {
       type: 'SET_PERSONNE_MORALE_FIELD',
-      payload: { field: 'emailCD', value: 'cd@test.com' },
+      payload: { field: 'interlocuteurEmail', value: 'contact@test.com' },
     });
-    expect(state.ErrorsMails.emailCDError).toBe(false);
+    expect(state.personData.interlocuteurEmail).toBe('contact@test.com');
+    expect(state.ErrorsMails.emailExistsError).toBeNull();
+    expect(state.ErrorsMails.errorField).toBeNull();
   });
 
-  test('valide emailRL', () => {
-    const state = reducer(getBase(), {
-      type: 'SET_PERSONNE_MORALE_FIELD',
-      payload: { field: 'emailRL', value: 'rl@test.com' },
-    });
-    expect(state.ErrorsMails.emailRLError).toBe(false);
-  });
-
-  test('email invalide met emailError a true', () => {
+  test('un email invalide n est plus rejeté (validation désactivée)', () => {
     const state = reducer(getBase(), {
       type: 'SET_PERSONNE_MORALE_FIELD',
       payload: { field: 'emailEntreprise', value: 'invalid' },
     });
-    expect(state.ErrorsMails.emailEntrepriseError).toBe(true);
+    // Plus de mise à true de emailEntrepriseError : la valeur est juste stockée
+    expect(state.personData.emailEntreprise).toBe('invalid');
+    expect(state.ErrorsMails.emailEntrepriseError).toBe(false);
   });
 
-  test('recalcule errorsCount apres modification champ requis', () => {
+  test('errorsCount reste stable apres modification champ (validation désactivée)', () => {
     let state = getBase();
-    expect(state.errorsCount).toBe(6);
+    expect(state.errorsCount).toBe(0);
     state = reducer(state, {
       type: 'SET_PERSONNE_MORALE_FIELD',
       payload: { field: 'raisonSociale', value: 'Test' },
     });
-    expect(state.errorsCount).toBe(5);
+    expect(state.errorsCount).toBe(0);
   });
 });
 
@@ -225,98 +229,71 @@ describe('personneMoraleSlice SET_PERSONNE_MORALE_FOR_MODIFICATION', () => {
       adresseSiegeSocial: '1 rue Test',
       codePostalPM: '75000',
       villePM: 'Paris',
-    },
-    representantLegalData: {
-      representantLegalNom: 'Dupont',
-      representantLegalPrenom: 'Jean',
-      representantLegalEmail: 'rl@x.com',
-      representantLegalTelephone: '06',
-      representantLegalGenre: 'Masculin',
-    },
-    contactDirectData: {
-      contactDirectNom: 'Durand',
-      contactDirectPrenom: 'Marie',
-      contactDirectEmail: 'cd@x.com',
-      contactDirectTelephone: '07',
-      contactDirectGenre: 'Feminin',
+      interlocuteurNom: 'Dupont',
+      interlocuteurPrenom: 'Jean',
+      interlocuteurEmail: 'rl@x.com',
     },
   };
 
-  test('hydrate personData, representantLegal et contactDirect', () => {
+  test('hydrate personData (Object.assign de contactData)', () => {
     const state = reducer(getBase(), {
       type: 'SET_PERSONNE_MORALE_FOR_MODIFICATION',
       payload: modPayload,
     });
     expect(state.personData.raisonSociale).toBe('SocieteX');
-    expect(state.representantLegal.nomRL).toBe('Dupont');
-    expect(state.representantLegal.prenomRL).toBe('Jean');
-    expect(state.contactDirect.nomCD).toBe('Durand');
-    expect(state.contactDirect.prenomCD).toBe('Marie');
+    expect(state.personData.siret).toBe('123456');
+    expect(state.personData.interlocuteurNom).toBe('Dupont');
+    expect(state.personData.interlocuteurPrenom).toBe('Jean');
   });
 
-  test('recalcule nom_CompletRL et nom_CompletCD', () => {
+  test('recalcule formErrors depuis personData (tous remplis => 0 erreurs)', () => {
     const state = reducer(getBase(), {
       type: 'SET_PERSONNE_MORALE_FOR_MODIFICATION',
       payload: modPayload,
     });
-    expect(state.representantLegal.nom_CompletRL).toBe('Jean Dupont');
-    expect(state.contactDirect.nom_CompletCD).toBe('Marie Durand');
-  });
-
-  test('definit appellationCourrierRL pour Masculin', () => {
-    const state = reducer(getBase(), {
-      type: 'SET_PERSONNE_MORALE_FOR_MODIFICATION',
-      payload: modPayload,
-    });
-    expect(state.representantLegal.appellationCourrierRL).toBe('Cher monsieur');
-  });
-
-  test('definit appellationCourrierCD pour Feminin', () => {
-    const state = reducer(getBase(), {
-      type: 'SET_PERSONNE_MORALE_FOR_MODIFICATION',
-      payload: modPayload,
-    });
-    expect(state.contactDirect.appellationCourrierCD).toBe('Ch\u00e8re madame');
-  });
-
-  test('recalcule formErrors (tous les champs remplis => 0 erreurs)', () => {
-    const state = reducer(getBase(), {
-      type: 'SET_PERSONNE_MORALE_FOR_MODIFICATION',
-      payload: modPayload,
-    });
+    // Les 6 champs requis sont remplis => aucune erreur
+    expect(state.formErrors.raisonSociale).toBe(false);
+    expect(state.formErrors.villePM).toBe(false);
     expect(state.errorsCount).toBe(0);
   });
 
-  test('reset ErrorsMails a false', () => {
+  test('recalcule formErrors : champs requis manquants => erreurs comptées', () => {
+    const state = reducer(getBase(), {
+      type: 'SET_PERSONNE_MORALE_FOR_MODIFICATION',
+      payload: { contactData: {} },
+    });
+    // contactData vide : les 6 champs requis sont vides => 6 erreurs
+    expect(state.formErrors.raisonSociale).toBe(true);
+    expect(state.formErrors.siret).toBe(true);
+    expect(state.errorsCount).toBe(6);
+  });
+
+  test('reset ErrorsMails a false / null', () => {
     const state = reducer(getBase(), {
       type: 'SET_PERSONNE_MORALE_FOR_MODIFICATION',
       payload: modPayload,
     });
     expect(state.ErrorsMails.emailEntrepriseError).toBe(false);
-    expect(state.ErrorsMails.emailCDError).toBe(false);
-    expect(state.ErrorsMails.emailRLError).toBe(false);
     expect(state.ErrorsMails.emailExistsError).toBeNull();
-  });
-
-  test('gere les donnees RL et CD nulles', () => {
-    const state = reducer(getBase(), {
-      type: 'SET_PERSONNE_MORALE_FOR_MODIFICATION',
-      payload: { contactData: {}, representantLegalData: null, contactDirectData: null },
-    });
-    expect(state.representantLegal.nomRL).toBe('');
-    expect(state.representantLegal.genreRL).toBe('Masculin');
-    expect(state.contactDirect.nomCD).toBe('');
-    expect(state.contactDirect.genreCD).toBe('Masculin');
+    expect(state.ErrorsMails.errorField).toBeNull();
   });
 });
 
 describe('personneMoraleSlice VALIDATE_FORME_JURIDIQUE', () => {
-  test('met a jour formeJuridique error et recalcule errorsCount', () => {
+  test('met formeJuridique error a true et incremente errorsCount', () => {
+    let state = getBase();
+    expect(state.errorsCount).toBe(0);
+    state = reducer(state, { type: 'VALIDATE_FORME_JURIDIQUE', payload: true });
+    // formeJuridique error passe a true => errorsCount +1
+    expect(state.formErrors.formeJuridique).toBe(true);
+    expect(state.errorsCount).toBe(1);
+  });
+
+  test('met formeJuridique error a false => errorsCount reste 0', () => {
     let state = getBase();
     state = reducer(state, { type: 'VALIDATE_FORME_JURIDIQUE', payload: false });
-    // formeJuridique error passe a false => errorsCount diminue de 1
     expect(state.formErrors.formeJuridique).toBe(false);
-    expect(state.errorsCount).toBe(5); // 6 - 1
+    expect(state.errorsCount).toBe(0);
   });
 });
 
@@ -402,15 +379,17 @@ describe('personneMoraleSlice thunk createContactPM', () => {
     apiClient.post.mockResolvedValue({ data: { _id: 'c1', raisonSociale: 'Test' } });
     await createContactPM(baseContactData, 'tok')(dispatch, getState);
 
-    const types = dispatch.mock.calls.map(c => {
-      const arg = c[0];
-      return typeof arg === 'function' ? 'thunk' : arg.type;
-    });
+    const types = dispatchedTypes(dispatch);
     expect(types).toContain('CREATE_CONTACT_PM_SUCCESS');
     expect(types).toContain('RESET_CONTACT_PM');
-    expect(types).toContain('RESET_REPRESENTANT_LEGAL');
-    expect(types).toContain('RESET_CONTACT_DIRECT');
+    // Modèle simplifié : plus de RESET_REPRESENTANT_LEGAL / RESET_CONTACT_DIRECT
+    // dispatchés par le thunk. À la place : RESET_SERV_ERRORS + resets de recherche.
+    expect(types).toContain('RESET_SERV_ERRORS');
     expect(types).toContain('SET_CREATE_PARTIE_MODAL');
+    expect(types).toContain('SET_SEARCH_TERM_LINK_PARTIE');
+    // Ces resets ne sont plus émis :
+    expect(types).not.toContain('RESET_REPRESENTANT_LEGAL');
+    expect(types).not.toContain('RESET_CONTACT_DIRECT');
   });
 
   test('isTransformedToPartie dispatch setPartie create', async () => {
@@ -462,7 +441,7 @@ describe('personneMoraleSlice thunk createContactPM', () => {
       },
     };
     await createContactPM(data, 'tok')(dispatch, getState);
-    const types = dispatch.mock.calls.map(c => (typeof c[0] === 'function' ? 'thunk' : c[0].type));
+    const types = dispatchedTypes(dispatch);
     expect(types).toContain('ADD_SELECTED_CONTACT');
   });
 
@@ -472,14 +451,14 @@ describe('personneMoraleSlice thunk createContactPM', () => {
       message: 'fallback',
     });
     await createContactPM(baseContactData, 'tok')(dispatch, getState).catch(() => {});
-    const types = dispatch.mock.calls.map(c => c[0].type);
+    const types = dispatchedTypes(dispatch);
     expect(types).toContain('EMAIL_ALREADY_EXISTS_PM');
   });
 
   test('erreur autre dispatch SET_SERV_ERRORS', async () => {
     apiClient.post.mockRejectedValue({ message: 'Erreur serveur' });
     await createContactPM(baseContactData, 'tok')(dispatch, getState).catch(() => {});
-    const types = dispatch.mock.calls.map(c => c[0].type);
+    const types = dispatchedTypes(dispatch);
     expect(types).toContain('SET_SERV_ERRORS');
   });
 });
@@ -517,7 +496,7 @@ describe('personneMoraleSlice thunk updateContactPM', () => {
       },
     };
     await updateContactPM('c1', contactData, 'tok', options)(dispatch, getState);
-    const types = dispatch.mock.calls.map(c => (typeof c[0] === 'function' ? 'thunk' : c[0].type));
+    const types = dispatchedTypes(dispatch);
     expect(types).toContain('UPDATE_CONTACT_PM_SUCCESS');
     expect(types).toContain('RESET_CONTACT_PM');
   });
@@ -531,10 +510,7 @@ describe('personneMoraleSlice thunk updateContactPM', () => {
       },
     };
     await updateContactPM('c1', contactData, 'tok', options)(dispatch, getState);
-    const types = dispatch.mock.calls
-      .map(c => c[0])
-      .filter(a => a != null && typeof a !== 'function')
-      .map(a => a.type);
+    const types = dispatchedTypes(dispatch);
     expect(types).toContain('EDIT_UPDATE_CONTACT_PM_SUCCESS');
     expect(fetchCurrentDossier).toHaveBeenCalledWith('doss1', 'tok');
   });
@@ -549,7 +525,7 @@ describe('personneMoraleSlice thunk updateContactPM', () => {
       modificationType: 'partieItself',
     };
     await updateContactPM('c1', contactData, 'tok', options)(dispatch, getState);
-    const types = dispatch.mock.calls.map(c => (typeof c[0] === 'function' ? 'thunk' : c[0].type));
+    const types = dispatchedTypes(dispatch);
     expect(types).toContain('UPDATE_PARTIE');
   });
 
@@ -558,7 +534,7 @@ describe('personneMoraleSlice thunk updateContactPM', () => {
     const options = { modificationType: 'partieItself' };
     await updateContactPM('id1', contactData, 'tok', options)(dispatch, getState);
     const updateAction = dispatch.mock.calls.find(c =>
-      typeof c[0] !== 'function' && c[0].type === 'UPDATE_PARTIE'
+      c[0] != null && typeof c[0] !== 'function' && c[0].type === 'UPDATE_PARTIE'
     );
     expect(updateAction).toBeDefined();
     expect(updateAction[0].payload.updatedData.typePartie).toBe('Pour');
@@ -568,14 +544,14 @@ describe('personneMoraleSlice thunk updateContactPM', () => {
     apiClient.put.mockResolvedValue({ data: { _id: 'c1' } });
     const options = { modificationType: 'contactLinkedToDossier' };
     await updateContactPM('c1', contactData, 'tok', options)(dispatch, getState);
-    const types = dispatch.mock.calls.map(c => (typeof c[0] === 'function' ? 'thunk' : c[0].type));
+    const types = dispatchedTypes(dispatch);
     expect(types).toContain('UPDATE_SELECTED_CONTACT');
   });
 
   test('erreur dispatch SET_SERV_ERRORS', async () => {
     apiClient.put.mockRejectedValue({ message: 'Erreur reseau' });
     await updateContactPM('c1', contactData, 'tok')(dispatch, getState).catch(() => {});
-    const types = dispatch.mock.calls.map(c => c[0].type);
+    const types = dispatchedTypes(dispatch);
     expect(types).toContain('SET_SERV_ERRORS');
   });
 });

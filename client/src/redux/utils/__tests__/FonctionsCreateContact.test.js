@@ -44,28 +44,33 @@ describe('buildTypeContact', () => {
 });
 
 // ===================== initializeErrorForm =====================
+// NOTE : la validation des champs de contact a été volontairement désactivée
+// dans le code de production (cf. FonctionsCreateContact.js :
+// "DÉSACTIVATION COMPLÈTE : Aucun champ obligatoire, aucune validation").
+// initializeErrorForm renvoie désormais TOUJOURS un objet où chaque champ
+// (base + nonPro) vaut false, quels que soient le contenu du contact,
+// le flag pro ou le mode modification. Les tests ci-dessous vérifient ce
+// contrat actuel (aucun champ obligatoire) plutôt que l'ancienne logique.
 describe('initializeErrorForm', () => {
   const champsBase = ['nom', 'prenoms', 'adresse', 'ville', 'codePostal', 'email', 'telephone'];
   const champsNonPro = ['dateNaissance', 'paysNaissance', 'villeNaissance', 'CP_VilleNaissance', 'nationalite', 'maritalStatus'];
 
-  it('mode creation, contact non-pro, champs vides → tous en erreur', () => {
+  it('mode creation, contact non-pro, champs vides → aucune erreur (validation désactivée)', () => {
     const contactVide = {};
     const errors = initializeErrorForm(contactVide, false);
-    // Tous les champs base + nonPro doivent etre en erreur
+    // Aucun champ n'est obligatoire : tous les champs base + nonPro sont à false
     [...champsBase, ...champsNonPro].forEach(field => {
-      expect(errors[field]).toBe(true);
+      expect(errors[field]).toBe(false);
     });
   });
 
-  it('mode creation, contact pro, champs vides → seulement champs base en erreur', () => {
+  it('mode creation, contact pro, champs vides → aucune erreur (base + nonPro à false)', () => {
     const contactVide = {};
     const errors = initializeErrorForm(contactVide, true);
-    champsBase.forEach(field => {
-      expect(errors[field]).toBe(true);
-    });
-    // Les champs nonPro ne doivent PAS etre dans les erreurs
-    champsNonPro.forEach(field => {
-      expect(errors[field]).toBeUndefined();
+    // La désactivation renvoie tous les champs (base ET nonPro) à false,
+    // le flag pro n'a plus d'effet sur la structure des erreurs.
+    [...champsBase, ...champsNonPro].forEach(field => {
+      expect(errors[field]).toBe(false);
     });
   });
 
@@ -87,28 +92,34 @@ describe('initializeErrorForm', () => {
     Object.values(errors).forEach(v => expect(v).toBe(false));
   });
 
-  it('champs partiellement remplis → erreurs seulement sur les vides', () => {
+  it('champs partiellement remplis → aucune erreur (validation désactivée)', () => {
     const contactPartiel = { nom: 'Dupont', prenoms: '', email: 'j@d.com' };
     const errors = initializeErrorForm(contactPartiel, true);
+    // Même partiellement remplis, aucun champ n'est marqué en erreur.
     expect(errors.nom).toBe(false);
-    expect(errors.prenoms).toBe(true);
+    expect(errors.prenoms).toBe(false);
     expect(errors.email).toBe(false);
-    expect(errors.telephone).toBe(true);
+    expect(errors.telephone).toBe(false);
   });
 });
 
 // ===================== updateNbErrors =====================
+// NOTE : validation désactivée en production (cf. FonctionsCreateContact.js :
+// "DÉSACTIVATION COMPLÈTE : Toujours 0 erreurs, email toujours valide").
+// updateNbErrors force désormais nbErrors=0 et validEmail=true sans tenir
+// compte du contenu de errorForm ni de l'état email précédent.
 describe('updateNbErrors', () => {
-  it('compte 3 erreurs dans errorForm', () => {
+  it('errorForm avec des erreurs → nbErrors forcé à 0 (validation désactivée)', () => {
     const state = {
       formErrors: {
         errorForm: { nom: true, prenoms: true, email: true, ville: false },
         validEmail: true,
-        nbErrors: 0,
+        nbErrors: 5,
       },
     };
     updateNbErrors(state);
-    expect(state.formErrors.nbErrors).toBe(3);
+    // Le comptage réel est ignoré : nbErrors est toujours remis à 0.
+    expect(state.formErrors.nbErrors).toBe(0);
   });
 
   it('0 erreurs + validEmail=true → nbErrors = 0', () => {
@@ -123,7 +134,7 @@ describe('updateNbErrors', () => {
     expect(state.formErrors.nbErrors).toBe(0);
   });
 
-  it('0 erreurs errorForm + validEmail=false → nbErrors = 1', () => {
+  it('validEmail=false en entrée → forcé à true et nbErrors = 0 (validation désactivée)', () => {
     const state = {
       formErrors: {
         errorForm: { nom: false, email: false },
@@ -132,7 +143,9 @@ describe('updateNbErrors', () => {
       },
     };
     updateNbErrors(state);
-    expect(state.formErrors.nbErrors).toBe(1);
+    // L'email est toujours considéré valide et n'ajoute plus d'erreur.
+    expect(state.formErrors.nbErrors).toBe(0);
+    expect(state.formErrors.validEmail).toBe(true);
   });
 });
 

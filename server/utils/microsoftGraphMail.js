@@ -13,6 +13,7 @@ const axios = require('axios');
 const User = require('../models/App_Users/User');
 // SECURITE rc37 (M-06) : refresh tokens chiffres au repos.
 const { encryptIfNeeded, decryptIfNeeded } = require('./tokenCrypto');
+const { escapeHtml } = require('./escapeHtml');
 
 const CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || process.env.MSAL_CLIENT_ID;
 const AUTHORITY = process.env.MICROSOFT_AUTHORITY || 'https://login.microsoftonline.com/common';
@@ -188,7 +189,7 @@ async function sendMail(userId, { to, subject, body, attachments = [] }) {
 
   const message = {
     subject: subject || '(Sans objet)',
-    body: { contentType: 'HTML', content: `<p>${(body || '').replace(/\n/g, '<br>')}</p>` },
+    body: { contentType: 'HTML', content: `<p>${escapeHtml(body).replace(/\n/g, '<br>')}</p>` },
     toRecipients,
   };
 

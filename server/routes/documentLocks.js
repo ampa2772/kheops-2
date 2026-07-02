@@ -4,11 +4,40 @@
 // Toutes protégées par le middleware JWT auth — req.user contient l'userId.
 
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const auth = require('../middlewares/middleware-auth');
 const lockService = require('../services/documentLockService');
 const User = require('../models/App_Users/User');
+const Dossier = require('../models/Folder/Dossier');
+const UserDossier = require('../models/Folder/modelsLiaisons/UserDossier');
 const { ensureDocOwnership } = require('../utils/ownershipHelpers');
+const { getAccessibleUserIds } = require('../services/cabinetAccess');
+
+// Restreint une liste de docIds demandée à ceux qui appartiennent réellement au
+// cabinet de l'utilisateur (documents embarqués dans un Dossier accessible).
+// Empêche l'énumération des verrous (et donc des displayName/email des
+// détenteurs) sur les documents d'un autre cabinet.
+async function filterOwnedDocIds(userId, docIds) {
+  const valid = (docIds || []).filter((id) => mongoose.Types.ObjectId.isValid(id));
+  if (valid.length === 0) return [];
+  const accessible = await getAccessibleUserIds(userId);
+  const links = await UserDossier.find({ user: { $in: accessible } }).select('dossier').lean();
+  const dossierIds = links.map((l) => l.dossier);
+  if (dossierIds.length === 0) return [];
+  const objIds = valid.map((id) => new mongoose.Types.ObjectId(String(id)));
+  const dossiers = await Dossier.find({
+    _id: { $in: dossierIds },
+    'dossier.documents._id': { $in: objIds },
+  }).select('dossier.documents._id').lean();
+  const owned = new Set();
+  for (const d of dossiers) {
+    for (const doc of (d.dossier?.documents || [])) {
+      if (doc && doc._id) owned.add(String(doc._id));
+    }
+  }
+  return valid.filter((id) => owned.has(String(id)));
+}
 
 // Cache léger du displayName par userId pour éviter un find() Mongo à chaque
 // appel /lock (les cabinets font potentiellement beaucoup de heartbeats).
@@ -102,11 +131,16 @@ router.post('/:docId/release', auth, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/', auth, async (req, res) => {
     try {
-        let docIds;
-        if (req.query.docIds) {
-            docIds = String(req.query.docIds).split(',').map(s => s.trim()).filter(Boolean);
+        // SECURITE rc38 (A1) : docIds est désormais OBLIGATOIRE et filtré aux
+        // documents du cabinet. L'ancien comportement (docIds omis → lockService
+        // .list() renvoyait TOUS les verrous de toutes les instances, avec le
+        // displayName/email du détenteur) fuitait l'identité inter-cabinet.
+        if (!req.query.docIds) {
+            return res.json({ locks: [], currentUserId: String(req.user) });
         }
-        const locks = lockService.list(docIds);
+        const requested = String(req.query.docIds).split(',').map(s => s.trim()).filter(Boolean);
+        const ownedDocIds = await filterOwnedDocIds(req.user, requested);
+        const locks = ownedDocIds.length ? lockService.list(ownedDocIds) : [];
         return res.json({ locks, currentUserId: String(req.user) });
     } catch (err) {
         console.error('[document-locks/list] Erreur:', err.message);

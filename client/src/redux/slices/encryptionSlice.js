@@ -20,21 +20,24 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import encryptionApi from '../../services/encryptionService';
+import { getElectronCrypto } from '../../services/electronBridge';
 
 // ========================================================================
-// Helpers locaux
+// KILL SWITCH — Système de chiffrement E2E / phrase secrète DÉSACTIVÉ.
+// ------------------------------------------------------------------------
+// Tant que ce drapeau vaut `true` :
+//   - le cabinet est toujours traité comme "non protégé" (enabled = false),
+//   - aucune phrase secrète n'est demandée au démarrage (cf. EncryptionGate),
+//   - les uploads ne sont jamais chiffrés ni refusés (protectionEnabled = false).
+// Pour RÉACTIVER la phrase secrète et le chiffrement : repasser à `false`.
 // ========================================================================
-
-// Acces a l'API IPC exposee par preload.js. Renvoie null si pas en Electron
-// (ex : mode dev pur dans un navigateur — non supporte pour le chiffrement).
-function getElectronCrypto() {
-  if (typeof window === 'undefined') return null;
-  return window.electron && window.electron.crypto ? window.electron.crypto : null;
-}
+export const ENCRYPTION_DISABLED = true;
 
 // ========================================================================
 // Thunks
 // ========================================================================
+// Acces a l'API IPC crypto via le helper centralise (services/electronBridge).
+// Renvoie null hors Electron (mode web) — le chiffrement est desktop-only.
 
 /**
  * Recupere depuis le serveur l'etat de configuration de chiffrement du
@@ -49,6 +52,11 @@ export const fetchEncryptionStatus = createAsyncThunk(
     try {
       const serverInfo = await encryptionApi.getInfo();
 
+      // KILL SWITCH : quand le chiffrement est désactivé, on force l'état
+      // "non protégé" quel que soit ce que renvoie le serveur. Le cabinet ne
+      // sera jamais verrouillé côté UI et aucun upload ne sera chiffré/refusé.
+      const effectiveEnabled = ENCRYPTION_DISABLED ? false : !!serverInfo.encryption.enabled;
+
       const crypto = getElectronCrypto();
       let mainStatus = { isUnlocked: false, ownerUserId: null, wordlistIsPlaceholder: false };
       let safeStorageAvailable = false;
@@ -60,7 +68,7 @@ export const fetchEncryptionStatus = createAsyncThunk(
         // (audit S25 chantier #1, décision D1).
         try {
           if (typeof crypto.setProtectionEnabled === 'function') {
-            await crypto.setProtectionEnabled(!!serverInfo.encryption.enabled);
+            await crypto.setProtectionEnabled(effectiveEnabled);
           }
         } catch (_) { /* best-effort : ne pas casser le fetch si le bridge IPC est absent */ }
 
@@ -71,7 +79,7 @@ export const fetchEncryptionStatus = createAsyncThunk(
       }
 
       return {
-        enabled: serverInfo.encryption.enabled,
+        enabled: effectiveEnabled,
         salt: serverInfo.encryption.salt,
         verifier: serverInfo.encryption.verifier,
         enabledAt: serverInfo.encryption.enabledAt,

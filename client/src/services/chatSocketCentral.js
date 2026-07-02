@@ -13,11 +13,13 @@ let socket = null;
 let currentToken = null;
 
 /**
- * URL du serveur central. En développement, on utilise REACT_APP_API_URL si
- * défini, sinon localhost:5000 (port standard du serveur Express).
+ * URL du serveur Socket.IO central. En web hébergé = l'origine du site
+ * (Cloud Run) ; dans Electron = http://localhost:5000 (serveur embarqué).
+ * window.location.origin couvre les deux sans fallback localhost (qui
+ * casserait le chat temps réel en mode web).
  */
 function getServerUrl() {
-    return process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    return process.env.REACT_APP_API_URL || window.location.origin;
 }
 
 /**

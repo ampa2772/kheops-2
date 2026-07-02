@@ -552,15 +552,18 @@ describe('dossierInfoSlice thunks', () => {
       expect(dispatch).toHaveBeenCalledWith({ type: 'FETCH_LAST_25_DOSSIERS_SUCCESS', payload: [{ _id: 'd1' }] });
     });
 
-    test('rejete si pas de token', async () => {
+    test('dispatch ERROR si pas de token (resout sans throw pour eviter unhandled rejection)', async () => {
       getState = () => ({ login: { token: null }, dossierInfos: defaultInitialState });
-      await expect(fetchLast25Dossiers()(dispatch, getState)).rejects.toBeDefined();
-      expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'FETCH_LAST_25_DOSSIERS_ERROR' }));
+      // Le thunk ne rejette PAS volontairement (cf. commentaire prod) : il dispatche
+      // l'erreur dans le state et resout proprement.
+      await expect(fetchLast25Dossiers()(dispatch, getState)).resolves.toBeUndefined();
+      expect(apiClient.get).not.toHaveBeenCalled();
+      expect(dispatch).toHaveBeenCalledWith({ type: 'FETCH_LAST_25_DOSSIERS_ERROR', payload: 'Utilisateur non authentifié' });
     });
 
-    test('dispatch ERROR en cas d erreur API', async () => {
+    test('dispatch ERROR en cas d erreur API (resout sans throw)', async () => {
       apiClient.get.mockRejectedValue(new Error('Network'));
-      await expect(fetchLast25Dossiers()(dispatch, getState)).rejects.toBeDefined();
+      await expect(fetchLast25Dossiers()(dispatch, getState)).resolves.toBeUndefined();
       expect(dispatch).toHaveBeenCalledWith({ type: 'FETCH_LAST_25_DOSSIERS_ERROR', payload: 'Network' });
     });
 
@@ -619,7 +622,6 @@ describe('dossierInfoSlice thunks', () => {
 
     test('gere pendingEmailAction avec socket non connecte', async () => {
       initSocket.mockReturnValue({ connected: false });
-      jest.spyOn(window, 'alert').mockImplementation();
       getState = () => ({
         login: { token: 'tok123' },
         dossierInfos: { ...defaultInitialState, pendingEmailAction: { emailId: 'e1' } },
@@ -627,8 +629,15 @@ describe('dossierInfoSlice thunks', () => {
       apiClient.post.mockResolvedValue({ data: { dossier: { _id: 'd1' } } });
       apiClient.get.mockResolvedValue({ data: [] });
       await createDossierServer({ user: { _id: 'u1' } }, {})(dispatch, getState);
-      expect(window.alert).toHaveBeenCalled();
-      window.alert.mockRestore();
+      // Le prod ne fait plus window.alert : il dispatche un toast d'erreur (showToast)
+      // puis nettoie l'action email en attente.
+      expect(dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'notifications/showToast',
+          payload: expect.objectContaining({ type: 'error' }),
+        }),
+      );
+      expect(dispatch).toHaveBeenCalledWith({ type: 'CLEAR_PENDING_EMAIL_ACTION' });
     });
 
     test('dispatch CREATE_DOSSIER_ERROR en cas d erreur API', async () => {

@@ -9,6 +9,7 @@ const router = express.Router();
 const auth = require('../middlewares/middleware-auth');
 const { asyncHandler } = require('../middlewares/folder-middleWare');
 const { ensureDossierOwnership } = require('../utils/ownershipHelpers');
+const { ensureCabinetRole, ROLES_CAN_VIEW_CABINET_FINANCES } = require('../services/cabinetRoles');
 const audit = require('../utils/auditLogger');
 
 const CabinetExpense = require('../models/Cabinet/CabinetExpense');
@@ -302,6 +303,10 @@ router.post('/recurring-expenses/sweep', auth, asyncHandler(async (req, res) => 
 router.get('/bilan', auth, asyncHandler(async (req, res) => {
   const ownerUserId = getOwnerUserId(req);
   if (!ownerUserId) return res.status(401).json({ message: 'Non authentifie.' });
+  // SECURITE A6 : le bilan est consolide sur TOUS les dossiers accessibles du
+  // cabinet (rc38) — sa consultation est reservee au titulaire/administrateur.
+  if (!(await ensureCabinetRole(req, res, ROLES_CAN_VIEW_CABINET_FINANCES,
+    'La consultation du bilan du cabinet est reservee au titulaire ou a un administrateur.'))) return;
   const bilan = await cabinetService.calculerBilan(ownerUserId, {
     from: req.query.from || null,
     to: req.query.to || null,
@@ -314,6 +319,9 @@ router.get('/bilan', auth, asyncHandler(async (req, res) => {
 router.get('/profitability', auth, asyncHandler(async (req, res) => {
   const ownerUserId = getOwnerUserId(req);
   if (!ownerUserId) return res.status(401).json({ message: 'Non authentifie.' });
+  // SECURITE A6 : meme regle que le bilan — rentabilite consolidee du cabinet.
+  if (!(await ensureCabinetRole(req, res, ROLES_CAN_VIEW_CABINET_FINANCES,
+    'La consultation de la rentabilite du cabinet est reservee au titulaire ou a un administrateur.'))) return;
   const result = await cabinetService.calculerRentabiliteDossiers(ownerUserId, {
     from: req.query.from || null,
     to: req.query.to || null,

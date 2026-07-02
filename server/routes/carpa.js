@@ -17,7 +17,8 @@ const router = express.Router();
 
 const auth = require('../middlewares/middleware-auth');
 const { asyncHandler } = require('../middlewares/folder-middleWare');
-const { ensureDossierOwnership } = require('../utils/ownershipHelpers');
+const { ensureDossierOwnership, ensureContactOwnership } = require('../utils/ownershipHelpers');
+const { ensureCabinetRole, ROLES_CAN_VALIDATE_CARPA } = require('../services/cabinetRoles');
 const audit = require('../utils/auditLogger');
 
 const CarpaOperation = require('../models/Carpa/CarpaOperation');
@@ -100,6 +101,15 @@ router.post('/operations', auth, asyncHandler(async (req, res) => {
   }
 
   const estHonoraires = body.type === 'retrait_honoraires' || !!body.estHonoraires;
+
+  // SECURITE rc38 (A1) : le snapshot bénéficiaire copie nom/prénoms/raison
+  // sociale/email du Contact référencé. Sans contrôle d'appartenance, un user
+  // pouvait exfiltrer l'identité d'un contact d'un AUTRE cabinet en passant son
+  // _id. On vérifie donc l'ownership du contact quand il est fourni.
+  if (body.beneficiaireContactId && mongoose.Types.ObjectId.isValid(body.beneficiaireContactId)) {
+    if (!(await ensureContactOwnership(req, res, body.beneficiaireContactId))) return;
+  }
+
   const beneficiaireSnapshot = await carpaService.buildBeneficiaireSnapshot({
     beneficiaireContactId: body.beneficiaireContactId,
     estHonoraires,
@@ -281,6 +291,11 @@ router.patch('/operations/:id', auth, asyncHandler(async (req, res) => {
     if (newId && !mongoose.Types.ObjectId.isValid(newId) && newId !== '') {
       return jsonValidationErr(res, 'beneficiaireContactId invalide.');
     }
+    // SECURITE rc38 (A1) : même contrôle qu'à la création — le nouveau contact
+    // bénéficiaire doit appartenir au cabinet (le snapshot copie ses données).
+    if (newId && mongoose.Types.ObjectId.isValid(newId)) {
+      if (!(await ensureContactOwnership(req, res, newId))) return;
+    }
     op.beneficiaireContactId = newId || null;
     op.beneficiaireSnapshot = await carpaService.buildBeneficiaireSnapshot({
       beneficiaireContactId: op.beneficiaireContactId,
@@ -336,6 +351,11 @@ router.delete('/operations/:id', auth, asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return jsonValidationErr(res, 'id invalide.');
   }
+
+  // SECURITE A6 : meme sur un brouillon, la suppression definitive d'une
+  // operation de fonds de tiers est reservee aux roles owner/admin/avocat.
+  if (!(await ensureCabinetRole(req, res, ROLES_CAN_VALIDATE_CARPA,
+    'Votre role ne permet pas de supprimer une operation CARPA (reserve aux avocats/administrateurs du cabinet).'))) return;
 
   const op = await CarpaOperation.findOne({ _id: req.params.id, ownerUserId });
   if (!op) return res.status(404).json({ message: 'Operation introuvable.' });
@@ -397,6 +417,12 @@ router.post('/operations/:id/transition', auth, asyncHandler(async (req, res) =>
   }
   const { nouvelEtat, motif } = req.body || {};
   if (!nouvelEtat) return jsonValidationErr(res, 'nouvelEtat requis.');
+
+  // SECURITE A6 : changer l'etat d'une operation de fonds de tiers (valider,
+  // deposer, restituer, annuler) est un acte reglemente — reserve aux roles
+  // owner/admin/avocat. Le secretariat prepare les brouillons, il n'engage pas.
+  if (!(await ensureCabinetRole(req, res, ROLES_CAN_VALIDATE_CARPA,
+    'Votre role ne permet pas de changer l\'etat d\'une operation CARPA (reserve aux avocats/administrateurs du cabinet).'))) return;
 
   const op = await CarpaOperation.findOne({ _id: req.params.id, ownerUserId });
   if (!op) return res.status(404).json({ message: 'Operation introuvable.' });
@@ -557,6 +583,12 @@ router.post('/operations/:id/flags/:flagId/lift', auth, asyncHandler(async (req,
   if (!ownerUserId) return res.status(401).json({ message: 'Non authentifie.' });
   const officeUserId = await requireOfficeUserId(req, res);
   if (!officeUserId) return;
+
+  // SECURITE A6 : la mainlevee d'un gel LCB-FT est reservee aux roles
+  // owner/admin/avocat. Tout le monde peut SIGNALER (POST /flags), seul un
+  // avocat/administrateur peut LEVER l'alerte.
+  if (!(await ensureCabinetRole(req, res, ROLES_CAN_VALIDATE_CARPA,
+    'Votre role ne permet pas de lever un gel LCB-FT (reserve aux avocats/administrateurs du cabinet).'))) return;
 
   const op = await CarpaOperation.findOne({ _id: req.params.id, ownerUserId });
   if (!op) return res.status(404).json({ message: 'Operation introuvable.' });

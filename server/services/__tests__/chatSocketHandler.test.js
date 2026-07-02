@@ -9,6 +9,12 @@
 //    reçoivent l'événement chat:message
 //  - typing pass-through
 
+// Cette suite valide l'AUTH STRICTE (rejet sans token/token invalide) et le
+// routage par vrai userId. On force donc le mode strict AVANT tout require :
+// middleware-auth exécute dotenv.config() (qui poserait KHEOPS_BYPASS_AUTH=true
+// depuis .env), mais dotenv N'ÉCRASE PAS une variable déjà définie.
+process.env.KHEOPS_BYPASS_AUTH = 'false';
+
 const http = require('http');
 const jwt = require('jsonwebtoken');
 const { io: ioClient } = require('socket.io-client');

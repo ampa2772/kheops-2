@@ -1,5 +1,16 @@
 // speechService.test.js — Tests du service de synthese vocale
 
+// Le service importe desormais le store Redux (import store from '../redux/store'),
+// qui tire toute l'arborescence Redux (authSlice -> axios en ESM non transforme par Jest).
+// On mocke le store pour isoler le service et eviter l'erreur de transform axios.
+// getState() n'est utilise que par les handlers globaux mouseover/focusin, non testes ici.
+jest.mock('../../redux/store', () => ({
+  __esModule: true,
+  default: {
+    getState: jest.fn(() => ({ login: { user: { isSpeechEnabled: false } } })),
+  },
+}));
+
 // Mock de window.speechSynthesis AVANT l'import du module
 const mockSpeak = jest.fn();
 const mockCancel = jest.fn();

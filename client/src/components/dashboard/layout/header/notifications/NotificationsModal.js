@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactDOM from 'react-dom';
-import DOMPurify from 'dompurify';
+import { sanitizeEmailHtml } from '../../../../../utils/sanitizeEmailHtml';
 import TimeAgo from 'react-timeago';
 import frStrings from 'react-timeago/lib/language-strings/fr';
 import buildFormatter from 'react-timeago/lib/formatters/buildFormatter';
 import apiClient from '../../../../../services/apiClient';
+import mailAccountService from '../../../../../services/mailAccountService';
+import MailAccountSetupModal from '../../../office/mails/MailAccountSetupModal';
+import { userHasOAuthMail, shouldOfferMailSetup } from '../../../../../utils/mailSetupDecision';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { renderAsync } from 'docx-preview';
 import { useNavigate } from 'react-router-dom';
@@ -29,9 +32,6 @@ import wordIcon from '../../../../../assets/word-icon.svg';
 import pdfIcon from '../../../../../assets/pdf-icon.svg';
 import imageIcon from '../../../../../assets/image-icon.svg';
 import defaultAttachmentIcon from '../../../../../assets/piece-jointe-yellow.svg';
-// === NOUVELLE IMPORTATION DE L'ICÔNE DOSSIER ===
-import FolderIcon from '../../../../../assets/dossier.svg'; 
-// ===============================================
 
 import IconEnvoyerVersDossier from '../../../../../assets/Envoyer_vers_Dossier.svg';
 import IconTelecharger from '../../../../../assets/telechargements.svg';
@@ -168,6 +168,37 @@ const NotificationsModal = ({ isOpen, position, onClose }) => {
 
   // User courant : sert d'expediteur "À" dans le detail email (via le state login)
   const currentUserEmail = useSelector(state => state.login?.user?.email || '');
+
+  // --- Connexion boîte mail depuis la cloche (comptes NI Google NI Microsoft) ---
+  // Un compte OAuth (Google/Microsoft) reçoit ses mails automatiquement. Un
+  // compte "générique" (Yahoo, Orange, OVH...) doit d'abord saisir les
+  // coordonnées de sa boîte (IMAP/SMTP) : on le lui propose ici, avec la MÊME
+  // fenêtre que la partie "Courriers" (MailAccountSetupModal).
+  const loginUser = useSelector(state => state.login?.user);
+  const hasOAuthMail = userHasOAuthMail(loginUser);
+  const [imapAccounts, setImapAccounts] = useState(null); // null = pas encore vérifié
+  const [showMailSetup, setShowMailSetup] = useState(false);
+  // true seulement une fois la vérification faite : ni OAuth, ni boîte IMAP configurée.
+  const needsMailSetup = shouldOfferMailSetup(loginUser, imapAccounts);
+
+  // Charge les boîtes IMAP à l'ouverture de la cloche, pour les comptes non-OAuth.
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    if (hasOAuthMail) { setImapAccounts([]); return undefined; }
+    let cancelled = false;
+    mailAccountService.listAccounts()
+      .then((list) => { if (!cancelled) setImapAccounts(Array.isArray(list) ? list : []); })
+      .catch(() => { if (!cancelled) setImapAccounts([]); });
+    return () => { cancelled = true; };
+  }, [isOpen, hasOAuthMail]);
+
+  // Après connexion d'une boîte : on ferme la fenêtre et on recharge les
+  // notifications (le thunk relit les comptes et lira la nouvelle boîte).
+  const handleMailAccountCreated = useCallback((account) => {
+    setShowMailSetup(false);
+    setImapAccounts((prev) => (Array.isArray(prev) ? [...prev, account] : [account]));
+    dispatch(fetchNotifications());
+  }, [dispatch]);
 
   // Notification correspondant au mail selectionne (utilise par la vue detail
   // pour recuperer kheopsContactName / emailRole / kheopsMatchingDossiers).
@@ -603,6 +634,20 @@ const NotificationsModal = ({ isOpen, position, onClose }) => {
   const modalStyle = { top: `${position.top}px`, right: `${position.right}px` };
   
   const renderListContent = () => {
+    // Compte NI Google NI Microsoft, sans boîte configurée : au lieu d'une liste
+    // vide, on invite à connecter sa boîte mail (même fenêtre que "Courriers").
+    if (needsMailSetup) return (
+      <div className="k-mailmodal-empty k-mailmodal-setup-invite">
+        <p>Connectez votre boîte mail pour voir vos courriers ici.</p>
+        <button
+          type="button"
+          className="k-mailmodal-setup-btn"
+          onClick={() => setShowMailSetup(true)}
+        >
+          Connecter ma boîte mail
+        </button>
+      </div>
+    );
     if (loading && filteredNotifications.length === 0) return (
       <HoverToSpeak textToSpeak="Chargement des notifications">
         <p className="k-mailmodal-empty">Chargement des notifications…</p>
@@ -734,6 +779,14 @@ const NotificationsModal = ({ isOpen, position, onClose }) => {
   return ReactDOM.createPortal(
     <>
       {isCheckingDossiers && <FullScreenLoader />}
+      {/* Connexion boîte mail (Yahoo/Orange/OVH...) directement depuis la cloche.
+          Réutilise la fenêtre de la partie "Courriers". */}
+      <MailAccountSetupModal
+        isOpen={showMailSetup}
+        userEmail={currentUserEmail}
+        onClose={() => setShowMailSetup(false)}
+        onAccountCreated={handleMailAccountCreated}
+      />
       <div className="notifications-modal-overlay">
         <div className={modalClass} ref={modalRef} style={modalStyle}>
 
@@ -965,7 +1018,7 @@ const NotificationsModal = ({ isOpen, position, onClose }) => {
                       lisibles — cas rare en usage cabinet). */}
                   <div className="k-mailmodal-detail-message">
                     <div className="k-mailmodal-detail-section-label">Message</div>
-                    <div className="k-mailmodal-detail-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailDetail.body) }}></div>
+                    <div className="k-mailmodal-detail-content" dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(emailDetail.body) }}></div>
                   </div>
 
                   {/* Pieces jointes */}

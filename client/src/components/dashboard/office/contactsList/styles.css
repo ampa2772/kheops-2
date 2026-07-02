@@ -1,0 +1,509 @@
+/* ==========================================================
+   Annuaire des contacts — écran /dashboard/contacts
+   Panneau blanc posé sur le dégradé foncé de l'espace office.
+   Réutilise le design system k2 (_variables.css / _components.css).
+   ========================================================== */
+
+.contacts-page {
+  height: 100%;
+  overflow: auto;
+  padding: var(--k2-space-6, 24px);
+  box-sizing: border-box;
+}
+
+.contacts-panel {
+  max-width: 1280px;
+  margin: 0 auto;
+  background-color: var(--k2-surface-primary, #ffffff);
+  border: 1px solid var(--k2-gray-200, #e5e7eb);
+  border-radius: var(--k2-radius-lg, 12px);
+  box-shadow: var(--k2-shadow-md, 0 10px 15px rgba(0, 0, 0, 0.1));
+  padding: var(--k2-space-6, 24px);
+  box-sizing: border-box;
+}
+
+/* ─── En-tête : titre + boutons d'ajout ─── */
+.contacts-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--k2-space-4, 16px);
+  flex-wrap: wrap;
+}
+
+.contacts-panel__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contacts-subtitle {
+  margin: 0;
+  font-size: var(--k2-font-size-sm, 13px);
+  color: var(--k2-gray-500, #667085);
+}
+
+.contacts-add-actions {
+  display: flex;
+  gap: var(--k2-space-2, 8px);
+  flex-wrap: wrap;
+}
+
+/* Boutons verts "Ajouter" (couleur succès du site). */
+.contacts-btn-add {
+  background-color: var(--k-success, #008047);
+  color: #ffffff;
+  border: 1px solid var(--k-success, #008047);
+  box-shadow: var(--k2-shadow-xs, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.contacts-btn-add:hover:not(:disabled) {
+  background-color: #006838;
+  border-color: #006838;
+}
+
+/* Variante "organisation" : contour vert plutôt que plein, pour hiérarchiser. */
+.contacts-btn-add--alt {
+  background-color: transparent;
+  color: var(--k-success, #008047);
+}
+
+.contacts-btn-add--alt:hover:not(:disabled) {
+  background-color: rgba(0, 128, 71, 0.08);
+  color: #006838;
+}
+
+/* ─── Barre d'outils : recherche + compteur ─── */
+.contacts-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--k2-space-4, 16px);
+  margin-top: var(--k2-space-5, 20px);
+}
+
+.contacts-search {
+  position: relative;
+  flex: 1;
+  max-width: 360px;
+}
+
+.contacts-search__icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--k2-gray-400, #98a2b3);
+  display: inline-flex;
+  pointer-events: none;
+}
+
+.contacts-search__input {
+  padding-left: 38px;
+}
+
+.contacts-result-count {
+  font-size: var(--k2-font-size-sm, 13px);
+  color: var(--k2-gray-500, #667085);
+  white-space: nowrap;
+}
+
+/* ─── Onglets ─── */
+.contacts-tabs {
+  margin-top: var(--k2-space-4, 16px);
+}
+
+.contacts-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 8px;
+  font-size: var(--k2-font-size-xs, 12px);
+  font-weight: var(--k2-font-weight-semibold, 600);
+  color: var(--k2-gray-600, #475467);
+  background-color: var(--k2-gray-100, #f2f4f7);
+  border-radius: var(--k2-radius-full, 9999px);
+}
+
+.k2-tab-active .contacts-tab-count {
+  color: var(--k2-primary-700, #175cd3);
+  background-color: var(--k2-info-50, #eff8ff);
+}
+
+/* ─── Tableau ─── */
+.contacts-table-wrap {
+  margin-top: var(--k2-space-4, 16px);
+  border: 1px solid var(--k2-gray-200, #e5e7eb);
+  border-radius: var(--k2-radius-md, 8px);
+  overflow: visible;
+}
+
+.contacts-table {
+  margin: 0;
+}
+
+.contacts-table thead th:first-child {
+  border-top-left-radius: var(--k2-radius-md, 8px);
+}
+
+.contacts-th-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.contacts-th-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contacts-sort-arrow {
+  font-size: 10px;
+  color: var(--k2-gray-400, #98a2b3);
+  opacity: 0.6;
+}
+
+.contacts-sort-arrow.is-active {
+  color: var(--k2-primary-500, #0969da);
+  opacity: 1;
+}
+
+.contacts-row {
+  cursor: pointer;
+}
+
+.contacts-cell-primary {
+  font-weight: var(--k2-font-weight-semibold, 600);
+  color: var(--k2-gray-900, #101828);
+}
+
+.contacts-cell-muted {
+  color: var(--k2-gray-400, #98a2b3);
+}
+
+/* ─── Menu d'actions "⋮" ─── */
+.contacts-actions-cell {
+  position: relative;
+}
+
+.contacts-kebab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--k2-gray-500, #667085);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--k2-duration-normal, 150ms) ease,
+              color var(--k2-duration-normal, 150ms) ease;
+}
+
+.contacts-kebab-btn:hover {
+  background-color: var(--k2-gray-100, #f2f4f7);
+  color: var(--k2-gray-800, #1d2939);
+}
+
+.contacts-menu {
+  position: absolute;
+  top: 100%;
+  right: 12px;
+  z-index: var(--k2-z-dropdown, 100);
+  min-width: 170px;
+  padding: 6px;
+  background-color: #ffffff;
+  border: 1px solid var(--k2-gray-200, #e5e7eb);
+  border-radius: var(--k2-radius-md, 8px);
+  box-shadow: var(--k2-shadow-md, 0 10px 15px rgba(0, 0, 0, 0.12));
+  text-align: left;
+  animation: k2-slide-down var(--k2-duration-normal, 150ms) ease both;
+}
+
+.contacts-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  border-radius: var(--k2-radius-sm, 6px);
+  color: var(--k2-gray-700, #344054);
+  font-family: var(--k2-font-family, inherit);
+  font-size: var(--k2-font-size-sm, 13px);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--k2-duration-fast, 100ms) ease;
+}
+
+.contacts-menu-item:hover {
+  background-color: var(--k2-gray-100, #f2f4f7);
+}
+
+/* ─── Modale « Dossiers liés » (lecture seule) ─── */
+.contacts-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--k2-z-modal, 1000);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: rgba(16, 24, 40, 0.55);
+}
+
+.contacts-modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background-color: #ffffff;
+  border-radius: var(--k2-radius-lg, 12px);
+  box-shadow: var(--k2-shadow-lg, 0 20px 25px rgba(0, 0, 0, 0.18));
+  padding: 24px;
+  animation: k2-slide-up var(--k2-duration-normal, 150ms) ease both;
+}
+
+.contacts-modal__title {
+  margin: 0 0 4px;
+  font-size: var(--k2-font-size-lg, 18px);
+  font-weight: var(--k2-font-weight-semibold, 600);
+  color: var(--k2-gray-900, #101828);
+}
+
+.contacts-modal__text {
+  margin: 0 0 14px;
+  font-size: var(--k2-font-size-base, 14px);
+  color: var(--k2-gray-600, #475467);
+}
+
+.contacts-modal__muted {
+  margin: 0;
+  font-size: var(--k2-font-size-base, 14px);
+  color: var(--k2-gray-500, #667085);
+}
+
+.contacts-modal__error {
+  margin: 0;
+  font-size: var(--k2-font-size-sm, 13px);
+  color: var(--k2-error-700, #b42318);
+}
+
+.contacts-modal__dossiers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--k2-gray-200, #e5e7eb);
+  border-radius: var(--k2-radius-md, 8px);
+  overflow: hidden;
+}
+
+.contacts-modal__dossier {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--k2-gray-200, #e5e7eb);
+}
+
+.contacts-modal__dossier:last-child {
+  border-bottom: none;
+}
+
+.contacts-modal__dossier-ref {
+  font-weight: var(--k2-font-weight-semibold, 600);
+  color: var(--k2-gray-900, #101828);
+  white-space: nowrap;
+}
+
+.contacts-modal__dossier-nom {
+  color: var(--k2-gray-600, #475467);
+  font-size: var(--k2-font-size-sm, 13px);
+}
+
+.contacts-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+/* ─── États (chargement / erreur / vide) ─── */
+.contacts-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--k2-space-3, 12px);
+  padding: 48px 24px;
+  color: var(--k2-gray-500, #667085);
+  font-size: var(--k2-font-size-base, 14px);
+  text-align: center;
+}
+
+.contacts-state--error {
+  color: var(--k2-error-700, #b42318);
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FINITION VISUELLE — avatars, en-tête, badges, survol, états
+   ═══════════════════════════════════════════════════════════ */
+
+/* En-tête : tuile-icône + titres alignés */
+.contacts-panel__header {
+  align-items: center;
+}
+
+.contacts-panel__heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.contacts-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 13px;
+  background-color: var(--k-bg-900, #032b3b);
+  color: #ffffff;
+}
+
+.contacts-header-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Cellule "nom" avec avatar */
+.contacts-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.contacts-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: var(--k2-font-weight-semibold, 600);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.contacts-avatar--org {
+  border-radius: 10px;
+}
+
+.contacts-avatar svg {
+  width: 19px;
+  height: 19px;
+}
+
+.contacts-name-cell .contacts-cell-primary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Badge de type avec icône */
+.contacts-type-badge svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+/* Tableau : en-tête collant + survol de ligne raffiné */
+.contacts-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background-color: var(--k2-gray-50, #f9fafb);
+}
+
+.contacts-table tbody tr {
+  transition: background-color var(--k2-duration-fast, 100ms) ease;
+}
+
+.contacts-table tbody tr:hover {
+  background-color: var(--k2-info-50, #eff8ff);
+}
+
+.contacts-table tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--k2-primary-500, #0969da);
+}
+
+.contacts-table tbody td {
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+
+/* Survol du panneau — profondeur légèrement accrue */
+.contacts-panel {
+  box-shadow: var(--k2-shadow-lg, 0 20px 25px rgba(0, 0, 0, 0.12));
+}
+
+/* États enrichis : vide + chargement */
+.contacts-state--empty {
+  flex-direction: column;
+  gap: var(--k2-space-3, 12px);
+  padding: 56px 24px;
+}
+
+.contacts-state__icon {
+  color: var(--k2-gray-300, #d0d5dd);
+}
+
+.contacts-state__icon svg {
+  width: 44px;
+  height: 44px;
+}
+
+.contacts-state__spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--k2-gray-200, #e5e7eb);
+  border-top-color: var(--k2-primary-500, #0969da);
+  border-radius: 50%;
+  animation: contacts-spin 0.7s linear infinite;
+}
+
+@keyframes contacts-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .contacts-panel {
+    padding: var(--k2-space-4, 16px);
+  }
+
+  .contacts-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .contacts-search {
+    max-width: none;
+  }
+
+  .contacts-table-wrap {
+    overflow-x: auto;
+  }
+}

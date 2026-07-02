@@ -6,6 +6,7 @@ const path = require('path');
 
 const { findTemplateByName } = require("../utils/fusionUtils");
 const Dossier = require("../models/Folder/Dossier");
+const StoredDocument = require("../models/Storage/StoredDocument");
 const auth = require("../middlewares/middleware-auth");
 const { ensureDossierOwnership } = require("../utils/ownershipHelpers");
 const audit = require("../utils/auditLogger");
@@ -331,9 +332,24 @@ router.post("/deleteDocument", auth, async (req, res) => {
         await dossier.save();
         console.log(`[DEBUG BACKEND ROUTE] 4. SUCCÈS: Dossier sauvegardé. Métadonnées du document ${docId} supprimées.`);
 
-        audit.delete(req, 'document', docId, { dossierId: String(dossierId) });
+        // A17/A19 (reliquat fusion) : la fiche est retirée du dossier — on met
+        // aussi en corbeille le fichier stocké correspondant (StoredDocument lié
+        // par documentId) et on REND SON ESPACE dans la jauge. Sans cela, le
+        // fichier devenait orphelin et comptait dans le quota pour toujours.
+        // Best-effort : un échec ici n'annule pas la suppression de la fiche
+        // (l'endpoint /verify et la purge rattrapent la dérive).
+        let storage = { count: 0, releasedBytes: 0 };
+        try {
+            // require en ligne anti-cycle (même motif que folderDossierInteraction).
+            const { releaseDocument } = require('../services/storage/maintenance');
+            storage = await releaseDocument({ documentId: docId, dossierId });
+        } catch (e) {
+            console.warn('[deleteDocument] libération du stockage échouée (non bloquant):', e.message);
+        }
 
-        return res.json({ message: "Document metadata deleted successfully" });
+        audit.delete(req, 'document', docId, { dossierId: String(dossierId), storageReleased: storage.count });
+
+        return res.json({ message: "Document metadata deleted successfully", storage });
 
     } catch (err) {
         console.error("[DEBUG BACKEND ROUTE] ERREUR MAJEURE in deleteDocument:", err);
@@ -358,6 +374,19 @@ router.post("/duplicateDocument", auth, async (req, res) => {
 
         const sourceDoc = foundDossier.dossier.documents.find(d => d._id.toString() === docId);
         if (!sourceDoc) return res.status(404).json({ error: "Document not found in dossier" });
+
+        // A17/A19 (reliquat fusion) : si le document source vit dans le stockage
+        // en nuage (StoredDocument), dupliquer SEULEMENT la fiche créerait une
+        // « copie fantôme » : une fiche avec un nouvel identifiant derrière
+        // lequel aucun fichier n'existe. On refuse clairement tant que la copie
+        // physique n'est pas câblée (reste-à-faire 🅱️ #4/#12).
+        const stored = await StoredDocument.findOne({ documentId: docId, deletedAt: null }).select('_id').lean();
+        if (stored) {
+            return res.status(409).json({
+                error: "DUPLICATE_CLOUD_NOT_SUPPORTED",
+                message: "Ce document est conservé dans le stockage en ligne : la duplication ne copierait que sa fiche, pas le fichier lui-même. Téléchargez-le puis redéposez-le dans le dossier pour obtenir une vraie copie.",
+            });
+        }
 
         const newDoc = {
             _id: new mongoose.Types.ObjectId(),

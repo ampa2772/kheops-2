@@ -21,10 +21,9 @@ jest.mock('../../../../../../redux/slices/currentDossierSlice', () => ({
   UPDATE_DOCUMENT_LIST_IN_LAST_DOSSIERS: 'UPDATE_DOCUMENT_LIST_IN_LAST_DOSSIERS',
   DELETE_DOSSIER_SUCCESS: 'DELETE_DOSSIER_SUCCESS',
   UPDATE_CURRENT_DOSSIER_SUCCESS: 'UPDATE_CURRENT_DOSSIER_SUCCESS',
-  duplicateDocumentInDossier: (...args) => {
-    mockDuplicateDocument(...args);
-    return { type: 'DUPLICATE_DOC' };
-  },
+  // Renvoie la valeur du mock (par défaut une action simple) pour pouvoir
+  // simuler un rejet serveur (thunk rejeté) dans les tests dédiés.
+  duplicateDocumentInDossier: (...args) => mockDuplicateDocument(...args),
   renameDocumentInDossier: (...args) => {
     mockRenameDocument(...args);
     return { type: 'RENAME_DOC' };
@@ -69,6 +68,8 @@ jest.mock('../../../../../../services/socketService', () => ({
 import rootReducer from '../../../../../../redux/rootReducer';
 import { useDocumentActions } from '../useDocumentActions';
 
+let lastStore = null; // exposé pour vérifier les toasts émis
+
 const createWrapper = (preloadedState = {}) => {
   const store = configureStore({
     reducer: rootReducer,
@@ -80,6 +81,7 @@ const createWrapper = (preloadedState = {}) => {
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({ serializableCheck: false }),
   });
+  lastStore = store;
 
   const Wrapper = ({ children }) => (
     <Provider store={store}>{children}</Provider>
@@ -93,6 +95,9 @@ const mockSubfolder = { _id: 'sf1', name: 'Sous-dossier 1' };
 describe('useDocumentActions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // resetMocks (config CRA) efface les valeurs par défaut avant chaque test :
+    // on re-arme le retour « action simple » de la duplication.
+    mockDuplicateDocument.mockReturnValue({ type: 'DUPLICATE_DOC' });
   });
 
   // ===================== Retour du hook =====================
@@ -146,6 +151,36 @@ describe('useDocumentActions', () => {
         result.current.handleDuplicateDocument(mockDoc);
       });
       expect(result.current.miniModalItemId).toBeNull();
+    });
+
+    it('affiche le message du serveur en cas de refus (ex. copie fantôme 409)', async () => {
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useDocumentActions(), { wrapper });
+
+      // Simule un thunk rejeté par le serveur (axios : error.response.data.message)
+      const serverError = { response: { data: { message: 'Duplication refusée par le serveur.' } } };
+      mockDuplicateDocument.mockReturnValueOnce(() => Promise.reject(serverError));
+
+      await act(async () => {
+        result.current.handleDuplicateDocument(mockDoc);
+      });
+
+      const toasts = lastStore.getState().notifications.queue;
+      expect(toasts.some((t) => t.type === 'error' && t.message === 'Duplication refusée par le serveur.')).toBe(true);
+    });
+
+    it('affiche un message générique si le refus ne porte aucun détail', async () => {
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useDocumentActions(), { wrapper });
+
+      mockDuplicateDocument.mockReturnValueOnce(() => Promise.reject(new Error('réseau')));
+
+      await act(async () => {
+        result.current.handleDuplicateDocument(mockDoc);
+      });
+
+      const toasts = lastStore.getState().notifications.queue;
+      expect(toasts.some((t) => t.type === 'error' && t.message === 'La duplication du document a échoué.')).toBe(true);
     });
   });
 

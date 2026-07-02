@@ -1,0 +1,68 @@
+/* Section « Rangement des documents » (Paramètres). */
+
+.storage-section { max-width: 720px; }
+.storage-section__intro { color: #6b7a90; margin: 4px 0 18px; font-size: 14px; }
+
+.storage-section__options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.storage-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.storage-option:hover:not(:disabled) { border-color: rgba(245, 197, 24, 0.6); }
+.storage-option:disabled { opacity: .6; cursor: default; }
+.storage-option.is-selected {
+  border-color: #f5c518;
+  background: rgba(245, 197, 24, 0.08);
+}
+
+.storage-option__radio {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+.storage-option.is-selected .storage-option__radio {
+  border-color: #f5c518;
+  background:
+    radial-gradient(circle, #f5c518 0 5px, transparent 6px);
+}
+
+.storage-option__body { display: flex; flex-direction: column; gap: 3px; }
+.storage-option__title { font-weight: 600; }
+.storage-option__desc { font-size: 13px; color: #8696ab; }
+
+.storage-section__msg { margin-top: 14px; font-size: 13px; }
+.storage-section__msg--ok { color: #3fbf6b; }
+.storage-section__msg--err { color: #e2574c; }
+
+.storage-usage { margin-top: 22px; }
+.storage-usage__label { font-size: 13px; color: #c4d0e0; margin-bottom: 6px; }
+.storage-usage__bar {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.storage-usage__fill {
+  height: 100%;
+  background: #3fbf6b;
+  transition: width .3s;
+}
+.storage-usage__fill.is-warn { background: #e2574c; }
+.storage-usage__alert { margin-top: 8px; font-size: 13px; color: #e2a23c; }

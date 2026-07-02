@@ -24,6 +24,7 @@ const { asyncHandler } = require('../../middlewares/folder-middleWare');
 
 const Dossier = require('../../models/Folder/Dossier');
 const UserDossier = require('../../models/Folder/modelsLiaisons/UserDossier');
+const { getAccessibleUserIds } = require('../../services/cabinetAccess');
 
 // ============================================================
 // Helpers
@@ -65,7 +66,7 @@ router.get(
     const toValid = to && !isNaN(to.getTime());
 
     // -------- Liste des dossiers du user --------
-    const links = await UserDossier.find({ user: userId }).select('dossier').lean();
+    const links = await UserDossier.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('dossier').lean();
     const dossierIds = links.map((l) => l.dossier);
     if (dossierIds.length === 0) {
       return res.json(emptyPayload(from, to));

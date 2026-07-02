@@ -23,14 +23,8 @@ import {
   resetReminder,
   clearError,
 } from '../redux/slices/encryptionSlice';
-
-/**
- * Helper d'acces aux methodes IPC crypto. Renvoie null hors Electron.
- */
-function getElectronCrypto() {
-  if (typeof window === 'undefined') return null;
-  return window.electron && window.electron.crypto ? window.electron.crypto : null;
-}
+// Helper centralise d'acces aux methodes IPC crypto (null hors Electron).
+import { getElectronCrypto } from '../services/electronBridge';
 
 /**
  * Hook principal du module Chiffrement.

@@ -1,8 +1,16 @@
 import axios from 'axios';
 import store from '../redux/store';
 
+// URL de l'API. Priorite a une config injectee au RUNTIME
+// (window.__KHEOPS_CONFIG__.apiUrl, definie par un <script> / config.js servi
+// par l'hote) pour pouvoir pointer un autre backend SANS rebuild du bundle ;
+// sinon on retombe sur la valeur de build REACT_APP_API_URL — comportement
+// historique inchange pour l'app Electron packagee.
+const runtimeConfig =
+  (typeof window !== 'undefined' && window.__KHEOPS_CONFIG__) || {};
+
 const apiClient = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+  baseURL: runtimeConfig.apiUrl || process.env.REACT_APP_API_URL,
 });
 
 // Intercepteur : injecte automatiquement le token depuis le store Redux,

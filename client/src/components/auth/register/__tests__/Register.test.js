@@ -57,7 +57,7 @@ describe('Register', () => {
   it('rend tous les champs du formulaire (7 inputs + genre)', () => {
     renderRegister();
     // 7 champs textuels
-    expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Adresse email')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Mot de passe')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Prénom')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Nom')).toBeInTheDocument();
@@ -66,41 +66,42 @@ describe('Register', () => {
     expect(screen.getByPlaceholderText('Code postal')).toBeInTheDocument();
     // Genre est un selecteur custom, pas un input
     expect(screen.getByText('Masculin')).toBeInTheDocument();
-    expect(screen.getByText('Feminin')).toBeInTheDocument();
+    expect(screen.getByText('Féminin')).toBeInTheDocument();
   });
 
-  it('rend le bouton "S\'inscrire"', () => {
+  it('rend le bouton de soumission "Créer mon compte"', () => {
     renderRegister();
-    expect(screen.getByText("S'inscrire")).toBeInTheDocument();
+    expect(screen.getByText('Créer mon compte')).toBeInTheDocument();
   });
 
-  it('selectionne le genre Masculin au click et applique la classe selected', () => {
+  it('selectionne le genre Masculin au click et applique la classe is-selected', () => {
     renderRegister();
-    const masculin = screen.getByText('Masculin');
-    fireEvent.click(masculin);
-    expect(masculin).toHaveClass('selected');
+    // Le libellé est dans un <span> ; la classe de sélection est sur le <button> parent.
+    const masculinBtn = screen.getByText('Masculin').closest('button');
+    fireEvent.click(masculinBtn);
+    expect(masculinBtn).toHaveClass('is-selected');
   });
 
-  it('selectionne le genre Feminin au click', () => {
+  it('selectionne le genre Féminin au click', () => {
     renderRegister();
-    const feminin = screen.getByText('Feminin');
-    fireEvent.click(feminin);
-    expect(feminin).toHaveClass('selected');
+    const femininBtn = screen.getByText('Féminin').closest('button');
+    fireEvent.click(femininBtn);
+    expect(femininBtn).toHaveClass('is-selected');
   });
 
   it('permet la saisie dans les champs textuels', async () => {
     renderRegister();
-    const emailInput = screen.getByPlaceholderText('Email');
+    const emailInput = screen.getByPlaceholderText('Adresse email');
     await userEvent.type(emailInput, 'test@example.com');
     expect(emailInput).toHaveValue('test@example.com');
   });
 
   it('dispatch register au submit du formulaire', async () => {
     renderRegister();
-    const emailInput = screen.getByPlaceholderText('Email');
+    const emailInput = screen.getByPlaceholderText('Adresse email');
     await userEvent.type(emailInput, 'test@example.com');
 
-    const submitBtn = screen.getByText("S'inscrire");
+    const submitBtn = screen.getByText('Créer mon compte');
     fireEvent.click(submitBtn);
 
     expect(mockRegister).toHaveBeenCalledTimes(1);

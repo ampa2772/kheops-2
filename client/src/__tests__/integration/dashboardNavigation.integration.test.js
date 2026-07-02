@@ -60,14 +60,15 @@ describe('Navigation Dashboard (integration)', () => {
       expect(screen.getByRole('navigation')).toBeInTheDocument();
     });
 
-    it('rend les 8 liens de navigation', () => {
+    it('rend les 12 liens de navigation', () => {
       renderWithProviders(<SideBar />, {
         preloadedState: { ...authenticatedState, layout: { isSidebarOpen: true } },
         route: '/dashboard/',
       });
 
       const links = screen.getAllByRole('link');
-      expect(links.length).toBe(8);
+      // NAV_ITEMS contient desormais 12 entrees (ajout de Contacts, CARPA, Bilan, Notices)
+      expect(links.length).toBe(12);
     });
 
     it('chaque lien a un aria-label correspondant', () => {
@@ -76,7 +77,7 @@ describe('Navigation Dashboard (integration)', () => {
         route: '/dashboard/',
       });
 
-      const labels = ['Bureau', 'Dossiers', 'Agenda', 'Taches', 'Facturation', 'Graphiques', 'Mails', 'Parametres'];
+      const labels = ['Bureau', 'Dossiers', 'Contacts', 'Agenda', 'Taches', 'Facturation', 'CARPA', 'Bilan', 'Graphiques', 'Mails', 'Notices', 'Parametres'];
       labels.forEach(label => {
         expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
       });

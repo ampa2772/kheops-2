@@ -1,5 +1,6 @@
 const Dossier = require("../models/Folder/Dossier");
 const UserDossier = require("../models/Folder/modelsLiaisons/UserDossier");
+const { getAccessibleUserIds } = require('./cabinetAccess');
 
 /**
  * Propage les modifications d'une entité (Contact, ContactPM, ContactPMPublique, OfficeUser/Avocat)
@@ -14,7 +15,7 @@ async function propagateEntityToDossiers(entityId, updatedEntityData, userId) {
   const entityIdStr = entityId.toString();
 
   // 1. Trouver tous les dossiers de l'utilisateur contenant cette entité
-  const userDossierLinks = await UserDossier.find({ user: userId }).select('dossier').lean();
+  const userDossierLinks = await UserDossier.find({ user: { $in: await getAccessibleUserIds(userId) } }).select('dossier').lean();
   const userDossierIds = userDossierLinks.map(link => link.dossier);
 
   if (userDossierIds.length === 0) {

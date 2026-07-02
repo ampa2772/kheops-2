@@ -1,0 +1,100 @@
+# Garde-fou automatique (A10) — se lance à chaque envoi de code sur GitHub
+# (push sur master ou proposition de fusion). Trois vérifications en parallèle :
+#   1. les 412 tests du serveur (jest),
+#   2. les 1335 tests du client (react-scripts),
+#   3. le lint du code client (erreurs seulement, fichiers de test exclus —
+#      même périmètre que la construction officielle react-scripts).
+#
+# AUCUN secret réel n'est utilisé : les tests serveur tournent sans .env,
+# avec pour seule exigence une clé JWT factice (vérifié le 2026-07-02 :
+# 412/412 verts dans ces conditions exactes).
+
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  tests-serveur:
+    name: Tests serveur (jest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Installer les dépendances
+        working-directory: server
+        run: npm ci
+      - name: Lancer la suite jest
+        working-directory: server
+        env:
+          # Clé factice : passport-jwt exige une clé pour charger index.js.
+          # Ce n'est PAS un secret (les tests n'ouvrent aucune connexion réelle).
+          JWT_SECRET: cle-factice-ci
+        run: npx jest
+
+  tests-client:
+    name: Tests client (react-scripts)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Installer les dépendances
+        working-directory: client
+        run: npm ci
+      - name: Lancer la suite de tests
+        working-directory: client
+        env:
+          CI: "true"
+          NODE_OPTIONS: --max-old-space-size=8192
+        # Appel direct de react-scripts : le script npm "test" du package.json
+        # utilise la syntaxe Windows (set X=Y) qui ne marche pas sous Linux.
+        run: npx react-scripts test --watchAll=false
+
+  lint-client:
+    name: Lint client (erreurs seulement)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Installer les dépendances
+        working-directory: client
+        run: npm ci
+      - name: ESLint (code de production, erreurs bloquantes)
+        working-directory: client
+        # --quiet : seules les ERREURS bloquent (les avertissements existants
+        # relèvent du chantier dette technique). Les fichiers de test sont
+        # exclus comme le fait la construction react-scripts (l'ordre des
+        # importations y est volontairement inversé pour les simulations jest).
+        run: npx eslint src --quiet --ignore-pattern "**/__tests__/**" --ignore-pattern "**/*.test.js"
+
+  # Photographie des vulnérabilités connues des dépendances (chantier A8/A9).
+  # NON bloquante : elle informe sans faire échouer le garde-fou.
+  audit-dependances:
+    name: Audit des dépendances (informatif)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: npm audit serveur
+        working-directory: server
+        run: npm audit --audit-level=high || true
+      - name: npm audit client
+        working-directory: client
+        run: npm audit --audit-level=high || true

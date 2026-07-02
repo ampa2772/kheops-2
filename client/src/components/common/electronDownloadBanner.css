@@ -1,0 +1,92 @@
+/* ElectronDownloadBanner — banniere de telechargement du compagnon Electron.
+   Visible uniquement en mode web. Theme vert Kheops (#008047). */
+
+.k-electron-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background-color: #f1f8f4;
+  border: 1px solid #008047;
+  border-radius: 8px;
+  margin: 10px 16px 0;
+  font-size: 0.92rem;
+  color: #14321f;
+}
+
+.k-electron-banner__icon {
+  font-size: 1.3rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.k-electron-banner__text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.k-electron-banner__text strong {
+  color: #006838;
+}
+
+.k-electron-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.k-electron-banner__btn {
+  display: inline-block;
+  background-color: #008047;
+  color: #fff;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.k-electron-banner__btn:hover {
+  background-color: #006838;
+}
+
+.k-electron-banner__close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: #5c7468;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.k-electron-banner__close:hover {
+  background-color: #e0efe7;
+  color: #14321f;
+}
+
+/* Mode malvoyant (high-contrast) */
+body.high-contrast-mode .k-electron-banner {
+  background-color: #000;
+  border-color: yellow;
+  color: yellow;
+}
+
+body.high-contrast-mode .k-electron-banner__text strong {
+  color: yellow;
+}
+
+body.high-contrast-mode .k-electron-banner__btn {
+  background-color: #000;
+  color: yellow;
+  border: 1px solid yellow;
+}
+
+body.high-contrast-mode .k-electron-banner__close {
+  color: yellow;
+}

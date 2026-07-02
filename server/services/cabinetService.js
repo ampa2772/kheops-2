@@ -9,6 +9,8 @@
 const CabinetExpense = require('../models/Cabinet/CabinetExpense');
 const CabinetRecurringExpense = require('../models/Cabinet/CabinetRecurringExpense');
 const Dossier = require('../models/Folder/Dossier');
+const UserDossier = require('../models/Folder/modelsLiaisons/UserDossier');
+const { getAccessibleUserIds } = require('./cabinetAccess');
 const { intervalleParFrequence, ajouterMois } = require('./cabinetConstants');
 
 // ============================================================
@@ -104,12 +106,18 @@ async function calculerBilan(ownerUserId, options = {}) {
   const to = options.to ? new Date(options.to) : null;
 
   // ----- Recettes (depuis Dossier.factures.payments) -----
-  // On charge les dossiers du cabinet. Note : le modele Dossier ne porte
-  // pas explicitement d'ownerUserId (heritage du schema initial). On
-  // fait donc une agregation sur tous les dossiers — l'app etant
-  // mono-cabinet par instance, c'est OK. Pour la version multi-tenant,
-  // il faudra ajouter un filtre d'appartenance.
-  const dossiers = await Dossier.find({}).select('_id reference dossier factures').lean();
+  // rc38 (A1) : ISOLATION MULTI-CABINET. Le modele Dossier ne porte pas
+  // d'ownerUserId ; l'appartenance est materialisee par UserDossier. On
+  // restreint donc l'agregation aux dossiers du CABINET de l'utilisateur
+  // (getAccessibleUserIds → UserDossier). Sans ce filtre, le bilan/la
+  // rentabilite agregaient les recettes de TOUS les cabinets de la base
+  // (fuite du chiffre d'affaires inter-cabinet).
+  const accessibleUserIds = await getAccessibleUserIds(ownerUserId);
+  const userDossierLinks = await UserDossier.find({ user: { $in: accessibleUserIds } }).select('dossier').lean();
+  const scopedDossierIds = userDossierLinks.map((l) => l.dossier);
+  const dossiers = scopedDossierIds.length
+    ? await Dossier.find({ _id: { $in: scopedDossierIds } }).select('_id reference dossier factures').lean()
+    : [];
 
   let recettesTTC = 0;
   let recettesHT = 0;

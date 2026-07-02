@@ -47,9 +47,9 @@ const STEPS = [
     icon: '✉️',
     title: 'Invitez un collègue',
     description:
-      "Vos confrères du cabinet peuvent vous rejoindre sur Kheops 2 et partager les dossiers, l'agenda et le chat interne. Cette fonctionnalité arrive prochainement — restez connecté.",
-    ctaLabel: null,
-    ctaTarget: null,
+      "Vos confrères du cabinet peuvent vous rejoindre sur Kheops 2 et partager les dossiers, l'agenda et le chat interne. Rendez-vous dans Paramètres › Cabinet pour envoyer une invitation.",
+    ctaLabel: 'Gérer le cabinet',
+    ctaTarget: '/dashboard/parametres',
   },
 ];
 
