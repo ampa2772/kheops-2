@@ -8,6 +8,7 @@ import {
   setShowPersonneMorale,
   setSearchNavigationContactId,
 } from '../../../../redux/slices/layoutSlice';
+import OutlookContactsPanel, { useOutlookContacts } from './OutlookContactsPanel';
 import './styles.css';
 
 // ---------------------------------------------------------------------------
@@ -181,6 +182,10 @@ const ContactsList = () => {
   const [dossiersError, setDossiersError] = useState(null);
   const [dossiersList, setDossiersList] = useState([]);
 
+  // Contacts Outlook (consultation seule). L'onglet n'existe que si un compte
+  // Microsoft est relié — sinon le hook passe en 'hidden' et rien ne s'affiche.
+  const outlook = useOutlookContacts();
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -213,8 +218,18 @@ const ContactsList = () => {
 
   const counts = useMemo(() => {
     const personnes = rows.filter((r) => r.kind === 'physique').length;
-    return { tous: rows.length, personnes, organisations: rows.length - personnes };
-  }, [rows]);
+    return {
+      tous: rows.length,
+      personnes,
+      organisations: rows.length - personnes,
+      // « 12+ » : d'autres pages existent chez Microsoft (pagination).
+      outlook: `${outlook.contacts.length}${outlook.nextPageToken ? '+' : ''}`,
+    };
+  }, [rows, outlook.contacts.length, outlook.nextPageToken]);
+
+  const visibleTabs = useMemo(() => (
+    outlook.status === 'hidden' ? TABS : [...TABS, { id: 'outlook', label: 'Outlook' }]
+  ), [outlook.status]);
 
   const tabRows = useMemo(() => {
     if (activeTab === 'personnes') return rows.filter((r) => r.kind === 'physique');
@@ -402,13 +417,15 @@ const ContactsList = () => {
               aria-label="Rechercher un contact"
             />
           </div>
-          <span className="contacts-result-count">
-            {displayed.length} résultat{displayed.length > 1 ? 's' : ''}
-          </span>
+          {activeTab !== 'outlook' && (
+            <span className="contacts-result-count">
+              {displayed.length} résultat{displayed.length > 1 ? 's' : ''}
+            </span>
+          )}
         </div>
 
         <div className="k2-tabs contacts-tabs" role="tablist">
-          {TABS.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.id}
               type="button"
@@ -424,7 +441,9 @@ const ContactsList = () => {
         </div>
 
         <div className="contacts-table-wrap">
-          {loading ? (
+          {activeTab === 'outlook' ? (
+            <OutlookContactsPanel {...outlook} query={query} />
+          ) : loading ? (
             <div className="contacts-state">
               <span className="contacts-state__spinner" aria-hidden="true" />
               Chargement des contacts…
