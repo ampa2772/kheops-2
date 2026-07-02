@@ -457,8 +457,12 @@ router.get('/google/session-status', auth, async (req, res) => {
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || process.env.MSAL_CLIENT_ID;
 const MICROSOFT_AUTHORITY = process.env.MICROSOFT_AUTHORITY || 'https://login.microsoftonline.com/common';
 const MICROSOFT_CALLBACK_URL = process.env.MICROSOFT_CALLBACK_URL || 'http://localhost:5000/api/auth/microsoft/callback';
-// Files.ReadWrite ajouté pour permettre la synchro OneDrive côté client
-const MICROSOFT_SCOPES = ['User.Read', 'Mail.Read', 'Mail.ReadWrite', 'Mail.Send', 'Files.ReadWrite', 'offline_access'];
+// Files.ReadWrite ajouté pour permettre la synchro OneDrive côté client.
+// Calendars.Read + Contacts.Read ajoutés pour l'agenda et les contacts Outlook
+// (lecture seule). ⚠️ Ajouter des scopes impose une NOUVELLE autorisation : un
+// utilisateur déjà connecté à Microsoft avant cet ajout devra se reconnecter
+// une fois pour accorder ces accès.
+const MICROSOFT_SCOPES = ['User.Read', 'Mail.Read', 'Mail.ReadWrite', 'Mail.Send', 'Files.ReadWrite', 'Calendars.Read', 'Contacts.Read', 'offline_access'];
 
 const microsoftCrypto = new CryptoProvider();
 

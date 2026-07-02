@@ -17,7 +17,10 @@ const { escapeHtml } = require('./escapeHtml');
 
 const CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || process.env.MSAL_CLIENT_ID;
 const AUTHORITY = process.env.MICROSOFT_AUTHORITY || 'https://login.microsoftonline.com/common';
-const SCOPES = ['User.Read', 'Mail.Read', 'Mail.ReadWrite', 'Mail.Send', 'Files.ReadWrite', 'offline_access'];
+// Doit rester ALIGNÉ avec MICROSOFT_SCOPES de routes/auth.js (le refresh_token
+// obtient un access_token couvrant ces portées). Calendars.Read + Contacts.Read
+// alimentent microsoftGraphExtended (agenda/contacts, lecture seule).
+const SCOPES = ['User.Read', 'Mail.Read', 'Mail.ReadWrite', 'Mail.Send', 'Files.ReadWrite', 'Calendars.Read', 'Contacts.Read', 'offline_access'];
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
 // userId -> { accessToken, refreshToken, expiresAt }
@@ -256,6 +259,9 @@ module.exports = {
   sendMail,
   listInboxRaw,
   countFromContacts,
+  // Bas niveau partagé (réutilisé par microsoftGraphExtended : agenda/contacts).
+  // Applique déjà la rotation de jeton + le refresh chiffré.
+  _graphCall,
   // Helpers exposés (utile en tests)
   _formatFrom,
   _refresh,

@@ -62,6 +62,8 @@ const presenceRouter = require('./routes/presence');
 // --- NOUVELLE IMPORTATION pour les routes Encryption E2E (V1 lot 2) ---
 const encryptionRouter = require('./routes/encryption');
 
+const microsoftGraphRouter = require('./routes/microsoftGraph');
+
 // Utilisation des routes
 router.use('/auth', authRoutes); // Préfixe /api/auth/...
 router.use('/folder', folderContactsRouter); // Préfixe /api/folder/...
@@ -118,5 +120,8 @@ router.use('/presence', presenceRouter); // Préfixe /api/presence/...
 
 // --- NOUVELLE UTILISATION pour les routes Encryption E2E ---
 router.use('/encryption', encryptionRouter); // Préfixe /api/encryption/...
+
+// --- Microsoft Graph étendu : agenda + contacts Outlook (lecture seule) ---
+router.use('/microsoft', microsoftGraphRouter); // Préfixe /api/microsoft/...
 
 module.exports = router;
