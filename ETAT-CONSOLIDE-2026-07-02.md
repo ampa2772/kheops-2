@@ -1,5 +1,16 @@
 # ÉTAT CONSOLIDÉ — 2026-07-02 (fusion des deux sessions Claude)
 
+> 🚀 **MISE À JOUR MAJEURE 2026-07-03 : TOUT EST DÉPLOYÉ.** Sur feu vert explicite d'Adrien,
+> l'intégralité du travail de session est EN PRODUCTION : révision **`kheops-2-backend-00018-hjl`**
+> (précédée de `00017-qpp` = ajout des 3 variables `MICROSOFT_*` seules). Vérifications
+> post-déploiement toutes vertes : santé 200, nouveau build client servi, login Microsoft avec
+> scopes agenda+contacts, routes `/api/microsoft/*` montées (401 sans session), en-têtes HSTS /
+> Permissions-Policy / CSP-report-only actifs. **Rollback** : router le trafic vers `00017-qpp`
+> ou `00016-fmt` (console Cloud Run). Les mentions « NON déployé » ci-dessous sont donc PÉRIMÉES.
+> Reste : login Microsoft réel par Adrien + validation mail/agenda/contacts/OneDrive avec son
+> compte ; backfill `tenantId --apply` (no-op annoncé, à faire lors de la recette) ; CSP `enforce`
+> après observation ; recette réelle E2E ; planification `purgeSoftDeleted`.
+
 > Rédigé par Claude Fable 5 après vérification de cohérence de TOUTE la copie de travail.
 > Contexte : deux sessions Claude ont travaillé en parallèle sur cette copie :
 > - **Session « Fable » (`31a90a14`)** : lot 🅰️ sécurité/durcissement (cf. `PASSATION-FABLE5-SECURITE.md`).
