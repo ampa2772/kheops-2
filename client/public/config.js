@@ -4,15 +4,30 @@
 // Ce fichier est charge AVANT le bundle React (voir public/index.html). Il
 // permet de pointer un backend different SANS recompiler le bundle.
 //
-// Par defaut il est VIDE : l'application retombe alors sur la valeur de build
-// REACT_APP_API_URL (comportement Electron / local inchange).
+// Comportement AUTO :
+//   - Web HEBERGE (http/https, hors localhost) : l'API, le temps reel et les
+//     redirections OAuth sont servis par la MEME origine que le site. On fixe
+//     donc apiUrl = origine du site automatiquement (aucune retouche a faire
+//     au deploiement, robuste si l'URL change / domaine personnalise).
+//   - Electron / local : on ne touche a rien => l'app retombe sur la valeur de
+//     build REACT_APP_API_URL (http://localhost:5000, serveur embarque).
 //
-// DEPLOIEMENT WEB HEBERGE : remplacez le contenu (ou injectez-le cote
-// hebergeur, ex. via une etape de deploiement) pour cibler votre API, ex. :
-//
-//   window.__KHEOPS_CONFIG__ = { apiUrl: "https://api.kheops-2.fr" };
+// Pour forcer un backend different (API sur un autre domaine), definir
+// window.__KHEOPS_CONFIG__.apiUrl AVANT ce script, ou remplacer ce fichier.
 //
 // Clefs supportees :
-//   - apiUrl : URL de base de l'API backend (axios baseURL).
+//   - apiUrl : URL de base de l'API backend (axios baseURL + OAuth + socket).
 // =============================================================================
 window.__KHEOPS_CONFIG__ = window.__KHEOPS_CONFIG__ || {};
+(function () {
+  try {
+    var loc = (typeof window !== 'undefined' && window.location) || {};
+    var isHttp = /^https?:$/.test(loc.protocol || '');
+    var isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(loc.hostname || '');
+    if (isHttp && !isLocal && !window.__KHEOPS_CONFIG__.apiUrl) {
+      window.__KHEOPS_CONFIG__.apiUrl = loc.origin;
+    }
+  } catch (e) {
+    /* no-op : on laisse le fallback REACT_APP_API_URL agir */
+  }
+})();

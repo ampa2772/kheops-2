@@ -1,16 +1,13 @@
 import axios from 'axios';
 import store from '../redux/store';
+import { resolveApiBase } from '../utils/apiBase';
 
-// URL de l'API. Priorite a une config injectee au RUNTIME
-// (window.__KHEOPS_CONFIG__.apiUrl, definie par un <script> / config.js servi
-// par l'hote) pour pouvoir pointer un autre backend SANS rebuild du bundle ;
-// sinon on retombe sur la valeur de build REACT_APP_API_URL — comportement
-// historique inchange pour l'app Electron packagee.
-const runtimeConfig =
-  (typeof window !== 'undefined' && window.__KHEOPS_CONFIG__) || {};
-
+// URL de l'API. resolveApiBase() donne la priorite a la config RUNTIME
+// (window.__KHEOPS_CONFIG__.apiUrl, posee par config.js = origine du site en
+// web heberge), puis a la valeur de build REACT_APP_API_URL (Electron), puis
+// a l'origine. Un seul point de verite partage avec le login OAuth et le socket.
 const apiClient = axios.create({
-  baseURL: runtimeConfig.apiUrl || process.env.REACT_APP_API_URL,
+  baseURL: resolveApiBase(),
 });
 
 // Intercepteur : injecte automatiquement le token depuis le store Redux,

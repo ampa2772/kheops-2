@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../../../redux/slices/authSlice';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ForgotPasswordModal from '../forgotPassword/ForgotPasswordModal';
+import { resolveApiBase } from '../../../utils/apiBase';
 import "../styles.css";
 
 
@@ -77,8 +78,9 @@ const Login = (props) => {
     setOauthRedirecting('google');
     // Origine du backend : en web hébergé = l'URL du site (Cloud Run) ;
     // dans Electron = http://localhost:5000 (le renderer charge le serveur
-    // embarqué). window.location.origin couvre les deux sans fallback localhost.
-    const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
+    // embarqué). resolveApiBase() donne la priorité à la config runtime
+    // (config.js pose l'origine du site en web hébergé) → plus de localhost.
+    const apiUrl = resolveApiBase();
     const googleAuthUrl = `${apiUrl}/api/auth/google`;
     if (window.electron?.openExternal) {
       window.electron.openExternal(googleAuthUrl);
@@ -92,8 +94,9 @@ const Login = (props) => {
     setOauthRedirecting('microsoft');
     // Origine du backend : en web hébergé = l'URL du site (Cloud Run) ;
     // dans Electron = http://localhost:5000 (le renderer charge le serveur
-    // embarqué). window.location.origin couvre les deux sans fallback localhost.
-    const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
+    // embarqué). resolveApiBase() donne la priorité à la config runtime
+    // (config.js pose l'origine du site en web hébergé) → plus de localhost.
+    const apiUrl = resolveApiBase();
     const microsoftAuthUrl = `${apiUrl}/api/auth/microsoft`;
     if (window.electron?.openExternal) {
       window.electron.openExternal(microsoftAuthUrl);

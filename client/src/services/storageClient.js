@@ -13,6 +13,7 @@
 //   DELETE /api/storage/documents/:id           suppression (corbeille)
 
 import apiClient from './apiClient';
+import { resolveApiBase } from '../utils/apiBase';
 
 export const STORAGE_PROVIDERS = Object.freeze({
   GOOGLE_DRIVE: 'google_drive',
@@ -47,8 +48,7 @@ export async function getOneDriveStatus() {
  * consent déjà Files.ReadWrite, ce qui « connecte » le OneDrive de l'utilisateur.
  */
 export function microsoftConnectUrl() {
-  const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
-  return `${apiUrl}/api/auth/microsoft`;
+  return `${resolveApiBase()}/api/auth/microsoft`;
 }
 
 /**
@@ -62,8 +62,7 @@ export async function getGoogleDriveStatus() {
 
 /** URL absolue de connexion Google (le login Google consent déjà drive.file). */
 export function googleConnectUrl() {
-  const apiUrl = process.env.REACT_APP_API_URL || window.location.origin;
-  return `${apiUrl}/api/auth/google`;
+  return `${resolveApiBase()}/api/auth/google`;
 }
 
 /** Définit le mode de rangement du cabinet. */

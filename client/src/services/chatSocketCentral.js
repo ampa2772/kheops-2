@@ -8,6 +8,7 @@
 // Authentification : JWT au handshake. Si déconnecté → reconnecte avec backoff.
 
 import { io } from 'socket.io-client';
+import { resolveApiBase } from '../utils/apiBase';
 
 let socket = null;
 let currentToken = null;
@@ -19,7 +20,7 @@ let currentToken = null;
  * casserait le chat temps réel en mode web).
  */
 function getServerUrl() {
-    return process.env.REACT_APP_API_URL || window.location.origin;
+    return resolveApiBase();
 }
 
 /**
