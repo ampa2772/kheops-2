@@ -261,10 +261,16 @@ const NotificationsModal = ({ isOpen, position, onClose }) => {
     setIsPreviewLoading(true);
     setPreviewError(null);
     try {
-      const response = await apiClient.get(
-        `/api/mails/email/${selectedEmailId}/attachment/${attachmentForPreview.attachmentId}/content?filename=${encodeURIComponent(attachmentForPreview.filename)}&mimeType=${encodeURIComponent(attachmentForPreview.mimeType)}`,
-        { responseType: 'arraybuffer' }
-      );
+      // Bascule OAuth vs IMAP : une PJ IMAP (source:'imap', attachmentId =
+      // index) se récupère via /api/mail/... ; l'aperçu réutilise ensuite le
+      // même pipeline (image blob / PDF / docx / texte selon le Content-Type).
+      const isImap = attachmentForPreview.source === 'imap' || emailDetail?.source === 'imap';
+      const response = isImap
+        ? await mailAccountService.getAttachmentContent(selectedEmailId, attachmentForPreview.attachmentId)
+        : await apiClient.get(
+            `/api/mails/email/${selectedEmailId}/attachment/${attachmentForPreview.attachmentId}/content?filename=${encodeURIComponent(attachmentForPreview.filename)}&mimeType=${encodeURIComponent(attachmentForPreview.mimeType)}`,
+            { responseType: 'arraybuffer' }
+          );
       const receivedContentType = response.headers['content-type'];
       setPreviewContentType(receivedContentType);
       const arrayBuffer = response.data;
@@ -285,7 +291,7 @@ const NotificationsModal = ({ isOpen, position, onClose }) => {
     } finally {
       setIsPreviewLoading(false);
     }
-  }, [selectedEmailId, attachmentForPreview, kheopsToken]);
+  }, [selectedEmailId, attachmentForPreview, emailDetail, kheopsToken]);
 
   useEffect(() => {
     if (modalView === 'preview') {
@@ -584,7 +590,10 @@ const NotificationsModal = ({ isOpen, position, onClose }) => {
   const handleDownloadAttachment = async (attachment) => {
     if (!selectedEmailId || !attachment.attachmentId) return;
     try {
-        const response = await apiClient.get(`/api/mails/email/${selectedEmailId}/attachment/${attachment.attachmentId}?filename=${encodeURIComponent(attachment.filename)}&mimeType=${encodeURIComponent(attachment.mimeType)}`, { responseType: 'blob' });
+        const isImap = attachment.source === 'imap' || emailDetail?.source === 'imap';
+        const response = isImap
+          ? await mailAccountService.downloadAttachment(selectedEmailId, attachment.attachmentId)
+          : await apiClient.get(`/api/mails/email/${selectedEmailId}/attachment/${attachment.attachmentId}?filename=${encodeURIComponent(attachment.filename)}&mimeType=${encodeURIComponent(attachment.mimeType)}`, { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -802,6 +811,21 @@ const NotificationsModal = ({ isOpen, position, onClose }) => {
                 <div className="k-mailmodal-header-text">
                   <div className="k-mailmodal-breadcrumb">
                     <span>BOÎTE MAIL</span> · <span>CABINET</span>
+                    {(() => {
+                      // Badge du type de boîte lue par la cloche. Pour un compte
+                      // OAuth, la cloche lit toujours l'OAuth (Microsoft
+                      // prioritaire) ; sinon la boîte IMAP configurée.
+                      const src = hasOAuthMail
+                        ? (loginUser?.microsoftRefreshToken
+                            ? { cls: 'outlook', label: 'Outlook' }
+                            : { cls: 'gmail', label: 'Gmail' })
+                        : (imapAccounts && imapAccounts.length > 0
+                            ? { cls: 'imap', label: 'IMAP' }
+                            : null);
+                      return src
+                        ? <span className={`k-mailmodal-source-badge k-mailmodal-source-badge--${src.cls}`}>{src.label}</span>
+                        : null;
+                    })()}
                     <span className="k-mailmodal-badge">{totalCount}</span>
                   </div>
                   <div className="k-mailmodal-title">Emails reçus récents</div>

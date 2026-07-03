@@ -545,6 +545,7 @@ const authSlice = createSlice({
       localStorage.removeItem('cachedKheopsEmails');
       localStorage.removeItem('cachedKheopsNextPageToken');
       localStorage.removeItem('cachedKheopsHasMoreEmails');
+      localStorage.removeItem('cachedKheopsEmailsAt');
       state.token = null;
       state.isAuthenticated = false;
       state.loading = false;
@@ -583,6 +584,7 @@ const authSlice = createSlice({
       localStorage.removeItem('cachedKheopsEmails');
       localStorage.removeItem('cachedKheopsNextPageToken');
       localStorage.removeItem('cachedKheopsHasMoreEmails');
+      localStorage.removeItem('cachedKheopsEmailsAt');
       state.token = null;
       state.isAuthenticated = false;
       state.loading = false;
@@ -702,6 +704,7 @@ const authSlice = createSlice({
       localStorage.removeItem('cachedKheopsEmails');
       localStorage.removeItem('cachedKheopsNextPageToken');
       localStorage.removeItem('cachedKheopsHasMoreEmails');
+      localStorage.removeItem('cachedKheopsEmailsAt');
       state.token = null;
       state.isAuthenticated = false;
       state.loading = false;
@@ -720,6 +723,7 @@ const authSlice = createSlice({
       localStorage.removeItem('cachedKheopsEmails');
       localStorage.removeItem('cachedKheopsNextPageToken');
       localStorage.removeItem('cachedKheopsHasMoreEmails');
+      localStorage.removeItem('cachedKheopsEmailsAt');
       state.token = null;
       state.isAuthenticated = false;
       state.loading = false;

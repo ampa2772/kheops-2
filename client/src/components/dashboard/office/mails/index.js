@@ -15,10 +15,38 @@ const LOCAL_STORAGE_KEYS = {
     EMAILS: 'cachedKheopsEmails',
     NEXT_PAGE_TOKEN: 'cachedKheopsNextPageToken',
     HAS_MORE_EMAILS: 'cachedKheopsHasMoreEmails',
+    CACHED_AT: 'cachedKheopsEmailsAt', // horodatage d'écriture du cache (péremption)
+};
+
+// Durée de vie du cache d'e-mails : au-delà, le cache est ignoré et purgé au
+// prochain chargement (évite d'afficher une boîte périmée sans rafraîchir).
+const EMAIL_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 heures
+
+// Le cache est-il périmé (ou sans horodatage) ? Exporté pour test.
+export const isEmailCacheStale = (now = Date.now()) => {
+    try {
+        const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.CACHED_AT);
+        if (!raw) return true;
+        const ts = Number(raw);
+        if (!Number.isFinite(ts)) return true;
+        return (now - ts) > EMAIL_CACHE_TTL_MS;
+    } catch (e) {
+        return true;
+    }
 };
 
 const loadFromLocalStorage = (key, defaultValue = null) => {
     try {
+        // Péremption : si le cache est trop vieux, on l'ignore pour les données
+        // e-mail (liste + pagination) — le montage rechargera depuis le serveur.
+        if (
+            (key === LOCAL_STORAGE_KEYS.EMAILS
+              || key === LOCAL_STORAGE_KEYS.NEXT_PAGE_TOKEN
+              || key === LOCAL_STORAGE_KEYS.HAS_MORE_EMAILS)
+            && isEmailCacheStale()
+        ) {
+            return defaultValue;
+        }
         const item = localStorage.getItem(key);
         if (item === null || item === 'undefined') return defaultValue;
         if (key === LOCAL_STORAGE_KEYS.HAS_MORE_EMAILS) return item === 'true';
@@ -288,6 +316,8 @@ const MailsComponent = () => {
             if (!readFromImap) {
                 saveToLocalStorage(LOCAL_STORAGE_KEYS.NEXT_PAGE_TOKEN, newToken || null);
                 saveToLocalStorage(LOCAL_STORAGE_KEYS.HAS_MORE_EMAILS, newHasMore);
+                // Horodatage du cache : sert de base à la péremption (TTL).
+                saveToLocalStorage(LOCAL_STORAGE_KEYS.CACHED_AT, String(Date.now()));
             }
 
         } catch (error) {
@@ -612,11 +642,23 @@ const MailsComponent = () => {
                 </div>
 
                 <div className="mail-status-indicators">
+                    {(() => {
+                        // Badge du type de boîte active (même convention que
+                        // mainUserModal : Microsoft prioritaire). IMAP si une
+                        // boîte générique est sélectionnée.
+                        const kind = readFromImap
+                            ? { cls: 'imap', label: 'IMAP' }
+                            : (user?.microsoftRefreshToken
+                                ? { cls: 'outlook', label: 'Outlook' }
+                                : { cls: 'gmail', label: 'Gmail' });
+                        if (!readFromImap && !hasOAuthMail) return null;
+                        return <span className={`mail-source-badge mail-source-badge--${kind.cls}`}>{kind.label}</span>;
+                    })()}
                     {readFromImap && selectedMailAccount && (
                         <span className="mail-account-current">{selectedMailAccount.email}</span>
                     )}
                     {!readFromImap && hasOAuthMail && (
-                        <span className="mail-account-current">Messagerie principale (Gmail/Outlook)</span>
+                        <span className="mail-account-current">Messagerie principale</span>
                     )}
                     {isAccountsLoading && <span className="status-loading">Comptes...</span>}
                     {isLoading && <span className="status-loading">Chargement liste...</span>}

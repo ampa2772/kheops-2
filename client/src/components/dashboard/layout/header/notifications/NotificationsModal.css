@@ -704,6 +704,23 @@ body.high-contrast-mode .dossier-target-list::-webkit-scrollbar-thumb:hover {
   margin-left: 4px;
 }
 
+/* Badge du type de boîte (Gmail / Outlook / IMAP) dans le breadcrumb */
+.k-mailmodal-source-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 9px;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-left: 6px;
+}
+.k-mailmodal-source-badge--gmail   { background: #ea4335; }
+.k-mailmodal-source-badge--outlook { background: #0078d4; }
+.k-mailmodal-source-badge--imap    { background: #4b5563; }
+
 .k-mailmodal-title {
   font-size: 1rem;
   font-weight: 600;

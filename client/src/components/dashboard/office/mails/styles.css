@@ -708,3 +708,19 @@ body.high-contrast-mode .mail-attachment-download {
     margin-left: 0;
   }
 }
+
+/* Badge du type de boîte mail active (Gmail / Outlook / IMAP) */
+.mail-source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
+  white-space: nowrap;
+}
+.mail-source-badge--gmail   { background: #ea4335; }
+.mail-source-badge--outlook { background: #0078d4; }
+.mail-source-badge--imap    { background: #4b5563; }

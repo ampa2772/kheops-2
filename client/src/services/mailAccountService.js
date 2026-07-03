@@ -54,6 +54,16 @@ export const mailAccountService = {
     );
   },
 
+  // Contenu brut d'une PJ IMAP pour l'APERÇU inline (ArrayBuffer). Même route
+  // que le téléchargement : pour un fetch en mémoire, le Content-Disposition
+  // du serveur est sans effet — seul le Content-Type (correct) compte.
+  async getAttachmentContent(messageId, attachmentIndex) {
+    return apiClient.get(
+      `/api/mail/messages/${encodeURIComponent(messageId)}/attachments/${attachmentIndex}`,
+      { responseType: 'arraybuffer' },
+    );
+  },
+
   async sendMail(payload) {
     const { data } = await apiClient.post('/api/mail/send', payload);
     return data;
