@@ -275,8 +275,15 @@ router.get("/user-documents/:dossierId", auth, async (req, res) => {
   }
 });
 
-router.post("/updateDocumentUrl", auth, async (req, res) => {
-    // ... (code inchangé)
+router.post("/updateDocumentUrl", auth, (req, res) => {
+    // Héritage Google Drive : le corps de cette route avait été retiré mais le
+    // squelette restait — toute requête PENDAIT jusqu'au timeout sans réponse.
+    // Aucun appelant dans le client, l'app de bureau ni le compagnon (vérifié).
+    // On répond désormais explicitement « retirée » au lieu de faire attendre.
+    return res.status(410).json({
+        error: 'ROUTE_RETIREE',
+        message: "Cette route de l'ancien système Google Drive n'existe plus.",
+    });
 });
 
 // ========================================================================

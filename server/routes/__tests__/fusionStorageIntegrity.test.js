@@ -64,6 +64,7 @@ function loadHandlers({ dossier, storedDocForDuplicate = null, releaseResult, re
     releaseDocument,
     deleteDocument: handlerOf('/deleteDocument'),
     duplicateDocument: handlerOf('/duplicateDocument'),
+    updateDocumentUrl: handlerOf('/updateDocumentUrl'),
   };
 }
 
@@ -140,6 +141,14 @@ describe('POST /fusion/duplicateDocument', () => {
     expect(res.payload.error).toBe('DUPLICATE_CLOUD_NOT_SUPPORTED');
     expect(dossier.dossier.documents).toHaveLength(1); // rien ajouté
     expect(dossier.save).not.toHaveBeenCalled();
+  });
+
+  test('updateDocumentUrl (route morte héritage Drive) → 410 immédiat, plus de requête qui pend', async () => {
+    const h = loadHandlers({ dossier: fakeDossier([]) });
+    const { req, res } = fakeReqRes({});
+    await h.updateDocumentUrl(req, res);
+    expect(res.status).toHaveBeenCalledWith(410);
+    expect(res.payload.error).toBe('ROUTE_RETIREE');
   });
 
   test('document hérité (sans fichier nuage) → duplication de fiche inchangée (201)', async () => {

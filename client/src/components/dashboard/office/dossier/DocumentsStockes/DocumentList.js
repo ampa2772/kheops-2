@@ -7,6 +7,7 @@ import './styles.css';
 import { updateDocumentColor, updateSubfolder } from '../../../../../redux/slices/currentDossierSlice';
 // Compagnon Electron mince (mode web) : ouverture des .docx dans Microsoft Word.
 import { openDocumentInWord, triggerCompanionInstall } from '../../../../../services/companion/companionClient';
+import { downloadWordDocument, classifyWordDownloadError } from '../../../../../services/wordDocumentClient';
 
 // Verrouillage collaboratif de documents (cross-PC)
 import { useDocumentLock } from '../../../../../hooks/useDocumentLock';
@@ -929,11 +930,13 @@ const DocumentList = ({
       toast.info('Ouverture dans Microsoft Word…', { title: 'Compagnon Kheops' });
     } catch (error) {
       console.error("[Companion] Ouverture impossible:", error);
-      // Compagnon absent : proposer un téléchargement EN UN CLIC de l'installeur.
+      // Compagnon absent : proposer l'installeur, et sinon offrir un REPLI
+      // 100 % navigateur — télécharger le .docx pour l'ouvrir soi-même.
       const wantInstall = window.confirm(
         "Le compagnon Kheops n'est pas installé sur cet ordinateur.\n\n"
-        + "Il est nécessaire pour ouvrir les documents dans Microsoft Word.\n\n"
-        + "Voulez-vous télécharger l'installateur maintenant ?"
+        + "Il permet d'ouvrir les documents directement dans Microsoft Word.\n\n"
+        + "OK : télécharger l'installateur du compagnon.\n"
+        + "Annuler : télécharger simplement le document pour l'ouvrir vous-même."
       );
       if (wantInstall) {
         triggerCompanionInstall();
@@ -941,11 +944,19 @@ const DocumentList = ({
           "Téléchargement en cours. Ouvrez le fichier téléchargé, laissez-le s'installer (une fenêtre bleue Windows peut demander « Informations complémentaires » → « Exécuter quand même »), puis réessayez d'ouvrir le document.",
           { title: 'Installation du compagnon' }
         );
+      } else {
+        try {
+          await downloadWordDocument(doc._id, doc.nomDocument);
+          toast.success('Document téléchargé — ouvrez-le avec Word.', { title: 'Téléchargement' });
+        } catch (dlErr) {
+          console.error('[Download repli] Erreur:', dlErr);
+          toast.error(classifyWordDownloadError(dlErr).message);
+        }
       }
     }
   };
 
-  // ======= Télécharger un document (.txt) =======
+  // ======= Télécharger un document =======
   const handleDownloadDocument = async (e, doc) => {
     e.stopPropagation();
     stopSpeaking();
@@ -961,7 +972,14 @@ const DocumentList = ({
         toast.error("Erreur lors du téléchargement.");
       }
     } else {
-      toast.warning("Le téléchargement nécessite l'application de bureau Kheops.");
+      // Mode WEB : téléchargement direct depuis le serveur (documents/<docId>.docx).
+      // Plus besoin de l'application de bureau.
+      try {
+        await downloadWordDocument(doc._id, doc.nomDocument);
+      } catch (error) {
+        console.error('[Download web] Erreur:', error);
+        toast.error(classifyWordDownloadError(error).message);
+      }
     }
   };
 

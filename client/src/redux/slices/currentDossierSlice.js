@@ -572,10 +572,25 @@ export const createDocumentInDossier = (dossierId, templateFileName, token, user
         // 1) Le serveur fabrique le .docx (modèle + données du dossier) et l'enregistre
         //    sous documents/<docId>.docx.
         dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 60, step: 'Génération du document...' } });
-        await apiClient.post(`/api/word/${newDocMetadata._id}/generate`, {
-          templateName: templateFileName,
-          clientData: { dossier: dossierComplet, recipients, userProfile: user },
-        });
+        try {
+          await apiClient.post(`/api/word/${newDocMetadata._id}/generate`, {
+            templateName: templateFileName,
+            clientData: { dossier: dossierComplet, recipients, userProfile: user },
+          });
+        } catch (genErr) {
+          // Rollback (miroir de la branche Electron) : sans fichier généré, la
+          // fiche créée à l'étape 1 serait un document fantôme — on la retire.
+          console.error('[createDocumentInDossier] Échec génération serveur:', genErr.response?.data || genErr.message);
+          try {
+            await apiClient.post('/api/fusion/deleteDocument', { dossierId, docId: newDocMetadata._id });
+            dispatch({ type: DELETE_DOCUMENT_SUCCESS, payload: { docId: newDocMetadata._id } });
+          } catch (rollbackErr) {
+            console.error('[createDocumentInDossier] Erreur rollback web:', rollbackErr);
+          }
+          dispatch({ type: DOC_GEN_END });
+          const serverMsg = genErr.response?.data?.message;
+          throw new Error(serverMsg || 'La génération du document a échoué (le document a été retiré du dossier).');
+        }
         // 2) On demande au compagnon local d'ouvrir le document dans Microsoft Word.
         //    Si le compagnon est absent, le document reste généré et stocké ; seule
         //    l'ouverture automatique échoue (l'utilisateur sera invité à l'installer).

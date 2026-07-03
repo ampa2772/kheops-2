@@ -82,7 +82,7 @@
 | — | Planifier `purgeSoftDeleted` (cron/route admin) | ⬜ décision ops |
 
 ### 🅱️ Code — finitions (nécessitent souvent une validation navigateur)
-- Câbler le bouton « Créer document » web → `/api/word/generate` ; `createBlank`/suppression/duplication web en REST.
+- ✅ **Actions documents en mode web pur (2026-07-03)** : le bouton « Créer document » aboutit déjà en web (génération serveur `/api/word/:id/generate`, modèles déposés) ; AJOUTÉ : **téléchargement navigateur** du .docx (`wordDocumentClient.js` → `GET /api/word/:id/download`), branché sur le bouton Télécharger ET en repli quand le compagnon est absent ; **marche arrière web** si la génération échoue (plus de document fantôme) ; route morte `fusion/updateDocumentUrl` qui faisait pendre les requêtes → 410. +16 tests (serveur 459, client 1369). Vérifié : app se charge sans erreur imputable au code. RESTE (mineur) : `createBlankDocument` = code mort sans bouton (à recâbler avec un modèle blank ou à retirer), duplication/suppression du FICHIER physique déjà couvertes côté serveur.
 - Aperçu inline des PJ IMAP dans la modale ; expiration du cache IMAP ; badge visuel IMAP vs OAuth.
 - Unicité e-mail contacts : check souple en place, index dur risqué (241 contacts existants) → décision.
 - Warnings ESLint (Register) ; `HOSTING.md` (hash/taille réels) ; outil de migration DB (spec à définir).
