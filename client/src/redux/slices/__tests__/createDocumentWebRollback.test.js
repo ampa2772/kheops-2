@@ -18,7 +18,7 @@ jest.mock('../../../services/companion/companionClient', () => ({
 
 import apiClient from '../../../services/apiClient';
 import { openDocumentInWord } from '../../../services/companion/companionClient';
-import { createDocumentInDossier, DELETE_DOCUMENT_SUCCESS } from '../currentDossierSlice';
+import { createDocumentInDossier, createBlankDocument, DELETE_DOCUMENT_SUCCESS } from '../currentDossierSlice';
 
 const DOC_ID = 'doc-123';
 const DOSSIER_ID = 'dossier-1';
@@ -96,4 +96,52 @@ test('web : même la marche arrière en panne ne masque pas l\'erreur d\'origine
   await expect(
     createDocumentInDossier(DOSSIER_ID, 'X', 'jwt', {}, [], '', 'X.docx')(dispatch)
   ).rejects.toThrow(/génération du document a échoué/);
+});
+
+// ============================================================
+// createBlankDocument — document vierge en mode web
+// ============================================================
+describe('createBlankDocument (mode web)', () => {
+  test('fiche puis fabrication serveur du .docx vierge', async () => {
+    apiClient.post
+      .mockResolvedValueOnce(metadataResponse) // /api/fusion/createDocument
+      .mockResolvedValueOnce({ data: { ok: true } }); // /api/word/:id/create-blank
+
+    const dispatch = jest.fn();
+    await createBlankDocument(DOSSIER_ID, null)(dispatch);
+
+    expect(apiClient.post).toHaveBeenNthCalledWith(1, '/api/fusion/createDocument', expect.objectContaining({
+      dossierId: DOSSIER_ID, templateFileName: 'blank.docx', finalDocumentName: 'Document.docx',
+    }));
+    expect(apiClient.post).toHaveBeenNthCalledWith(2, `/api/word/${DOC_ID}/create-blank`);
+  });
+
+  test('🔒 fabrication en échec → marche arrière (fiche retirée) + erreur claire', async () => {
+    apiClient.post
+      .mockResolvedValueOnce(metadataResponse) // fiche OK
+      .mockRejectedValueOnce({ response: { data: { message: 'stockage indisponible' } } }) // create-blank KO
+      .mockResolvedValueOnce({ data: { ok: true } }); // rollback OK
+
+    const dispatch = jest.fn();
+    await expect(createBlankDocument(DOSSIER_ID, null)(dispatch)).rejects.toThrow('stockage indisponible');
+
+    const deleteCall = apiClient.post.mock.calls.find(([url]) => url === '/api/fusion/deleteDocument');
+    expect(deleteCall).toBeDefined();
+    expect(deleteCall[1]).toEqual({ dossierId: DOSSIER_ID, docId: DOC_ID });
+    expect(dispatch).toHaveBeenCalledWith({ type: DELETE_DOCUMENT_SUCCESS, payload: { docId: DOC_ID } });
+  });
+
+  test('mode Electron inchangé : IPC appelé, pas de route create-blank', async () => {
+    window.electron = { handleBlankDocumentCreation: jest.fn().mockResolvedValue({ success: true }) };
+    apiClient.post.mockResolvedValueOnce(metadataResponse);
+
+    const dispatch = jest.fn();
+    await createBlankDocument(DOSSIER_ID, null)(dispatch);
+
+    expect(window.electron.handleBlankDocumentCreation).toHaveBeenCalledWith({
+      docId: DOC_ID, fileName: 'Courrier.docx',
+    });
+    const blankCalls = apiClient.post.mock.calls.filter(([url]) => url.includes('create-blank'));
+    expect(blankCalls).toHaveLength(0);
+  });
 });

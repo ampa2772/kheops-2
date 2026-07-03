@@ -275,7 +275,10 @@ const DraggableDocument = ({
           </div>
         )}
 
-        {doc.nomDocument?.toLowerCase().endsWith('.txt') && onDownload && (
+        {/* Icône Télécharger : historiquement limitée aux .txt (export texte) ;
+            élargie aux .docx/.doc depuis que le téléchargement serveur existe
+            en mode web (GET /api/word/:docId/download). */}
+        {/\.(txt|docx?)$/i.test(doc.nomDocument || '') && onDownload && (
           <div
             className="download-doc-btn"
             onClick={(e) => onDownload(e, doc)}

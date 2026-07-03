@@ -6,7 +6,8 @@ import { useDossierInfo } from './hooks/useDossierInfo';
 import { useSocketListeners } from './hooks/useSocketListeners';
 import { useTemplateSearch } from './hooks/useTemplateSearch';
 import { processDroppedFile, requestTextExport, subscribeToEvent, unsubscribeFromEvent } from '../../../../services/socketService';
-import { fetchAllDocumentsInDossier } from '../../../../redux/slices/currentDossierSlice';
+import { fetchAllDocumentsInDossier, createBlankDocument } from '../../../../redux/slices/currentDossierSlice';
+import { useToast } from '../../../common/notifications/useToast';
 
 import DocumentSearchBar, { DocumentFilterPills } from './DocumentsStockes/DocumentSearchBar';
 import DocumentList from './DocumentsStockes/DocumentList';
@@ -137,6 +138,22 @@ const DocumentsStockesDossier = ({ dossierInfoOverride } = {}) => {
       setTextExportProgress({ current: 0, total: 0, currentDoc: 'Initialisation...' });
       requestTextExport(currentDossier._id, token);
     }, [currentDossier?._id, token]);
+
+    const toast = useToast();
+
+    // Document Word vierge : fiche + fichier fabriqué côté serveur (mode web)
+    // ou copié localement (mode Electron). Créé dans le sous-dossier courant.
+    const handleCreateBlankDocument = useCallback(async () => {
+      if (!currentDossier?._id) return;
+      const subfolderId = currentView.type === 'subfolder' ? currentView.folderId : null;
+      try {
+        await dispatch(createBlankDocument(currentDossier._id, subfolderId));
+        toast.success('Document vierge créé.', { title: 'Documents' });
+      } catch (error) {
+        toast.error(error.message || 'La création du document vierge a échoué.');
+      }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentDossier?._id, currentView, dispatch, toast]);
 
     const docActions = useDocumentActions();
 
@@ -290,6 +307,7 @@ const DocumentsStockesDossier = ({ dossierInfoOverride } = {}) => {
                     openLinkedContactModal={dossierInfo.openLinkedContactModal}
                     onOpenBlankEmail={() => { setEmailData({ to: '', doc: null }); setShowSendModal(true); }}
                     onAddSubfolderClick={() => setIsSubfolderModalOpen(true)}
+                    onCreateBlankDocument={handleCreateBlankDocument}
                     onOpenAJModal={() => setIsAJModalOpen(true)}
                     onOpenInfoModal={() => setIsInfoModalOpen(true)}
                     searchTerm={templateSearch.searchTerm}

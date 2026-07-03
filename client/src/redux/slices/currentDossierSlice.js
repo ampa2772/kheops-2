@@ -641,8 +641,9 @@ export const createBlankDocument = (dossierId, subfolderId = null) => async (dis
     // 2. Mettre à jour le state Redux → le document apparaît dans la liste
     dispatch({ type: 'FETCH_CURRENT_DOSSIER_SUCCESS', payload: updatedDossier });
 
-    // 3. Copier le document vierge et l'ouvrir via IPC Electron
+    // 3. Fabriquer le fichier vierge
     if (window.electron?.handleBlankDocumentCreation) {
+      // Mode Electron historique : copie d'un blank.docx local via IPC.
       dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 70, step: 'Création du fichier local...' } });
       const result = await window.electron.handleBlankDocumentCreation({
         docId: newDocMetadata._id,
@@ -650,6 +651,25 @@ export const createBlankDocument = (dossierId, subfolderId = null) => async (dis
       });
       if (!result.success) {
         console.error('[createBlankDocument] Erreur IPC Electron:', result.error);
+      }
+      dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 95, step: 'Finalisation...' } });
+    } else {
+      // Mode WEB : le serveur fabrique un .docx vierge sous documents/<docId>.docx
+      // (téléchargeable et ouvrable ensuite comme n'importe quel document).
+      dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 70, step: 'Fabrication du document vierge...' } });
+      try {
+        await apiClient.post(`/api/word/${newDocMetadata._id}/create-blank`);
+      } catch (blankErr) {
+        // Marche arrière : sans fichier, la fiche serait un document fantôme.
+        console.error('[createBlankDocument] Échec fabrication serveur:', blankErr.response?.data || blankErr.message);
+        try {
+          await apiClient.post('/api/fusion/deleteDocument', { dossierId, docId: newDocMetadata._id });
+          dispatch({ type: DELETE_DOCUMENT_SUCCESS, payload: { docId: newDocMetadata._id } });
+        } catch (rollbackErr) {
+          console.error('[createBlankDocument] Erreur rollback web:', rollbackErr);
+        }
+        dispatch({ type: DOC_GEN_END });
+        throw new Error(blankErr.response?.data?.message || 'La création du document vierge a échoué (le document a été retiré du dossier).');
       }
       dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 95, step: 'Finalisation...' } });
     }

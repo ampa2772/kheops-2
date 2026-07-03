@@ -10,6 +10,7 @@ import '../../_office-small.css';
 
 import InfoIcon from '../../../../../assets/info.svg';
 import ExportTexteIcon from '../../../../../assets/export-texte.svg';
+import WordIcon from '../../../../../assets/word-icon.svg';
 
 const FILTER_PILLS = [
   { key: 'all',       label: 'Tous',      speech: 'Tous les documents' },
@@ -46,6 +47,7 @@ const DocumentSearchBar = ({
   openLinkedContactModal,
   onOpenBlankEmail,
   onAddSubfolderClick,
+  onCreateBlankDocument,
   onOpenAJModal,
   onOpenInfoModal,
   searchTerm,
@@ -295,6 +297,23 @@ const DocumentSearchBar = ({
           <img src={InfoIcon} alt="" aria-hidden="true" className="header-icon-img" />
         </div>
       </HoverToSpeak>
+
+      {/* Document vierge */}
+      {!showInfosDossier && onCreateBlankDocument && (
+        <HoverToSpeak textToSpeak="Créer un document Word vierge">
+          <div
+            className="header-icon-btn"
+            onClick={onCreateBlankDocument}
+            onKeyDown={onKeyActivate(onCreateBlankDocument)}
+            role="button"
+            tabIndex={0}
+            aria-label="Créer un document Word vierge"
+            title="Document Word vierge"
+          >
+            <img src={WordIcon} alt="" aria-hidden="true" className="header-icon-img" />
+          </div>
+        </HoverToSpeak>
+      )}
 
       {/* Nouveau sous-dossier */}
       {currentView.type === 'root' && !showInfosDossier && (

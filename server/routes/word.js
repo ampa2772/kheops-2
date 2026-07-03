@@ -204,6 +204,32 @@ router.post('/:docId/generate', auth, async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/word/:docId/create-blank
+// Fabrique un .docx VIERGE côté serveur et l'écrit sous documents/<docId>.docx.
+// Pendant web du bouton « Document vierge » (l'app de bureau copiait un
+// blank.docx local). Aucun modèle provisionné requis : le squelette OOXML est
+// généré en mémoire (docxGenerator.buildBlankDocxBuffer).
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/:docId/create-blank', auth, async (req, res) => {
+  try {
+    const { docId } = req.params;
+    const own = await ensureDocOwnership(req, res, docId);
+    if (!own.ok) return;
+
+    const { buildBlankDocxBuffer } = require('../services/docx/docxGenerator');
+    const out = buildBlankDocxBuffer();
+
+    const storage = getFileStorage();
+    const key = docxStorageKey(docId);
+    await storage.save(key, out, { contentType: DOCX_CONTENT_TYPE });
+    return res.json({ ok: true, key, size: out.length, generatedAt: Date.now() });
+  } catch (err) {
+    console.error('[word/create-blank] Erreur:', err.message);
+    return res.status(500).json({ error: 'blank-creation-failed', message: err.message });
+  }
+});
+
 // Helpers purs exposés pour les tests unitaires (sanitisation des clés de
 // stockage → anti-path-traversal). Voir routes/__tests__/wordRoute.test.js.
 router._private = { docxStorageKey, templateStorageKey };
