@@ -103,6 +103,10 @@ export const fetchNotificationCount = createAsyncThunk(
       const result = await mailAccountService.listMessages(accountId, { folder: 'INBOX', page: 1, pageSize: 20 });
       return (result.messages || []).filter((m) => (Array.isArray(m.flags) ? !m.flags.includes('\\Seen') : false)).length;
     } catch (error) {
+      // Fix 2026-07-04 : 401 = session mail OAuth expirée / boîte non connectée.
+      // État attendu (fréquent en prod), pas une erreur applicative : 0 notification,
+      // sans bruit console. Les autres statuts restent des erreurs réelles.
+      if (error?.response?.status === 401) return 0;
       console.error("Erreur lors de la récupération du nombre de notifications:", error);
       return rejectWithValue(error.response?.data?.message || error.message);
     }
@@ -147,6 +151,18 @@ export const fetchNotifications = createAsyncThunk(
         isInitialLoad: !pageToken,
       };
     } catch (error) {
+      // Fix 2026-07-04 : 401 = session mail OAuth expirée / boîte non connectée.
+      // On rend une liste vide marquée mailAuthExpired (la cloche peut proposer
+      // la reconnexion), sans erreur console.
+      if (error?.response?.status === 401) {
+        return {
+          notifications: [],
+          nextPageToken: null,
+          fetchedAt: new Date().toISOString(),
+          isInitialLoad: !pageToken,
+          mailAuthExpired: true,
+        };
+      }
       console.error("Erreur lors de la récupération de la liste des notifications:", error);
       return rejectWithValue(error.response?.data?.message || error.message);
     }
@@ -197,6 +213,7 @@ const initialState = {
   documentCreateModalIsOpen: false,
   isNotificationsModalOpen: false,
   isAllSearchModalOpen: false,         // Recherche globale (Ctrl+K)
+  isAdvancedSearchMode: false,         // Recherche avancee par criteres (loupe -> Bureau)
   isShortcutsHelpModalOpen: false,     // Modale d'aide raccourcis (F1)
   showOptions: false,
   deleteModalIsOpen: false,
@@ -259,6 +276,10 @@ const initialState = {
     list: [],
     loading: false,
     error: null,
+    // Fix 2026-07-04 : true quand le serveur répond 401 sur /api/mails/notifications/*
+    // (session Gmail/Outlook expirée ou boîte non connectée) — état attendu,
+    // affichable par la cloche, sans erreur console.
+    mailAuthExpired: false,
     nextPageToken: null,
     hasMore: true,
     lastFetched: null,
@@ -296,6 +317,12 @@ const layoutSlice = createSlice({
     },
     closeAllSearchModal(state) {
       state.isAllSearchModalOpen = false;
+    },
+    openAdvancedSearch(state) {
+      state.isAdvancedSearchMode = true;
+    },
+    closeAdvancedSearch(state) {
+      state.isAdvancedSearchMode = false;
     },
     openShortcutsHelpModal(state) {
       state.isShortcutsHelpModalOpen = true;
@@ -611,6 +638,9 @@ const layoutSlice = createSlice({
       state.notifications.nextPageToken = action.payload.nextPageToken;
       state.notifications.hasMore = !!action.payload.nextPageToken;
       state.notifications.lastFetched = action.payload.fetchedAt;
+      // Fix 2026-07-04 : posé sur 401 (session mail expirée), remis à false
+      // dès qu'un fetch OAuth/IMAP réussit.
+      state.notifications.mailAuthExpired = !!action.payload.mailAuthExpired;
     });
     builder.addCase(fetchNotifications.rejected, (state, action) => {
       state.notifications.loading = false;
@@ -646,6 +676,8 @@ export const {
   closeNotificationsModal,
   openAllSearchModal,
   closeAllSearchModal,
+  openAdvancedSearch,
+  closeAdvancedSearch,
   openShortcutsHelpModal,
   closeShortcutsHelpModal,
   clearNotificationDetail,

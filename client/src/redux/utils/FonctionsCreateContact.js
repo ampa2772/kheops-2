@@ -113,7 +113,8 @@ export function getDefaultContact(genre, currentStatusMarital) {
     profession: '',
     secu: '',
     nom_de_naissance: '',
-    appellationCourrier: '',
+    // Appellation courrier par defaut alignee sur le genre recu.
+    appellationCourrier: genre === 'Feminin' ? 'Chère Madame' : 'Cher Monsieur',
     // Indique si l'utilisateur a saisi explicitement l'appellation courrier
     // (true) ou si elle est encore en mode auto-sync avec type/genre/pro
     // (false). Une saisie manuelle bloque toute resynchronisation auto.

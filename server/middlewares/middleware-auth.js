@@ -1,5 +1,13 @@
 const jwt = require('jsonwebtoken');
 const { log: secLog, EVT } = require('../utils/securityLogger');
+const CompanionSession = require('../models/App_Users/CompanionSession');
+const {
+  hashCompanionJti,
+  companionClaimUserId,
+  companionSessionId,
+  hasAnyStatefulCompanionClaim,
+  hasCompleteStatefulCompanionClaims,
+} = require('../utils/companionSessionSecurity');
 require('dotenv').config();
 
 // =====================================================================
@@ -27,7 +35,145 @@ function extractToken(req) {
   return authHeader.trim();
 }
 
-module.exports = function (req, res, next) {
+function requestPath(req) {
+  const raw = req.originalUrl
+    || req.url
+    || `${req.baseUrl || ''}${req.path || ''}`;
+  const path = String(raw || '').split(/[?#]/, 1)[0];
+  if (!path) return '';
+  const normalized = path.startsWith('/api/') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
+  return normalized.length > 1 ? normalized.replace(/\/+$/, '') : normalized;
+}
+
+// Le jeton compagnon est volontairement une capacite tres etroite. Une route
+// ajoutee ailleurs dans l'API reste interdite par defaut tant qu'elle n'est pas
+// explicitement inscrite ici avec sa methode exacte.
+function decodedPathSegment(value) {
+  try { return decodeURIComponent(value); } catch (_) { return value; }
+}
+
+function isCompanionRequestAllowed(req, claims = null) {
+  const method = String(req.method || 'GET').toUpperCase();
+  const path = requestPath(req);
+  const isSession = method === 'POST' && path === '/api/word/companion/session';
+  const isWhoami = method === 'GET' && path === '/api/word/companion/whoami';
+  const isRevoke = method === 'POST' && path === '/api/word/companion/revoke';
+  const isManifest = method === 'GET' && path === '/api/word/mirror/manifest';
+  const downloadMatch = (method === 'GET' || method === 'HEAD')
+    ? path.match(/^\/api\/word\/([^/]+)\/download$/)
+    : null;
+  const syncMatch = method === 'POST' ? path.match(/^\/api\/word\/([^/]+)\/sync$/) : null;
+  const lockMatch = method === 'POST'
+    ? path.match(/^\/api\/document-locks\/([^/]+)\/(?:acquire|heartbeat|release)$/)
+    : null;
+  const isGloballyAllowed = isSession || isWhoami || isRevoke || isManifest
+    || downloadMatch || syncMatch || lockMatch;
+  if (!isGloballyAllowed) return false;
+
+  // Les endpoints de cycle de vie restent accessibles a toute session. Les
+  // anciennes sessions sans purpose gardent l'allowlist globale ci-dessus.
+  if (isSession || isWhoami || isRevoke) return true;
+  const purpose = claims?.companionPurpose;
+  if (!purpose || purpose === 'legacy') return true;
+  if (purpose === 'mirror') return Boolean(isManifest || downloadMatch || syncMatch);
+  if (purpose !== 'word' || !claims?.companionDocId) return false;
+
+  const routeDocId = downloadMatch?.[1] || syncMatch?.[1] || lockMatch?.[1] || null;
+  return routeDocId != null
+    && decodedPathSegment(routeDocId) === String(claims.companionDocId);
+}
+
+function denyCompanion(res, status, error, message) {
+  return res.status(status).json({ error, message });
+}
+
+async function acceptVerifiedClaims(req, res, next, decoded, source) {
+  req.authClaims = decoded;
+  req.authTokenType = decoded?.companion === true ? 'companion' : 'user';
+  // On conserve la forme historique de req.user pour ne pas modifier les
+  // autres routes. Les jetons compagnon emis par Kheops utilisent toujours id.
+  req.user = decoded.user || decoded.id;
+
+  if (decoded?.companion !== true) {
+    if (source) {
+      secLog(EVT.AUTH_TOKEN_VERIFY_OK, { userId: req.user, source }, req);
+    }
+    return next();
+  }
+
+  if (!isCompanionRequestAllowed(req, decoded)) {
+    secLog(EVT.AUTH_TOKEN_VERIFY_FAIL, {
+      reason: 'companion-scope-forbidden',
+      source,
+    }, req);
+    return denyCompanion(
+      res,
+      403,
+      'COMPANION_TOKEN_SCOPE_FORBIDDEN',
+      "Ce jeton compagnon n'est pas autorise sur cette route.",
+    );
+  }
+
+  // Compatibilite temporaire 1.0.5 : un ancien JWT { companion: true } ne
+  // possede aucune claim de session. jwt.verify a deja controle son exp. Toute
+  // claim moderne partielle est en revanche refusee (pas de downgrade).
+  if (!hasAnyStatefulCompanionClaim(decoded)) {
+    req.legacyCompanionToken = true;
+    return next();
+  }
+  if (!hasCompleteStatefulCompanionClaims(decoded)) {
+    return denyCompanion(
+      res,
+      401,
+      'COMPANION_SESSION_CLAIMS_INVALID',
+      'Le jeton compagnon contient une session incomplete.',
+    );
+  }
+
+  const userId = companionClaimUserId(decoded);
+  const sessionId = companionSessionId(decoded);
+  const jtiHash = hashCompanionJti(decoded.jti);
+  const now = new Date();
+  try {
+    const session = await CompanionSession.exists({
+      sessionId,
+      userId,
+      revokedAt: null,
+      absoluteExpiresAt: { $gt: now },
+      $or: [
+        { currentJtiHash: jtiHash },
+        {
+          previousJtiHash: jtiHash,
+          previousValidUntil: { $gt: now },
+        },
+      ],
+    });
+    if (!session) {
+      return denyCompanion(
+        res,
+        401,
+        'COMPANION_SESSION_INVALID',
+        'La session compagnon est expiree, revoquee ou remplacee.',
+      );
+    }
+    req.companionSessionId = sessionId;
+    req.companionJtiHash = jtiHash;
+    return next();
+  } catch (err) {
+    secLog(EVT.AUTH_TOKEN_VERIFY_FAIL, {
+      reason: `companion-session-store: ${err.name || 'Error'}`,
+      source,
+    }, req);
+    return denyCompanion(
+      res,
+      503,
+      'COMPANION_SESSION_VALIDATION_UNAVAILABLE',
+      'La session compagnon ne peut pas etre verifiee pour le moment.',
+    );
+  }
+}
+
+module.exports = async function (req, res, next) {
   const token = extractToken(req);
 
   if (BYPASS_AUTH) {
@@ -39,9 +185,7 @@ module.exports = function (req, res, next) {
     if (token && token !== BYPASS_DEV_TOKEN) {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded.user || decoded.id;
-        secLog(EVT.AUTH_TOKEN_VERIFY_OK, { userId: req.user, source: 'bypass-with-real-jwt' }, req);
-        return next();
+        return await acceptVerifiedClaims(req, res, next, decoded, 'bypass-with-real-jwt');
       } catch (err) {
         // JWT invalide : on retombe sur le user de dev pour ne pas casser
         // la session bypass (cas typique : token expire en local).
@@ -69,12 +213,8 @@ module.exports = function (req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Le payload JWT est { id: ... } (voir auth.js) ou parfois { user: { id: ... } }
-    req.user = decoded.user || decoded.id;
-    // Note : on ne loggue PAS chaque AUTH_TOKEN_VERIFY_OK en prod (volume trop élevé).
-    // Seuls les échecs sont loggés. Pour activer les logs de succès, décommenter :
-    // secLog(EVT.AUTH_TOKEN_VERIFY_OK, { userId: req.user }, req);
-    next();
+    // Pas de log de succes pour chaque requete en production (volume).
+    return await acceptVerifiedClaims(req, res, next, decoded, null);
   } catch (err) {
     secLog(EVT.AUTH_TOKEN_VERIFY_FAIL, {
       reason: `${err.name}: ${err.message}`,
@@ -82,3 +222,6 @@ module.exports = function (req, res, next) {
     res.status(401).json({ msg: 'Token is not valid' });
   }
 };
+
+module.exports._isCompanionRequestAllowed = isCompanionRequestAllowed;
+module.exports._requestPath = requestPath;

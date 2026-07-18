@@ -26,6 +26,7 @@ const googleDriveService = require('./services/googleDriveService');
 const oneDriveService = require('./services/oneDriveService');
 const configManager = require('./services/configManager');
 const localFileWatcher = require('./services/localFileWatcher');
+const backendMirrorService = require('./services/backendMirrorService');
 const documentLockWatcher = require('./services/documentLockWatcher');
 const { getMachineId } = require('./services/machineId');
 const { initializeSocketHandlers } = require('./services/socketHandlers');
@@ -52,7 +53,7 @@ const multer = require('multer');
 let socketIoServer = null;
 
 // --- CRASH LOG : factorise dans services/crashLog.js (consomme aussi par fileUtils.js)
-const { logToFile, CRASH_LOG_PATH } = require('./services/crashLog');
+const { logToFile, CRASH_LOG_PATH, redactSecrets } = require('./services/crashLog');
 
 /**
  * Log structuré "sécurité" côté Electron. Format aligné avec le securityLogger
@@ -213,6 +214,7 @@ const PORT = process.env.PORT || 5000;
 const isDev = !isPackaged && process.env.NODE_ENV === "development";
 const devUrl = process.env.ELECTRON_START_URL || "http://localhost:3000";
 const SERVER_URL = `http://localhost:${PORT}`;
+let pendingBackendMirrorStart = null; // JWT Kheops en RAM, jamais un jeton provider
 
 /**
  * Enregistre l'empreinte de cette machine côté serveur et indique si c'est
@@ -242,6 +244,63 @@ async function checkAndRegisterMachine(token) {
         console.warn('[Machine] Vérification empreinte échouée (non bloquant):', err.message);
         return false;
     }
+}
+
+/**
+ * Synchronisation locale sans secret fournisseur. Electron remet uniquement
+ * le JWT applicatif au backend, qui produit un manifeste et sert/recoit les
+ * documents. Les jetons Google/Microsoft/SharePoint ne quittent jamais la
+ * couche backend et ne sont jamais ecrits sur le poste par ce flux.
+ */
+async function startSecureBackendMirror(token, { isNewMachine = false } = {}) {
+    // Ne jamais tomber sur le baseRoot partagé, même pendant les quelques ms
+    // précédant `set-user-context`. Le backend authentifié est la source de
+    // vérité du userId ; le renderer le confirmera ensuite avec l'email.
+    let authenticatedUserId = null;
+    try {
+        authenticatedUserId = await backendMirrorService.resolveUserId(SERVER_URL, token);
+    } catch (err) {
+        console.warn('[BackendMirror] Contexte utilisateur pas encore resolu:', err.message);
+    }
+    if (!authenticatedUserId || !/^[a-f0-9]{24}$/i.test(authenticatedUserId)) {
+        pendingBackendMirrorStart = { token, isNewMachine };
+        return { success: false, error: 'user-context-pending', isNewMachine };
+    }
+    if (configManager.getCurrentUserId() !== authenticatedUserId) {
+        // L'email courant peut appartenir au compte précédent : on l'efface.
+        // Le renderer remettra le bon email dans set-user-context.
+        configManager.setCurrentAccount({ email: null, userId: authenticatedUserId });
+        updateFilesClientsEnv();
+    }
+
+    const rootPath = configManager.getLocalRootPath();
+    if (!rootPath) {
+        return { success: false, error: 'no-local-path', isNewMachine };
+    }
+    const expectedSuffix = path.normalize(authenticatedUserId.toLowerCase());
+    if (path.basename(path.normalize(rootPath)).toLowerCase() !== expectedSuffix) {
+        pendingBackendMirrorStart = { token, isNewMachine };
+        return { success: false, error: 'user-context-pending', isNewMachine };
+    }
+    pendingBackendMirrorStart = null;
+
+    // Evite deux watchers concurrents : l'ancien watcher SDK provider est
+    // remplace par le watcher du miroir backend pour cette session JWT.
+    localFileWatcher.stopPullPolling();
+    localFileWatcher.stopAllWatchers();
+
+    const report = await backendMirrorService.start({
+        backendBaseUrl: SERVER_URL,
+        token,
+        rootPath,
+        getRootPath: () => configManager.getLocalRootPath(),
+        isNewMachine,
+        pollIntervalMs: 60_000,
+    });
+    if (report && report.skipped) {
+        return { success: false, error: report.skipped, source: 'kheops', isNewMachine };
+    }
+    return { success: true, source: 'kheops', isNewMachine, report };
 }
 
 // --- Chemin du serveur Express (différent selon le mode) ---
@@ -279,12 +338,12 @@ if (!gotTheLock) {
 } else {
     app.on('second-instance', (event, commandLine) => {
         console.log("[Electron Main] ========== SECOND INSTANCE ==========");
-        console.log("[Electron Main] CommandLine:", commandLine.join(' '));
+        console.log("[Electron Main] CommandLine:", redactSecrets(commandLine.join(' ')));
         logToFile("[second-instance] CommandLine: " + commandLine.join(' '));
 
         const deepLinkUrl = commandLine.find(arg => arg.startsWith('kheops2://'));
         if (deepLinkUrl) {
-            console.log("[Electron Main] Deep link trouvé:", deepLinkUrl);
+            console.log("[Electron Main] Deep link trouvé:", redactSecrets(deepLinkUrl));
             handleDeepLink(deepLinkUrl);
             // v7 : handleDeepLink ne cache plus la fenêtre, elle reste visible
             // et se met au premier plan après loadURL
@@ -304,7 +363,7 @@ if (!gotTheLock) {
 // Sur macOS, les deep links arrivent via cet événement
 app.on('open-url', (event, url) => {
     event.preventDefault();
-    console.log("[Electron Main] open-url reçu:", url);
+    console.log("[Electron Main] open-url reçu:", redactSecrets(url));
     handleDeepLink(url);
 });
 
@@ -480,7 +539,7 @@ let deepLinkAuthProcessed = false;
  *   4. Naviguer vers /dashboard en cas de succès
  */
 function handleDeepLink(url) {
-    console.log("[Deep Link] Traitement:", url);
+    console.log("[Deep Link] Traitement:", redactSecrets(url));
     logToFile("[Deep Link] Traitement: " + url);
     try {
         const urlObj = new URL(url);
@@ -523,6 +582,8 @@ function handleDeepLink(url) {
             // pendant la transition d'authentification
             localFileWatcher.stopPullPolling();
             localFileWatcher.stopAllWatchers();
+            pendingBackendMirrorStart = null;
+            backendMirrorService.stopAll();
             console.log("[Deep Link] Watcher et polling arrêtés pendant la transition auth.");
 
             // Marquer qu'on est en navigation deep link (empêche window-all-closed de quitter)
@@ -531,7 +592,7 @@ function handleDeepLink(url) {
             // Navigation directe — la fenêtre reste visible
             const baseUrl = isDev ? devUrl : SERVER_URL;
             const callbackUrl = baseUrl + '/auth/callback?token=' + encodeURIComponent(token);
-            console.log("[Deep Link] URL cible:", callbackUrl);
+            console.log("[Deep Link] URL cible:", redactSecrets(callbackUrl));
 
             mainWindow.loadURL(callbackUrl).then(() => {
                 console.log("[Deep Link] ✅ loadURL terminé avec succès.");
@@ -542,7 +603,7 @@ function handleDeepLink(url) {
                     mainWindow.focus();
                 }
             }).catch((err) => {
-                console.error("[Deep Link] ❌ ERREUR loadURL:", err.message);
+                console.error("[Deep Link] ❌ ERREUR loadURL:", redactSecrets(err && err.message));
                 logToFile("[Deep Link] ERREUR loadURL: " + err.message);
                 isNavigatingDeepLink = false;
                 // En cas d'erreur, s'assurer que la fenêtre est visible et au premier plan
@@ -562,7 +623,7 @@ function handleDeepLink(url) {
             }
         }
     } catch (err) {
-        console.error("[Deep Link] Erreur de parsing:", err);
+        console.error("[Deep Link] Erreur de parsing:", redactSecrets(err && err.message));
         logToFile("[Deep Link] Erreur de parsing: " + err.message);
     }
 }
@@ -642,12 +703,12 @@ function startLocalServer() {
  * Charge une URL avec logique de réessai
  */
 async function loadMainWindowUrl(window, url, isDevUrl, retries = MAX_LOAD_RETRIES) {
-    console.log(`[Electron Main] Tentative de chargement: ${url} (Tentatives restantes: ${retries})`);
+    console.log(`[Electron Main] Tentative de chargement: ${redactSecrets(url)} (Tentatives restantes: ${retries})`);
     try {
         await window.loadURL(url);
-        console.log(`[Electron Main] ${url} chargé avec succès.`);
+        console.log(`[Electron Main] ${redactSecrets(url)} chargé avec succès.`);
     } catch (err) {
-        console.error(`[Electron Main] ERREUR CHARGEMENT ${url}:`, err.message);
+        console.error(`[Electron Main] ERREUR CHARGEMENT ${redactSecrets(url)}:`, redactSecrets(err.message));
         if (isDevUrl && retries > 0) {
             console.log(`[Electron Main] Réessai dans ${LOAD_RETRY_DELAY / 1000}s...`);
             await new Promise(resolve => setTimeout(resolve, LOAD_RETRY_DELAY));
@@ -723,7 +784,8 @@ function createWindow() {
     mainWindow.webContents.once('did-fail-load', () => revealMainWindow('did-fail-load'));
 
     // --- Bridge de progression du pull cloud → local ---
-    // Relaie les events du localFileWatcher vers le renderer pour la modale.
+    // Relaie les events de l'ancien watcher SDK et du miroir backend vers la
+    // meme modale : le changement de canal reste invisible pour l'utilisateur.
     const _syncProgressForwarder = (evt) => {
         try {
             if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
@@ -732,8 +794,10 @@ function createWindow() {
         } catch (_) { /* ignore — le renderer peut être en cours de navigation */ }
     };
     localFileWatcher.onPullProgress(_syncProgressForwarder);
+    backendMirrorService.onSyncProgress(_syncProgressForwarder);
     mainWindow.on('closed', () => {
         try { localFileWatcher.offPullProgress(_syncProgressForwarder); } catch (_) {}
+        try { backendMirrorService.offSyncProgress(_syncProgressForwarder); } catch (_) {}
     });
 
     // --- DIAGNOSTIC : Écouter les événements de crash/erreur du renderer ---
@@ -749,14 +813,14 @@ function createWindow() {
     });
 
     mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-        const msg = `did-fail-load: ${errorDescription} (code: ${errorCode}) URL: ${validatedURL}`;
+        const msg = `did-fail-load: ${errorDescription} (code: ${errorCode}) URL: ${redactSecrets(validatedURL)}`;
         console.error("[Electron Main] ⚠️ " + msg);
         logToFile(msg);
     });
 
     if (deepLinkToProcess) {
         // Il y a un deep link à traiter : charger DIRECTEMENT la page callback
-        console.log(`[Electron Main] Deep link détecté (${pendingDeepLinkUrl ? 'en attente' : 'argv'}): ${deepLinkToProcess}`);
+        console.log(`[Electron Main] Deep link détecté (${pendingDeepLinkUrl ? 'en attente' : 'argv'}): ${redactSecrets(deepLinkToProcess)}`);
         logToFile("[createWindow] Deep link détecté: " + deepLinkToProcess);
         pendingDeepLinkUrl = null; // Consommer le deep link en attente
 
@@ -777,7 +841,7 @@ function createWindow() {
 
                     const baseUrl = isDev ? devUrl : SERVER_URL;
                     const callbackUrl = baseUrl + '/auth/callback?token=' + encodeURIComponent(token);
-                    console.log(`[Electron Main] Chargement direct de la page callback: ${callbackUrl}`);
+                    console.log(`[Electron Main] Chargement direct de la page callback: ${redactSecrets(callbackUrl)}`);
 
                     loadMainWindowUrl(mainWindow, callbackUrl, false);
                 } else {
@@ -789,7 +853,7 @@ function createWindow() {
                 loadMainWindowUrl(mainWindow, isDev ? devUrl : SERVER_URL, isDev);
             }
         } catch (parseErr) {
-            console.error("[Electron Main] Erreur parsing deep link:", parseErr);
+            console.error("[Electron Main] Erreur parsing deep link:", redactSecrets(parseErr && parseErr.message));
             loadMainWindowUrl(mainWindow, isDev ? devUrl : SERVER_URL, isDev);
         }
     } else {
@@ -843,12 +907,12 @@ function createWindow() {
 
     // Écouter la navigation pour tracer les changements d'URL
     mainWindow.webContents.on('did-navigate', (event, url) => {
-        console.log(`[Electron Main] did-navigate → ${url}`);
+        console.log(`[Electron Main] did-navigate → ${redactSecrets(url)}`);
         logToFile("did-navigate → " + url);
     });
 
     mainWindow.webContents.on('did-navigate-in-page', (event, url) => {
-        console.log(`[Electron Main] did-navigate-in-page → ${url}`);
+        console.log(`[Electron Main] did-navigate-in-page → ${redactSecrets(url)}`);
         logToFile("did-navigate-in-page → " + url);
     });
 }
@@ -1105,6 +1169,8 @@ app.whenReady().then(async () => {
         updateFilesClientsEnv();
         localFileWatcher.stopAllWatchers();
         localFileWatcher.stopPullPolling();
+        pendingBackendMirrorStart = null;
+        backendMirrorService.stopAll();
 
         secLog('ELECTRON_LOGOUT_GOOGLE_DONE', { userId: previousUserId, email: previousEmail, source: 'google' });
         return { success: true };
@@ -1116,14 +1182,10 @@ app.whenReady().then(async () => {
     });
 
     // ─── Handler IPC : initialiser le cloud APRÈS un login email/password ─────
-    // Couvre le scénario "nouveau PC + compte existant lié à Google ou Microsoft" :
-    //  - React appelle window.electron.requestCloudSync(token) après loadUser
-    //  - Ici on tente de récupérer le refresh_token du compte côté backend
-    //  - Si Google : initialise le client Google Drive, lance pull
-    //  - Sinon Microsoft : initialise OneDrive, lance pull
-    //  - Sinon : aucun cloud lié, on retourne sans erreur
-    // Idempotent : si un client cloud est déjà actif (déjà initialisé via deep-link
-    // ou session sauvegardée), on lance juste le pull sans re-initialiser.
+    // Couvre le scénario "nouveau PC + compte existant" sans jamais extraire
+    // le refresh_token du backend. Le JWT Kheops pilote le miroir local pour
+    // tous les providers ; le backend demeure seul responsable de Google,
+    // Microsoft, SharePoint ou du stockage interne.
     ipcMain.handle('cloud-init-after-login', async (_event, token) => {
         try {
             if (!token || typeof token !== 'string') {
@@ -1135,99 +1197,13 @@ app.whenReady().then(async () => {
             // l'utilisateur s'authentifie depuis ce PC.
             const isNewMachine = await checkAndRegisterMachine(token);
 
-            // Si un cloud est déjà actif, on évite la ré-init et on (re)lance le pull
-            const existingCtx = require('./services/cloudContext').getCloudCtx();
-            if (existingCtx) {
-                console.log(`[IPC cloud-init-after-login] Cloud déjà actif (${existingCtx.source}), lancement direct du pull.`);
-                const localPath = configManager.getLocalRootPath();
-                if (localPath) localFileWatcher.restartWatcher(localPath);
-                localFileWatcher.pullFromDrive({ isNewMachine }).catch(e =>
-                    console.error('[IPC cloud-init-after-login] Pull échoué:', e.message)
-                );
-                localFileWatcher.startPullPolling(60000);
-                return { success: true, source: existingCtx.source, alreadyActive: true, isNewMachine };
+            const result = await startSecureBackendMirror(token, { isNewMachine });
+            if (result.success) {
+                console.log('[IPC cloud-init-after-login] ✅ Miroir backend initialisé + pull lancé.');
+            } else {
+                console.warn('[IPC cloud-init-after-login] Miroir non démarré:', result.error);
             }
-
-            // ─ Tentative Google ─
-            try {
-                console.log('[IPC cloud-init-after-login] Tentative récupération refresh_token Google...');
-                const gResp = await axios.get(`${SERVER_URL}/api/auth/google/get-refresh-token`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                    validateStatus: (s) => s < 500, // 401 attendu si pas de session, on traite plus bas
-                });
-                if (gResp.status === 200 && gResp.data && gResp.data.refreshToken) {
-                    const client = await authService.initGoogleAuthFromRefreshToken(
-                        gResp.data.refreshToken,
-                        process.env.GOOGLE_CLIENT_ID,
-                        process.env.GOOGLE_CLIENT_SECRET
-                    );
-                    if (client) {
-                        googleDriveService.init(client);
-                        try {
-                            const profile = await authService.getUserInfo();
-                            if (profile && profile.email) {
-                                configManager.setCurrentAccount(profile.email);
-                                configManager.migrateIfNeeded(configManager.getBaseRootPath(), profile.email);
-                                updateFilesClientsEnv();
-                            }
-                        } catch (pErr) {
-                            console.warn('[IPC cloud-init-after-login] Profil Google inaccessible:', pErr.message);
-                        }
-                        try { await googleDriveService.ensureBaseStructure(); } catch (e) {
-                            console.error('[IPC cloud-init-after-login] ensureBaseStructure Google:', e.message);
-                        }
-                        const localPath = configManager.getLocalRootPath();
-                        if (localPath) localFileWatcher.restartWatcher(localPath);
-                        localFileWatcher.pullFromDrive({ isNewMachine }).catch(e =>
-                            console.error('[IPC cloud-init-after-login] Pull Google échoué:', e.message)
-                        );
-                        localFileWatcher.startPullPolling(60000);
-                        console.log('[IPC cloud-init-after-login] ✅ Google Drive initialisé + pull lancé.');
-                        return { success: true, source: 'google', isNewMachine };
-                    }
-                }
-            } catch (gErr) {
-                console.warn('[IPC cloud-init-after-login] Google refresh_token KO:', gErr.message);
-            }
-
-            // ─ Tentative Microsoft (fallback) ─
-            try {
-                console.log('[IPC cloud-init-after-login] Tentative récupération refresh_token Microsoft...');
-                const mResp = await axios.get(`${SERVER_URL}/api/auth/microsoft/get-refresh-token`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                    validateStatus: (s) => s < 500,
-                });
-                if (mResp.status === 200 && mResp.data && mResp.data.refreshToken) {
-                    await microsoftAuthService.initFromRefreshToken(mResp.data.refreshToken);
-                    oneDriveService.init(() => microsoftAuthService.getServerAccessToken());
-                    try {
-                        const profile = await microsoftAuthService.getServerProfile();
-                        if (profile && profile.email) {
-                            configManager.setCurrentAccount(profile.email);
-                            configManager.migrateIfNeeded(configManager.getBaseRootPath(), profile.email);
-                            updateFilesClientsEnv();
-                        }
-                    } catch (pErr) {
-                        console.warn('[IPC cloud-init-after-login] Profil Microsoft inaccessible:', pErr.message);
-                    }
-                    try { await oneDriveService.ensureBaseStructure(); } catch (e) {
-                        console.error('[IPC cloud-init-after-login] ensureBaseStructure Microsoft:', e.message);
-                    }
-                    const localPath = configManager.getLocalRootPath();
-                    if (localPath) localFileWatcher.restartWatcher(localPath);
-                    localFileWatcher.pullFromDrive({ isNewMachine }).catch(e =>
-                        console.error('[IPC cloud-init-after-login] Pull Microsoft échoué:', e.message)
-                    );
-                    localFileWatcher.startPullPolling(60000);
-                    console.log('[IPC cloud-init-after-login] ✅ OneDrive initialisé + pull lancé.');
-                    return { success: true, source: 'microsoft', isNewMachine };
-                }
-            } catch (mErr) {
-                console.warn('[IPC cloud-init-after-login] Microsoft refresh_token KO:', mErr.message);
-            }
-
-            console.log('[IPC cloud-init-after-login] Aucun cloud lié à ce compte (ni Google ni Microsoft).');
-            return { success: false, error: 'no-cloud-linked' };
+            return result;
         } catch (err) {
             console.error('[IPC cloud-init-after-login] Erreur globale:', err.message);
             return { success: false, error: err.message };
@@ -1342,6 +1318,8 @@ app.whenReady().then(async () => {
             updateFilesClientsEnv();
             localFileWatcher.stopAllWatchers();
             localFileWatcher.stopPullPolling();
+            pendingBackendMirrorStart = null;
+            backendMirrorService.stopAll();
 
             secLog('ELECTRON_LOGOUT_MICROSOFT_DONE', { userId: previousUserId, email: previousEmail, source: 'microsoft' });
             return { success: true };
@@ -1426,14 +1404,21 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('handle-document-creation', async (event, args) => {
         console.log('[IPC handle-document-creation] Reçu:', args);
-        const { folderName, clientData, templateFileName, localFileName, templateCategory } = args;
+        const { folderName, clientData, templateFileName, localFileName, templateCategory, openAfterCreation = true } = args;
         logToFile(`[IPC handle-document-creation] START folder="${folderName}" template="${templateFileName}" file="${localFileName}"`);
         if (!folderName || !clientData || !templateFileName || !localFileName) {
             logToFile(`[IPC handle-document-creation] BAD_REQUEST missing args`);
             return { success: false, error: "Données manquantes pour la création." };
         }
         try {
-            await createDocumentForClient(folderName, clientData, templateFileName, localFileName, socketIoServer);
+            await createDocumentForClient(
+                folderName,
+                clientData,
+                templateFileName,
+                localFileName,
+                socketIoServer,
+                { openAfterCreation },
+            );
             logToFile(`[IPC handle-document-creation] OK file="${localFileName}"`);
             return { success: true };
         } catch (error) {
@@ -1445,7 +1430,7 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('handle-blank-document-creation', async (event, args) => {
         console.log('[IPC handle-blank-document-creation] Reçu:', args);
-        const { docId, fileName } = args;
+        const { docId, fileName, openAfterCreation = true } = args;
         if (!docId || !fileName) {
             return { success: false, error: "docId ou fileName manquant." };
         }
@@ -1479,8 +1464,10 @@ app.whenReady().then(async () => {
             fs.copyFileSync(blankTemplatePath, targetPath);
             console.log('[IPC handle-blank-document-creation] Fichier copié:', targetPath);
 
-            await shell.openPath(targetPath);
-            console.log('[IPC handle-blank-document-creation] Ouvert dans Word.');
+            if (openAfterCreation !== false) {
+                await shell.openPath(targetPath);
+                console.log('[IPC handle-blank-document-creation] Ouvert dans Word.');
+            }
 
             // Upload vers Google Drive en arrière-plan (audit S25 #1 :
             // passe par uploadFileToCloud qui applique le chiffrement .kbox
@@ -1983,11 +1970,26 @@ app.whenReady().then(async () => {
                 configManager.migrateToUserId(basePath, userId, email || configManager.getCurrentAccount());
             }
             updateFilesClientsEnv();
-            // Relancer le watcher sur le nouveau path user-isolé
+            // Relancer le canal actif sur le nouveau path user-isolé. Le
+            // miroir invalide son watcher/index avant de charger cette racine,
+            // ce qui empêche toute fuite entre deux comptes du même poste.
             const newRootPath = configManager.getLocalRootPath();
             if (newRootPath) {
-                try { localFileWatcher.restartWatcher(newRootPath); }
-                catch (e) { logToFile(`[set-user-context] restartWatcher KO: ${e.message}`); }
+                try {
+                    if (pendingBackendMirrorStart) {
+                        const pending = pendingBackendMirrorStart;
+                        pendingBackendMirrorStart = null;
+                        startSecureBackendMirror(pending.token, {
+                            isNewMachine: pending.isNewMachine,
+                        }).catch((e) => {
+                            logToFile(`[set-user-context] pending mirror retry KO: ${e.message}`);
+                        });
+                    } else if (!backendMirrorService.refreshRootPath(newRootPath)) {
+                        localFileWatcher.restartWatcher(newRootPath);
+                    }
+                } catch (e) {
+                    logToFile(`[set-user-context] refreshRootPath KO: ${e.message}`);
+                }
             }
         } catch (err) {
             secLog('ELECTRON_SET_USER_CONTEXT_FAIL', { reason: `exception: ${err.message}` });
@@ -2086,7 +2088,7 @@ app.whenReady().then(async () => {
     });
 
     ipcMain.handle('open-external', async (event, url) => {
-        console.log(`[IPC open-external] Ouverture dans le navigateur: ${url}`);
+        console.log(`[IPC open-external] Ouverture dans le navigateur: ${redactSecrets(url)}`);
         try {
             await shell.openExternal(url);
             return { success: true };
@@ -2110,10 +2112,9 @@ app.whenReady().then(async () => {
             console.error("[IPC auth-ready] ❌ mainWindow n'est pas disponible !");
         }
 
-        // Si un deep link a été traité, relancer la synchro cloud proprement
-        // avec un délai pour laisser le dashboard se stabiliser.
-        // BRANCHEMENT : selon `lastDeepLinkSource`, on initialise soit Google
-        // Drive (existant) soit OneDrive (nouveau).
+        // Si un deep link a été traité, relancer le miroir backend avec le JWT
+        // Kheops. La source OAuth ne change plus le canal de synchronisation :
+        // aucun refresh token fournisseur n'est rapatrié dans Electron.
         if (deepLinkAuthProcessed) {
             console.log(`[IPC auth-ready] Deep link auth détecté (source=${lastDeepLinkSource}) — relance synchro cloud immédiate...`);
             logToFile(`[IPC auth-ready] Relance synchro cloud après deep link (source=${lastDeepLinkSource}).`);
@@ -2121,107 +2122,15 @@ app.whenReady().then(async () => {
             // à l'event 'sync:progress' AVANT le premier emit. Avant : 3000ms (trop long).
             setTimeout(async () => {
                 try {
-                    if (lastDeepLinkSource === 'microsoft') {
-                        // ─── BRANCHE MICROSOFT (OneDrive) ─────────────────────────────────
-                        if (!lastDeepLinkToken) {
-                            console.warn('[IPC auth-ready] Pas de JWT pour récupérer le refresh token Microsoft.');
-                            return;
-                        }
-                        console.log('[IPC auth-ready] Récupération refresh_token Microsoft depuis le backend...');
-                        const response = await axios.get(`${SERVER_URL}/api/auth/microsoft/get-refresh-token`, {
-                            headers: { Authorization: `Bearer ${lastDeepLinkToken}` }
-                        });
-                        const refreshToken = response.data && response.data.refreshToken;
-                        if (!refreshToken) {
-                            console.warn('[IPC auth-ready] Aucun refresh_token Microsoft retourné.');
-                            return;
-                        }
-                        await microsoftAuthService.initFromRefreshToken(refreshToken);
-                        oneDriveService.init(() => microsoftAuthService.getServerAccessToken());
-                        console.log('[IPC auth-ready] ✅ OneDrive initialisé depuis refresh_token serveur.');
-
-                        // Profil → compte actif (isolation par email)
-                        try {
-                            const profile = await microsoftAuthService.getServerProfile();
-                            if (profile && profile.email) {
-                                configManager.setCurrentAccount(profile.email);
-                                configManager.migrateIfNeeded(configManager.getBaseRootPath(), profile.email);
-                                updateFilesClientsEnv();
-                            }
-                        } catch (pErr) {
-                            console.warn('[IPC auth-ready] Récupération profil Microsoft échouée:', pErr.message);
-                        }
-
-                        // Structure de base sur OneDrive
-                        try {
-                            console.log('[IPC auth-ready] Vérification structure OneDrive...');
-                            await oneDriveService.ensureBaseStructure();
-                            console.log('[IPC auth-ready] Structure OneDrive OK.');
-                        } catch (e) {
-                            console.error('[IPC auth-ready] Erreur ensureBaseStructure OneDrive:', e.message);
-                        }
-
-                        // Watcher + pull initial + polling
-                        const localPath = configManager.getLocalRootPath();
-                        if (localPath) {
-                            console.log(`[IPC auth-ready] Démarrage watcher sur: ${localPath}`);
-                            localFileWatcher.restartWatcher(localPath);
-                        }
-                        try {
-                            console.log('[IPC auth-ready] Premier pull OneDrive → Local...');
-                            await localFileWatcher.pullFromDrive();
-                        } catch (e) {
-                            console.error('[IPC auth-ready] Erreur premier pull OneDrive:', e.message);
-                        }
-                        localFileWatcher.startPullPolling(60000);
-                        console.log('[IPC auth-ready] ✅ Synchro OneDrive relancée.');
+                    if (!lastDeepLinkToken) {
+                        console.warn('[IPC auth-ready] Pas de JWT Kheops pour lancer le miroir backend.');
                         return;
                     }
-
-                    // ─── BRANCHE GOOGLE (existante, inchangée) ────────────────────────
-                    let client = authService.getGoogleAuthClient();
-                    if (!client && lastDeepLinkToken) {
-                        console.log('[IPC auth-ready] Pas de client Google Auth — récupération du refresh_token depuis le backend...');
-                        try {
-                            const response = await axios.get(`${SERVER_URL}/api/auth/google/get-refresh-token`, {
-                                headers: { Authorization: `Bearer ${lastDeepLinkToken}` }
-                            });
-                            const refreshToken = response.data && response.data.refreshToken;
-                            if (refreshToken) {
-                                client = await authService.initGoogleAuthFromRefreshToken(
-                                    refreshToken,
-                                    process.env.GOOGLE_CLIENT_ID,
-                                    process.env.GOOGLE_CLIENT_SECRET
-                                );
-                                if (client) console.log('[IPC auth-ready] ✅ Client Google initialisé depuis le refresh_token du backend.');
-                            }
-                        } catch (fetchErr) {
-                            console.error('[IPC auth-ready] Erreur récupération refresh_token:', fetchErr.message);
-                        }
-                    }
-
-                    if (client) {
-                        googleDriveService.init(client);
-                        const profile = await authService.getUserInfo();
-                        if (profile && profile.email) {
-                            configManager.setCurrentAccount(profile.email);
-                            // Symétrie avec la branche Microsoft : migrer le layout plat
-                            // vers le sous-dossier du compte si nécessaire.
-                            configManager.migrateIfNeeded(configManager.getBaseRootPath(), profile.email);
-                            updateFilesClientsEnv();
-                        }
-                        try {
-                            await googleDriveService.ensureBaseStructure();
-                        } catch (structErr) {
-                            console.error('[IPC auth-ready] Erreur ensureBaseStructure:', structErr.message);
-                        }
-                        const localPath = configManager.getLocalRootPath();
-                        if (localPath) localFileWatcher.restartWatcher(localPath);
-                        await localFileWatcher.pullFromDrive();
-                        localFileWatcher.startPullPolling(60000);
-                        console.log('[IPC auth-ready] ✅ Synchro Drive relancée avec succès.');
+                    const result = await startSecureBackendMirror(lastDeepLinkToken);
+                    if (result.success) {
+                        console.log('[IPC auth-ready] ✅ Synchro locale relancée via le backend.');
                     } else {
-                        console.warn('[IPC auth-ready] Pas de client Google Auth disponible.');
+                        console.warn('[IPC auth-ready] Miroir non démarré:', result.error);
                     }
                 } catch (err) {
                     console.error('[IPC auth-ready] Erreur relance synchro cloud:', err.message);
@@ -2351,6 +2260,8 @@ const cleanupAndQuit = (reason) => {
     console.log('[Electron App] Fermeture en cours...');
     localFileWatcher.stopPullPolling();
     localFileWatcher.stopAllWatchers();
+    pendingBackendMirrorStart = null;
+    backendMirrorService.stopAll();
     documentLockWatcher.stopAll();
     // Cache plaintext (lot 4a) : purge finale + arret du sweep.
     // Les fichiers verrouilles par Word/Adobe seront eventuellement

@@ -181,7 +181,40 @@
     font-size: 0.8rem;
     color: #5fb88a;
     font-style: italic;
-    margin-top: 2px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.bilan-item-ht-label {
+    font-style: normal;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #8fa6bb;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    padding: 1px 6px;
+}
+
+.bilan-item-ttc {
+    font-style: normal;
+    color: #8fa6bb;
+    font-size: 0.78rem;
+}
+
+.bilan-item-manual {
+    font-style: normal;
+    color: #38d6c4;
+    font-weight: 700;
+}
+
+.bilan-item-hint {
+    font-style: italic;
+    color: #d9a441;
+    font-size: 0.75rem;
 }
 
 .facturation-summary-grid {
@@ -382,4 +415,48 @@ body.high-contrast-mode .bilan-warning-banner {
     background: #fff3cd;
     color: #856404;
     border: 1px solid #ffc107;
+}
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Le conteneur en 2 colonnes (row) s'empile verticalement. Le wrapper
+     et le conteneur cessent de masquer le débordement pour laisser
+     défiler la page ; chaque section garde une hauteur bornée scrollable. */
+  .bilan-facturation-wrapper {
+    overflow: visible;
+  }
+  .bilan-facturation-container {
+    flex-direction: column;
+    overflow-y: visible;
+    gap: 10px;
+    padding: 4px 2px 8px;
+  }
+  .bilan-section {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .bilan-list {
+    max-height: 45vh;
+  }
+  /* Récapitulatif : la grille 2×2 passe en une seule colonne. Les
+     séparateurs latéraux/hauts sont neutralisés pour éviter les traits
+     orphelins une fois empilé. */
+  .facturation-summary-grid {
+    grid-template-columns: 1fr;
+    padding: 14px 16px;
+    gap: 8px;
+  }
+  .cell-right {
+    border-left: none;
+    padding-left: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .facturation-summary-grid { padding: 12px; }
+  .summary-cell { padding: 5px 6px; }
+  .summary-label { font-size: 0.9rem; }
+  .summary-value { font-size: 1.05em; }
+  .grand-total .summary-value { font-size: 1.2em; }
+  .generate-invoice-btn { padding: 10px 16px; }
 }

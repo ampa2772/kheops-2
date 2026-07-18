@@ -8,7 +8,7 @@
 // - Boutons "Ecouter / Arreter" en haut de chaque section
 // - Le bouton Ecouter utilise speechService.speak() pour lire le texte brut
 //   pre-extrait (champ plainText de chaque section)
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NOTICES_SECTIONS } from './noticesContent';
 import { speak, stopSpeaking } from '../../../services/speechService';
 import './Notices.css';
@@ -16,6 +16,7 @@ import './Notices.css';
 const NoticesPage = () => {
   const [activeId, setActiveId] = useState(NOTICES_SECTIONS[0].id);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const tabRefs = useRef([]);
 
   const activeSection = NOTICES_SECTIONS.find(s => s.id === activeId) || NOTICES_SECTIONS[0];
 
@@ -48,6 +49,19 @@ const NoticesPage = () => {
     setActiveId(id);
   };
 
+  const handleTabKeyDown = (event, index) => {
+    const lastIndex = NOTICES_SECTIONS.length - 1;
+    let nextIndex = null;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') nextIndex = index === lastIndex ? 0 : index + 1;
+    if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') nextIndex = index === 0 ? lastIndex : index - 1;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = lastIndex;
+    if (nextIndex == null) return;
+    event.preventDefault();
+    handleSelect(NOTICES_SECTIONS[nextIndex].id);
+    tabRefs.current[nextIndex]?.focus();
+  };
+
   const ActiveContent = activeSection.Content;
 
   return (
@@ -60,14 +74,19 @@ const NoticesPage = () => {
           </p>
         </div>
         <nav className="notices-sidebar-nav" role="tablist">
-          {NOTICES_SECTIONS.map(s => (
+          {NOTICES_SECTIONS.map((s, index) => (
             <button
               key={s.id}
               type="button"
               role="tab"
               aria-selected={s.id === activeId}
+              aria-controls="notices-active-panel"
+              id={`notices-tab-${s.id}`}
+              tabIndex={s.id === activeId ? 0 : -1}
+              ref={(node) => { tabRefs.current[index] = node; }}
               className={`notices-sidebar-tab ${s.id === activeId ? 'is-active' : ''}`}
               onClick={() => handleSelect(s.id)}
+              onKeyDown={(event) => handleTabKeyDown(event, index)}
               title={s.label}
             >
               <span className="notices-sidebar-tab-emoji" aria-hidden="true">{s.emoji}</span>
@@ -77,7 +96,12 @@ const NoticesPage = () => {
         </nav>
       </aside>
 
-      <main className="notices-main" role="tabpanel" aria-label={activeSection.label}>
+      <main
+        id="notices-active-panel"
+        className="notices-main"
+        role="tabpanel"
+        aria-labelledby={`notices-tab-${activeSection.id}`}
+      >
         <div className="notices-toolbar">
           <div className="notices-breadcrumb">
             <span className="notices-breadcrumb-emoji" aria-hidden="true">{activeSection.emoji}</span>
@@ -107,7 +131,13 @@ const NoticesPage = () => {
         </div>
 
         <article className="notices-content">
-          <ActiveContent />
+          <div className="notices-content__inner">
+            <div className="notices-content__meta" aria-label="Informations de mise à jour">
+              <span>Mise à jour : 11 juillet 2026</span>
+              <span>Version concernée : Kheops 2</span>
+            </div>
+            <ActiveContent />
+          </div>
         </article>
       </main>
     </div>

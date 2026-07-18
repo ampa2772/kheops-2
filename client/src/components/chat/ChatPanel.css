@@ -1,139 +1,4 @@
 /* ─────────────────────────────────────────────────────────────────────────
-   Bouton flottant (FAB) — design « Dark Premium »
-   Fond bleu nuit, bulle outlined, halo subtil, badge orange
-   ───────────────────────────────────────────────────────────────────────── */
-.chat-fab {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 4500;
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    radial-gradient(ellipse at 30% 20%, rgba(99, 102, 241, 0.25) 0%, transparent 60%),
-    linear-gradient(180deg, #1a2342 0%, #11192c 60%, #0a1322 100%);
-  color: #d8e1f5;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 4px 10px rgba(0, 0, 0, 0.35),
-    0 12px 28px -6px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(99, 102, 241, 0.08);
-  transition: transform 200ms cubic-bezier(0.34, 1.4, 0.64, 1),
-              box-shadow 200ms ease,
-              background 200ms ease,
-              color 200ms ease;
-}
-
-.chat-fab:hover {
-  transform: translateY(-3px) scale(1.04);
-  color: #ffffff;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.1) inset,
-    0 6px 14px rgba(0, 0, 0, 0.4),
-    0 18px 36px -6px rgba(99, 102, 241, 0.45),
-    0 0 0 1px rgba(99, 102, 241, 0.18);
-}
-
-.chat-fab:active { transform: translateY(-1px) scale(1.0); }
-
-.chat-fab--open {
-  color: #ffffff;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.1) inset,
-    0 4px 12px rgba(0, 0, 0, 0.45),
-    0 0 0 2px rgba(99, 102, 241, 0.4),
-    0 0 24px rgba(99, 102, 241, 0.35);
-}
-
-/* Halo lumineux extérieur (cercle pulsé) */
-.chat-fab__halo {
-  position: absolute;
-  inset: -4px;
-  border-radius: 22px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 65%);
-  opacity: 0.6;
-  pointer-events: none;
-  z-index: -1;
-  animation: chatFabPulse 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes chatFabPulse {
-  0%, 100% { opacity: 0.45; transform: scale(1); }
-  50%      { opacity: 0.85; transform: scale(1.08); }
-}
-
-.chat-fab__icon {
-  width: 22px;
-  height: 22px;
-  stroke: currentColor;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
-  transition: transform 200ms ease;
-}
-
-.chat-fab:hover .chat-fab__icon { transform: scale(1.1); }
-
-.chat-fab__badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  background: linear-gradient(135deg, #ff8a3d 0%, #ef6c1f 50%, #d6500c 100%);
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 800;
-  border-radius: 9999px;
-  padding: 2px 7px;
-  min-width: 22px;
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  letter-spacing: 0.02em;
-  border: 2px solid #0a1322;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.25) inset,
-    0 2px 6px rgba(214, 80, 12, 0.55),
-    0 4px 12px -2px rgba(214, 80, 12, 0.45);
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
-  animation: chatFabBadgePop 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
-}
-
-@keyframes chatFabBadgePop {
-  from { transform: scale(0); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
-}
-
-/* High-contrast mode */
-body.high-contrast-mode .chat-fab {
-  background: #000 !important;
-  border: 2px solid yellow !important;
-  color: yellow !important;
-  box-shadow: 0 0 0 2px yellow !important;
-}
-
-body.high-contrast-mode .chat-fab:hover {
-  background: #1a1a00 !important;
-}
-
-body.high-contrast-mode .chat-fab__halo {
-  background: radial-gradient(circle, rgba(255, 255, 0, 0.3) 0%, transparent 65%);
-}
-
-body.high-contrast-mode .chat-fab__badge {
-  background: yellow !important;
-  color: #000 !important;
-  text-shadow: none !important;
-  border-color: #000 !important;
-  box-shadow: 0 0 0 2px yellow !important;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
    Panneau de chat (slide-in droite)
    ───────────────────────────────────────────────────────────────────────── */
 .chat-panel {
@@ -166,10 +31,25 @@ body.high-contrast-mode .chat-fab__badge {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: #1a2440;
 }
-.chat-panel__title {
-  font-weight: 700;
+.chat-panel__heading {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chat-panel__title {
+  font-weight: 700;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-panel__active-identity {
+  min-width: 0;
+  color: #9fb0c8;
+  font-size: 10.5px;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -276,6 +156,7 @@ body.high-contrast-mode .chat-panel__conv-avatar {
 }
 body.high-contrast-mode .chat-panel__conv-name { color: yellow !important; }
 body.high-contrast-mode .chat-panel__conv-role { color: #cccc66 !important; }
+body.high-contrast-mode .chat-panel__active-identity { color: #cccc66 !important; }
 
 /* ─────────────────────────────────────────────────────────────────────────
    Liste des conversations

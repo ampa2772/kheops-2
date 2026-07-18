@@ -1,0 +1,233 @@
+.kheops-ai-panel {
+  box-sizing: border-box;
+  width: clamp(360px, 31vw, 520px);
+  min-width: 330px;
+  height: 100%;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid #c7d1df;
+  color: #17223b;
+  background: #f8fafc;
+  box-shadow: -8px 0 24px rgba(23, 43, 77, .12);
+  container: kheops-ai / inline-size;
+}
+
+.kheops-ai-panel *,
+.kheops-ai-panel *::before,
+.kheops-ai-panel *::after { box-sizing: border-box; }
+
+.kheops-ai-panel.is-fullscreen {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  width: 100%;
+  min-width: 0;
+  border-left: 0;
+}
+
+.kheops-ai-panel button,
+.kheops-ai-panel input,
+.kheops-ai-panel select,
+.kheops-ai-panel textarea {
+  font: inherit;
+}
+
+.kheops-ai-panel button {
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #b8c4d4;
+  border-radius: 6px;
+  color: #243b5c;
+  background: #fff;
+  cursor: pointer;
+}
+
+.kheops-ai-panel button:hover { border-color: #7897be; background: #edf4fc; }
+.kheops-ai-panel button:disabled { opacity: .55; cursor: not-allowed; }
+.kheops-ai-panel button.primary { color: #fff; border-color: #20508b; background: #20508b; font-weight: 700; }
+.kheops-ai-panel button.primary:hover { background: #173f72; }
+.kheops-ai-panel button.danger { color: #8a2020; border-color: #df9b9b; background: #fff4f4; }
+.kheops-ai-panel :focus-visible { outline: 3px solid #ddad4d; outline-offset: 2px; }
+
+.kheops-ai-panel-header {
+  min-height: 78px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  color: #fff;
+  background: linear-gradient(120deg, #17345f, #265f82);
+}
+
+.kheops-ai-panel-header h2 { margin: 2px 0 3px; color: inherit; font-size: 18px; }
+.kheops-ai-panel-header p { margin: 0; color: #d7e8f3; font-size: 10px; }
+.kheops-ai-panel-header > div:last-child { display: flex; gap: 5px; }
+.kheops-ai-panel-header button { min-height: 29px; padding: 4px 7px; color: #fff; border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.1); font-size: 11px; }
+.kheops-ai-panel-header button:last-child { min-width: 29px; font-size: 19px; line-height: 1; }
+.kheops-ai-eyebrow { color: #8cb7d6; font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.kheops-ai-panel-header .kheops-ai-eyebrow { color: #f1d291; }
+.kheops-ai-private-dot { display: inline-block; width: 7px; height: 7px; margin-right: 3px; border-radius: 50%; background: #6ee7b7; }
+
+.kheops-ai-panel-scroll { min-height: 0; padding: 12px; overflow: auto; overscroll-behavior: contain; }
+.kheops-ai-loading,
+.kheops-ai-empty { margin: auto; padding: 26px; text-align: center; }
+.kheops-ai-empty strong { display: block; margin-bottom: 8px; font-size: 16px; }
+.kheops-ai-empty p { color: #64748b; font-size: 12px; line-height: 1.55; }
+
+.kheops-ai-connection-help,
+.kheops-ai-task-picker,
+.kheops-ai-context,
+.kheops-ai-result,
+.kheops-ai-history {
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 1px solid #d9e0ea;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.kheops-ai-connection-help { color: #5f4310; border-color: #ead5a7; background: #fffbeb; }
+.kheops-ai-connection-help h3 { margin: 0 0 7px; font-size: 14px; }
+.kheops-ai-connection-help p { margin: 6px 0; font-size: 11px; line-height: 1.5; }
+.kheops-ai-connection-help button { margin-top: 7px; }
+
+.kheops-ai-configuration { margin-bottom: 12px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.kheops-ai-configuration label,
+.kheops-ai-prompt,
+.kheops-ai-document-dialog > label { display: grid; gap: 4px; color: #526079; font-size: 10px; font-weight: 700; }
+.kheops-ai-panel select,
+.kheops-ai-panel textarea,
+.kheops-ai-panel input[type="text"],
+.kheops-ai-panel input:not([type]) {
+  width: 100%;
+  min-height: 35px;
+  padding: 6px 8px;
+  border: 1px solid #bdc8d7;
+  border-radius: 6px;
+  color: #17223b;
+  background: #fff;
+}
+.kheops-ai-panel textarea { min-height: 72px; resize: vertical; line-height: 1.45; }
+
+.kheops-ai-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; margin-bottom: 9px; }
+.kheops-ai-section-heading h3 { margin: 0; color: #263b5a; font-size: 13px; }
+.kheops-ai-section-heading p { margin: 3px 0 0; color: #718096; font-size: 10px; line-height: 1.35; }
+.kheops-ai-task-picker > select { margin-bottom: 9px; }
+.kheops-ai-prompt small { justify-self: end; color: #8792a3; font-weight: 400; }
+
+.kheops-ai-check-all { display: flex; align-items: center; gap: 5px; white-space: nowrap; color: #405471; font-size: 10px; }
+.kheops-ai-source-pills { min-height: 26px; display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.kheops-ai-source-pills > span { max-width: 100%; display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 7px; border-radius: 999px; color: #234f82; background: #e6f0fb; font-size: 9px; }
+.kheops-ai-source-pills > span button { min-width: 20px; min-height: 20px; padding: 0; border: 0; border-radius: 50%; color: inherit; background: transparent; line-height: 1; }
+.kheops-ai-source-pills em { color: #9a5b18; font-size: 10px; }
+.kheops-ai-source-list { max-height: 165px; overflow: auto; border: 1px solid #e2e7ef; border-radius: 6px; }
+.kheops-ai-source-list > label { min-height: 43px; display: flex; align-items: flex-start; gap: 8px; padding: 7px; border-bottom: 1px solid #edf0f5; cursor: pointer; }
+.kheops-ai-source-list > label:last-child { border-bottom: 0; }
+.kheops-ai-source-list input { margin-top: 3px; }
+.kheops-ai-source-list span { min-width: 0; display: grid; gap: 2px; }
+.kheops-ai-source-list strong { overflow: hidden; color: #283b57; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.kheops-ai-source-list small { color: #7b8799; font-size: 9px; }
+
+.kheops-ai-context-options { margin: 10px 0 0; padding: 7px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; border: 1px solid #e0e6ee; border-radius: 6px; }
+.kheops-ai-context-options legend { padding: 0 4px; color: #69768a; font-size: 9px; }
+.kheops-ai-context-options label { display: flex; align-items: center; gap: 5px; color: #536176; font-size: 9px; }
+.kheops-ai-context-options label:last-child { grid-column: 1 / -1; justify-content: space-between; }
+.kheops-ai-context-options select { width: auto; min-height: 27px; padding: 2px 5px; font-size: 9px; }
+.kheops-ai-context-options .kheops-ai-confidential-confirmation { grid-column: 1 / -1; align-items: flex-start; padding: 7px; border: 1px solid #e6c36a; border-radius: 5px; color: #6f4e06; background: #fffbeb; line-height: 1.4; }
+
+.kheops-ai-runbar { position: sticky; z-index: 2; bottom: -12px; margin: 0 -12px 12px; padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-block: 1px solid #d7e0ea; background: rgba(248,250,252,.96); backdrop-filter: blur(5px); }
+.kheops-ai-runbar > div { min-width: 0; display: grid; gap: 2px; }
+.kheops-ai-runbar strong { font-size: 11px; }
+.kheops-ai-runbar span { color: #738096; font-size: 9px; }
+
+.kheops-ai-result > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.kheops-ai-result h3 { margin: 2px 0 0; font-size: 14px; }
+.kheops-ai-status { max-width: 140px; padding: 4px 7px; border: 1px solid #e4b965; border-radius: 999px; color: #79520e; background: #fff7dc; font-size: 8px; font-weight: 800; text-align: center; }
+.kheops-ai-status.is-approved { color: #17633b; border-color: #80c9a3; background: #e9faef; }
+.kheops-ai-status.is-rejected { color: #9f1239; border-color: #fda4af; background: #fff1f2; }
+.kheops-ai-disclaimer { padding: 7px; color: #68480e; border-left: 3px solid #d9a33b; background: #fff8e8; font-size: 9px; line-height: 1.45; }
+.kheops-ai-result-text { max-height: 320px; padding: 10px; overflow: auto; border: 1px solid #d8e1ec; border-radius: 6px; color: #22324b; background: #fbfdff; font: 11px/1.55 "Segoe UI", sans-serif; white-space: pre-wrap; overflow-wrap: anywhere; }
+.kheops-ai-citations { margin-top: 10px; }
+.kheops-ai-citations h4 { margin: 0 0 5px; font-size: 11px; }
+.kheops-ai-citations ol { margin: 0; padding-left: 20px; }
+.kheops-ai-citations li { margin: 5px 0; color: #5c6879; font-size: 9px; }
+.kheops-ai-citations button { min-height: 25px; padding: 2px 6px; color: #1d5f9f; border: 0; background: transparent; text-decoration: underline; }
+.kheops-ai-citation-label { display: inline-block; padding: 2px 6px; color: #334f70; font-weight: 700; }
+.kheops-ai-citations q { display: block; margin: 2px 0 0 7px; color: #6b7481; line-height: 1.4; }
+.kheops-ai-result-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.kheops-ai-result-actions button { font-size: 9px; }
+.kheops-ai-usage { color: #7b8799; font-size: 8px; }
+.kheops-ai-created-document { margin-top: 9px; padding: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid #e4c77f; border-radius: 6px; background: #fffbeb; }
+.kheops-ai-created-document > div { display: grid; gap: 2px; }
+.kheops-ai-created-document strong { font-size: 10px; }
+.kheops-ai-created-document span { color: #76550f; font-size: 8px; }
+.kheops-ai-created-document button { font-size: 9px; }
+.kheops-ai-validation-actions { display: flex !important; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+
+.kheops-ai-history summary { cursor: pointer; color: #334d70; font-size: 10px; font-weight: 700; }
+.kheops-ai-history ol { margin: 8px 0 0; padding: 0; list-style: none; }
+.kheops-ai-history li { padding: 5px 0; display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid #edf0f5; font-size: 9px; }
+.kheops-ai-history small { color: #7c8798; }
+.kheops-ai-error,
+.kheops-ai-blocked { padding: 8px; border: 1px solid #efb3b3; border-radius: 6px; color: #842323; background: #fff2f2; font-size: 10px; line-height: 1.45; }
+
+.kheops-ai-dialog-backdrop { position: absolute; z-index: 70; inset: 0; display: grid; place-items: center; padding: 12px; background: rgba(13, 28, 52, .58); }
+.kheops-ai-preflight,
+.kheops-ai-document-dialog { width: min(520px, 100%); max-height: 94%; padding: 15px; overflow: auto; border-radius: 10px; background: #fff; box-shadow: 0 18px 60px rgba(15,23,42,.32); }
+.kheops-ai-preflight > header,
+.kheops-ai-document-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.kheops-ai-preflight h3,
+.kheops-ai-document-dialog h3 { margin: 3px 0 0; font-size: 16px; }
+.kheops-ai-preflight > header button,
+.kheops-ai-document-dialog > header button { min-width: 30px; min-height: 30px; padding: 0; border: 0; font-size: 20px; }
+.kheops-ai-preflight dl { display: grid; gap: 0; margin: 14px 0; border: 1px solid #dbe2eb; border-radius: 7px; }
+.kheops-ai-preflight dl > div { padding: 8px; display: grid; grid-template-columns: 44% 1fr; gap: 9px; border-bottom: 1px solid #e7ebf1; }
+.kheops-ai-preflight dl > div:last-child { border-bottom: 0; }
+.kheops-ai-preflight dt { color: #66758b; font-size: 9px; }
+.kheops-ai-preflight dd { margin: 0; color: #263c5a; font-size: 10px; font-weight: 700; }
+.kheops-ai-privacy-warning { padding: 9px; border-left: 3px solid #3881a7; background: #edf8fc; }
+.kheops-ai-privacy-warning strong { font-size: 10px; }
+.kheops-ai-privacy-warning p { margin: 3px 0 0; color: #526879; font-size: 9px; line-height: 1.5; }
+.kheops-ai-budget-override { display: grid; gap: 6px; padding: 9px; border: 1px solid #e6c36a; border-radius: 6px; color: #6f4e06; background: #fffbeb; font-size: 9px; line-height: 1.45; }
+.kheops-ai-budget-override label { display: flex; align-items: flex-start; gap: 7px; }
+.kheops-ai-budget-override input { flex: 0 0 auto; margin-top: 1px; min-height: 18px; min-width: 18px; }
+.kheops-ai-budget-override p { margin: 0; }
+.kheops-ai-preflight > footer,
+.kheops-ai-document-dialog > footer { margin-top: 14px; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
+.kheops-ai-document-dialog { display: grid; gap: 9px; }
+.kheops-ai-document-dialog .checkbox { display: flex; grid-template-columns: auto 1fr; align-items: center; }
+.kheops-ai-document-dialog > p { margin: 0; color: #71510f; font-size: 9px; }
+
+@container kheops-ai (max-width: 390px) {
+  .kheops-ai-configuration,
+  .kheops-ai-context-options { grid-template-columns: 1fr; }
+  .kheops-ai-context-options label:last-child { grid-column: 1; }
+  .kheops-ai-created-document,
+  .kheops-ai-runbar { align-items: stretch; flex-direction: column; }
+  .kheops-ai-runbar button { width: 100%; }
+}
+
+@media (max-width: 1023px) {
+  .kheops-ai-panel {
+    position: absolute;
+    z-index: 25;
+    inset: 0 0 0 auto;
+    width: min(520px, 100%);
+    min-width: 0;
+  }
+}
+
+@media (max-width: 767px), (min-resolution: 1.9dppx) and (max-width: 1100px) {
+  .kheops-ai-panel { inset: 0; width: 100%; border-left: 0; }
+  .kheops-ai-panel button { min-height: 42px; }
+  .kheops-ai-panel-header { min-height: 68px; padding: 9px; }
+  .kheops-ai-panel-header h2 { font-size: 16px; }
+  .kheops-ai-panel-scroll { padding: 8px; }
+  .kheops-ai-runbar { bottom: -8px; margin-inline: -8px; }
+  .kheops-ai-dialog-backdrop { padding: 0; }
+  .kheops-ai-preflight,
+  .kheops-ai-document-dialog { width: 100%; max-height: 100%; height: 100%; border-radius: 0; }
+}

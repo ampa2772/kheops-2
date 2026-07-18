@@ -96,6 +96,13 @@ describe('sendMessage', () => {
         })).rejects.toThrow(/recipientId/);
     });
 
+    it('rejette une conversation individuelle avec soi-même', async () => {
+        await expect(chatService.sendMessage({
+            senderId: 'office-user-a', recipientId: 'office-user-a', text: 'self',
+        })).rejects.toMatchObject({ code: 'SELF_CONVERSATION_NOT_ALLOWED' });
+        expect(mockMessageCreate).not.toHaveBeenCalled();
+    });
+
     it('trim le texte avant stockage', async () => {
         mockMessageCreate.mockResolvedValue({});
         await chatService.sendMessage({
@@ -181,7 +188,17 @@ describe('getTotalUnreadCount', () => {
         expect(n).toBe(7);
         expect(mockMessageCountDocs).toHaveBeenCalledWith({
             recipient: 'A', readAt: null, deletedAt: null,
+            $expr: { $ne: ['$sender', '$recipient'] },
         });
+    });
+
+    it('exclut les anciens auto-messages du badge global', async () => {
+        mockMessageCountDocs.mockResolvedValue(0);
+
+        await chatService.getTotalUnreadCount({ userId: 'A' });
+
+        const query = mockMessageCountDocs.mock.calls[0][0];
+        expect(query.$expr).toEqual({ $ne: ['$sender', '$recipient'] });
     });
 });
 
@@ -194,6 +211,16 @@ describe('getInbox', () => {
         expect(r).toHaveLength(1);
         expect(r[0]).toMatchObject({ unreadCount: 2 });
         expect(mockMessageAggregate).toHaveBeenCalled();
+    });
+
+    it('exclut les anciens messages auto-adressés de la boîte de conversations', async () => {
+        mockMessageAggregate.mockResolvedValue([]);
+        await chatService.getInbox({ userId: '507f1f77bcf86cd799439011' });
+
+        const pipeline = mockMessageAggregate.mock.calls[0][0];
+        expect(pipeline[0].$match.$expr).toEqual({
+            $ne: ['$sender', '$recipient'],
+        });
     });
 
     it('renvoie [] si userId invalide (non castable en ObjectId)', async () => {

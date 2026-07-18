@@ -5,7 +5,6 @@ import apiClient from '../../services/apiClient';
 import { initSocket } from '../../services/socketService';
 import { showToast } from './notificationsSlice';
 // Compagnon Word (mode web) : génération serveur + ouverture dans Microsoft Word.
-import { openDocumentInWord } from '../../services/companion/companionClient';
 
 // ========================================================================
 // Action type constants (migrated from dossierActions.js — Phase 9D)
@@ -443,13 +442,17 @@ const wrappedReducer = (state, action) => {
   // Persistance défensive de l'ID du dernier dossier consulté.
   // Sert de fallback si le state currentDossierState complet devient stale ou
   // mal désérialisé : on peut toujours re-fetcher le dernier dossier au boot.
-  // Effacé au logout et à la suppression du dossier courant.
+  // ⚠️ NE PAS effacer sur LOGOUT/AUTH_ERROR : AUTH_ERROR est dispatché à CHAQUE
+  // démarrage sans session mémorisée (authSlice.loadUserFromLocalStorage), ce
+  // qui effaçait la préférence à chaque reconnexion → écran « Aucun dossier
+  // sélectionné ». Garder l'id est sans risque : ce n'est qu'un identifiant, et
+  // la restauration passe par fetchCurrentDossier dont l'accès est contrôlé
+  // côté serveur (un autre compte → 403/404 → la page bascule sur son dossier
+  // le plus récent). Effacé seulement à la suppression du dossier concerné.
   try {
     if (action.type === 'FETCH_CURRENT_DOSSIER_SUCCESS' || action.type === UPDATE_CURRENT_DOSSIER_SUCCESS || action.type === 'UPDATE_DOSSIER_SUCCESS') {
       const id = nextState?.dossier?._id;
       if (id) localStorage.setItem('kheopsLastOpenedDossierId', String(id));
-    } else if (action.type === 'LOGOUT' || action.type === 'AUTH_ERROR') {
-      localStorage.removeItem('kheopsLastOpenedDossierId');
     } else if (action.type === DELETE_DOSSIER_SUCCESS) {
       const deletedId = action.payload?.dossierId;
       const lastId = localStorage.getItem('kheopsLastOpenedDossierId');
@@ -552,6 +555,7 @@ export const createDocumentInDossier = (dossierId, templateFileName, token, user
           templateFileName: templateFileName,
           localFileName: newDocMetadata.nomDocument,
           templateCategory: templateCategory,
+          openAfterCreation: false,
         });
         if (!result.success) {
           console.error('[createDocumentInDossier] Erreur IPC:', result.error);
@@ -591,19 +595,17 @@ export const createDocumentInDossier = (dossierId, templateFileName, token, user
           const serverMsg = genErr.response?.data?.message;
           throw new Error(serverMsg || 'La génération du document a échoué (le document a été retiré du dossier).');
         }
-        // 2) On demande au compagnon local d'ouvrir le document dans Microsoft Word.
-        //    Si le compagnon est absent, le document reste généré et stocké ; seule
-        //    l'ouverture automatique échoue (l'utilisateur sera invité à l'installer).
-        dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 90, step: 'Ouverture dans Word...' } });
-        try {
-          await openDocumentInWord(newDocMetadata._id, { fileName: newDocMetadata.nomDocument });
-        } catch (companionErr) {
-          console.warn('[createDocumentInDossier] Ouverture compagnon impossible (document généré et stocké):', companionErr.message);
-        }
+        // L'ouverture est désormais décidée par la modale de méthode d'ouverture.
+        dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 90, step: 'Document prêt à être ouvert...' } });
       }
     } else {
       dispatch({ type: DOC_GEN_END });
       throw new Error('Réponse invalide du serveur lors de la création des métadonnées.');
+    }
+    if (response.data?.doc && typeof window !== 'undefined') {
+      const pending = { doc: response.data.doc, dossierId, reason: 'created', createdAt: Date.now() };
+      try { sessionStorage.setItem('kheopsPendingDocumentOpen', JSON.stringify(pending)); } catch (_) {}
+      window.dispatchEvent(new CustomEvent('kheops:document-created', { detail: pending }));
     }
     dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 100, step: 'Terminé' } });
     setTimeout(() => dispatch({ type: DOC_GEN_END }), 700);
@@ -648,9 +650,21 @@ export const createBlankDocument = (dossierId, subfolderId = null) => async (dis
       const result = await window.electron.handleBlankDocumentCreation({
         docId: newDocMetadata._id,
         fileName: newDocMetadata.nomDocument,
+        openAfterCreation: false,
       });
-      if (!result.success) {
-        console.error('[createBlankDocument] Erreur IPC Electron:', result.error);
+      if (!result?.success) {
+        console.error('[createBlankDocument] Erreur IPC Electron:', result?.error);
+        // Comme dans le flux web, ne jamais conserver une fiche documentaire
+        // sans fichier derrière elle : cela ferait ensuite échouer tous les
+        // modes d'ouverture et donnerait l'impression que le document existe.
+        try {
+          await apiClient.post('/api/fusion/deleteDocument', { dossierId, docId: newDocMetadata._id });
+          dispatch({ type: DELETE_DOCUMENT_SUCCESS, payload: { docId: newDocMetadata._id } });
+        } catch (rollbackErr) {
+          console.error('[createBlankDocument] Erreur rollback Electron:', rollbackErr);
+        }
+        dispatch({ type: DOC_GEN_END });
+        throw new Error(result?.error || 'La création du document vierge a échoué (le document a été retiré du dossier).');
       }
       dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 95, step: 'Finalisation...' } });
     } else {
@@ -674,6 +688,11 @@ export const createBlankDocument = (dossierId, subfolderId = null) => async (dis
       dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 95, step: 'Finalisation...' } });
     }
 
+    if (typeof window !== 'undefined') {
+      const pending = { doc: newDocMetadata, dossierId, reason: 'created', createdAt: Date.now() };
+      try { sessionStorage.setItem('kheopsPendingDocumentOpen', JSON.stringify(pending)); } catch (_) {}
+      window.dispatchEvent(new CustomEvent('kheops:document-created', { detail: pending }));
+    }
     dispatch({ type: DOC_GEN_UPDATE, payload: { progress: 100, step: 'Terminé' } });
     setTimeout(() => dispatch({ type: DOC_GEN_END }), 700);
     return response.data;
@@ -851,7 +870,10 @@ export const addLinkedContactToParty = (dossierId, partyId, linkedContactData, t
   try {
     const config = { headers: { 'Content-Type': 'application/json' } };
     const response = await apiClient.post('/api/folder/addLinkedContactToParty', { dossierId, partyId, linkedContactData }, config);
-    dispatch(fetchCurrentDossier(dossierId, token));
+    // Le rafraîchissement fait partie de la promesse du thunk. Les opérations
+    // groupées peuvent ainsi les séquencer et ne réinjectent pas un snapshot
+    // plus ancien après une sauvegarde ultérieure du même dossier.
+    await dispatch(fetchCurrentDossier(dossierId, token));
     return response.data;
   } catch (error) {
     console.error("Erreur lors de l\'ajout du contact lié:", error.response?.data || error.message);
@@ -863,7 +885,7 @@ export const removeLinkedContactFromParty = (dossierId, partyId, contactId, isAv
   try {
     const config = { headers: { 'Content-Type': 'application/json' } };
     const response = await apiClient.post('/api/folder/removeLinkedContactFromParty', { dossierId, partyId, contactId, isAvocat }, config);
-    dispatch(fetchCurrentDossier(dossierId));
+    await dispatch(fetchCurrentDossier(dossierId));
     return response.data;
   } catch (error) {
     console.error("Erreur lors de la suppression du contact lié:", error.response?.data || error.message);
@@ -937,6 +959,47 @@ export const archiveInvoice = (dossierId, invoiceId, token) => async (dispatch) 
   } catch (error) {
     dispatch({ type: ARCHIVE_INVOICE_FAIL, payload: error.response?.data?.message || error.message });
   }
+};
+
+// Calcule le bilan facturable côté SERVEUR (RDV + documents). Renvoie les
+// lignes brutes (le composant les affiche + laisse corriger les montants).
+// Remplace l'ancien calcul socket/Electron (mode web pur).
+export const computeInvoiceBilan = (dossierId) => async () => {
+  const res = await apiClient.post(`/api/folder/dossier/${dossierId}/invoice/compute-bilan`, {});
+  return res.data;
+};
+
+// Crée/met à jour une facture (upsert par _id). invoiceData doit contenir
+// _id, nomDocument, totalTTC, billedItems, status. Rafraîchit le dossier.
+export const saveDossierInvoice = (dossierId, invoiceData) => async (dispatch) => {
+  const res = await apiClient.post(`/api/folder/dossier/${dossierId}/upsert-invoice`, { invoiceData });
+  const updatedDossier = res.data?.dossier || res.data;
+  if (updatedDossier) dispatch({ type: 'UPDATE_CURRENT_DOSSIER_SUCCESS', payload: updatedDossier });
+  return updatedDossier;
+};
+
+// SYNCHRONISE la facture active avec le contenu réel du dossier (RDV +
+// documents) côté serveur : lignes recalculées, prix manuels préservés,
+// total mis à jour, création si besoin. Appelé à l'ouverture de l'onglet
+// Facturation et par le sous-onglet « Factures ».
+export const syncDossierInvoice = (dossierId) => async (dispatch) => {
+  const res = await apiClient.post(`/api/folder/dossier/${dossierId}/invoice/sync`, {});
+  const updatedDossier = res.data?.dossier || res.data;
+  if (updatedDossier && updatedDossier._id) {
+    dispatch({ type: 'UPDATE_CURRENT_DOSSIER_SUCCESS', payload: updatedDossier });
+  }
+  return res.data;
+};
+
+// Remplace TOUT l'historique des paiements d'une facture (ajout/modif/suppr).
+export const replaceInvoicePayments = (dossierId, invoiceId, payments) => async (dispatch) => {
+  const res = await apiClient.put(
+    `/api/folder/dossier/${dossierId}/invoice/${invoiceId}/payments`,
+    { payments }
+  );
+  const updatedDossier = res.data;
+  if (updatedDossier) dispatch({ type: 'UPDATE_CURRENT_DOSSIER_SUCCESS', payload: updatedDossier });
+  return updatedDossier;
 };
 
 export const fetchArchivedInvoiceDetails = (invoiceId) => async (dispatch, getState) => {

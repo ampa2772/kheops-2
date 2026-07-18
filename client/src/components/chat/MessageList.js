@@ -8,7 +8,7 @@
 // du membre du cabinet) ainsi que son rôle. Pour des messages consécutifs
 // d'un même auteur, le nom n'est affiché qu'une fois (style WhatsApp).
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
     loadMessages,
@@ -17,7 +17,7 @@ import {
     selectChatCurrentUserId,
     selectConversations,
 } from '../../redux/slices/chatSlice';
-import { buildAttachmentUrl } from '../../services/chatApi';
+import { buildAttachmentUrl, fetchAttachmentBlob } from '../../services/chatApi';
 
 function formatTime(ts) {
     const d = new Date(ts);
@@ -46,6 +46,94 @@ function fullName(p) {
         .filter(Boolean).join(' ').trim();
     return fl;
 }
+
+function isAbortError(error, signal) {
+    return !!signal?.aborted
+        || error?.name === 'AbortError'
+        || error?.code === 'ERR_CANCELED';
+}
+
+/**
+ * Une pièce jointe inline reste une data: URL. Une pièce jointe historique
+ * est en revanche récupérée via apiClient avec le JWT et l'OfficeUser figé,
+ * puis exposée au navigateur au moyen d'une URL Blob temporaire.
+ */
+const MessageAttachment = ({ attachment, kind, officeUserId }) => {
+    const inlineUrl = attachment?.dataBase64 ? buildAttachmentUrl(attachment) : null;
+    const [attachmentUrl, setAttachmentUrl] = useState(inlineUrl);
+    const [loadError, setLoadError] = useState(false);
+    const storageKey = attachment?.storageKey || null;
+
+    useEffect(() => {
+        if (inlineUrl) {
+            setAttachmentUrl(inlineUrl);
+            setLoadError(false);
+            return undefined;
+        }
+
+        setAttachmentUrl(null);
+        setLoadError(false);
+        if (!storageKey || !officeUserId) return undefined;
+
+        const controller = new AbortController();
+        let disposed = false;
+        let objectUrl = null;
+
+        fetchAttachmentBlob(attachment, officeUserId, { signal: controller.signal })
+            .then(blob => {
+                if (disposed) return;
+                objectUrl = URL.createObjectURL(blob);
+                setAttachmentUrl(objectUrl);
+            })
+            .catch(error => {
+                if (!isAbortError(error, controller.signal) && !disposed) {
+                    setLoadError(true);
+                }
+            });
+
+        return () => {
+            disposed = true;
+            controller.abort();
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [attachment, inlineUrl, officeUserId, storageKey]);
+
+    if (!attachmentUrl) {
+        return (
+            <span className="chat-bubble__file" aria-busy={!loadError}>
+                {loadError ? 'Pièce jointe indisponible' : 'Chargement sécurisé de la pièce jointe…'}
+            </span>
+        );
+    }
+
+    if (kind === 'voice') {
+        return (
+            <audio
+                className="chat-bubble__audio"
+                controls
+                src={attachmentUrl}
+                preload="metadata"
+            >
+                Votre navigateur ne supporte pas la lecture audio.
+            </audio>
+        );
+    }
+
+    return (
+        <a
+            className="chat-bubble__file"
+            href={attachmentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={attachment.fileName}
+        >
+            📎 {attachment.fileName}
+            <span className="chat-bubble__file-size">
+                {' '}· {formatBytes(attachment.sizeBytes)}
+            </span>
+        </a>
+    );
+};
 
 const MessageList = ({ contactId }) => {
     const dispatch = useDispatch();
@@ -80,7 +168,6 @@ const MessageList = ({ contactId }) => {
     const contactName = fullName(contact) || 'Membre du cabinet';
     const contactRole = contact?.roleOfficeUser || '';
 
-    const myName = fullName(myOfficeUser) || 'Vous';
     const myRole = myOfficeUser?.roleOfficeUser || '';
 
     if (!contactId) {
@@ -115,29 +202,12 @@ const MessageList = ({ contactId }) => {
                         )}
                         <div className={`chat-bubble ${isMine ? 'chat-bubble--mine' : 'chat-bubble--theirs'}`}>
                             {msg.text && <div className="chat-bubble__text">{msg.text}</div>}
-                            {msg.attachment && msg.kind === 'voice' && (
-                                <audio
-                                    className="chat-bubble__audio"
-                                    controls
-                                    src={buildAttachmentUrl(msg.attachment)}
-                                    preload="metadata"
-                                >
-                                    Votre navigateur ne supporte pas la lecture audio.
-                                </audio>
-                            )}
-                            {msg.attachment && msg.kind !== 'voice' && (
-                                <a
-                                    className="chat-bubble__file"
-                                    href={buildAttachmentUrl(msg.attachment)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    download={msg.attachment.fileName}
-                                >
-                                    📎 {msg.attachment.fileName}
-                                    <span className="chat-bubble__file-size">
-                                        {' '}· {formatBytes(msg.attachment.sizeBytes)}
-                                    </span>
-                                </a>
+                            {msg.attachment && (
+                                <MessageAttachment
+                                    attachment={msg.attachment}
+                                    kind={msg.kind}
+                                    officeUserId={me}
+                                />
                             )}
                             <div className="chat-bubble__meta">
                                 {formatTime(msg.createdAt)}

@@ -1,14 +1,36 @@
 const mongoose = require('mongoose');
 const StorageProviderConfig = require('../../models/Storage/StorageProviderConfig');
+const User = require('../../models/App_Users/User');
 const managedGcs = require('./providers/managedGcs');
 const googleDrive = require('./providers/googleDrive');
 const onedrive = require('./providers/onedrive');
+const sharepoint = require('./providers/sharepoint');
 
 const providers = {
   managed_gcs: managedGcs,
   google_drive: googleDrive,
   onedrive,
+  sharepoint,
 };
+
+// Correspondance schema de storageKey -> provider. Les providers PAR UTILISATEUR
+// prefixent leur cle (onedrive:/googledrive:/sharepoint:). managed_gcs utilise un
+// chemin « tenants/... » sans prefixe.
+const KEY_SCHEME_TO_PROVIDER = {
+  onedrive: 'onedrive',
+  googledrive: 'google_drive',
+  sharepoint: 'sharepoint',
+};
+
+function providerNameForKey(storageKey) {
+  const s = String(storageKey || '');
+  const colon = s.indexOf(':');
+  if (colon > 0) {
+    const scheme = s.slice(0, colon);
+    if (KEY_SCHEME_TO_PROVIDER[scheme]) return KEY_SCHEME_TO_PROVIDER[scheme];
+  }
+  return null; // cle « chemin » (managed_gcs) -> provider du cabinet
+}
 
 function toTenantObjectId(tenantId) {
   if (!tenantId || !mongoose.Types.ObjectId.isValid(String(tenantId))) {
@@ -51,6 +73,32 @@ async function getStorageProvider(tenantId) {
     throw err;
   }
   return provider;
+}
+
+// Provider a utiliser pour DOWNLOAD/DELETE/EXISTS : deduit du storageKey lui-meme
+// (auto-suffisant), pas du provider courant du cabinet. Robustesse : un document
+// reste lisible meme si le cabinet a change de provider depuis, et le stockage
+// PAR UTILISATEUR mixte (certains sur SharePoint, d'autres non) fonctionne.
+async function getProviderForStorageKey(tenantId, storageKey) {
+  const name = providerNameForKey(storageKey);
+  if (name && providers[name]) return providers[name];
+  return getStorageProvider(tenantId);
+}
+
+// Provider a utiliser pour un UPLOAD par CET utilisateur. Volet B : si
+// l'utilisateur a active SON PROPRE SharePoint (User.sharePoint.enabled + driveId),
+// ses documents y sont ranges — quel que soit le provider du cabinet. Sinon on
+// retombe sur le provider du cabinet (OneDrive perso / managed_gcs / Google Drive).
+async function getUploadProvider(tenantId, ownerUserId) {
+  if (ownerUserId) {
+    try {
+      const user = await User.findById(ownerUserId).select('sharePoint').lean();
+      if (user?.sharePoint?.enabled && user.sharePoint.driveId) {
+        return providers.sharepoint;
+      }
+    } catch (_) { /* repli silencieux sur le provider du cabinet */ }
+  }
+  return getStorageProvider(tenantId);
 }
 
 async function selectStorageProvider(tenantId, providerName) {
@@ -111,6 +159,9 @@ async function assertUploadCompleted(provider, storageKey) {
 module.exports = {
   getStorageProvider,
   getStorageProviderConfig,
+  getProviderForStorageKey,
+  getUploadProvider,
+  providerNameForKey,
   providers,
   resolveTenantId,
   selectStorageProvider,

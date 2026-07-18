@@ -1,8 +1,12 @@
-// electron-app/services/docxHeaderFooterInjector.js
-// Injecte un en-tete (header) et une signature (footer) dans un document .docx
+// server/services/docx/docxHeaderFooterInjector.js
+// Injecte un en-tete (header) et une signature dans un document .docx
 // - Header = texte uniquement, centre, dans la vraie zone d'en-tete Word
-// - Footer = image de signature (aligne a droite) + texte optionnel sous l'image
-// - Active "Premiere page differente" (w:titlePg) avec refs default + first
+//   (premiere page seulement : ref type="first" + w:titlePg)
+// - Signature = image (alignee a droite) + texte optionnel, inseree A LA FIN
+//   DU CORPS du document (avant le w:sectPr final) : elle n'apparait donc
+//   qu'UNE SEULE FOIS, sur la DERNIERE page, a la suite du texte.
+//   (Fix 2026-07-04 : auparavant la signature etait posee en pied de page
+//   default+first => repetee au bas de CHAQUE page sur les documents longs.)
 // Utilise PizZip pour le ZIP + manipulation string pour le XML (pas de DOM)
 
 const fs = require('fs');
@@ -73,23 +77,31 @@ function buildHeaderXml(text, fontFamily, fontSize, fontWeight, textAlign) {
 }
 
 /**
- * Genere le XML d'un footer Word (signature image a droite + texte optionnel)
+ * Genere les paragraphes de signature a inserer EN FIN DE CORPS du document
+ * (image alignee a droite + texte optionnel sous l'image).
+ * Contrairement a un pied de page, ces paragraphes ne sont rendus qu'une fois,
+ * a la suite du texte — donc sur la DERNIERE page du document.
+ *
+ * Les namespaces wp/a/pic sont declares directement sur <w:drawing> : le
+ * document.xml d'un template minimal (docx vierge) ne les declare pas
+ * forcement sur la racine, et un prefixe non declare rend le fichier illisible
+ * pour Word.
+ *
  * @param {string} text - Texte sous la signature (nom de l'avocat)
- * @param {string|null} imageRelId - Relationship ID de l'image ou null
+ * @param {string|null} imageRelId - Relationship ID (document.xml.rels) de l'image ou null
  * @param {object|null} imageDims - { widthEmu, heightEmu }
- * @returns {string} XML complet du footer
+ * @returns {string} Fragment XML (suite de <w:p>) SANS prologue, a inserer dans w:body
  */
-function buildFooterXml(text, imageRelId, imageDims) {
+function buildSignatureParagraphsXml(text, imageRelId, imageDims) {
   let paragraphs = '';
 
   // Image de signature (si presente) — alignee a droite
   if (imageRelId && imageDims) {
-    paragraphs += `
-    <w:p>
+    paragraphs += `<w:p>
       <w:pPr><w:jc w:val="right"/></w:pPr>
       <w:r>
         <w:rPr/>
-        <w:drawing>
+        <w:drawing xmlns:wp="${WP_NS}" xmlns:a="${A_NS}" xmlns:pic="${PIC_NS}">
           <wp:inline distT="0" distB="0" distL="0" distR="0">
             <wp:extent cx="${imageDims.widthEmu}" cy="${imageDims.heightEmu}"/>
             <wp:docPr id="2" name="Signature Image"/>
@@ -124,8 +136,7 @@ function buildFooterXml(text, imageRelId, imageDims) {
   if (text && text.trim()) {
     const lines = text.split('\n');
     for (const line of lines) {
-      paragraphs += `
-    <w:p>
+      paragraphs += `<w:p>
       <w:pPr><w:jc w:val="right"/></w:pPr>
       <w:r>
         <w:rPr><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>
@@ -135,26 +146,10 @@ function buildFooterXml(text, imageRelId, imageDims) {
     }
   }
 
-  if (!paragraphs) {
-    paragraphs = '<w:p/>';
-  }
+  if (!paragraphs) return '';
 
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:ftr xmlns:w="${WPML_NS}" xmlns:r="${R_NS}" xmlns:wp="${WP_NS}" xmlns:a="${A_NS}" xmlns:pic="${PIC_NS}">
-  ${paragraphs}
-</w:ftr>`;
-}
-
-/**
- * Genere le XML .rels pour un footer contenant une image
- * @param {string} imageFileName - Nom du fichier image dans word/media/
- * @returns {string} XML du fichier .rels
- */
-function buildRelsXml(imageFileName) {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${imageFileName}"/>
-</Relationships>`;
+  // Paragraphe vide en amont : espace la signature du dernier paragraphe du texte.
+  return `<w:p/>${paragraphs}`;
 }
 
 // ========================================================================
@@ -269,11 +264,13 @@ function escapeXml(str) {
 /**
  * Injecte l'en-tete et la signature dans un fichier .docx
  *
- * - Header = texte centre, dans la vraie zone d'en-tete Word
- * - Footer = image de signature a droite + texte optionnel
- * - Active "Premiere page differente" (w:titlePg) pour compatibilite Word
- * - Cree une ref type "first" pour que l'en-tete apparaisse UNIQUEMENT sur la premiere page
- * - Les footers ne sont plus injectes (signature dans le body du document)
+ * - Header = texte centre, dans la vraie zone d'en-tete Word ; ref type "first"
+ *   + w:titlePg ("Premiere page differente") => en-tete sur la premiere page seulement
+ * - Signature = image a droite + texte optionnel, inseree EN FIN DE CORPS du
+ *   document (avant le w:sectPr final) => une seule occurrence, sur la DERNIERE
+ *   page, a la suite du texte. AUCUN pied de page n'est cree (fix 2026-07-04 :
+ *   l'ancienne injection en footer default+first repetait la signature au bas
+ *   de chaque page des documents longs).
  *
  * @param {string} docxPath - Chemin vers le fichier .docx a modifier
  * @param {object} options
@@ -285,16 +282,16 @@ function injectHeaderAndFooter(docxPath, options = {}) {
   const { headerText, headerFontFamily, headerFontSize, headerFontWeight, headerTextAlign, signatureText, signatureImageBase64 } = options;
 
   const hasHeader = headerText && headerText.trim();
-  const hasFooter = (signatureText && signatureText.trim()) || signatureImageBase64;
+  const hasSignature = (signatureText && signatureText.trim()) || signatureImageBase64;
 
-  if (!hasHeader && !hasFooter) {
+  if (!hasHeader && !hasSignature) {
     console.log('[HeaderFooterInjector] Rien a injecter (pas d\'en-tete ni de signature).');
     return;
   }
 
   console.log(`[HeaderFooterInjector] Injection dans : ${docxPath}`);
   console.log(`  - En-tete : texte=${!!hasHeader}`);
-  console.log(`  - Signature : texte=${!!(signatureText && signatureText.trim())}, image=${!!signatureImageBase64}`);
+  console.log(`  - Signature (fin de corps, derniere page) : texte=${!!(signatureText && signatureText.trim())}, image=${!!signatureImageBase64}`);
 
   try {
     // 1. Lire le fichier .docx
@@ -310,10 +307,9 @@ function injectHeaderAndFooter(docxPath, options = {}) {
     // Compteur pour les relationship IDs uniques dans document.xml.rels
     let nextDocRelId = findMaxRelId(zip, 'word/_rels/document.xml.rels') + 1;
 
-    // Variables pour tracker les relationship IDs
+    // Variables pour tracker les relationship IDs / fragment signature
     let headerFirstRelId = null;
-    let footerDefaultRelId = null;
-    let footerFirstRelId = null;
+    let signatureBodyXml = '';
 
     // 2. Traiter l'en-tete (header) — texte uniquement, centre, PREMIERE PAGE SEULEMENT
     if (hasHeader) {
@@ -330,8 +326,9 @@ function injectHeaderAndFooter(docxPath, options = {}) {
       addDocumentRelationship(zip, headerFirstRelId, 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/header', 'header1.xml');
     }
 
-    // 3. Traiter la signature (footer) — image + texte
-    if (hasFooter) {
+    // 3. Traiter la signature — image + texte, EN FIN DE CORPS (derniere page).
+    //    Aucun footer n'est cree : un pied de page se repete sur chaque page.
+    if (hasSignature) {
       let imageRelId = null;
       let imageDims = null;
 
@@ -341,36 +338,20 @@ function injectHeaderAndFooter(docxPath, options = {}) {
         const imageFileName = `signature_image.${img.extension}`;
         zip.file(`word/media/${imageFileName}`, img.buffer);
 
-        // Creer les .rels pour footer1 ET footer2, pointant vers la meme image
-        const relsXml = buildRelsXml(imageFileName);
-        zip.file('word/_rels/footer1.xml.rels', relsXml);
-        zip.file('word/_rels/footer2.xml.rels', relsXml);
-
-        // Ajouter le content type pour l'image
+        // L'image est referencee depuis le CORPS du document : la relation va
+        // dans word/_rels/document.xml.rels (et non dans des .rels de footer).
         addContentType(zip, img.extension, img.mimeType);
+        imageRelId = `rId${nextDocRelId++}`;
+        addDocumentRelationship(zip, imageRelId, 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image', `media/${imageFileName}`);
 
         imageDims = calculateImageDimensions(img.buffer, 4, 2); // 4cm max largeur, 2cm max hauteur pour signature
-        imageRelId = 'rId1';
       }
 
-      // Creer le footer XML (identique pour default et first)
-      const footerXml = buildFooterXml(signatureText || '', imageRelId, imageDims);
-      zip.file('word/footer1.xml', footerXml);
-      zip.file('word/footer2.xml', footerXml);
-
-      // Ajouter les content types
-      addOverrideContentType(zip, '/word/footer1.xml', 'application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml');
-      addOverrideContentType(zip, '/word/footer2.xml', 'application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml');
-
-      // Ajouter les relations
-      footerDefaultRelId = `rId${nextDocRelId++}`;
-      footerFirstRelId = `rId${nextDocRelId++}`;
-      addDocumentRelationship(zip, footerDefaultRelId, 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer', 'footer1.xml');
-      addDocumentRelationship(zip, footerFirstRelId, 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer', 'footer2.xml');
+      signatureBodyXml = buildSignatureParagraphsXml(signatureText || '', imageRelId, imageDims);
     }
 
-    // 4. Mettre a jour document.xml : refs header/footer + titlePg dans sectPr
-    updateDocumentXml(zip, null, headerFirstRelId, footerDefaultRelId, footerFirstRelId);
+    // 4. Mettre a jour document.xml : signature en fin de corps, refs header + titlePg
+    updateDocumentXml(zip, null, headerFirstRelId, signatureBodyXml);
 
     // 5. Sauvegarder
     const buffer = zip.generate({ type: 'nodebuffer' });
@@ -460,9 +441,22 @@ function addDocumentRelationship(zip, relId, type, target) {
   let relsXml = relsFile.asText();
   if (relsXml.includes(`Target="${target}"`)) return;
 
-  const insertBefore = '</Relationships>';
   const newEntry = `  <Relationship Id="${relId}" Type="${type}" Target="${target}"/>\n`;
-  relsXml = relsXml.replace(insertBefore, newEntry + insertBefore);
+
+  if (relsXml.includes('</Relationships>')) {
+    relsXml = relsXml.replace('</Relationships>', newEntry + '</Relationships>');
+  } else if (/<Relationships\b[^>]*\/>/.test(relsXml)) {
+    // A minimal, but valid, DOCX may use a self-closing Relationships root
+    // when it does not contain any relationship yet. Expanding that root is
+    // required before adding the image/header relationship; silently calling
+    // String#replace with a missing closing tag left the drawing unresolved.
+    relsXml = relsXml.replace(
+      /<Relationships\b([^>]*)\/>/,
+      `<Relationships$1>\n${newEntry}</Relationships>`
+    );
+  } else {
+    throw new Error(`Fichier de relations DOCX invalide : ${relsPath}`);
+  }
 
   zip.file(relsPath, relsXml);
 }
@@ -473,16 +467,17 @@ function addDocumentRelationship(zip, relId, type, target) {
 
 /**
  * Met a jour word/document.xml (approche 100% string, pas de DOM) :
+ * - Insere les paragraphes de signature EN FIN DE CORPS (avant le w:sectPr final)
+ *   => signature une seule fois, sur la derniere page (fix 2026-07-04)
  * - Ajoute headerReference type="first" (en-tete premiere page seulement)
- * - Ajoute footerReference si fourni
  * - Ajoute <w:titlePg/> pour activer "Premiere page differente"
- * Resultat : en-tete sur la premiere page uniquement, case "PPD" cochee dans Word
+ * - Ne cree AUCUNE footerReference (les anciennes sont retirees)
  *
  * NOTE : On n'utilise PAS xmldom/DOMParser ici car createElementNS() + setAttribute()
  * produit du XML mal serialise (namespaces r:id corrompus). L'approche string garantit
  * un XML parfaitement forme, identique a ce que Word genere nativement.
  */
-function updateDocumentXml(zip, headerDefaultRelId, headerFirstRelId, footerDefaultRelId, footerFirstRelId) {
+function updateDocumentXml(zip, headerDefaultRelId, headerFirstRelId, signatureBodyXml) {
   const docFile = zip.file('word/document.xml');
   if (!docFile) {
     console.warn('[HeaderFooterInjector] word/document.xml non trouve !');
@@ -492,12 +487,27 @@ function updateDocumentXml(zip, headerDefaultRelId, headerFirstRelId, footerDefa
   let xml = docFile.asText();
 
   // 1. Supprimer les references header/footer existantes (self-closing et avec balise fermante)
+  //    Les footerReference sont retirees SANS remplacement : la signature vit
+  //    desormais dans le corps du document, plus jamais en pied de page.
   xml = xml.replace(/<w:headerReference\b[^>]*\/>/g, '');
   xml = xml.replace(/<w:headerReference\b[^>]*><\/w:headerReference>/g, '');
   xml = xml.replace(/<w:footerReference\b[^>]*\/>/g, '');
   xml = xml.replace(/<w:footerReference\b[^>]*><\/w:footerReference>/g, '');
   xml = xml.replace(/<w:titlePg\s*\/>/g, '');
   xml = xml.replace(/<w:titlePg\s*><\/w:titlePg>/g, '');
+
+  // 1b. Inserer la signature en fin de corps : juste AVANT le dernier <w:sectPr
+  //     (sectPr de w:body = proprietes de la derniere section, dernier enfant du body).
+  //     Fait AVANT l'etape refs/titlePg pour que les indices restent coherents.
+  if (signatureBodyXml) {
+    const bodySectPrIdx = xml.lastIndexOf('<w:sectPr');
+    if (bodySectPrIdx !== -1) {
+      xml = xml.substring(0, bodySectPrIdx) + signatureBodyXml + xml.substring(bodySectPrIdx);
+    } else {
+      // Pas de sectPr : inserer avant la fermeture du body
+      xml = xml.replace('</w:body>', `${signatureBodyXml}</w:body>`);
+    }
+  }
 
   // 2. Construire SEPAREMENT les references et titlePg
   //    IMPORTANT (ECMA-376) : dans <w:sectPr>, l'ordre des elements enfants est strict :
@@ -509,8 +519,6 @@ function updateDocumentXml(zip, headerDefaultRelId, headerFirstRelId, footerDefa
   let hdrFtrRefs = '';
   if (headerDefaultRelId) hdrFtrRefs += `<w:headerReference w:type="default" r:id="${headerDefaultRelId}"/>`;
   if (headerFirstRelId) hdrFtrRefs += `<w:headerReference w:type="first" r:id="${headerFirstRelId}"/>`;
-  if (footerDefaultRelId) hdrFtrRefs += `<w:footerReference w:type="default" r:id="${footerDefaultRelId}"/>`;
-  if (footerFirstRelId) hdrFtrRefs += `<w:footerReference w:type="first" r:id="${footerFirstRelId}"/>`;
 
   // titlePg sera insere separement, AVANT </w:sectPr> (en fin de sectPr)
   const titlePgElement = '<w:titlePg/>';

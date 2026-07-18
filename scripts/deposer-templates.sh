@@ -10,7 +10,7 @@
 #
 # Variables surchargeables (export avant lancement) :
 #   KHEOPS_GCS_BUCKET     (défaut kheops-2-files)      — nom du bucket (SANS gs://)
-#   KHEOPS_GCS_PROJECT    (défaut kheops-2-app)        — projet GCP
+#   KHEOPS_GCS_PROJECT    (défaut kheops-2)            — projet GCP
 #   KHEOPS_GCLOUD_ACCOUNT (défaut : compte gcloud actif) — ex. apma2772@gmail.com
 #   KHEOPS_TEMPLATES_DIR  (défaut electron-app/templates, relatif à Kheops_2/)
 #

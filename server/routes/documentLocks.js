@@ -79,7 +79,11 @@ router.post('/:docId/acquire', auth, async (req, res) => {
         const result = lockService.acquire(docId, { userId: req.user, displayName });
 
         if (result.granted) {
-            return res.json({ granted: true });
+            // userId/displayName renvoyes pour le marquage OPTIMISTE cote client :
+            // sans eux, le client marquait le verrou sans proprietaire et la liste
+            // affichait a tort « verrouille par un autre utilisateur » a son propre
+            // detenteur (pendant ~5s, jusqu'au poll suivant).
+            return res.json({ granted: true, userId: String(req.user), displayName });
         }
         return res.status(409).json({
             granted: false,

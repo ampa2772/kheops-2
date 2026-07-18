@@ -5,7 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --verbose",
-    "start": "node index.js"
+    "start": "node index.js",
+    "migrate:contacts": "node scripts/migrate-contact-identities.js",
+    "migrate:relations": "node scripts/migrate-legacy-relations.js",
+    "migrate:documents": "node scripts/migrate-logical-documents.js",
+    "migrate:document-editor-v2": "node scripts/migrate-document-editor-v2.js",
+    "migrate:mail-accounts": "node scripts/migrate-mail-accounts.js"
   },
   "keywords": [],
   "author": "",
@@ -24,12 +29,14 @@
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.5.1",
     "google-auth-library": "^9.15.1",
+    "googleapis-common": "^8.0.2",
     "helmet": "^8.1.0",
     "imapflow": "^1.4.3",
     "isomorphic-fetch": "^3.0.0",
     "joi": "^18.2.1",
     "jsonwebtoken": "^9.0.2",
     "mailparser": "^3.9.12",
+    "mammoth": "^1.11.0",
     "mongoose": "^7.0.4",
     "mongoose-autopopulate": "^1.1.0",
     "multer": "^1.4.5-lts.2",
@@ -38,9 +45,12 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^1.1.1",
     "pizzip": "^3.1.7",
     "sanitize-filename": "^1.6.4",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "word-extractor": "^1.0.4"
   },
   "devDependencies": {
     "concurrently": "^8.0.1",
@@ -49,8 +59,14 @@
     "socket.io-client": "^4.8.3"
   },
   "overrides": {
-    "gaxios": { "uuid": "^11.1.1" },
-    "teeny-request": { "uuid": "^11.1.1" },
-    "retry-request": { "uuid": "^11.1.1" }
+    "gaxios": {
+      "uuid": "^11.1.1"
+    },
+    "teeny-request": {
+      "uuid": "^11.1.1"
+    },
+    "retry-request": {
+      "uuid": "^11.1.1"
+    }
   }
 }

@@ -26,15 +26,16 @@ describe('storageKey', () => {
 
 describe('uploadVersion', () => {
   test('écrit dans le Drive du propriétaire et renvoie storageKey encodé', async () => {
-    gdrive.uploadFile.mockResolvedValue({ fileId: 'F9', size: 42, name: 'n' });
+    gdrive.uploadFile.mockResolvedValue({ fileId: 'F9', size: 42, name: 'n', idempotent: true });
     const out = await provider.uploadVersion({
       documentId: 'D1', versionId: 'V1', filename: 'acte.pdf',
-      buffer: Buffer.from('pdf'), mime: 'application/pdf', ownerUserId: 'userA',
+      buffer: Buffer.from('pdf'), mime: 'application/pdf', ownerUserId: 'userA', idempotencyKey: 'sync:T1:O1',
     });
     const [owner, payload] = gdrive.uploadFile.mock.calls[0];
     expect(owner).toBe('userA');
     expect(payload.name).toBe('D1__V1__acte.pdf');
-    expect(out).toMatchObject({ provider: 'google_drive', storageKey: 'googledrive:userA:F9', size: 42, filename: 'acte.pdf' });
+    expect(payload.idempotencyKey).toBe('sync:T1:O1');
+    expect(out).toMatchObject({ provider: 'google_drive', storageKey: 'googledrive:userA:F9', size: 42, filename: 'acte.pdf', idempotent: true });
   });
 
   test('🔒 sans ownerUserId → 400', async () => {

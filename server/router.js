@@ -6,6 +6,7 @@ const router = express.Router();
 // Importation des routes existantes
 const authRoutes = require('./routes/auth'); // Routes auth Kheops + Google
 const folderContactsRouter = require('./routes/folder/folderContacts');
+const contactActionsRouter = require('./routes/contactActions');
 // folderTypeContactRouter : retire. Le selecteur de type de contact est
 // desormais un switch pro/client + dropdown ferme cote client (ContactTypeSwitch).
 // Aucun CRUD sur les types de contacts n'est plus expose.
@@ -18,16 +19,29 @@ const folderDossierCreationRouter = require('./routes/folder/folderDossierCreati
 const folderDossierInteractionRouter = require('./routes/folder/folderDossierInteraction');
 const folderDossierInvoiceRouter = require('./routes/folder/folderDossierInvoice');
 const folderStatsRouter = require('./routes/folder/folderStats');
+const folderRechercheAvanceeRouter = require('./routes/folder/folderRechercheAvancee');
 // -----------------------------------------------------------------------------
 
 // --- NOUVELLE IMPORTATION pour les routes des documents JSON ---
 const documentRoutes = require('./routes/documents');
+const documentMailRouter = require('./routes/documentMail');
 
 // --- Verrouillage collaboratif de documents ---
 const documentLocksRouter = require('./routes/documentLocks');
 
 // --- Flux "Ouvrir dans Word" via le compagnon mince (download/sync/jeton) ---
 const wordRouter = require('./routes/word');
+
+// --- Preferences et disponibilite des editeurs documentaires ---
+const documentOpeningRouter = require('./routes/documentOpening');
+const externalDocumentEditingRouter = require('./routes/externalDocumentEditing');
+const documentHistoryRouter = require('./routes/documentHistory');
+const documentEditorRouter = require('./routes/documentEditor');
+const officeEngineRouter = require('./routes/officeEngine');
+const connectedServicesRouter = require('./routes/connectedServices');
+const relationsRouter = require('./routes/relations');
+const documentSyncRouter = require('./routes/documentSync');
+const { requireFeature } = require('./config/featureFlags');
 
 // --- R5b : membres du cabinet (partage multi-identifiants) ---
 const cabinetMembersRouter = require('./routes/cabinetMembers');
@@ -43,6 +57,7 @@ const { mailRouter } = require('./routes/mails'); // Importer le routeur depuis 
 
 // --- IMAP/SMTP generique pour boites mail non Google/Microsoft ---
 const mailAccountsRouter = require('./routes/mailAccounts');
+const mailSyncRouter = require('./routes/mailSync');
 
 // --- NOUVELLE IMPORTATION pour les routes Agenda ---
 const agendaRoutes = require('./routes/agendaRoutes');
@@ -63,10 +78,12 @@ const presenceRouter = require('./routes/presence');
 const encryptionRouter = require('./routes/encryption');
 
 const microsoftGraphRouter = require('./routes/microsoftGraph');
+const aiRouter = require('./routes/ai');
 
 // Utilisation des routes
 router.use('/auth', authRoutes); // Préfixe /api/auth/...
 router.use('/folder', folderContactsRouter); // Préfixe /api/folder/...
+router.use('/contact-actions', contactActionsRouter); // Courriers et brouillons e-mail depuis un contact
 router.use('/folder', folderSearchRouter);
 router.use('/folder', folderProfessionRouter);
 
@@ -75,18 +92,33 @@ router.use('/folder', folderDossierCreationRouter);
 router.use('/folder', folderDossierInteractionRouter);
 router.use('/folder', folderDossierInvoiceRouter);
 router.use('/folder', folderStatsRouter);
+router.use('/folder', folderRechercheAvanceeRouter);
 // ----------------------------------------------------------
 
 router.use('/fusion', fusionRoutes); // Préfixe /api/fusion/...
 
 // --- NOUVELLE UTILISATION pour les routes des documents JSON ---
 router.use('/documents', documentRoutes); // Préfixe /api/documents/...
+router.use('/documents', documentMailRouter); // Envoi d'une version documentaire figée
 
 // Verrouillage collaboratif (acquire/heartbeat/release/list)
 router.use('/document-locks', documentLocksRouter); // Préfixe /api/document-locks/...
 
 // Flux Word via le compagnon mince (jeton compagnon, download, sync)
 router.use('/word', wordRouter); // Préfixe /api/word/...
+
+// Choix par defaut, reinitialisation et disponibilite des modes d'ouverture
+router.use('/document-opening', documentOpeningRouter); // Préfixe /api/document-opening/...
+router.use('/external-edit', externalDocumentEditingRouter);
+router.use('/document-history', documentHistoryRouter);
+router.use('/document-editor', documentEditorRouter);
+router.use('/office-engine', officeEngineRouter);
+router.use('/connected-services', connectedServicesRouter);
+
+// Registres relationnel et documentaire v2. Les drapeaux permettent un retour
+// arrière immédiat sans altérer les données déjà migrées.
+router.use('/relations', requireFeature('relationGraph'), relationsRouter);
+router.use('/document-sync', requireFeature('documentSyncV2'), documentSyncRouter);
 
 // Membres du cabinet (R5b)
 router.use('/cabinet-members', cabinetMembersRouter); // Préfixe /api/cabinet-members/...
@@ -102,6 +134,10 @@ router.use('/mails', mailRouter); // Préfixe /api/mails/...
 
 // IMAP/SMTP generique
 router.use('/mail', mailAccountsRouter); // Préfixe /api/mail/...
+
+// Comptes OAuth, synchronisation durable et outbox Microsoft/Google.
+// Les routes historiques restent disponibles pour conserver la compatibilité.
+router.use('/mail-sync', mailSyncRouter); // Préfixe /api/mail-sync/...
 
 // --- NOUVELLE UTILISATION pour les routes Agenda ---
 router.use('/agenda', agendaRoutes); // Préfixe /api/agenda/...
@@ -123,5 +159,11 @@ router.use('/encryption', encryptionRouter); // Préfixe /api/encryption/...
 
 // --- Microsoft Graph étendu : agenda + contacts Outlook (lecture seule) ---
 router.use('/microsoft', microsoftGraphRouter); // Préfixe /api/microsoft/...
+
+// Le routeur IA porte trois familles de chemins (/ai, /matters/:id/ai et
+// /documents/:id/ai). Ses middlewares sont volontairement ciblés sur ces
+// familles, de sorte que ce montage racine ne touche ni liveness ni les autres
+// routes historiques.
+router.use('/', aiRouter);
 
 module.exports = router;

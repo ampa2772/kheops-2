@@ -6,6 +6,9 @@
   },
   "files": [
     "electron-app/**/*",
+    "electron-companion/lib/backendClient.js",
+    "electron-companion/lib/config.js",
+    "electron-companion/lib/mirror.js",
     "client/build/**/*",
     "node_modules/**/*",
     "package.json",

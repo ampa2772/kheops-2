@@ -244,6 +244,26 @@ describe('createContactSlice SET_CONTACT_FOR_MODIFICATION', () => {
     const state = reducer(getBase(), { type: 'SET_CONTACT_FOR_MODIFICATION', payload: contactData });
     expect(state.contactDetails.contact.dateNaissance).toBe('1995-03-20');
   });
+
+  test('restaure le statut marital affiche depuis le contact charge (fix 2026-07-04)', () => {
+    // Contact marie (masculin) : le bouton affiche currentStatusMarital, pas
+    // seulement contact.maritalStatus -> il doit etre restaure, sinon
+    // « Celibataire » s'affiche et le bouton « D » disparait.
+    const contactData = { nom: 'Durand', genre: 'Masculin', maritalStatus: 'Marié', pro_contact: false };
+    const state = reducer(getBase(), { type: 'SET_CONTACT_FOR_MODIFICATION', payload: contactData });
+    expect(state.contactDetails.contact.maritalStatus).toBe('Marié');
+    expect(state.contactDetails.currentStatusMarital).toBe('Marié');
+    // Les options du dropdown excluent le statut courant.
+    expect(state.contactDetails.statusMaritauxGenre).not.toContain('Marié');
+    expect(state.contactDetails.statusMaritauxGenre).toContain('Célibataire');
+  });
+
+  test('conserve le statut par defaut si le contact charge n\'a pas de maritalStatus', () => {
+    const before = getBase();
+    const state = reducer(before, { type: 'SET_CONTACT_FOR_MODIFICATION', payload: { nom: 'SansStatut' } });
+    // Pas de maritalStatus -> currentStatusMarital inchange (pas d'ecrasement).
+    expect(state.contactDetails.currentStatusMarital).toBe(before.contactDetails.currentStatusMarital);
+  });
 });
 
 // ========================================================================

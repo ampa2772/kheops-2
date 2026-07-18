@@ -1,0 +1,1050 @@
+.kheops-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 19000;
+  display: flex;
+  background: rgba(13, 23, 42, 0.72);
+  color: #17223b;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* Les fichiers TXT utilisent volontairement une surface dédiée : aucun HTML
+   riche n'est injecté dans leur contenu et leur extension reste inchangée. */
+.kheops-editor-plain-text-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 8px clamp(12px, 2vw, 28px);
+  color: #d8f7ff;
+  background: #0b3144;
+  border-bottom: 1px solid #1a5a73;
+  font-size: 13px;
+}
+
+.kheops-editor-plain-text-notice strong {
+  flex: 0 0 auto;
+  color: #67e8f9;
+}
+
+.kheops-editor-plain-text-surface {
+  display: flex;
+  width: min(1120px, calc(100% - 40px));
+  max-width: 100%;
+  min-width: 0;
+  min-height: calc(100vh - 285px);
+  margin: 20px auto;
+  overflow-x: hidden;
+  transform-origin: top center;
+}
+
+.kheops-editor-plain-text-input {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: inherit;
+  resize: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: clamp(18px, 3vw, 42px);
+  color: #172033;
+  background: #fff;
+  border: 1px solid #aab8ca;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgb(15 23 42 / 20%);
+  font: 15px/1.55 Consolas, "SFMono-Regular", Menlo, Monaco, "Liberation Mono", monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  tab-size: 4;
+}
+
+.kheops-editor-plain-text-input:focus {
+  outline: 3px solid rgb(14 165 233 / 35%);
+  border-color: #0ea5e9;
+}
+
+@media (max-width: 720px) {
+  .kheops-editor-plain-text-notice {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+  }
+
+  .kheops-editor-plain-text-surface {
+    width: calc(100% - 12px);
+    min-height: calc(100vh - 310px);
+    margin: 6px auto;
+  }
+
+  .kheops-editor-plain-text-input {
+    padding: 14px;
+    border-radius: 5px;
+    font-size: 14px;
+  }
+}
+
+.kheops-editor-modal {
+  position: relative;
+  container: kheops-editor / inline-size;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f4f6fa;
+}
+
+.kheops-editor-topbar {
+  min-height: 58px;
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #fff;
+  background: linear-gradient(110deg, #152c59, #1f477f 58%, #21626b);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.28);
+  flex: 0 0 auto;
+}
+
+.kheops-editor-brand,
+.kheops-editor-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kheops-editor-logo {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #e1bc72, #b78432);
+  color: #10254d;
+  font-family: Georgia, serif;
+  font-size: 22px;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.45);
+}
+
+.kheops-editor-brand > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kheops-editor-brand strong {
+  font-size: 14px;
+  letter-spacing: .02em;
+}
+
+.kheops-editor-brand input {
+  width: min(420px, 38vw);
+  height: 24px;
+  padding: 1px 7px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #fff;
+  background: rgba(255,255,255,.09);
+  font: inherit;
+  font-size: 13px;
+}
+
+.kheops-editor-brand input:focus {
+  outline: 2px solid #e7c883;
+  background: rgba(255,255,255,.16);
+}
+
+.kheops-editor-top-actions button,
+.kheops-editor-message button {
+  width: auto;
+  min-width: 0;
+  padding: 7px 12px;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 6px;
+  color: #fff;
+  background: rgba(255,255,255,.1);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.kheops-editor-top-actions button:hover { background: rgba(255,255,255,.2); }
+.kheops-editor-top-actions .compact-label { display: none; }
+.kheops-editor-top-actions .kheops-editor-advanced-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-color: rgba(125, 211, 252, .72);
+  background: rgba(14, 165, 233, .18);
+  white-space: nowrap;
+}
+.kheops-editor-top-actions .kheops-editor-advanced-action:hover { background: rgba(14, 165, 233, .3); }
+.kheops-editor-top-actions button.primary { background: #d5a64d; color: #16294d; border-color: #e5c47c; font-weight: 700; }
+.kheops-editor-top-actions button.close { padding: 2px 9px; border: 0; font-size: 25px; line-height: 1.2; }
+.kheops-editor-top-actions button:disabled { opacity: .55; cursor: wait; }
+.kheops-editor-compatibility {
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(255,255,255,.13);
+  border: 1px solid rgba(255,255,255,.22);
+  min-height: 28px;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.kheops-editor-compatibility.is-complete,
+.kheops-editor-compatibility.is-native { color: #bbf7d0; }
+.kheops-editor-compatibility.is-partial { color: #fde68a; }
+.kheops-editor-compatibility.is-complex { color: #fecaca; }
+
+.kheops-editor-ribbon {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 76px;
+  padding: 5px 8px 3px;
+  overflow: visible;
+  border-bottom: 1px solid #cfd6e2;
+  background: #fff;
+  flex: 0 0 auto;
+}
+
+.kheops-editor-ribbon-group {
+  position: relative;
+  min-width: max-content;
+  display: flex;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 4px 10px 17px;
+  border-right: 1px solid #dce1e9;
+}
+
+.kheops-editor-ribbon-group.compact { flex-wrap: wrap; max-width: 190px; }
+.kheops-editor-ribbon-group.kheops-editor-table-tools { max-width: 250px; }
+
+.kheops-editor-ribbon-group .group-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  text-align: center;
+  color: #6c778a;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.kheops-editor-ribbon button,
+.kheops-editor-ribbon select,
+.kheops-editor-search button,
+.kheops-editor-search input,
+.kheops-editor-layout-panel input,
+.kheops-editor-layout-panel select,
+.kheops-editor-layout-panel button {
+  box-sizing: border-box;
+  width: auto;
+  height: 28px;
+  min-width: 28px;
+  margin: 0;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #25334e;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+}
+
+.kheops-editor-ribbon select { border-color: #cfd6e2; background: #fff; max-width: 125px; }
+.kheops-editor-ribbon button:hover,
+.kheops-editor-ribbon button.is-active { border-color: #a9bfdf; background: #e7eef9; }
+.kheops-editor-ribbon button:disabled { color: #9ca3af; cursor: not-allowed; }
+
+.kheops-editor-ribbon .color-control {
+  position: relative;
+  width: 29px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kheops-editor-ribbon .color-control:hover { background: #e7eef9; }
+.kheops-editor-ribbon .color-control input { position: absolute; inset: auto 4px 2px; width: 21px; height: 4px; padding: 0; border: 0; opacity: .9; }
+.kheops-editor-ribbon .color-control.highlight input { height: 7px; }
+
+.kheops-editor-search {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid #cfd6e2;
+  background: #edf2fa;
+  flex: 0 0 auto;
+}
+
+.kheops-editor-search label { display: flex; align-items: center; gap: 5px; color: #4b5870; font-size: 12px; }
+.kheops-editor-search input { width: 190px; border-color: #b9c4d4; background: #fff; }
+.kheops-editor-search button { border-color: #b9c4d4; background: #fff; cursor: pointer; }
+.kheops-editor-search button:hover { background: #dfe9f7; }
+.kheops-editor-search .close-search { border: 0; background: transparent; font-size: 20px; }
+
+.kheops-editor-body {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.kheops-editor-workspace {
+  min-width: 0;
+  overflow: auto;
+  flex: 1 1 auto;
+  padding: 26px 34px 80px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(52, 93, 149, .08), transparent 35%),
+    #dfe3e9;
+}
+
+.kheops-editor-sheet {
+  box-sizing: border-box;
+  position: relative;
+  width: var(--kheops-page-width);
+  min-height: var(--kheops-page-height);
+  margin: 0 auto;
+  padding: var(--kheops-margin-top) var(--kheops-margin-right) var(--kheops-margin-bottom) var(--kheops-margin-left);
+  color: #111827;
+  background-color: #fff;
+  box-shadow: 0 5px 24px rgba(20, 32, 52, .25), 0 0 0 1px rgba(30, 41, 59, .08);
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 11pt;
+}
+
+.kheops-editor-page-stack {
+  position: relative;
+  width: var(--kheops-page-width);
+  margin: 0 auto;
+}
+
+.kheops-editor-page-stack[data-pages]:not([data-pages="1"]) .kheops-editor-sheet {
+  min-height: var(--kheops-total-page-height);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--kheops-page-height) - 2px),
+    #9aa8ba calc(var(--kheops-page-height) - 2px),
+    #9aa8ba var(--kheops-page-height)
+  );
+}
+
+.kheops-editor-page-index {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 10px);
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #536176;
+  font-size: 10px;
+}
+
+.kheops-editor-page-index li {
+  box-sizing: border-box;
+  height: var(--kheops-page-height);
+  padding-top: 8px;
+  white-space: nowrap;
+}
+
+.kheops-editor-header-area,
+.kheops-editor-footer-area,
+.kheops-editor-content {
+  outline: none;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.kheops-editor-header-area,
+.kheops-editor-footer-area {
+  min-height: 10mm;
+  color: #5b6473;
+  font-size: 9pt;
+}
+
+.kheops-editor-header-area {
+  margin-bottom: max(3mm, calc(var(--kheops-header-distance, 12.7mm) / 2));
+  padding-bottom: 3mm;
+  border-bottom: 1px solid #d9dde5;
+}
+
+.kheops-editor-content {
+  min-height: calc(var(--kheops-page-height) - var(--kheops-margin-top) - var(--kheops-margin-bottom) - 36mm);
+  caret-color: #153d7a;
+  column-count: var(--kheops-column-count, 1);
+  column-gap: 10mm;
+}
+
+.kheops-editor-footer-wrap {
+  position: relative;
+  min-height: 13mm;
+  margin-top: max(3mm, calc(var(--kheops-footer-distance, 12.7mm) / 2));
+  padding-top: 3mm;
+  border-top: 1px solid #d9dde5;
+}
+
+.kheops-editor-page-number {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  color: #6b7280;
+  font-size: 9pt;
+}
+
+[contenteditable][data-placeholder]:empty::before,
+[contenteditable][data-placeholder] > br:only-child::before {
+  content: attr(data-placeholder);
+  color: #9aa3b2;
+  font-style: italic;
+  pointer-events: none;
+}
+
+.kheops-editor-content p,
+.kheops-editor-header-area p,
+.kheops-editor-footer-area p { min-height: 1.2em; }
+
+.kheops-editor-content table {
+  width: 100%;
+  max-width: 100%;
+  margin: 8px 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+  column-span: all;
+  overflow-wrap: anywhere;
+}
+
+.kheops-editor-content td {
+  max-width: 100%;
+  min-width: 40px;
+  padding: 5px;
+  border: 1px solid #7c8797;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.kheops-editor-content td > * { max-width: 100%; }
+
+.kheops-editor-content figure { margin: 12px 0; }
+.kheops-editor-content figure { column-span: all; }
+.kheops-editor-content figure img { max-width: 100%; border-radius: 2px; }
+.kheops-editor-content figcaption { color: #697386; font-size: 9pt; font-style: italic; }
+
+.kheops-editor-page-break {
+  position: relative;
+  height: 18px;
+  margin: 22px calc(-1 * var(--kheops-margin-right)) 24px calc(-1 * var(--kheops-margin-left));
+  border: 0;
+  border-top: 2px dashed #6e88ad;
+  background: #e8ebf0;
+  page-break-after: always;
+  break-after: page;
+}
+
+.kheops-editor-page-break::after {
+  content: "Saut de page";
+  position: absolute;
+  left: 50%;
+  top: -10px;
+  transform: translateX(-50%);
+  padding: 1px 8px;
+  border-radius: 9px;
+  color: #50647f;
+  background: #fff;
+  font: 9px "Segoe UI", sans-serif;
+}
+
+.kheops-editor-section-break {
+  position: relative;
+  height: 20px;
+  margin: 24px calc(-1 * var(--kheops-margin-right)) 26px calc(-1 * var(--kheops-margin-left));
+  border: 0;
+  border-top: 3px double #7f6b9d;
+  background: #f0ecf5;
+  column-span: all;
+  page-break-after: always;
+  break-after: page;
+}
+
+.kheops-editor-section-break::after {
+  content: "Saut de section";
+  position: absolute;
+  left: 50%;
+  top: -10px;
+  transform: translateX(-50%);
+  padding: 1px 8px;
+  border-radius: 9px;
+  color: #604b7b;
+  background: #fff;
+  font: 9px "Segoe UI", sans-serif;
+}
+
+.kheops-editor-page-stack.hide-guides .kheops-editor-page-break,
+.kheops-editor-page-stack.hide-guides .kheops-editor-section-break { height: 0; margin-block: 0; border-color: transparent; background: transparent; }
+.kheops-editor-page-stack.hide-guides .kheops-editor-page-break::after,
+.kheops-editor-page-stack.hide-guides .kheops-editor-section-break::after,
+.kheops-editor-page-stack.hide-guides .kheops-editor-page-index { display: none; }
+
+.kheops-editor-reference {
+  margin: 8px 0;
+  padding: 6px 9px;
+  border-left: 3px solid #315f91;
+  border-radius: 3px;
+  color: #183e70;
+  background: #eef5fc;
+  column-span: all;
+  cursor: pointer;
+}
+.kheops-editor-reference.is-broken,
+.kheops-editor-reference.is-revoked { border-left-color: #a33b3b; color: #7f1d1d; background: #fff0f0; }
+
+.kheops-editor-watermark {
+  position: absolute;
+  z-index: 0;
+  inset: 38% 0 auto;
+  transform: rotate(-35deg);
+  color: rgba(71, 85, 105, .14);
+  font-size: 44pt;
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+}
+
+.kheops-editor-signature {
+  position: relative;
+  z-index: 1;
+  margin-top: 24px;
+  padding: 8px;
+  break-inside: avoid;
+  column-span: all;
+  white-space: pre-wrap;
+}
+.kheops-editor-signature.is-left { text-align: left; }
+.kheops-editor-signature.is-center { text-align: center; }
+.kheops-editor-signature.is-right { text-align: right; }
+.kheops-editor-signature img { max-width: 40mm; max-height: 20mm; object-fit: contain; }
+.kheops-editor-signature:focus-visible,
+.kheops-editor-reference:focus-visible { outline: 3px solid #d7a43d; outline-offset: 2px; }
+
+.kheops-editor-layout-panel {
+  box-sizing: border-box;
+  width: 265px;
+  padding: 14px;
+  overflow-y: auto;
+  border-left: 1px solid #cbd3df;
+  background: #fff;
+  flex: 0 0 auto;
+  box-shadow: -4px 0 14px rgba(30,41,59,.06);
+}
+
+.kheops-editor-layout-panel .layout-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.kheops-editor-layout-panel .layout-heading button { font-size: 20px; cursor: pointer; }
+.kheops-editor-layout-panel > label,
+.kheops-editor-layout-panel fieldset label { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0; font-size: 12px; }
+.kheops-editor-layout-panel select,
+.kheops-editor-layout-panel input[type="number"] { width: 105px; border-color: #cbd3df; background: #fff; }
+.kheops-editor-layout-panel fieldset { margin: 15px 0; padding: 7px 10px; border: 1px solid #d6dde8; border-radius: 6px; }
+.kheops-editor-layout-panel legend { padding: 0 5px; color: #526079; font-size: 11px; }
+.kheops-editor-layout-panel .checkbox { justify-content: flex-start; }
+.kheops-editor-layout-panel .checkbox input { width: 15px; height: 15px; }
+.kheops-editor-layout-panel p { color: #697386; font-size: 11px; line-height: 1.45; }
+
+.kheops-document-panel {
+  box-sizing: border-box;
+  width: min(390px, 38vw);
+  min-width: 320px;
+  overflow: hidden;
+  border-left: 1px solid #cbd3df;
+  background: #fff;
+  flex: 0 0 auto;
+  box-shadow: -5px 0 18px rgba(30,41,59,.09);
+}
+
+.kheops-document-panel > .layout-heading {
+  min-height: 45px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid #dbe2eb;
+  color: #243a58;
+  background: #f7f9fc;
+}
+.kheops-document-panel > .layout-heading button { width: 32px; height: 30px; padding: 0; border: 0; border-radius: 5px; background: transparent; font-size: 22px; cursor: pointer; }
+.kheops-document-panel__body { height: calc(100% - 45px); padding: 12px; overflow: auto; color: #27384f; font-size: 12px; }
+.kheops-document-panel__body > label,
+.kheops-document-panel__body fieldset > label { margin: 10px 0; display: grid; gap: 5px; }
+.kheops-document-panel__body label.checkbox { display: flex; align-items: center; gap: 7px; }
+.kheops-document-panel__body input:not([type="checkbox"]),
+.kheops-document-panel__body select,
+.kheops-document-panel__body textarea { box-sizing: border-box; width: 100%; min-height: 34px; padding: 6px 8px; border: 1px solid #b8c4d4; border-radius: 5px; color: #22344d; background: #fff; font: inherit; }
+.kheops-document-panel__body textarea { resize: vertical; }
+.kheops-document-panel__body fieldset { margin: 13px 0; padding: 8px 10px; border: 1px solid #d4dce7; border-radius: 7px; }
+.kheops-document-panel__body legend { padding-inline: 5px; color: #56657b; font-size: 11px; }
+.kheops-document-panel__body button { min-height: 32px; padding: 6px 9px; border: 1px solid #7f96b4; border-radius: 5px; color: #fff; background: #2a5d95; cursor: pointer; }
+.kheops-document-panel__body button.secondary { color: #2a4a70; background: #fff; }
+.kheops-document-panel__body button:disabled { opacity: .55; cursor: not-allowed; }
+.kheops-document-panel__body button:focus-visible,
+.kheops-document-panel__body input:focus-visible,
+.kheops-document-panel__body select:focus-visible,
+.kheops-document-panel__body textarea:focus-visible,
+.kheops-document-panel > .layout-heading button:focus-visible { outline: 3px solid #d7a43d; outline-offset: 1px; }
+.document-panel-actions { margin: 9px 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.document-panel-note { padding: 8px; border-left: 3px solid #6e8fb7; color: #526078; background: #f0f5fb; line-height: 1.45; }
+.document-candidate-list { max-height: 230px; display: grid; gap: 5px; overflow: auto; }
+.document-candidate-list button { width: 100%; display: grid; gap: 2px; color: #263b58; background: #fff; text-align: left; }
+.document-candidate-list button[aria-selected="true"] { border-color: #2f659e; background: #eaf2fb; }
+.document-candidate-list small,
+.document-reference-list small,
+.document-version-list small { display: block; color: #68768a; }
+.document-reference-list,
+.document-version-list,
+.document-comment-list { padding-left: 20px; }
+.document-reference-list li,
+.document-version-list li,
+.document-comment-list li { margin: 8px 0; padding: 7px; border: 1px solid #dde3eb; border-radius: 5px; }
+.document-reference-list button { color: #1d4f87; border: 0; background: transparent; text-align: left; text-decoration: underline; }
+.document-comment-list blockquote { margin: 5px 0; padding-left: 8px; border-left: 2px solid #c0cad7; color: #5f6e82; }
+.document-comment-list .is-resolved { opacity: .68; background: #f4f6f8; }
+
+.kheops-editor-message {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 14px;
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+
+.kheops-editor-message.is-error { color: #7f1d1d; background: #fee2e2; border-top: 1px solid #fecaca; }
+.kheops-editor-message.is-warning { color: #713f12; background: #fef3c7; border-top: 1px solid #fde68a; }
+.kheops-editor-message button { color: inherit; border-color: currentColor; background: transparent; }
+
+.kheops-editor-statusbar {
+  min-height: 27px;
+  padding: 4px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #cfd6e2;
+  color: #536075;
+  background: #fff;
+  font-size: 10px;
+  flex: 0 0 auto;
+}
+
+.kheops-editor-statusbar .is-saving::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border: 2px solid #a9b4c5; border-top-color: #29598e; border-radius: 50%; animation: kheops-editor-spin .8s linear infinite; }
+@keyframes kheops-editor-spin { to { transform: rotate(360deg); } }
+
+.kheops-editor-loading {
+  width: 300px;
+  margin: 100px auto;
+  padding: 26px;
+  border-radius: 10px;
+  color: #536075;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(30,41,59,.15);
+}
+
+.kheops-editor-load-blocked {
+  width: min(520px, calc(100vw - 50px));
+  margin: 80px auto;
+  padding: 28px;
+  border: 1px solid #f0b9b9;
+  border-radius: 10px;
+  color: #612222;
+  background: #fffafa;
+  text-align: center;
+  box-shadow: 0 6px 22px rgba(30,41,59,.14);
+}
+
+.kheops-editor-load-blocked strong { display: block; margin-bottom: 10px; font-size: 16px; }
+.kheops-editor-load-blocked p { margin: 7px 0; color: #764141; font-size: 13px; line-height: 1.5; }
+.kheops-editor-load-blocked > div { display: flex; justify-content: center; gap: 9px; margin-top: 18px; }
+.kheops-editor-load-blocked button { width: auto; padding: 8px 12px; border: 1px solid #a6b3c6; border-radius: 6px; color: #263958; background: #fff; cursor: pointer; }
+.kheops-editor-load-blocked button:first-child { color: #fff; background: #234e83; border-color: #234e83; }
+
+.kheops-editor-modal .visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Ruban à onglets et registre de commandes */
+.kheops-responsive-ribbon {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+  border-bottom: 1px solid #cfd6e2;
+  background: #fff;
+}
+
+.kheops-ribbon-tabs-row {
+  min-height: 33px;
+  padding: 0 38px 0 7px;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid #dce2ea;
+  background: #f8fafc;
+}
+
+.kheops-ribbon-tabs {
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.kheops-ribbon-tabs button,
+.kheops-ribbon-collapse {
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 5px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: #4c5b72;
+  background: transparent;
+  font: 11px "Segoe UI", Arial, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.kheops-ribbon-tabs button[aria-selected="true"] { color: #183e70; border-bottom-color: #245c96; background: #fff; font-weight: 700; }
+.kheops-ribbon-tabs button.is-contextual { color: #6d4e0b; background: #fff6d9; }
+.kheops-ribbon-tabs button:focus-visible,
+.kheops-ribbon-collapse:focus-visible,
+.kheops-editor-ribbon button:focus-visible,
+.kheops-editor-ribbon select:focus-visible,
+.kheops-editor-ribbon input:focus-visible,
+.kheops-editor-topbar button:focus-visible,
+.kheops-editor-statusbar button:focus-visible,
+.kheops-editor-statusbar input:focus-visible { outline: 3px solid #d7a43d; outline-offset: -1px; }
+
+.kheops-ribbon-tab-select { display: none; width: 100%; align-items: center; }
+.kheops-ribbon-tab-select select { width: 100%; min-height: 31px; border: 1px solid #b9c5d4; border-radius: 5px; color: #273b58; background: #fff; font: 12px "Segoe UI", sans-serif; }
+.kheops-ribbon-collapse { position: absolute; z-index: 4; top: 2px; right: 7px; width: 29px; height: 28px; padding: 0; border: 1px solid transparent; border-radius: 5px; font-size: 15px; }
+.kheops-ribbon-collapse:hover { border-color: #b8c6d8; background: #edf3fb; }
+
+.kheops-responsive-ribbon .kheops-editor-ribbon {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 73px;
+  padding: 4px 6px 2px;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 5px;
+  border-bottom: 0;
+  overflow: visible;
+}
+
+.kheops-ribbon-groups { min-width: 0; display: flex; flex: 1 1 auto; align-items: stretch; overflow: hidden; }
+.kheops-responsive-ribbon .kheops-editor-ribbon-group { min-width: 0; max-width: none; padding: 3px 7px 16px; flex: 0 1 auto; overflow: hidden; }
+.kheops-ribbon-group-commands { min-width: 0; display: flex; align-items: flex-start; gap: 3px; overflow: hidden; }
+
+.kheops-command-button,
+.kheops-command-select select,
+.kheops-command-color,
+.kheops-command-number {
+  box-sizing: border-box;
+  min-width: 29px;
+  height: 31px;
+  margin: 0;
+  padding: 3px 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: #263854;
+  background: transparent;
+  font: 11px "Segoe UI", Arial, sans-serif;
+  white-space: nowrap;
+}
+
+.kheops-command-button { cursor: pointer; }
+.kheops-ribbon-group-commands > * { flex: 0 0 auto; }
+.kheops-command-button { max-width: 160px; overflow: hidden; }
+.kheops-command-button .command-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.kheops-command-button:hover,
+.kheops-command-button.is-active { border-color: #a9bfdf; background: #e7eef9; }
+.kheops-command-button:disabled { color: #98a1af; cursor: not-allowed; }
+.kheops-command-button .command-icon { min-width: 14px; font-size: 13px; font-weight: 700; text-align: center; }
+
+/* L'action PDF de l'onglet Fichier associe plusieurs usages (aperçu,
+   impression et export). Sur les écrans qui affichent son libellé complet,
+   on sépare davantage l'icône texte « PDF » du libellé sans agrandir les
+   autres commandes ni les autres rubans. */
+.kheops-responsive-ribbon:is(.is-wide, .is-standard)
+  .kheops-editor-ribbon[data-tab-id="file"]
+  .kheops-editor-ribbon-group[data-group-id="file-Exporter"]
+  .kheops-ribbon-group-commands {
+  gap: 7px;
+}
+
+.kheops-responsive-ribbon:is(.is-wide, .is-standard)
+  .kheops-editor-ribbon[data-tab-id="file"]
+  [data-command-id="file.print"] {
+  gap: 10px;
+  padding-inline: 10px;
+}
+
+.kheops-responsive-ribbon.is-wide
+  .kheops-editor-ribbon[data-tab-id="file"]
+  [data-command-id="file.print"] {
+  max-width: 215px;
+}
+
+.kheops-responsive-ribbon.is-wide
+  .kheops-editor-ribbon[data-tab-id="file"]
+  [data-command-id="file.print"] .command-icon {
+  min-width: 26px;
+}
+.kheops-command-select { display: inline-flex; }
+.kheops-command-select select { max-width: 120px; border-color: #c9d2df; background: #fff; }
+.kheops-command-color { position: relative; width: 31px; padding: 2px; font-weight: 700; cursor: pointer; }
+.kheops-command-color input { position: absolute; inset: auto 4px 2px; width: 21px; height: 5px; padding: 0; border: 0; }
+.kheops-command-color > span { pointer-events: none; }
+.kheops-command-number { min-width: 112px; padding: 2px 5px; border-color: #c9d2df; background: #fff; }
+.kheops-command-number-label { max-width: 54px; overflow: hidden; text-overflow: ellipsis; }
+.kheops-command-number-field { display: inline-flex; align-items: center; gap: 2px; }
+.kheops-command-number input { box-sizing: border-box; width: 50px; height: 25px; padding: 2px 3px; border: 1px solid #b8c5d5; border-radius: 4px; color: #263854; background: #fff; font: 11px "Segoe UI", Arial, sans-serif; text-align: right; }
+.kheops-command-number-unit { color: #68758a; font-size: 9px; }
+.kheops-command-number.is-ribbon-compact {
+  min-width: 82px;
+  padding-inline: 3px;
+  gap: 3px;
+}
+.kheops-command-number.is-ribbon-compact .kheops-command-number-label { width: 15px; max-width: 15px; font-weight: 700; text-align: center; }
+.kheops-command-number.is-ribbon-compact input { width: 40px; }
+.kheops-command-select.is-ribbon-compact select { width: 61px; max-width: 61px; padding-inline: 5px 3px; }
+
+.kheops-ribbon-empty { margin: auto 10px; color: #6c788b; font-size: 10px; }
+.kheops-ribbon-overflow { position: relative; flex: 0 0 auto; }
+.kheops-overflow-trigger,
+.kheops-palette-trigger { height: 33px; margin: 2px 0; padding: 4px 8px; border: 1px solid #b7c5d7; border-radius: 5px; color: #263d5e; background: #f8fafc; font: 11px "Segoe UI", sans-serif; cursor: pointer; }
+.kheops-palette-trigger { width: 31px; flex: 0 0 auto; font-size: 15px; }
+.kheops-overflow-menu {
+  position: absolute;
+  z-index: 45;
+  top: calc(100% + 4px);
+  right: 0;
+  width: min(340px, calc(100vw - 18px));
+  max-height: min(520px, calc(100vh - 175px));
+  padding: 7px;
+  overflow: auto;
+  border: 1px solid #bac6d5;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 35px rgba(20, 34, 56, .25);
+}
+.kheops-overflow-menu section { padding: 4px 0 7px; border-bottom: 1px solid #e7ebf1; }
+.kheops-overflow-menu section:last-child { border-bottom: 0; }
+.kheops-overflow-menu section > strong { display: block; padding: 3px 7px; color: #6c7788; font-size: 9px; letter-spacing: .05em; text-transform: uppercase; }
+.kheops-command-button.is-menu,
+.kheops-command-select.is-menu,
+.kheops-command-color.is-menu,
+.kheops-command-number.is-menu { width: 100%; min-height: 36px; height: auto; justify-content: flex-start; }
+.kheops-command-button.is-menu { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; text-align: left; }
+.kheops-command-button.is-menu kbd { color: #8791a1; font-size: 8px; font-weight: 400; }
+.kheops-command-select.is-menu { padding: 4px 7px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px; color: #344761; font-size: 10px; }
+.kheops-command-select.is-menu select { max-width: 145px; }
+.kheops-command-number.is-menu { padding: 4px 7px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px; color: #344761; font-size: 10px; }
+.kheops-command-number.is-menu .kheops-command-number-label { max-width: none; }
+.kheops-command-color.is-menu { padding: 5px 7px; display: grid; grid-template-columns: 22px minmax(0, 1fr) 35px; color: #344761; font-size: 10px; }
+.kheops-command-color.is-menu input { position: static; width: 32px; height: 23px; }
+
+.kheops-command-palette-backdrop { position: fixed; z-index: 19500; inset: 0; padding: max(9vh, 24px) 12px; display: flex; align-items: flex-start; justify-content: center; background: rgba(12, 25, 47, .58); }
+.kheops-command-palette { width: min(620px, 100%); max-height: min(650px, 82vh); padding: 10px; overflow: hidden; border-radius: 10px; background: #fff; box-shadow: 0 24px 70px rgba(15,23,42,.38); }
+.kheops-command-palette > label input { box-sizing: border-box; width: 100%; min-height: 42px; padding: 8px 11px; border: 2px solid #7da0c8; border-radius: 7px; font: 14px "Segoe UI", sans-serif; }
+.kheops-command-palette [role="listbox"] { max-height: 530px; margin-top: 7px; overflow: auto; }
+.kheops-command-palette [role="option"] { box-sizing: border-box; width: 100%; min-height: 41px; padding: 7px 9px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; border: 0; border-radius: 5px; color: #273a55; background: #fff; font: 11px "Segoe UI", sans-serif; text-align: left; cursor: pointer; }
+.kheops-command-palette [role="option"][aria-selected="true"] { background: #e7f0fb; }
+.kheops-command-palette [role="option"] small { color: #748196; }
+.kheops-command-palette [role="option"] kbd { color: #6b7788; font-size: 9px; }
+
+.kheops-responsive-ribbon.is-compact .command-label,
+.kheops-responsive-ribbon.is-narrow .command-label,
+.kheops-responsive-ribbon.is-mobile .command-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+.kheops-responsive-ribbon.is-compact .kheops-command-button,
+.kheops-responsive-ribbon.is-narrow .kheops-command-button,
+.kheops-responsive-ribbon.is-mobile .kheops-command-button { width: 34px; padding-inline: 4px; }
+.kheops-responsive-ribbon.is-narrow .kheops-ribbon-tabs,
+.kheops-responsive-ribbon.is-mobile .kheops-ribbon-tabs { display: none; }
+.kheops-responsive-ribbon.is-narrow .kheops-ribbon-tab-select,
+.kheops-responsive-ribbon.is-mobile .kheops-ribbon-tab-select { display: flex; }
+.kheops-responsive-ribbon.is-narrow .kheops-editor-ribbon-group,
+.kheops-responsive-ribbon.is-mobile .kheops-editor-ribbon-group { padding-inline: 3px; }
+.kheops-responsive-ribbon.is-narrow .group-label,
+.kheops-responsive-ribbon.is-mobile .group-label { display: none; }
+.kheops-responsive-ribbon.is-narrow .kheops-editor-ribbon,
+.kheops-responsive-ribbon.is-mobile .kheops-editor-ribbon { min-height: 46px; padding-block: 3px; }
+.kheops-responsive-ribbon.is-collapsed .kheops-ribbon-tabs-row { border-bottom: 0; }
+
+.kheops-editor-panel-loading { box-sizing: border-box; width: 360px; max-width: 100%; padding: 30px 15px; border-left: 1px solid #cad3e0; background: #fff; color: #607087; text-align: center; }
+.kheops-editor-compatibility-panel .compatibility-level { display: inline-block; margin-bottom: 10px; padding: 5px 8px; border-radius: 999px; color: #1f6a43; background: #e7f8ef; font-size: 10px; font-weight: 800; }
+.kheops-editor-compatibility-panel .compatibility-level.is-partial { color: #76520d; background: #fff4cf; }
+.kheops-editor-compatibility-panel .compatibility-level.is-complex { color: #8b2929; background: #ffebeb; }
+.kheops-editor-compatibility-panel ul { padding-left: 18px; color: #6a4a10; font-size: 10px; line-height: 1.5; }
+.kheops-editor-reconvert-original { margin-top: 16px; padding-top: 14px; border-top: 1px solid #d6dde8; }
+.kheops-editor-reconvert-original > strong { display: block; color: #25334e; font-size: 12px; }
+.kheops-editor-reconvert-original > p { margin: 6px 0 10px; overflow-wrap: anywhere; }
+.kheops-editor-layout-panel .kheops-editor-reconvert-original > button {
+  width: 100%;
+  min-height: 36px;
+  height: auto;
+  padding: 8px 10px;
+  border-color: #2680c2;
+  color: #0b4d78;
+  background: #eaf6ff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kheops-editor-layout-panel .kheops-editor-reconvert-original > button:hover:not(:disabled) { background: #d7edfd; }
+.kheops-editor-layout-panel .kheops-editor-reconvert-original > button:disabled { opacity: .65; cursor: wait; }
+
+.kheops-editor-zoom-control { min-width: 270px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.kheops-editor-zoom-control input { width: 80px; }
+.kheops-editor-zoom-control button { width: auto; min-width: 24px; height: 22px; padding: 1px 5px; border: 1px solid #c2ccda; border-radius: 4px; color: #43536c; background: #fff; font: 9px "Segoe UI", sans-serif; cursor: pointer; }
+.kheops-editor-zoom-control button.is-active { border-color: #7496bd; background: #e8f1fb; }
+
+.kheops-editor-modal.is-focus-mode .kheops-responsive-ribbon,
+.kheops-editor-modal.is-focus-mode .kheops-editor-brand strong,
+.kheops-editor-modal.is-focus-mode .kheops-editor-compatibility,
+.kheops-editor-modal.is-focus-mode .kheops-editor-top-actions .quick-action,
+.kheops-editor-modal.is-focus-mode .kheops-editor-top-actions .secondary { display: none; }
+.kheops-editor-modal.is-focus-mode .kheops-editor-topbar { min-height: 44px; padding-block: 4px; }
+
+@container kheops-editor (max-width: 1023px) {
+  .kheops-editor-layout-panel,
+  .kheops-document-panel,
+  .kheops-editor-panel-loading { position: absolute; z-index: 24; inset: 0 0 0 auto; width: min(360px, 100%); }
+  .kheops-editor-workspace { padding: 18px 12px 60px; }
+}
+
+/* Un écran d'ordinateur portable de 1024 à 1199 px doit conserver toutes les
+   actions critiques. Les commandes secondaires dupliquées dans le ruban sont
+   masquées et les boutons métier restent visibles, sans sortir de l'écran. */
+@container kheops-editor (max-width: 1199px) {
+  .kheops-editor-brand input { width: min(28vw, 280px); }
+  .kheops-editor-top-actions { gap: 4px; }
+  .kheops-editor-top-actions .kheops-editor-compatibility,
+  .kheops-editor-top-actions .quick-action { display: none; }
+  .kheops-editor-top-actions button { padding-inline: 8px; }
+}
+
+@container kheops-editor (max-width: 767px) {
+  .kheops-editor-topbar { min-height: 52px; padding: 5px 7px; gap: 5px; }
+  .kheops-editor-brand { min-width: 0; gap: 5px; }
+  .kheops-editor-logo { width: 30px; height: 30px; border-radius: 7px; font-size: 17px; }
+  .kheops-editor-brand > div { min-width: 0; }
+  .kheops-editor-brand strong { display: none; }
+  .kheops-editor-brand input { width: min(34vw, 190px); min-width: 80px; }
+  .kheops-editor-top-actions { min-width: 0; gap: 3px; }
+  .kheops-editor-top-actions .kheops-editor-compatibility,
+  .kheops-editor-top-actions .quick-action,
+  .kheops-editor-top-actions .secondary { display: none; }
+  .kheops-editor-top-actions .assistant { min-width: 34px; max-width: 39px; padding-inline: 7px; overflow: hidden; white-space: nowrap; }
+  .kheops-editor-top-actions .assistant .full-label { display: none; }
+  .kheops-editor-top-actions .kheops-editor-advanced-action { min-width: 38px; max-width: 68px; padding-inline: 7px; overflow: hidden; }
+  .kheops-editor-top-actions .kheops-editor-advanced-action .full-label { display: none; }
+  .kheops-editor-top-actions .kheops-editor-advanced-action .compact-label { display: inline; }
+  .kheops-editor-top-actions button.primary { padding-inline: 8px; }
+  .kheops-editor-top-actions button.close { padding-inline: 5px; }
+  .kheops-editor-search { flex-wrap: wrap; justify-content: flex-start; padding: 6px; }
+  .kheops-editor-search label { width: calc(50% - 5px); display: grid; }
+  .kheops-editor-search input { width: 100%; }
+  .kheops-editor-layout-panel,
+  .kheops-document-panel,
+  .kheops-editor-panel-loading { inset: 0; width: 100%; }
+  .kheops-editor-statusbar { min-height: 31px; padding: 3px 6px; }
+  .kheops-editor-statusbar > span:nth-of-type(2),
+  .kheops-editor-statusbar > span:nth-of-type(3) { display: none; }
+  .kheops-editor-zoom-control { min-width: 0; }
+  .kheops-editor-zoom-control input { display: none; }
+  .kheops-editor-zoom-control button:first-of-type,
+  .kheops-editor-zoom-control button:nth-of-type(2) { display: none; }
+}
+
+@container kheops-editor (max-width: 479px) {
+  .kheops-editor-top-actions .assistant { max-width: 34px; }
+  .kheops-editor-top-actions .kheops-editor-advanced-action { width: 34px; min-width: 34px; padding-inline: 7px; }
+  .kheops-editor-top-actions .kheops-editor-advanced-action .compact-label { display: none; }
+  .kheops-editor-brand input { width: 31vw; }
+  .kheops-editor-top-actions button.primary { width: 38px; padding-inline: 6px; }
+  .kheops-editor-top-actions button.primary .full-label { display: none; }
+  .kheops-editor-top-actions button.primary .compact-label { display: inline; }
+  .kheops-editor-search label { width: 100%; }
+  .kheops-overflow-menu { position: fixed; inset: auto 6px 35px; width: auto; max-height: 65vh; }
+  .kheops-command-palette-backdrop { padding: 0; }
+  .kheops-command-palette { width: 100%; max-height: 100%; height: 100%; border-radius: 0; }
+  .kheops-command-palette [role="listbox"] { max-height: calc(100vh - 70px); }
+}
+
+@media (max-width: 900px) {
+  .kheops-editor-topbar { align-items: flex-start; }
+  .kheops-editor-brand input { width: min(250px, 32vw); }
+  .kheops-editor-compatibility { display: none; }
+  .kheops-editor-top-actions button:not(.primary):not(.close):not(.assistant):not(.kheops-editor-advanced-action) { display: none; }
+  .kheops-editor-workspace { padding: 18px 12px 60px; }
+  .kheops-editor-sheet { transform-origin: top center; }
+  .kheops-editor-layout-panel,
+  .kheops-document-panel { position: absolute; z-index: 24; right: 0; top: 0; bottom: 0; width: min(390px, 100%); }
+}
+
+@media print {
+  .kheops-editor-topbar,
+  .kheops-responsive-ribbon,
+  .kheops-editor-ribbon,
+  .kheops-editor-search,
+  .kheops-editor-layout-panel,
+  .kheops-document-panel,
+  .kheops-editor-statusbar,
+  .kheops-editor-message { display: none !important; }
+  .kheops-editor-overlay,
+  .kheops-editor-modal,
+  .kheops-editor-body,
+  .kheops-editor-workspace { position: static; display: block; overflow: visible; background: #fff; }
+  .kheops-editor-workspace { padding: 0; }
+  .kheops-editor-sheet { margin: 0; box-shadow: none; }
+}

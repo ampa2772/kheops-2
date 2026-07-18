@@ -248,7 +248,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* PAS de justify-content: center ici : sur un conteneur scrollable, "center"
+     fait déborder le contenu au-dessus de l'origine de scroll → le haut du
+     formulaire devient INACCESSIBLE quand l'écran est peu haut (champ "type de
+     dossier" coupé, impossible de remonter). Le centrage vertical est assuré
+     par les marges auto ci-dessous ("safe center"). */
+  justify-content: flex-start;
   padding: 22px 28px;
   gap: var(--k-form-section-gap, 18px);
   flex: 1;
@@ -257,6 +262,18 @@
   overflow-x: hidden;
   position: relative;
   z-index: 1;
+}
+
+/* Centrage vertical « sûr » : les marges auto centrent le contenu quand il
+   tient dans la zone, et tombent à 0 quand il déborde → tout le formulaire
+   reste atteignable au scroll sur toutes les hauteurs d'écran. S'applique aux
+   3 onglets (Dossier / Parties / Contacts), tous rendus dans .formDossier. */
+.formDossier > :first-child {
+  margin-top: auto;
+}
+
+.formDossier > :last-child {
+  margin-bottom: auto;
 }
 
 /* -------------------------------------------------------

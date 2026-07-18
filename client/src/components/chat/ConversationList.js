@@ -3,10 +3,9 @@
 // Liste les conversations existantes. Cliquer sur une conversation la sélectionne
 // (currentContactId Redux) — l'autre composant ChatPanel affichera le fil.
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-    loadConversations,
     setCurrentContact,
     selectConversations,
     selectCurrentContactId,
@@ -48,10 +47,6 @@ const ConversationList = () => {
     const conversations = useSelector(selectConversations);
     const currentContactId = useSelector(selectCurrentContactId);
     const [pickerOpen, setPickerOpen] = useState(false);
-
-    useEffect(() => {
-        dispatch(loadConversations());
-    }, [dispatch]);
 
     return (
         <>

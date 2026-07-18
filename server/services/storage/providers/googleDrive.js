@@ -30,8 +30,21 @@ function createVersionId() {
   return crypto.randomUUID();
 }
 
-// Nom lisible du fichier dans le Drive de l'utilisateur (préfixé de l'id de
-// version pour rester unique et évitable en cas de collision d'intitulés).
+const ROOT_FOLDER = 'Kheops2';
+
+// Suffixe " (vN)" pour les versions >= 2 (meme logique qu'OneDrive/SharePoint) :
+// chaque version reste un fichier Drive DISTINCT mais au nom LISIBLE. (Google
+// Drive autorise plusieurs fichiers de meme nom dans un dossier -> pas de risque
+// d'ecrasement, chaque upload obtient un fileId distinct.)
+function versionedFilename(filename, ordinal) {
+  const base = safeFilename(filename);
+  if (!ordinal || ordinal <= 1) return base;
+  const dot = base.lastIndexOf('.');
+  return dot > 0 ? `${base.slice(0, dot)} (v${ordinal})${base.slice(dot)}` : `${base} (v${ordinal})`;
+}
+
+// Nom (ancien schema) base sur les IDs — repli quand aucun matterLabel n'est
+// fourni (dossier inconnu). Prefixe de version pour rester unique.
 function buildDriveName({ documentId, versionId, filename }) {
   return `${safeSegment(documentId, 'doc')}__${safeSegment(versionId, 'v')}__${safeFilename(filename)}`;
 }
@@ -72,7 +85,17 @@ function parseKey(storageKey) {
   return { ownerUserId, fileId };
 }
 
-async function uploadVersion({ documentId, versionId, filename, buffer, mime, ownerUserId }) {
+async function uploadVersion({
+  documentId,
+  versionId,
+  filename,
+  buffer,
+  mime,
+  ownerUserId,
+  matterLabel,
+  versionOrdinal,
+  idempotencyKey,
+}) {
   if (!ownerUserId) {
     const err = new Error("Propriétaire (ownerUserId) requis pour un upload Google Drive.");
     err.statusCode = 400;
@@ -85,14 +108,32 @@ async function uploadVersion({ documentId, versionId, filename, buffer, mime, ow
     err.code = 'MISSING_FILE_BUFFER';
     throw err;
   }
-  const name = buildDriveName({ documentId, versionId, filename });
-  const result = await gdrive.uploadFile(ownerUserId, { name, buffer, mime });
+  // Volet A : si matterLabel est fourni, on range le fichier dans un dossier au
+  // VRAI NOM (Kheops2/Dossiers/<label>) avec un nom de fichier LISIBLE, comme
+  // OneDrive/SharePoint. Sinon repli sur l'ancien schema a plat base sur les IDs.
+  let name;
+  let folderSegments;
+  if (matterLabel) {
+    name = versionedFilename(filename, versionOrdinal);
+    folderSegments = [ROOT_FOLDER, 'Dossiers', String(matterLabel)];
+  } else {
+    name = buildDriveName({ documentId, versionId, filename });
+    folderSegments = [ROOT_FOLDER];
+  }
+  const result = await gdrive.uploadFile(ownerUserId, {
+    name,
+    buffer,
+    mime,
+    folderSegments,
+    idempotencyKey,
+  });
   return {
     provider: 'google_drive',
     storageKey: encodeKey(ownerUserId, result.fileId),
     size: typeof result.size === 'number' ? result.size : buffer.length,
     mime: mime || 'application/octet-stream',
     filename: safeFilename(filename),
+    idempotent: Boolean(result.idempotent),
   };
 }
 

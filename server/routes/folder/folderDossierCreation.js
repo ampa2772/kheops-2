@@ -29,6 +29,67 @@ const ContactPMPublique = require("../../models/Folder/ContactPMPublique");
 const snapshotService = require("../../services/snapshotService");
 const { getAccessibleUserIds } = require("../../services/cabinetAccess");
 const { ensureDossierOwnership, ensureContactOwnership } = require("../../utils/ownershipHelpers");
+const { materializeMatterFolder } = require("../../services/storage/matterFolderMaterializer");
+const { resolveTenantId } = require("../../services/tenantService");
+const { normalizeDossierParties } = require("../../services/dossierPartyRelations");
+
+const isValidObjectId = (value) => Boolean(
+  value && mongoose.Types.ObjectId.isValid(String(value)),
+);
+
+const requireRelationIds = (req, res, fields) => {
+  for (const field of fields) {
+    const value = req.body?.[field];
+    if (!isValidObjectId(value)) {
+      res.status(400).json({ message: `${field} invalide ou manquant.` });
+      return false;
+    }
+  }
+  return true;
+};
+
+/**
+ * Les anciens documents Partie ne portent ni tenantId ni userId. Leur
+ * appartenance se déduit donc, sans migration destructive :
+ *   1. du contact principal de la partie lorsqu'il existe ;
+ *   2. à défaut, d'un DossierPartie déjà relié à un dossier accessible.
+ * Une partie sans aucune de ces preuves reste fermée par défaut.
+ */
+const ensurePartieOwnership = async (req, res, partieId) => {
+  const partie = await Partie.findById(partieId).select('contact').lean();
+  if (!partie) {
+    res.status(403).json({ message: "Accès refusé : cette partie n'appartient pas à votre cabinet." });
+    return false;
+  }
+
+  if (partie.contact) {
+    return ensureContactOwnership(req, res, partie.contact);
+  }
+
+  const dossierLinks = await DossierPartie.find({ partie: partieId }).select('dossier').lean();
+  const dossierIds = dossierLinks.map((link) => link.dossier).filter(Boolean);
+  if (dossierIds.length > 0) {
+    const accessibleUserIds = await getAccessibleUserIds(req.user);
+    const accessibleLink = await UserDossier.findOne({
+      user: { $in: accessibleUserIds },
+      dossier: { $in: dossierIds },
+    }).lean();
+    if (accessibleLink) return true;
+  }
+
+  res.status(403).json({ message: "Accès refusé : cette partie n'appartient pas à votre cabinet." });
+  return false;
+};
+
+// Role est historiquement un référentiel global (son modèle ne possède aucun
+// tenantId). On valide donc strictement son identifiant et son existence ; les
+// autres extrémités de ContactRole portent l'isolation cabinet.
+const ensureRoleExists = async (res, roleId) => {
+  const exists = await Role.exists({ _id: roleId });
+  if (exists) return true;
+  res.status(404).json({ message: 'Rôle introuvable.' });
+  return false;
+};
 
 
 // ========================================================================
@@ -42,7 +103,7 @@ router.post(
   "/dossier",
   auth,
   asyncHandler(async (req, res) => {
-    const dossier = new Dossier(req.body);
+    const dossier = new Dossier({ ...req.body, tenantId: await resolveTenantId(req.user) });
     await dossier.save();
     res.json(dossier);
   })
@@ -86,7 +147,9 @@ router.post(
   "/contactpartie",
   auth,
   asyncHandler(async (req, res) => {
-    if (req.body.contact && !(await ensureContactOwnership(req, res, req.body.contact))) return;
+    if (!requireRelationIds(req, res, ['contact', 'partie'])) return;
+    if (!(await ensureContactOwnership(req, res, req.body.contact))) return;
+    if (!(await ensurePartieOwnership(req, res, req.body.partie))) return;
     const contactPartie = new ContactPartie(req.body);
     await contactPartie.save();
     res.json(contactPartie);
@@ -97,7 +160,9 @@ router.post(
   "/dossierpartie",
   auth,
   asyncHandler(async (req, res) => {
-    if (req.body.dossier && !(await ensureDossierOwnership(req, res, req.body.dossier))) return;
+    if (!requireRelationIds(req, res, ['dossier', 'partie'])) return;
+    if (!(await ensureDossierOwnership(req, res, req.body.dossier))) return;
+    if (!(await ensurePartieOwnership(req, res, req.body.partie))) return;
     const dossierPartie = new DossierPartie(req.body);
     await dossierPartie.save();
     res.json(dossierPartie);
@@ -108,7 +173,22 @@ router.post(
   "/contactrole",
   auth,
   asyncHandler(async (req, res) => {
-    if (req.body.contact && !(await ensureContactOwnership(req, res, req.body.contact))) return;
+    if (!requireRelationIds(req, res, ['contact', 'role'])) return;
+    const hasContactLie = Boolean(req.body?.contactLie);
+    const hasPartie = Boolean(req.body?.partie);
+    if (!hasContactLie && !hasPartie) {
+      return res.status(400).json({ message: 'contactLie ou partie doit être renseigné.' });
+    }
+    if (hasContactLie && !isValidObjectId(req.body.contactLie)) {
+      return res.status(400).json({ message: 'contactLie invalide.' });
+    }
+    if (hasPartie && !isValidObjectId(req.body.partie)) {
+      return res.status(400).json({ message: 'partie invalide.' });
+    }
+    if (!(await ensureContactOwnership(req, res, req.body.contact))) return;
+    if (hasContactLie && !(await ensureContactOwnership(req, res, req.body.contactLie))) return;
+    if (hasPartie && !(await ensurePartieOwnership(req, res, req.body.partie))) return;
+    if (!(await ensureRoleExists(res, req.body.role))) return;
     const contactRole = new ContactRole(req.body);
     await contactRole.save();
     res.json(contactRole);
@@ -163,10 +243,15 @@ router.post(
     const Contact = require("../../models/Folder/Contact");
     const { dossierData } = req.body;
     const userId = String(req.user);
+    const tenantId = await resolveTenantId(userId);
     console.log(`[createDossier] ▶ DEBUT | userId (req.user): ${userId}`);
     console.log(`[createDossier] dossierData.dossier?.nom: ${dossierData?.dossier?.nom}`);
     console.log(`[createDossier] Parties pour: ${dossierData?.parties?.pour?.length || 0} | contre: ${dossierData?.parties?.contre?.length || 0}`);
     const reference = await generateReference();
+
+    // Frontiere canonique : les avocats/contacts et leurs roles restent
+    // embarques dans le snapshot, mais sans doublon ni classement ambigu.
+    dossierData.parties = normalizeDossierParties(dossierData.parties);
 
     /* 1️⃣ – garantir un _id et réunir tous les contacts */
     const ensureId = (o) => { if (o && !o._id) o._id = new mongoose.Types.ObjectId(); };
@@ -230,9 +315,21 @@ router.post(
       });
     }
 
+    // Les identifiants documentaires sont exclusivement générés par MongoDB.
+    // Un _id fourni dans le JSON permettrait sinon de fabriquer une collision
+    // avec un document d'un autre cabinet puis de contourner les contrôles IDOR.
+    if (Array.isArray(dossierData.documents)) {
+      dossierData.documents = dossierData.documents.map((document) => {
+        const safeDocument = { ...(document || {}) };
+        delete safeDocument._id;
+        return safeDocument;
+      });
+    }
+
     /* 3️⃣ – création du dossier principal */
     const savedDossier = await new Dossier({
       reference,
+      tenantId,
       dossier: dossierData,
       dateCreation: new Date(),
     }).save();
@@ -262,6 +359,17 @@ router.post(
       type: dossierData?.dossier?.type_dossier,
       partiesCount: (dossierData.parties?.pour?.length || 0) + (dossierData.parties?.contre?.length || 0),
     });
+
+    // MATERIALISATION CLOUD (fire-and-forget, jamais bloquant) : cree le dossier
+    // au VRAI NOM (Kheops2/Dossiers/<nom — reference>) sur le cloud de
+    // l'utilisateur (SharePoint perso si active, sinon OneDrive/Google Drive du
+    // cabinet), pour qu'il soit visible hors appli (explorateur/bureau via synchro).
+    materializeMatterFolder(userId, savedDossier)
+      .then((r) => {
+        if (r.ok) console.log(`[createDossier] ☁️ Dossier cloud materialise (${r.provider}) : ${r.label}`);
+        else console.log(`[createDossier] ☁️ Materialisation cloud sautee : ${r.reason}`);
+      })
+      .catch(() => {});
 
     console.log(`[createDossier] ✅ FIN — Envoi réponse 201 avec dossier._id: ${savedDossier._id}`);
     return res.status(201).json({

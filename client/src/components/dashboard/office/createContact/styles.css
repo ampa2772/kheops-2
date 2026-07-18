@@ -37,6 +37,33 @@
   align-items: center;
 }
 
+.createContact-header__communication {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.createContact-header__communication button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: auto;
+  min-height: 36px;
+  border: 1px solid rgba(120, 200, 235, .42);
+  border-radius: 8px;
+  padding: 6px 9px;
+  background: rgba(15, 44, 72, .72);
+  color: #c9efff;
+  font: inherit;
+  font-size: .74rem;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.createContact-header__communication button:hover { background: rgba(31, 122, 158, .55); color: #fff; }
+.createContact-header__communication button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
 /* Bouton "Retour à l'accueil" — préserve le brouillon (slices
    createContact / personneMorale / pch persistés en localStorage).
    `width: auto` pour neutraliser la règle globale `button { width: 100% }`. */
@@ -106,14 +133,17 @@
 @media (max-width: 600px) {
   .createContact-header {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
   }
   .createContact-header__left {
     justify-content: center;
   }
   .createContact-header__right {
-    display: none;
+    display: flex;
+    justify-content: center;
   }
+  .createContact-header__communication { width: 100%; justify-content: center; }
+  .createContact-header__communication button { flex: 1 1 0; max-width: 150px; min-height: 42px; }
 }
 
 /* High-contrast */

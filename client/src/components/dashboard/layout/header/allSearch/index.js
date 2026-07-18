@@ -1,19 +1,25 @@
 import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import "./styles.css";
 import currentsUsersIcon from '../../../../../assets/loupe.svg';
 import AllSearchModal from './allSearchModal'; // Import du nouveau composant modale
-import { openAllSearchModal, closeAllSearchModal } from '../../../../../redux/slices/layoutSlice';
+import { closeAllSearchModal, openAdvancedSearch } from '../../../../../redux/slices/layoutSlice';
 
 const CurrentsUsersIcon = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   // L'état d'ouverture est dans Redux pour pouvoir être déclenché depuis
   // le raccourci clavier global Ctrl+K (cf. useGlobalKeyboardShortcuts).
   const isModalOpen = useSelector((s) => s.layout.isAllSearchModalOpen);
 
   const handleIconClick = (e) => {
     e.stopPropagation();
-    dispatch(openAllSearchModal());
+    // La loupe transforme le Bureau en systeme de recherche avancee par
+    // criteres croises (au lieu d'ouvrir la modale de recherche rapide).
+    // La modale rapide reste accessible via le raccourci clavier Ctrl+K.
+    navigate('/dashboard');
+    dispatch(openAdvancedSearch());
   };
 
   const closeModal = useCallback(() => {
@@ -37,8 +43,8 @@ const CurrentsUsersIcon = () => {
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
-        aria-label="Ouvrir la recherche globale de dossier"
-        title="Recherche globale de dossier"
+        aria-label="Ouvrir la recherche avancée par critères croisés"
+        title="Recherche avancée par critères croisés"
       >
         <img src={currentsUsersIcon} alt="" aria-hidden="true" className="currents-users-change-icon" />
       </div>

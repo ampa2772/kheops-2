@@ -10,6 +10,7 @@ import {
   googleConnectUrl,
   formatBytes,
 } from '../../../../services/storageClient';
+import SharePointSection from './SharePointSection';
 import './storageProviderSection.css';
 
 // Trois modes de rangement présentés à l'utilisateur (langage non technique).
@@ -103,6 +104,22 @@ const StorageProviderSection = () => {
     }
   };
 
+  const handleCloudConnect = async (provider) => {
+    if (saving) return;
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const authorizationUrl = provider === STORAGE_PROVIDERS.ONEDRIVE
+        ? await microsoftConnectUrl()
+        : await googleConnectUrl();
+      window.location.assign(authorizationUrl);
+    } catch (e) {
+      setError(e?.response?.data?.message || e.message || 'Impossible de démarrer la connexion au cloud.');
+      setSaving(false);
+    }
+  };
+
   const usedBytes = (usage && usage.usedBytes) || 0;
   const quotaBytes = (usage && usage.quotaBytes) || 0;
   const percent = quotaBytes > 0 ? Math.min(100, Math.round((usedBytes / quotaBytes) * 100)) : 0;
@@ -153,7 +170,8 @@ const StorageProviderSection = () => {
               <button
                 type="button"
                 className="storage-option"
-                onClick={() => { window.location.href = microsoftConnectUrl(); }}
+                onClick={() => handleCloudConnect(STORAGE_PROVIDERS.ONEDRIVE)}
+                disabled={saving}
               >
                 Connecter mon OneDrive (Microsoft)
               </button>
@@ -178,7 +196,8 @@ const StorageProviderSection = () => {
               <button
                 type="button"
                 className="storage-option"
-                onClick={() => { window.location.href = googleConnectUrl(); }}
+                onClick={() => handleCloudConnect(STORAGE_PROVIDERS.GOOGLE_DRIVE)}
+                disabled={saving}
               >
                 Connecter mon Google Drive
               </button>
@@ -205,6 +224,9 @@ const StorageProviderSection = () => {
           )}
         </div>
       )}
+
+      {/* Volet B — SharePoint par utilisateur (optionnel, propre à chacun). */}
+      <SharePointSection />
     </div>
   );
 };

@@ -850,3 +850,56 @@ body.high-contrast-mode .doc-create-status {
   box-shadow: none;
   animation: none;
 }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Boîte : borner à l'écran (base 440px) */
+  .k-modal-box.doc-create-box {
+    width: min(440px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Header : marge droite pour ne pas passer sous le bouton fermer */
+  .k-modal-box.doc-create-box .k-modal-header {
+    padding-right: 56px;
+  }
+
+  /* Corps : padding réduit */
+  .doc-create-body {
+    padding: 18px;
+    gap: 18px;
+  }
+
+  /* Liste destinataires : hauteur réduite pour laisser voir le footer */
+  .doc-create-destinataires {
+    max-height: 45vh;
+  }
+
+  /* Ligne de confirmation : autoriser le retour à la ligne */
+  .doc-create-confirm-row {
+    flex-wrap: wrap;
+  }
+
+  /* Footer : boutons pleine largeur */
+  .doc-create-footer {
+    flex-wrap: wrap;
+  }
+  .doc-create-footer .k-modal-btn--cancel,
+  .doc-create-footer .k-modal-btn--primary {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .doc-create-body {
+    padding: 14px;
+  }
+  .k-modal-box.doc-create-box .k-modal-header {
+    padding: 18px 56px 14px 18px;
+  }
+  .doc-create-footer {
+    padding: 14px 16px;
+  }
+}

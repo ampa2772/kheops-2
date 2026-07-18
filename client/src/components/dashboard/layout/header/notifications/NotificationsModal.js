@@ -359,10 +359,16 @@ const NotificationsModal = ({ isOpen, position, onClose }) => {
   };
 
   useEffect(() => {
-    const handleClickOutside = (event) => { if (modalRef.current && !modalRef.current.contains(event.target)) onClose(); };
+    const handleClickOutside = (event) => {
+      // Pendant la saisie dans la modale « Connexion boîte mail », un clic est
+      // forcément « hors » du panneau (masqué) : ne PAS fermer le panneau,
+      // sinon la modale de connexion serait démontée en pleine saisie.
+      if (showMailSetup) return;
+      if (modalRef.current && !modalRef.current.contains(event.target)) onClose();
+    };
     if (isOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, showMailSetup]);
 
   useEffect(() => {
     if (!activeContactPopover) return;
@@ -796,7 +802,13 @@ const NotificationsModal = ({ isOpen, position, onClose }) => {
         onClose={() => setShowMailSetup(false)}
         onAccountCreated={handleMailAccountCreated}
       />
-      <div className="notifications-modal-overlay">
+      {/* Panneau MASQUÉ (mais monté) pendant la connexion boîte mail : une
+          seule fenêtre à l'écran, pas d'empilement ; il réapparaît à la
+          fermeture de la modale (et se rafraîchit après création du compte). */}
+      <div
+        className="notifications-modal-overlay"
+        style={showMailSetup ? { display: 'none' } : undefined}
+      >
         <div className={modalClass} ref={modalRef} style={modalStyle}>
 
           <div className="notification-list-view k-mailmodal">

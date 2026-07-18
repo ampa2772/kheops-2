@@ -148,11 +148,21 @@ describe('createPartieSlice SET_PARTIE_LINK', () => {
     expect(state.parties[0].linkedContacts.length).toBe(1);
   });
 
-  test('ajoute un avocat si contact.pro_contact et type Avocat', () => {
+  test('ajoute un avocat avec son rôle relationnel explicite', () => {
     let state = addPartie(getBaseCreate(), partieCreateReducer, partieCreateTypes, makePartie('p1', 'Contre'));
     state = partieCreateReducer(state, {
       type: partieCreateTypes.SET_LINK,
-      payload: { idPartie: 'p1', contact: { _id: 'a1', nom: 'Av', pro_contact: true, type: 'Avocat' } },
+      payload: {
+        idPartie: 'p1',
+        contact: {
+          _id: 'a1',
+          nom: 'Av',
+          pro_contact: true,
+          type: 'Avocat',
+          isPlaidant: true,
+          isPostulant: false,
+        },
+      },
     });
     expect(state.parties[0].linkedAvocats.length).toBe(1);
     expect(state.parties[0].linkedContacts.length).toBe(0);

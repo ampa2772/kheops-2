@@ -145,9 +145,50 @@ async function sendPasswordResetCodeEmail(email, code) {
   await sendEmailViaGmail(email, mailContent);
 }
 
+/**
+ * E-mail d'invitation a rejoindre un cabinet. Envoye a la personne invitee
+ * quand un proprietaire clique « Inviter ». Contient un lien direct vers
+ * l'application (Parametres > Cabinet) ou elle pourra accepter.
+ */
+async function sendCabinetInviteEmail(toEmail, { inviterName, cabinetName } = {}) {
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const base = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+  const link = base ? `${base}/dashboard/parametres` : '';
+  const cab = cabinetName || 'un cabinet';
+  const cabHtml = esc(cab);
+  const by = inviterName ? ` par <strong>${esc(inviterName)}</strong>` : '';
+  const cta = link
+    ? `<div style="text-align:center; margin: 0 0 20px;"><a href="${link}" style="display:inline-block; background:#0977a5; color:#ffffff; text-decoration:none; font-weight:700; font-size:14px; padding:12px 22px; border-radius:10px;">Ouvrir Kheops 2</a></div>`
+    : '';
+  const mailContent = {
+    subject: `Invitation à rejoindre le cabinet ${cab} sur Kheops 2`,
+    body: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #0f172a;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <span style="display: inline-block; width: 8px; height: 8px; background: #0977a5; border-radius: 50%; vertical-align: middle; margin-right: 6px;"></span>
+          <span style="font-size: 12px; font-weight: 700; color: #0977a5; letter-spacing: 0.14em; text-transform: uppercase; vertical-align: middle;">KHEOPS 2</span>
+        </div>
+        <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 8px;">Vous avez reçu une invitation</h2>
+        <p style="font-size: 14px; color: #475569; margin: 0 0 20px; line-height: 1.6;">
+          Vous avez été invité${by} à rejoindre le cabinet <strong>${cabHtml}</strong> sur Kheops 2, pour partager ses dossiers, documents et contacts. Vous gardez votre propre identifiant.
+        </p>
+        <p style="font-size: 14px; color: #475569; margin: 0 0 20px; line-height: 1.6;">
+          Pour accepter : connectez-vous à Kheops 2, ouvrez <strong>Paramètres &rarr; Cabinet</strong>, puis cliquez sur <strong>Accepter</strong> dans la section &laquo;&nbsp;Invitations reçues&nbsp;&raquo;.
+        </p>
+        ${cta}
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
+        <p style="font-size: 12px; color: #94a3b8; margin: 0; text-align: center;">L'équipe Kheops 2</p>
+      </div>
+    `,
+  };
+  await sendEmailViaGmail(toEmail, mailContent);
+}
+
 module.exports = {
   sendPasswordResetEmail,
   sendPasswordResetCodeEmail,
+  sendCabinetInviteEmail,
   checkEmailConfig,
   getEmailConfigStatus,
 };

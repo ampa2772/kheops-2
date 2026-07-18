@@ -21,7 +21,16 @@ apiClient.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   const officeUserId = state.officeUser?.officeUser?._id;
-  if (officeUserId) {
+  // Les appels sensibles (notamment le chat) peuvent figer explicitement le
+  // profil au moment où l'action est déclenchée. Ne jamais remplacer ce header
+  // par le profil Redux courant : celui-ci a pu changer pendant une opération
+  // asynchrone (chiffrement, lecture de fichier, changement de fenêtre, etc.).
+  const hasExplicitOfficeUser = !!(
+    config.headers?.['X-Office-User-Id'] ||
+    config.headers?.['x-office-user-id'] ||
+    (typeof config.headers?.get === 'function' && config.headers.get('X-Office-User-Id'))
+  );
+  if (officeUserId && !hasExplicitOfficeUser) {
     config.headers['X-Office-User-Id'] = String(officeUserId);
   }
   return config;

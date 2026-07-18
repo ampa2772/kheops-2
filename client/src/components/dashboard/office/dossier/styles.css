@@ -287,6 +287,7 @@ body.high-contrast-mode .dossier-rich-header .dossier-rich-header__title {
 
 /* ---------- Liste des documents stockés ---------- */
 .docList {
+  position: relative;
   width: 93%;
   background-color: var(--k-primary-900, #032b3b);
   margin: 10px auto;
@@ -370,6 +371,10 @@ body.high-contrast-mode .dossier-rich-header .dossier-rich-header__title {
   background: var(--k-primary-800, #043a4f) !important;
   color: var(--k-bg-white, #fff) !important;
 }
+.threeDotsIcon:focus-visible{
+  outline: 2px solid var(--k-focus, #4dc9ff);
+  outline-offset: 2px;
+}
 
 .activeDot{ background: var(--k-primary-800, #043a4f) !important; color: var(--k-bg-white, #fff) !important; }
 .activeDot:hover{ background: var(--k-primary-800, #043a4f) !important; color: var(--k-bg-white, #fff) !important; }
@@ -432,16 +437,142 @@ body.high-contrast-mode .dossier-rich-header .dossier-rich-header__title {
 
 /* ---------- Drag & Drop overlay ---------- */
 .docList.draggingOver{
-  border: 2px dashed var(--k-primary, #0977a5);
-  background: var(--k-primary-lighter, #e6f3fd);
+  outline: 3px dashed #4dc9ff;
+  outline-offset: -7px;
+  background: rgba(30, 136, 229, 0.12);
 }
 .drop-overlay{
   position: absolute; inset: 0;
-  background: rgba(9, 119, 165, 0.7);
+  min-height: 132px;
+  background: rgba(3, 43, 59, 0.88);
   color: var(--k-bg-white, #fff);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.2em; font-weight: bold;
-  z-index: 10; border-radius: var(--k-radius-md, 8px); pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  text-align: center;
+  font-size: 1.05rem; font-weight: 700;
+  z-index: 100; border-radius: var(--k-radius-md, 8px); pointer-events: none;
+  box-sizing: border-box;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.drop-overlay__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border: 2px solid #4dc9ff;
+  border-radius: 50%;
+  color: #4dc9ff;
+  font-size: 1.65rem;
+  line-height: 1;
+}
+.drop-overlay__hint {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.document-import-affordance {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  padding: 9px 12px;
+  border: 1px dashed rgba(77, 201, 255, 0.46);
+  border-radius: 9px;
+  background: rgba(77, 155, 255, 0.07);
+  color: #dbeafe;
+  box-sizing: border-box;
+}
+
+.document-import-affordance__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 50%;
+  background: rgba(77, 201, 255, 0.13);
+  color: #4dc9ff;
+  font-size: 1.15rem;
+}
+
+.document-import-affordance__copy {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.25;
+}
+
+.document-import-affordance__copy strong {
+  color: #f8fbff;
+  font-size: 0.82rem;
+}
+
+.document-import-affordance__copy span {
+  color: rgba(219, 234, 254, 0.66);
+  font-size: 0.69rem;
+}
+
+.document-import-affordance__button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid rgba(77, 201, 255, 0.5);
+  border-radius: 7px;
+  background: rgba(9, 119, 165, 0.34);
+  color: #fff;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.document-import-affordance__button:hover:not(:disabled),
+.document-import-affordance__button:focus-visible {
+  background: rgba(9, 119, 165, 0.62);
+  outline: 2px solid #4dc9ff;
+  outline-offset: 2px;
+}
+
+.document-import-affordance__button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.document-import-affordance__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 520px) {
+  .document-import-affordance {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 10px;
+  }
+
+  .document-import-affordance__copy {
+    flex-basis: calc(100% - 44px);
+  }
+
+  .document-import-affordance__button {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 /* ---------- Messages d'état ---------- */
@@ -499,8 +630,18 @@ body.high-contrast-mode .dossier-rich-header .dossier-rich-header__title {
   position: absolute;
   top: calc(100% - 2px);
   right: -8px;
-  width: 110px;
-  padding: 7px 10px;
+  width: min(290px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--k-primary, #0977a5) transparent;
+  box-sizing: border-box;
+  padding: 8px;
   border-radius: var(--k-radius-md, 8px);
   background: var(--k-primary-light, #cfe8fc);
   box-shadow: var(--k-shadow-sm, 0 2px 4px rgba(0, 0, 0, .3));
@@ -508,18 +649,29 @@ body.high-contrast-mode .dossier-rich-header .dossier-rich-header__title {
   display: flex;
   flex-direction: column;
   gap: var(--k-space-1, 4px);
-  align-items: flex-start;
+  align-items: stretch;
 }
 .miniModal.flipUp{ top: auto; bottom: calc(100% - 2px); }
 
 /* Portal miniModal — positionné en fixed via JS, échappe au clipping overflow */
 .miniModal-portal {
   z-index: 100000;
+  right: auto;
+  bottom: auto;
+  transform: none;
+}
+.miniModal::-webkit-scrollbar { width: 8px; }
+.miniModal::-webkit-scrollbar-thumb {
+  background: var(--k-primary, #0977a5);
+  border: 2px solid transparent;
+  border-radius: var(--k-radius-full, 9999px);
+  background-clip: padding-box;
 }
 
 .actionBtn {
   cursor: pointer;
-  padding: 3px;
+  min-height: 34px;
+  padding: 7px 9px;
   border-radius: var(--k-radius-sm, 4px);
   font-size: var(--k-font-size-sm, 0.8125rem);
   display: flex;
@@ -530,6 +682,8 @@ body.high-contrast-mode .dossier-rich-header .dossier-rich-header__title {
   width: 100%;
   box-sizing: border-box;
   text-align: left;
+  white-space: nowrap;
+  overflow: visible;
   transition: background-color var(--k-transition-fast, 0.15s),
               color var(--k-transition-fast, 0.15s);
 }
@@ -537,6 +691,13 @@ body.high-contrast-mode .dossier-rich-header .dossier-rich-header__title {
 .actionBtn:hover{
   background: var(--k-primary-800, #043a4f);
   color: var(--k-bg-white, #fff);
+}
+.actionBtn:focus-visible,
+.miniModal .colorOptionHeader:focus-visible {
+  outline: 2px solid var(--k-focus, #0977a5);
+  outline-offset: -2px;
+  background: var(--k-primary-100, #b3dde9);
+  color: var(--k-primary-900, #032b3b);
 }
 
 /* ----- Icônes d'action dans la mini‑modale ----- */
@@ -2391,7 +2552,7 @@ button.agenda-dossier-add-btn img { width: 24px; height: 25px; cursor: pointer; 
 /* --- Ligne de document enrichie --- */
 .dossier-v2__main .docListItem.doc-row {
   display: grid;
-  grid-template-columns: 36px minmax(0, 2fr) minmax(180px, 1fr) auto auto;
+  grid-template-columns: 36px minmax(0, 2fr) minmax(160px, 1fr) auto auto auto;
   align-items: center;
   gap: 14px;
   padding: 10px 12px;
@@ -2522,6 +2683,51 @@ button.agenda-dossier-add-btn img { width: 24px; height: 25px; cursor: pointer; 
   color: #fff !important;
 }
 
+.miniModal .colorOptionContainer,
+.miniModal .colorOptionHeader,
+.miniModal .color-palette-label {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.miniModal .colorOptionHeader {
+  min-height: 34px;
+  padding: 7px 9px;
+}
+
+.miniModal .color-palette-label {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2, 8px);
+  white-space: nowrap;
+}
+
+.doc-row__open-controls {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid rgba(77, 155, 255, 0.65);
+  border-radius: 7px;
+  overflow: hidden;
+  background: rgba(42, 95, 176, 0.24);
+}
+
+.doc-row__open-controls button {
+  border: 0;
+  background: transparent;
+  color: #dbeafe;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.doc-row__open-main { padding: 8px 9px; }
+.doc-row__open-more { padding: 6px 7px; border-left: 1px solid rgba(77, 155, 255, 0.4) !important; }
+.doc-row__open-controls button:hover { background: rgba(77, 155, 255, 0.28); color: #fff; }
+.doc-row__open-controls button:disabled { opacity: 0.45; cursor: not-allowed; }
+.actionIcon--text { display:inline-flex; justify-content:center; align-items:center; font-size:1rem; }
+
 /* Sous-dossiers : conserver fond clair existant pour distinction */
 .dossier-v2__main .docListItem.is-subfolder {
   width: 100%;
@@ -2551,15 +2757,16 @@ button.agenda-dossier-add-btn img { width: 24px; height: 25px; cursor: pointer; 
 /* En mobile : la date passe sous le titre */
 @media (max-width: 760px) {
   .dossier-v2__main .docListItem.doc-row {
-    grid-template-columns: 36px minmax(0, 1fr) auto auto;
+    grid-template-columns: 36px minmax(0, 1fr) auto auto auto;
     grid-template-areas:
-      "badge title  threedots download"
-      "badge date   date      date";
+      "badge title  open      threedots download"
+      "badge date   date      date      date";
     row-gap: 6px;
   }
   .doc-row__badge { grid-area: badge; }
   .doc-row__main { grid-area: title; }
   .doc-row__date { grid-area: date; justify-content: flex-start; }
+  .doc-row__open-controls { grid-area: open; }
   .dossier-v2__main .docListItem.doc-row .threeDotsIcon { grid-area: threedots; }
   .dossier-v2__main .docListItem.doc-row .download-doc-btn { grid-area: download; }
 }
@@ -3259,5 +3466,99 @@ button.agenda-dossier-add-btn img { width: 24px; height: 25px; cursor: pointer; 
   }
   .dossier-next-deadline__day {
     font-size: 1.1rem;
+  }
+}
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+/* Modale generique (.modalContainer / .modal-content) : en desktop elle fait
+   width:70% + margin-left:10% (donc decalee et large). Sur mobile ce
+   margin-left:10% la pousse hors centre et peut deborder. On la borne au
+   viewport et on neutralise le decalage (re-centre par auto/auto). L'overlay
+   parent centre deja en flex, donc auto suffit. */
+@media (max-width: 768px) {
+  .modalContainer,
+  .modal-content {
+    width: min(70%, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px);
+    max-height: 90vh;
+    overflow-y: auto;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  /* .modal-content redeclare width:70% (ligne ~479), on la borne aussi. */
+  .modal-content {
+    height: auto;
+  }
+  /* Bouton fermer : garde son ancrage top/right correct sur petit ecran. */
+  .modal-content .close-button {
+    right: 8px;
+    left: auto;
+    top: 8px;
+  }
+}
+
+/* Liste de documents (chemin legacy .docList hors dossier-v2) : rester
+   pleine largeur et scrollable, aucun debordement horizontal. Le V2
+   (.dossier-v2__main .docList) reste inchange (width:100% deja). */
+@media (max-width: 600px) {
+  .docList {
+    width: 100%;
+    margin: 8px 0;
+    padding: 3px;
+    max-width: 100%;
+  }
+  /* Elements de parties/contacts du panneau legacy : passent en pleine
+     largeur (etaient a 70%) pour rester lisibles et cliquables au doigt. */
+  .avocatItem,
+  .linkedContactItem,
+  .avocatItemContre,
+  .linkedContactItemContre {
+    width: 100% !important;
+    max-width: 100%;
+  }
+  /* Recherche de modeles legacy : eviter la troncature a 60%/40%. */
+  .inputSearchTemplate {
+    width: 100%;
+  }
+  .listeTemplateDoc {
+    width: min(90%, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+  }
+}
+.dossier-ai-drawer {
+  background: rgba(8, 20, 38, 0.28);
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  left: 0;
+  pointer-events: none;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 17000;
+}
+
+.dossier-ai-drawer > .kheops-ai-panel {
+  height: 100%;
+  pointer-events: auto;
+  position: relative;
+}
+
+.dossier-ai-launcher {
+  align-items: center;
+  background: linear-gradient(135deg, #17365d, #0f6b78) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  color: #fff;
+  display: inline-flex !important;
+  font-size: 0.68rem;
+  font-weight: 800;
+  justify-content: center;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 767px), (min-resolution: 1.8dppx) and (max-width: 1100px) {
+  .dossier-ai-drawer > .kheops-ai-panel {
+    min-width: 0;
+    width: 100%;
   }
 }

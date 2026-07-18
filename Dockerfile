@@ -20,6 +20,16 @@ FROM node:20-slim
 WORKDIR /app/server
 ENV NODE_ENV=production
 
+# Conversion isolée des anciens fichiers Word binaires (.doc) vers OOXML.
+# --no-install-recommends limite l'image ; les deux familles de polices couvrent
+# les substitutions métriques courantes sans installer une suite bureautique UI.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      libreoffice-writer \
+      fonts-liberation2 \
+      fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
 # node_modules (depuis l'étape deps) + code serveur (sans node_modules, exclu
 # via .gcloudignore) + build frontend (servi par le serveur).
 COPY --from=deps /app/server/node_modules ./node_modules

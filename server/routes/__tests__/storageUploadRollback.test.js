@@ -16,11 +16,13 @@ function loadUpload({ saveImpl, reserveImpl } = {}) {
   class QuotaExceededError extends Error { constructor() { super('q'); this.statusCode = 413; this.code = 'QUOTA_EXCEEDED'; } }
 
   const save = jest.fn(saveImpl || (() => Promise.resolve()));
+  const createdDocuments = [];
 
   jest.doMock('../../middlewares/middleware-auth', () => (req, res, next) => next());
   jest.doMock('../../middlewares/requireTenant', () => (req, res, next) => next());
   jest.doMock('../../utils/ownershipHelpers', () => ({ ensureDossierOwnership: jest.fn().mockResolvedValue(true) }));
   jest.doMock('../../models/Storage/StoredDocument', () => function StoredDocument(data) {
+    createdDocuments.push(data);
     Object.assign(this, data);
     this._id = new mongoose.Types.ObjectId();
     this.save = save;
@@ -28,6 +30,10 @@ function loadUpload({ saveImpl, reserveImpl } = {}) {
   });
   jest.doMock('../../services/storage', () => ({
     getStorageProvider: jest.fn().mockResolvedValue(provider),
+    // Volet B : la route upload resout le provider PAR UTILISATEUR via
+    // getUploadProvider (et non plus getStorageProvider seul).
+    getUploadProvider: jest.fn().mockResolvedValue(provider),
+    getProviderForStorageKey: jest.fn().mockResolvedValue(provider),
     resolveTenantId: jest.fn(() => new mongoose.Types.ObjectId()),
     selectStorageProvider: jest.fn(),
     toTenantObjectId: jest.fn(() => new mongoose.Types.ObjectId()),
@@ -38,7 +44,7 @@ function loadUpload({ saveImpl, reserveImpl } = {}) {
   const router = require('../storage');
   const layer = router.stack.find((l) => l.route?.path === '/documents/upload' && l.route.methods.post);
   const handler = layer.route.stack[layer.route.stack.length - 1].handle;
-  return { handler, uploadVersion, deleteVersion, reserveQuota, releaseQuota, getUsage, save };
+  return { handler, uploadVersion, deleteVersion, reserveQuota, releaseQuota, getUsage, save, createdDocuments };
 }
 
 function fakeReqRes() {
@@ -58,7 +64,7 @@ function fakeReqRes() {
 }
 
 test('succès : réserve le quota, upload, sauvegarde, pas de rollback', async () => {
-  const { handler, uploadVersion, deleteVersion, reserveQuota, releaseQuota } = loadUpload();
+  const { handler, uploadVersion, deleteVersion, reserveQuota, releaseQuota, createdDocuments } = loadUpload();
   const { req, res } = fakeReqRes();
   await handler(req, res);
   expect(reserveQuota).toHaveBeenCalledTimes(1);
@@ -67,6 +73,10 @@ test('succès : réserve le quota, upload, sauvegarde, pas de rollback', async (
   expect(res.status).toHaveBeenCalledWith(201);
   expect(deleteVersion).not.toHaveBeenCalled();
   expect(releaseQuota).not.toHaveBeenCalled();
+  expect(createdDocuments[0].versions[0]).toEqual(expect.objectContaining({
+    editor: 'upload',
+    origin: 'upload',
+  }));
 });
 
 test('🔒 échec de save APRÈS upload → rollback : blob supprimé ET quota libéré', async () => {

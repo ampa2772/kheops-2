@@ -603,3 +603,36 @@
     display: none; /* texte d'aide masqué sur mobile */
   }
 }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Board dark POUR/CONTRE : grille 3 col -> 1 col (couvre 720-768) */
+  .k-parties-dark .liste_selected_parties {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  /* Séparateur central "vs" recentré entre les deux panneaux empilés */
+  .k-parties-dark .k-parties-vs {
+    margin: 0 auto;
+  }
+
+  /* Footer de carte : autorise le passage à la ligne des actions */
+  .k-parties-dark .partie-card__footer {
+    flex-wrap: wrap;
+  }
+
+  /* Champ recherche : padding réduit */
+  .k-parties-dark .container_form_nom_partie {
+    padding: 0.7rem 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Petit téléphone : panneaux moins hauts, paddings réduits */
+  .k-parties-dark .parties_pour,
+  .k-parties-dark .parties_contre {
+    padding: 0.7rem 0.75rem;
+    min-height: 120px;
+  }
+}

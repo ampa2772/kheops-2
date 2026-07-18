@@ -17,8 +17,24 @@
 //
 // Clefs supportees :
 //   - apiUrl : URL de base de l'API backend (axios baseURL + OAuth + socket).
+//   - companionInstallerUrlWindows : installateur .exe du compagnon Windows.
+//   - companionInstallerUrlMacos : installateur .dmg/.pkg du compagnon macOS.
+//     Sans URL macOS explicite, l'interface affiche un repli clair et ne
+//     propose jamais l'ancien .exe Windows.
+//   - features : drapeaux d'activation réversibles. Exemple :
+//       { aiAssistant: true, responsiveEditor: true,
+//         relationGraph: true, documentSyncV2: true, officeEngine: true }
 // =============================================================================
 window.__KHEOPS_CONFIG__ = window.__KHEOPS_CONFIG__ || {};
+(function () {
+  window.__KHEOPS_CONFIG__.features = window.__KHEOPS_CONFIG__.features || {
+    aiAssistant: true,
+    responsiveEditor: true,
+    relationGraph: true,
+    documentSyncV2: true,
+    officeEngine: true,
+  };
+})();
 (function () {
   try {
     var loc = (typeof window !== 'undefined' && window.location) || {};

@@ -80,14 +80,9 @@
 
 .profession-modal {
   position: relative;
-  background:
-    linear-gradient(170deg,
-      rgba(14, 165, 209, 0.95) 0%,
-      rgba(11, 126, 166, 0.97) 18%,
-      rgba(7, 109, 144, 0.98) 40%,
-      rgba(5, 90, 120, 0.98) 65%,
-      rgba(4, 58, 79, 0.99) 100%
-    );
+  /* Navy aligné sur le thème sombre k-contact-dark (la modale est montée
+     par createPortal, donc hors du scope de createContactDark.css). */
+  background: linear-gradient(170deg, #13294a 0%, #0d2138 55%, #0a1828 100%);
   border-radius: 20px;
   border: 1px solid rgba(138, 180, 248, 0.2);
   box-shadow:
@@ -232,8 +227,8 @@
   padding: 12px 16px;
   border: 1.5px solid rgba(138, 180, 248, 0.2);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.97);
-  color: #1a2a3a;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8f1fb;
   font-size: 0.8125rem;
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -252,7 +247,7 @@
 .profession-modal-search:focus {
   outline: none;
   border-color: #8ab4f8;
-  background: linear-gradient(180deg, #f4f9ff 0%, #fff 100%);
+  background: rgba(255, 255, 255, 0.12);
   box-shadow:
     0 0 0 3px rgba(138, 180, 248, 0.2),
     0 0 24px rgba(14, 165, 209, 0.12),
@@ -261,7 +256,7 @@
 }
 
 .profession-modal-search::placeholder {
-  color: #8896a4;
+  color: rgba(255, 255, 255, 0.45);
   font-weight: 400;
   letter-spacing: 0.01em;
 }

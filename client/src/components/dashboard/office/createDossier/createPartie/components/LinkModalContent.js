@@ -12,7 +12,7 @@
    =======================================================================*/
 
 // Nouveau code
-import React from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import LinkedAvocatItem from '../LinkedAvocatItem';
 import LinkedContactItem from '../LinkedContactItem';
@@ -21,6 +21,13 @@ import ajoutPartie from '../../../../../../assets/icone-plus.svg';
 import { formatContact, getInitials } from '../fonctions';
 import { resetFindContact } from '../../../../../../redux/slices/findContactSlice';
 import HoverToSpeak from '../../../../../common/HoverToSpeak';
+import {
+  getContactMeta,
+  getContactTypeLabel,
+  getEntityId,
+  isLawyerContact,
+  withLawyerRoles,
+} from '../../../../../../utils/partyLinking';
 import '../linkModalDark.css';
 
 // Helper rc70 : surligne la portion du texte qui matche le terme tapé.
@@ -52,16 +59,16 @@ const highlightMatch = (text, term) => {
  */
 const SIDE_CONFIG = {
   Pour: {
-    titleAvocats: 'Avocats liés à toutes les parties "Pour"',
-    titleContacts: 'Contacts liés à toutes les parties "Pour"',
-    addLabel: 'Ajouter un contact lié à toutes les parties "Pour"',
+    titleAvocats: 'Avocats',
+    titleContacts: 'Autres personnes liées',
+    addLabel: 'Ajouter une personne liée à toutes les parties « Pour »',
     groupType: 'Pour',
     suggestionKey: 'Pour',           // utilisé dans renderSuggestionList
   },
   Contre: {
-    titleAvocats: 'Avocats liés à toutes les parties "Contre"',
-    titleContacts: 'Contacts liés à toutes les parties "Contre"',
-    addLabel: 'Ajouter un contact lié à toutes les parties "Contre"',
+    titleAvocats: 'Avocats',
+    titleContacts: 'Autres personnes liées',
+    addLabel: 'Ajouter une personne liée à toutes les parties « Contre »',
     groupType: 'Contre',
     suggestionKey: 'Contre',
   },
@@ -75,12 +82,12 @@ const SIDE_CONFIG = {
  *  AvocatsSection
  *  Affiche la liste des avocats + titre conditionnel.
  */
-const AvocatsSection = ({ title, list, modalData, onDelete, mode }) => (
-  list.length > 0 && (
-    <>
-      <HoverToSpeak textToSpeak={`Section: ${title}, ${list.length} avocat${list.length > 1 ? 's' : ''}`}>
-        <div className="listeAvocats">{title}</div>
-      </HoverToSpeak>
+const AvocatsSection = ({ title, list, modalData, onDelete, mode, groupContextType = null }) => (
+  <>
+    <HoverToSpeak textToSpeak={`Section: ${title}, ${list.length} avocat${list.length > 1 ? 's' : ''}`}>
+      <div className="listeAvocats">{title}</div>
+    </HoverToSpeak>
+    {list.length > 0 ? (
       <div className="linkedContactsList">
         {list.map((avocat) => (
           <LinkedAvocatItem
@@ -89,11 +96,14 @@ const AvocatsSection = ({ title, list, modalData, onDelete, mode }) => (
             modalData={modalData}
             handleSupprAvocatLinked={onDelete}
             mode={mode}
+            groupContextType={groupContextType}
           />
         ))}
       </div>
-    </>
-  )
+    ) : (
+      <p className="k-linked-empty-state">Aucun avocat lié.</p>
+    )}
+  </>
 );
 
 /**
@@ -101,12 +111,19 @@ const AvocatsSection = ({ title, list, modalData, onDelete, mode }) => (
  *  Rend la liste des contacts déjà liés (ordre inverse) + titre.
  */
 // Nouveau code
-const ContactsDejaLiesSection = ({ title, list, onDelete, groupContextType }) => (
-  list.length > 0 && (
-    <div className="contacts_deja_lies">
-      <HoverToSpeak textToSpeak={`Section: ${title}, ${list.length} contact${list.length > 1 ? 's' : ''}`}>
-        <div>{title}</div>
-      </HoverToSpeak>
+const ContactsDejaLiesSection = ({
+  title,
+  list = [],
+  onDelete,
+  groupContextType,
+  mode,
+  partieId = null,
+}) => (
+  <div className="contacts_deja_lies">
+    <HoverToSpeak textToSpeak={`Section: ${title}, ${list.length} contact${list.length > 1 ? 's' : ''}`}>
+      <div>{title}</div>
+    </HoverToSpeak>
+    {list.length > 0 ? (
       <div className="linkedContactsList">
         {list
           .slice()
@@ -117,12 +134,31 @@ const ContactsDejaLiesSection = ({ title, list, onDelete, groupContextType }) =>
               contact={contact}
               handleDeleteLinkedContact={onDelete} // Pour les modes 'allPour' / 'allContre'
               groupContextType={groupContextType} // Passer le contexte du groupe
+              mode={mode}
+              partieId={partieId}
             />
           ))}
       </div>
-    </div>
-  )
+    ) : (
+      <p className="k-linked-empty-state">Aucune autre personne liée.</p>
+    )}
+  </div>
 );
+
+const ActionFeedback = ({ feedback, searching }) => {
+  if (searching) {
+    return <div className="k-link-action-feedback is-loading" role="status">Recherche en cours…</div>;
+  }
+  if (!feedback?.message) return null;
+  return (
+    <div
+      className={`k-link-action-feedback is-${feedback.state || 'info'}`}
+      role={feedback.state === 'error' ? 'alert' : 'status'}
+    >
+      {feedback.message}
+    </div>
+  );
+};
 
 /**
  *  PartiesSummary
@@ -147,13 +183,12 @@ const PartiesSummary = ({ pourParties, contreParties, activeSide, onSwitchSide }
 
     return (
       <HoverToSpeak textToSpeak={isActive ? `Ajout actif: ${label}` : `Cliquez pour ajouter aux parties ${label}`}>
-        <div
+        <button
+          type="button"
           className={`parties-summary__section ${sideClass} ${activeClass}`}
           onClick={() => onSwitchSide && onSwitchSide(side)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && onSwitchSide && onSwitchSide(side)}
           title={isActive ? `Ajout actif : ${label}` : `Cliquer pour ajouter aux parties ${label}`}
+          aria-pressed={isActive}
         >
           <div className="parties-summary__section-header">
             <div className="parties-summary__section-title">{label}</div>
@@ -200,7 +235,7 @@ const PartiesSummary = ({ pourParties, contreParties, activeSide, onSwitchSide }
               </HoverToSpeak>
             );
           })}
-        </div>
+        </button>
       </HoverToSpeak>
     );
   };
@@ -227,9 +262,15 @@ const InputWithCreate = ({
   value,
   onChange,
   onFocus,
+  onKeyDown,
   inputClassName,
+  inputId,
+  listboxId,
+  isExpanded,
+  activeDescendantId,
   renderCreateButton,
   suggestionList,
+  rolePicker,
 }) => (
   <div className="inputWithCreerPartie">
     <input
@@ -238,13 +279,62 @@ const InputWithCreate = ({
       value={value}
       onChange={onChange}
       onFocus={onFocus}
+      onKeyDown={onKeyDown}
+      placeholder="Rechercher une personne dans le carnet de contacts"
+      aria-label="Rechercher une personne dans le carnet de contacts"
+      autoComplete="off"
+      id={inputId}
+      role="combobox"
+      aria-haspopup="listbox"
+      aria-autocomplete="list"
+      aria-expanded={isExpanded}
+      aria-controls={listboxId}
+      aria-activedescendant={isExpanded && activeDescendantId ? activeDescendantId : undefined}
     />
 
     {renderCreateButton()}
 
     {suggestionList}
+    {rolePicker}
   </div>
 );
+
+const LawyerRolePicker = ({ lawyer, roles, onToggle, onConfirm, onCancel }) => {
+  if (!lawyer) return null;
+  const label = formatContact(lawyer);
+  const hasRole = roles.isPlaidant || roles.isPostulant;
+  return (
+    <section className="k-lawyer-role-picker" aria-labelledby="lawyer-role-picker-title">
+      <div>
+        <h3 id="lawyer-role-picker-title">Rôle de Maître {label}</h3>
+        <p>Choisissez au moins un rôle. Les deux rôles peuvent être cumulés.</p>
+      </div>
+      <div className="k-lawyer-role-picker__choices">
+        <button
+          type="button"
+          className={roles.isPlaidant ? 'is-selected' : ''}
+          aria-pressed={roles.isPlaidant}
+          onClick={() => onToggle('isPlaidant')}
+        >
+          Plaidant
+        </button>
+        <button
+          type="button"
+          className={roles.isPostulant ? 'is-selected' : ''}
+          aria-pressed={roles.isPostulant}
+          onClick={() => onToggle('isPostulant')}
+        >
+          Postulant
+        </button>
+      </div>
+      {!hasRole && <p className="k-lawyer-role-picker__error" role="alert">Sélectionnez au moins un rôle.</p>}
+      <div className="k-lawyer-role-picker__actions">
+        <button type="button" className="secondary" onClick={onCancel}>Annuler</button>
+        <button type="button" className="primary" onClick={onConfirm} disabled={!hasRole}>Lier l’avocat</button>
+      </div>
+    </section>
+  );
+};
 
 /* -----------------------------------------------------------------------
  *  COMPOSANT PRINCIPAL
@@ -262,12 +352,6 @@ const LinkModalContent = ({ ctx }) => {
     sortedLinkedAvocats, // Dérivé de modalData.linkedAvocats
     // linkedContactsAllPour, // Ces valeurs initiales ne sont plus utilisées directement pour l'affichage des listes de groupe
     // linkedContactsAllContre,
-
-    /* ids pour les filtres */
-    linkedContactsPourIds,
-    linkedContactsContreIds,
-    linkedAvocatsPourIds,
-    linkedAvocatsContreIds,
 
     /* tableaux de parties (pour divers filtres) */
     pourParties,
@@ -302,7 +386,81 @@ const LinkModalContent = ({ ctx }) => {
 
     /* switch de côté Pour <-> Contre */
     switchToSide,
+    loadingContactsLinkPartie = false,
+    linkActionFeedback,
   } = ctx;
+
+  const [pendingLawyer, setPendingLawyer] = useState(null);
+  const [pendingRoles, setPendingRoles] = useState({
+    isPlaidant: false,
+    isPostulant: false,
+  });
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const pendingTargetRef = useRef(null);
+  const reactComboboxId = useId();
+  const comboboxIdBase = `linked-person-${reactComboboxId.replace(/:/g, '')}`;
+  const activeTargetKey = `${modalType}:${modalData?.idPartie || ''}`;
+
+  // Un choix d'avocat et ses rôles appartiennent strictement à la cible qui
+  // était active au moment de la sélection. Lorsqu'on change de partie ou de
+  // côté, on purge ce brouillon afin qu'une confirmation tardive ne rattache
+  // jamais l'avocat à une autre cible.
+  useEffect(() => {
+    pendingTargetRef.current = null;
+    setPendingLawyer(null);
+    setPendingRoles({ isPlaidant: false, isPostulant: false });
+    setActiveSuggestionIndex(-1);
+  }, [activeTargetKey]);
+
+  useEffect(() => {
+    setActiveSuggestionIndex(-1);
+  }, [searchTermLinkAllPour, searchTermLinkAllContre, searchTermLinkPartie]);
+
+  const resetPendingLawyer = () => {
+    pendingTargetRef.current = null;
+    setPendingLawyer(null);
+    setPendingRoles({ isPlaidant: false, isPostulant: false });
+  };
+
+  const startLinkingContact = (contact) => {
+    if (!isLawyerContact(contact)) {
+      handleContactClickLinkPartie(contact);
+      return;
+    }
+    pendingTargetRef.current = activeTargetKey;
+    setPendingLawyer(contact);
+    // Les rôles qualifient le lien avec cette partie, pas la fiche du carnet.
+    setPendingRoles({ isPlaidant: false, isPostulant: false });
+  };
+
+  const confirmLawyerLink = () => {
+    if (!pendingLawyer || (!pendingRoles.isPlaidant && !pendingRoles.isPostulant)) return;
+    if (pendingTargetRef.current !== activeTargetKey) {
+      resetPendingLawyer();
+      return;
+    }
+    handleContactClickLinkPartie(withLawyerRoles(pendingLawyer, pendingRoles));
+    resetPendingLawyer();
+  };
+
+  const rolePicker = (
+    <LawyerRolePicker
+      lawyer={pendingLawyer}
+      roles={pendingRoles}
+      onToggle={(role) => setPendingRoles((current) => ({ ...current, [role]: !current[role] }))}
+      onConfirm={confirmLawyerLink}
+      onCancel={resetPendingLawyer}
+    />
+  );
+
+  const uniqueSearchContacts = useMemo(() => {
+    const byId = new Map();
+    (allContactsLinkPartie || []).forEach((contact) => {
+      const id = getEntityId(contact);
+      if (id && !byId.has(id)) byId.set(id, contact);
+    });
+    return Array.from(byId.values());
+  }, [allContactsLinkPartie]);
 
   /* -------------------------------------------------------------------
    *  FONCTIONS UTILITAIRES PARTAGÉES
@@ -316,9 +474,12 @@ const LinkModalContent = ({ ctx }) => {
    */
   // Nouveau code
   const renderCreerContactButton = (configSpecificToCallSite) => (
-    <div
+    <button
+      type="button"
       className="CreerContactLinkPartie"
       ref={creerContactLinkPartieRef}
+      aria-label="Créer une nouvelle personne liée"
+      title="Créer une nouvelle personne liée"
       onClick={(e) => {
         e.stopPropagation();
         setShowContacts(false);
@@ -345,8 +506,8 @@ const LinkModalContent = ({ ctx }) => {
         });
       }}
     >
-      <img src={ajoutPartie} alt="Ajouter" className="k-icon-sm" />
-    </div>
+      <img src={ajoutPartie} alt="" aria-hidden="true" className="k-icon-sm" />
+    </button>
   );
 
   /**
@@ -354,52 +515,87 @@ const LinkModalContent = ({ ctx }) => {
    *  (copié/porté tel quel – logique métier intacte)
    */
   const commonFilters = (contact, side) => {
-    const isAlreadyAPartie = parties.some((p) => p.idPartie === contact._id);
+    const contactId = getEntityId(contact);
+    if (!contactId) return false;
+    const isAlreadyAPartie = parties.some((p) => getEntityId(p) === contactId);
     if (isAlreadyAPartie) return false;
 
-    if (side === 'Pour') {
-      const isLinkedToContre =
-        linkedContactsContreIds.includes(contact._id) ||
-        linkedAvocatsContreIds.includes(contact._id);
-      if (isLinkedToContre) return false;
+    const targetParties = side === 'Pour'
+      ? pourParties
+      : side === 'Contre'
+        ? contreParties
+        : modalData
+          ? [modalData]
+          : [];
 
-      const isLinkedToAllPour = pourParties.every(
-        (partie) =>
-          (partie.linkedContacts || []).some((c) => c._id === contact._id) ||
-          (partie.linkedAvocats || []).some((a) => a._id === contact._id)
-      );
-      return !isLinkedToAllPour;
+    if (targetParties.length === 0) return false;
+    // Un contact utilisé dans une autre partie ou dans l'autre colonne reste
+    // éligible. En mode groupe, il suffit qu'il manque à une partie cible.
+    return targetParties.some((partie) => {
+      const linked = [
+        ...(partie.linkedContacts || []),
+        ...(partie.linkedAvocats || []),
+      ];
+      return !linked.some((item) => getEntityId(item) === contactId);
+    });
+  };
+
+  const getFilteredSuggestions = (side) => uniqueSearchContacts.filter(
+    (contact) => commonFilters(contact, side),
+  );
+
+  const getListboxId = (side) => `${comboboxIdBase}-${String(side).toLowerCase()}-listbox`;
+  const getOptionId = (side, contact, index) => (
+    `${getListboxId(side)}-option-${getEntityId(contact) || index}`
+  );
+
+  const selectSuggestion = (contact) => {
+    startLinkingContact(contact);
+    if (activeSuggestionIndex !== -1) {
+      setActiveSuggestionIndex(-1);
+    }
+    setShowContacts(false);
+  };
+
+  const handleComboboxChange = (event) => {
+    setActiveSuggestionIndex(-1);
+    handleSearchChangeLinkPartie(event);
+  };
+
+  const handleComboboxKeyDown = (event, side) => {
+    const filtered = getFilteredSuggestions(side);
+    const isOpen = showContacts && filtered.length > 0;
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (filtered.length === 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (!showContacts) setShowContacts(true);
+      setActiveSuggestionIndex((current) => {
+        if (event.key === 'ArrowDown') {
+          return current < filtered.length - 1 ? current + 1 : 0;
+        }
+        return current > 0 ? current - 1 : filtered.length - 1;
+      });
+      return;
     }
 
-    if (side === 'Contre') {
-      const isLinkedToPour =
-        linkedContactsPourIds.includes(contact._id) ||
-        linkedAvocatsPourIds.includes(contact._id);
-      if (isLinkedToPour) return false;
-
-      const isLinkedToAllContre = contreParties.every(
-        (partie) =>
-          (partie.linkedContacts || []).some((c) => c._id === contact._id) ||
-          (partie.linkedAvocats || []).some((a) => a._id === contact._id)
-      );
-      return !isLinkedToAllContre;
+    if (event.key === 'Enter' && isOpen && activeSuggestionIndex >= 0) {
+      const selected = filtered[activeSuggestionIndex];
+      if (!selected) return;
+      event.preventDefault();
+      event.stopPropagation();
+      selectSuggestion(selected);
+      return;
     }
 
-    /* single */
-    const isOpposite =
-      (modalData.typePartie === 'Pour' &&
-        (linkedContactsContreIds.includes(contact._id) ||
-          linkedAvocatsContreIds.includes(contact._id))) ||
-      (modalData.typePartie === 'Contre' &&
-        (linkedContactsPourIds.includes(contact._id) ||
-          linkedAvocatsPourIds.includes(contact._id)));
-
-    if (isOpposite) return false;
-
-    const isAlreadyLinked =
-      (modalData.linkedContacts || []).some((c) => c._id === contact._id) ||
-      (modalData.linkedAvocats || []).some((a) => a._id === contact._id);
-    return !isAlreadyLinked;
+    if (event.key === 'Escape' && (showContacts || pendingLawyer)) {
+      event.preventDefault();
+      event.stopPropagation();
+      setShowContacts(false);
+      setActiveSuggestionIndex(-1);
+      resetPendingLawyer();
+    }
   };
 
   /**
@@ -408,11 +604,10 @@ const LinkModalContent = ({ ctx }) => {
    *  - Chaque item : badge initiales + nom avec lettre tapée surlignée
    *  - Scroll interne uniquement si > 5 items (CSS max-height)
    */
-  const renderSuggestionList = (side) => {
-    if (!showContacts || allContactsLinkPartie.length === 0) return null;
+  const renderSuggestionList = (side, filtered = getFilteredSuggestions(side)) => {
+    if (!showContacts || filtered.length === 0) return null;
 
-    // Filtrer les contacts non encore liés
-    const filtered = allContactsLinkPartie.filter((contact) => commonFilters(contact, side));
+    const listboxId = getListboxId(side);
     if (filtered.length === 0) return null;
 
     // Terme de recherche utilisé selon le side (pour surligner et afficher dans header)
@@ -438,22 +633,41 @@ const LinkModalContent = ({ ctx }) => {
             {currentTerm ? ` POUR « ${currentTerm.toUpperCase()} »` : ''}
           </span>
         </div>
-        <div className="k-link-suggest-body">
-          {filtered.map((contact) => {
+        <div
+          className="k-link-suggest-body"
+          id={listboxId}
+          role="listbox"
+          aria-label="Personnes trouvées dans le carnet de contacts"
+        >
+          {filtered.map((contact, index) => {
             const label = formatContact(contact);
             const initials = getInitials(label);
+            const typeLabel = getContactTypeLabel(contact);
+            const metadata = getContactMeta(contact);
+            const isActive = index === activeSuggestionIndex;
             return (
-              <div
+              <button
+                type="button"
                 key={contact._id}
-                className="itemContact k-link-suggest-item"
+                id={getOptionId(side, contact, index)}
+                className={`itemContact k-link-suggest-item ${isActive ? 'is-active' : ''}`}
+                role="option"
+                aria-selected={isActive}
+                tabIndex={-1}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleContactClickLinkPartie(contact);
+                  selectSuggestion(contact);
                 }}
               >
                 <span className="k-link-suggest-avatar">{initials}</span>
-                <span className="k-link-suggest-name">{highlightMatch(label, currentTerm)}</span>
-              </div>
+                <span className="k-link-suggest-copy">
+                  <span className="k-link-suggest-name">{highlightMatch(label, currentTerm)}</span>
+                  {metadata.length > 0 && (
+                    <span className="k-link-suggest-meta">{metadata.join(' · ')}</span>
+                  )}
+                </span>
+                <span className="k-link-suggest-type">{typeLabel}</span>
+              </button>
             );
           })}
         </div>
@@ -466,6 +680,12 @@ const LinkModalContent = ({ ctx }) => {
    * ----------------------------------------------------------------- */
   const renderGroup = (side) => {
     const cfg = SIDE_CONFIG[side];
+    const filteredSuggestions = getFilteredSuggestions(cfg.suggestionKey);
+    const listboxId = getListboxId(cfg.suggestionKey);
+    const expanded = showContacts && filteredSuggestions.length > 0;
+    const activeContact = activeSuggestionIndex >= 0
+      ? filteredSuggestions[activeSuggestionIndex]
+      : null;
 
     // Utilisation de modalData.linkedContacts pour la liste des contacts affichée
     // C'est la source de données synchronisée pour la modale.
@@ -493,6 +713,11 @@ const LinkModalContent = ({ ctx }) => {
 
     return (
       <div className="titleAndInput">
+        <div className="k-linked-person-heading">
+          <span>Personnes liées</span>
+          <h2>À toutes les parties « {side} »</h2>
+        </div>
+        <ActionFeedback feedback={linkActionFeedback} searching={loadingContactsLinkPartie} />
         {/* Avocats */}
         <AvocatsSection
           title={cfg.titleAvocats}
@@ -500,6 +725,7 @@ const LinkModalContent = ({ ctx }) => {
           modalData={modalData}       // Passer modalData pour le contexte dans LinkedAvocatItem
           onDelete={handleSupprAvocatLinked}
           mode={ctx.mode}             // rc73 : mode explicite pour choix CREATE/EDIT du toggle
+          groupContextType={cfg.groupType}
         />
 
         {/* Contacts déjà liés */}
@@ -509,6 +735,7 @@ const LinkModalContent = ({ ctx }) => {
           list={contactsListForDisplay} // Utilisation de la liste synchronisée depuis modalData
           onDelete={handleSupprContactLinked}
           groupContextType={cfg.groupType} // Ajout du type de groupe ici
+          mode={ctx.mode}
         />
 
         {/* ── Récapitulatif des parties et contacts liés ── */}
@@ -521,17 +748,25 @@ const LinkModalContent = ({ ctx }) => {
 
         {/* Libellé "Ajouter…" */}
         <HoverToSpeak textToSpeak={cfg.addLabel}>
-          <div>{cfg.addLabel}</div>
+          <div className="k-linked-add-label">{cfg.addLabel}</div>
         </HoverToSpeak>
 
         {/* Input + bouton + suggestions */}
         <InputWithCreate
           value={inputValue}
-          onChange={handleSearchChangeLinkPartie}
+          onChange={handleComboboxChange}
           onFocus={handleInputFocusLinkPartie}
+          onKeyDown={(event) => handleComboboxKeyDown(event, cfg.suggestionKey)}
           inputClassName={inputLinkClasses}
+          inputId={`${comboboxIdBase}-${cfg.suggestionKey.toLowerCase()}-input`}
+          listboxId={listboxId}
+          isExpanded={expanded}
+          activeDescendantId={activeContact
+            ? getOptionId(cfg.suggestionKey, activeContact, activeSuggestionIndex)
+            : undefined}
           renderCreateButton={() => renderCreerContactButton(createButtonConfig)}
-          suggestionList={renderSuggestionList(cfg.suggestionKey)}
+          suggestionList={renderSuggestionList(cfg.suggestionKey, filteredSuggestions)}
+          rolePicker={rolePicker}
         />
       </div>
     );
@@ -552,52 +787,57 @@ const LinkModalContent = ({ ctx }) => {
   }
 
   /* ► SINGLE (branche conservée telle quelle - elle utilise déjà modalData.linkedContacts directement) */
+  const singleSuggestions = getFilteredSuggestions('single');
+  const singleListboxId = getListboxId('single');
+  const singleExpanded = showContacts && singleSuggestions.length > 0;
+  const singleActiveContact = activeSuggestionIndex >= 0
+    ? singleSuggestions[activeSuggestionIndex]
+    : null;
   return (
     <div className="titleAndInput">
+      <div className="k-linked-person-heading">
+        <span>Personnes liées à</span>
+        <h2>{modalData?.nomPartie ?? 'cette partie'}</h2>
+      </div>
+      <ActionFeedback feedback={linkActionFeedback} searching={loadingContactsLinkPartie} />
       {/* Avocats liés (single) */}
       <AvocatsSection
-        title="Avocats liés"
+        title="Avocats"
         list={sortedLinkedAvocats} // Dérivé de modalData.linkedAvocats
         modalData={modalData}
         onDelete={handleSupprAvocatLinked}
         mode={ctx.mode}             // rc73 : mode explicite pour choix CREATE/EDIT du toggle
       />
 
-      {/* Contacts déjà liés (single) */}
-      {modalData?.linkedContacts?.length > 0 && (
-        <div className="contacts_deja_lies">
-          <HoverToSpeak textToSpeak={`Section Contacts lies, ${modalData.linkedContacts.length} contact${modalData.linkedContacts.length > 1 ? 's' : ''}`}>
-            <div>Contacts liés :</div>
-          </HoverToSpeak>
-          <div className="linkedContactsList">
-            {modalData.linkedContacts // Utilise directement modalData.linkedContacts
-              .slice()
-              .reverse()
-              .map((contact) => (
-                <LinkedContactItem
-                  key={contact._id}
-                  contact={contact}
-                  partieId={modalData.idPartie} // Nécessaire pour la suppression en mode single
-                // handleDeleteLinkedContact n'est pas passé ici, LinkedContactItem gérera la suppression via partieId
-                />
-              ))}
-          </div>
-        </div>
-      )}
+      {/* Autres personnes déjà liées (single), y compris l'état vide. */}
+      <ContactsDejaLiesSection
+        title="Autres personnes liées"
+        list={modalData?.linkedContacts || []}
+        onDelete={handleSupprContactLinked}
+        partieId={modalData?.idPartie}
+        mode={ctx.mode}
+      />
 
       {/* Libellé "Ajouter…" (single) */}
-      <HoverToSpeak textToSpeak={`Ajouter un contact lie a ${modalData?.nomPartie ?? 'cette partie'}`}>
-        <div>
-          Ajouter un contact lié à {modalData?.nomPartie ?? 'cette partie'}
+      <HoverToSpeak textToSpeak={`Ajouter une personne liee a ${modalData?.nomPartie ?? 'cette partie'}`}>
+        <div className="k-linked-add-label">
+          Ajouter une personne liée à {modalData?.nomPartie ?? 'cette partie'}
         </div>
       </HoverToSpeak>
 
       {/* Input + bouton + suggestions (single) */}
       <InputWithCreate
         value={searchTermLinkPartie}
-        onChange={handleSearchChangeLinkPartie}
+        onChange={handleComboboxChange}
         onFocus={handleInputFocusLinkPartie}
+        onKeyDown={(event) => handleComboboxKeyDown(event, 'single')}
         inputClassName={inputLinkClasses}
+        inputId={`${comboboxIdBase}-single-input`}
+        listboxId={singleListboxId}
+        isExpanded={singleExpanded}
+        activeDescendantId={singleActiveContact
+          ? getOptionId('single', singleActiveContact, activeSuggestionIndex)
+          : undefined}
         renderCreateButton={() =>
           renderCreerContactButton({
             fromCreatePartieForPartie: {
@@ -614,7 +854,8 @@ const LinkModalContent = ({ ctx }) => {
             modificationInfo: { isModification: false, contactId: null },
           })
         }
-        suggestionList={renderSuggestionList('single')}
+        suggestionList={renderSuggestionList('single', singleSuggestions)}
+        rolePicker={rolePicker}
       />
     </div>
   );

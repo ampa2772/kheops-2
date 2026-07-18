@@ -3,7 +3,7 @@
 // Zone de saisie : textarea, bouton pièce jointe, bouton micro, bouton envoi.
 // Gère l'upload puis l'envoi du message via les thunks Redux.
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { prepareInlineAttachment } from '../../services/chatApi';
 import { sendMessageThunk } from '../../redux/slices/chatSlice';
@@ -21,6 +21,19 @@ const MessageInput = ({ recipientId, disabled }) => {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState(null);
     const fileInputRef = useRef(null);
+    const mountedRef = useRef(true);
+
+    useEffect(() => {
+        // React StrictMode rejoue setup/cleanup en développement : réarmer le
+        // drapeau à chaque montage réel/simulé avant de fournir le cleanup.
+        mountedRef.current = true;
+        return () => {
+            // Une préparation de PJ/voix peut finir après une bascule de profil.
+            // Le compositeur est alors démonté (clé profil+interlocuteur) : on
+            // abandonne l'envoi au lieu de l'attribuer au nouveau profil actif.
+            mountedRef.current = false;
+        };
+    }, []);
 
     async function sendText() {
         const t = (text || '').trim();
@@ -29,11 +42,13 @@ const MessageInput = ({ recipientId, disabled }) => {
         setError(null);
         try {
             await dispatch(sendMessageThunk({ recipientId, text: t })).unwrap();
-            setText('');
+            if (mountedRef.current) setText('');
         } catch (e) {
-            setError(typeof e === 'string' ? e : (e?.message || 'Échec envoi'));
+            if (mountedRef.current) {
+                setError(typeof e === 'string' ? e : (e?.message || 'Échec envoi'));
+            }
         } finally {
-            setBusy(false);
+            if (mountedRef.current) setBusy(false);
         }
     }
 
@@ -47,16 +62,19 @@ const MessageInput = ({ recipientId, disabled }) => {
         setError(null);
         try {
             const meta = await prepareInlineAttachment(blob, { fileName, durationSec });
+            if (!mountedRef.current) return;
             await dispatch(sendMessageThunk({
                 recipientId,
                 text: text.trim(),
                 attachment: meta,
             })).unwrap();
-            setText('');
+            if (mountedRef.current) setText('');
         } catch (e) {
-            setError(typeof e === 'string' ? e : (e?.message || 'Échec envoi'));
+            if (mountedRef.current) {
+                setError(typeof e === 'string' ? e : (e?.message || 'Échec envoi'));
+            }
         } finally {
-            setBusy(false);
+            if (mountedRef.current) setBusy(false);
         }
     }
 

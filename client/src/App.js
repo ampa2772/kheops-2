@@ -27,6 +27,7 @@ import { BYPASS_AUTH, BYPASS_DEV_TOKEN } from './devBypass';
 import GoogleCallbackHandler from './components/auth/GoogleCallbackHandler'; // Importer le nouveau composant
 import { initializeSpeechSynthesis } from './services/speechService'; // <<< NOUVELLE IMPORTATION
 import { useSocketListeners } from './hooks/useSocketListeners'; // <<< NOUVELLE IMPORTATION POUR LE LISTENER GLOBAL
+import { useCabinetInvitationListener } from './hooks/useCabinetInvitationListener';
 import { useGlobalKeyboardShortcuts } from './hooks/useGlobalKeyboardShortcuts';
 import SyncProgressModal from './components/common/SyncProgressModal';
 import ToastContainer from './components/common/notifications/ToastContainer';
@@ -34,6 +35,7 @@ import ConfirmProvider from './components/common/notifications/ConfirmProvider';
 import ShortcutsHelpModal from './components/common/ShortcutsHelpModal';
 import OfflineBanner from './components/common/OfflineBanner';
 import OnboardingTour from './components/common/OnboardingTour';
+import SharePointLoginPrompt from './components/common/SharePointLoginPrompt';
 import { DOSSIER_TYPE_LIST, cssVarForType } from './constants/dossierColors';
 
 // Build ID pour traçabilité — change à chaque build
@@ -48,6 +50,8 @@ const App = () => {
 
     // === NOUVEAU : DÉMARRAGE DU LISTENER DE SOCKET GLOBAL ===
     useSocketListeners();
+    // Invitations de cabinet en temps réel (toast + rafraîchissement live)
+    useCabinetInvitationListener();
     // =======================================================
 
     // Raccourcis clavier globaux (Ctrl+K, Ctrl+N, F1, etc.)
@@ -191,6 +195,10 @@ const App = () => {
                 connexion d'un nouveau cabinet, puis désactivé via
                 User.onboardingDone. */}
             <OnboardingTour />
+
+            {/* Volet B — invitation SharePoint au login (auto, seulement si un
+                compte SharePoint est détecté sur le profil de l'utilisateur). */}
+            <SharePointLoginPrompt />
 
             <Routes>
                 {/* Route publique principale (page de connexion/inscription) */}

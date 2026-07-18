@@ -7,6 +7,7 @@ import mailAccountService from '../../../../services/mailAccountService';
 import { useSelector } from 'react-redux'; // Utiliser Redux pour l'état d'authentification Kheops
 import { useToast } from '../../../common/notifications/useToast';
 import MailAccountSetupModal from './MailAccountSetupModal';
+import ArchivedMailbox from './ArchivedMailbox';
 import './styles.css'; // Importer les styles
 
 
@@ -166,7 +167,7 @@ function fileToBase64(file) {
 // --- Fin Helpers UI ---
 
 // --- Composant Principal Mails ---
-const MailsComponent = () => {
+const LegacyMailsComponent = () => {
     const toast = useToast();
     // --- États ---
     const [emails, setEmails] = useState(() => loadFromLocalStorage(LOCAL_STORAGE_KEYS.EMAILS, []));
@@ -337,7 +338,7 @@ const MailsComponent = () => {
             if (isLoadingFirstPage) setIsLoading(false);
             else setIsLoadingMore(false);
         }
-    }, [isLoading, isDetailLoading, isSending, isLoadingMore, readFromImap, hasOAuthMail, selectedMailAccount, selectedMailAccountId]);
+    }, [isLoading, isDetailLoading, isSending, isLoadingMore, readFromImap, hasOAuthMail, selectedMailAccount]);
 
     // Charger les détails d'un email
     const fetchEmailDetail = useCallback(async (id) => {
@@ -840,6 +841,21 @@ const MailsComponent = () => {
                 )}
             </div> {/* Fin mail-content */}
         </div> // Fin mail-container
+    );
+};
+
+const MailsComponent = () => {
+    const [mailMode, setMailMode] = useState('archives');
+    return (
+        <div className="mail-workspace-shell">
+            <nav className="mail-workspace-tabs" role="tablist" aria-label="Mode de messagerie">
+                <button type="button" role="tab" aria-selected={mailMode === 'archives'} className={mailMode === 'archives' ? 'is-active' : ''} onClick={() => setMailMode('archives')}>Archives synchronisées</button>
+                <button type="button" role="tab" aria-selected={mailMode === 'legacy'} className={mailMode === 'legacy' ? 'is-active' : ''} onClick={() => setMailMode('legacy')}>Boîte historique IMAP / OAuth</button>
+            </nav>
+            {mailMode === 'archives'
+                ? <ArchivedMailbox onUseLegacy={() => setMailMode('legacy')} />
+                : <LegacyMailsComponent />}
+        </div>
     );
 };
 

@@ -80,4 +80,29 @@ describe('apiClient', () => {
     expect(result.url).toBe('/api/test');
     expect(result.headers.Authorization).toBe('Bearer abc');
   });
+
+  it('ajoute l OfficeUser actif quand aucun header explicite n est fourni', () => {
+    mockGetState.mockReturnValue({
+      login: { token: 'abc' },
+      officeUser: { officeUser: { _id: 'office-tt' } },
+    });
+
+    const result = interceptorCallback({ headers: {}, url: '/api/chat/conversations' });
+
+    expect(result.headers['X-Office-User-Id']).toBe('office-tt');
+  });
+
+  it('ne remplace jamais le profil explicite fige au debut d une requete', () => {
+    mockGetState.mockReturnValue({
+      login: { token: 'abc' },
+      officeUser: { officeUser: { _id: 'office-jp' } },
+    });
+
+    const result = interceptorCallback({
+      headers: { 'X-Office-User-Id': 'office-tt' },
+      url: '/api/chat/messages',
+    });
+
+    expect(result.headers['X-Office-User-Id']).toBe('office-tt');
+  });
 });

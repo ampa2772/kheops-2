@@ -90,29 +90,43 @@ const mariageDetailsSlice = createSlice({
     setConfirmation(state, action) {
       state.affichagesComposants.confirmationAjout = action.payload;
     },
-    setDetailsMariageField(state, action) {
-      const { field, value } = action.payload;
-
-      if (field in state.affichagesComposants) {
-        state.affichagesComposants[field] = value;
-      } else if (field in state.detailsMariage) {
-        state.detailsMariage[field] = value;
-      } else if (field in state.notary) {
-        state.notary[field] = value;
-        if (field === 'email') {
-          state.validity.validEmail = isValidEmail(value);
-          state.validity.errors[field] = !value;
-        } else {
-          state.validity.errors[field] = !value;
+    setDetailsMariageField: {
+      // Fix 2026-07-04 : TOUS les appels du code passent 2 arguments positionnels
+      // (`setDetailsMariageField('modaleMariage', true)`), mais sans `prepare`
+      // Redux Toolkit ne garde que le 1er en payload — le reducer destructurait
+      // { field, value } sur une string => no-op silencieux : la modale mariage
+      // ne s'ouvrait plus depuis la migration RTK. Le prepare rétablit le contrat
+      // (et accepte aussi un objet { field, value }).
+      prepare(fieldOrObj, value) {
+        if (fieldOrObj && typeof fieldOrObj === 'object') {
+          return { payload: fieldOrObj };
         }
-        state.validity.nbErrors = Object.values(state.validity.errors).filter(Boolean).length;
-      } else if (field in state.currentNotary) {
-        state.currentNotary[field] = value;
-      } else if (field in state.listeNotaires) {
-        state.listeNotaires[field] = value;
-      } else if (field in state.validity) {
-        state.validity[field] = value;
-      }
+        return { payload: { field: fieldOrObj, value } };
+      },
+      reducer(state, action) {
+        const { field, value } = action.payload;
+
+        if (field in state.affichagesComposants) {
+          state.affichagesComposants[field] = value;
+        } else if (field in state.detailsMariage) {
+          state.detailsMariage[field] = value;
+        } else if (field in state.notary) {
+          state.notary[field] = value;
+          if (field === 'email') {
+            state.validity.validEmail = isValidEmail(value);
+            state.validity.errors[field] = !value;
+          } else {
+            state.validity.errors[field] = !value;
+          }
+          state.validity.nbErrors = Object.values(state.validity.errors).filter(Boolean).length;
+        } else if (field in state.currentNotary) {
+          state.currentNotary[field] = value;
+        } else if (field in state.listeNotaires) {
+          state.listeNotaires[field] = value;
+        } else if (field in state.validity) {
+          state.validity[field] = value;
+        }
+      },
     },
     selectNotaire(state, action) {
       const notaire = action.payload;

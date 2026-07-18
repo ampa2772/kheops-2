@@ -35,8 +35,25 @@ function createVersionId() {
   return crypto.randomUUID();
 }
 
+// Ajoute un suffixe " (vN)" au nom de fichier pour les versions >= 2, afin que
+// chaque version reste un fichier OneDrive DISTINCT (l'appli recupere par itemId,
+// donc toutes les versions restent telechargeables) tout en gardant un nom lisible.
+function versionedFilename(filename, ordinal) {
+  const base = safeFilename(filename);
+  if (!ordinal || ordinal <= 1) return base;
+  const dot = base.lastIndexOf('.');
+  return dot > 0 ? `${base.slice(0, dot)} (v${ordinal})${base.slice(dot)}` : `${base} (v${ordinal})`;
+}
+
 // Chemin logique dans le OneDrive de l'utilisateur (utilisé à l'upload).
-function buildStorageKey({ tenantId, matterId, documentId, versionId, filename }) {
+// Volet A : si matterLabel est fourni (nom de dossier lisible + reference, ex.
+// "Durand c- Petit — 202601"), on range le fichier dans un dossier au VRAI NOM :
+//   Kheops2/Dossiers/<matterLabel>/<fichier>
+// Sinon on retombe sur l'ancien schema base sur les IDs (compat / robustesse).
+function buildStorageKey({ tenantId, matterId, documentId, versionId, filename, matterLabel, versionOrdinal }) {
+  if (matterLabel) {
+    return [ROOT_FOLDER, 'Dossiers', String(matterLabel), versionedFilename(filename, versionOrdinal)].join('/');
+  }
   return [
     ROOT_FOLDER,
     'tenants',
@@ -85,7 +102,7 @@ function parseKey(storageKey) {
   return { ownerUserId, itemId };
 }
 
-async function uploadVersion({ tenantId, matterId, documentId, versionId, filename, buffer, mime, ownerUserId }) {
+async function uploadVersion({ tenantId, matterId, documentId, versionId, filename, buffer, mime, ownerUserId, matterLabel, versionOrdinal }) {
   if (!ownerUserId) {
     // Sans propriétaire identifié, on ne sait pas dans quel OneDrive écrire.
     const err = new Error("Propriétaire (ownerUserId) requis pour un upload OneDrive.");
@@ -100,7 +117,7 @@ async function uploadVersion({ tenantId, matterId, documentId, versionId, filena
     throw err;
   }
 
-  const path = buildStorageKey({ tenantId, matterId, documentId, versionId, filename });
+  const path = buildStorageKey({ tenantId, matterId, documentId, versionId, filename, matterLabel, versionOrdinal });
   const result = await oneDrive.uploadFile(ownerUserId, { path, buffer, mime });
 
   return {

@@ -1,0 +1,146 @@
+/* SharePointConnectModal — s'appuie sur les classes k-modal-* de _modal-base.css. */
+
+.sp-modal {
+  z-index: 4000; /* au-dessus du contenu applicatif */
+}
+
+.sp-modal__intro {
+  margin: 0 0 16px;
+  line-height: 1.5;
+  color: #333;
+}
+
+.sp-modal__label {
+  margin: 0 0 10px;
+  font-weight: 600;
+  color: #222;
+}
+
+.sp-modal__sites {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.sp-modal__site {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #d5d5d5;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+
+.sp-modal__site:hover:not(:disabled) {
+  border-color: #008047;
+  background: #f4fbf6;
+}
+
+.sp-modal__site.is-selected {
+  border-color: #008047;
+  background: #eef8f1;
+  box-shadow: 0 0 0 1px #008047 inset;
+}
+
+.sp-modal__site:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sp-modal__site-radio {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #999;
+  position: relative;
+}
+
+.sp-modal__site.is-selected .sp-modal__site-radio {
+  border-color: #008047;
+}
+
+.sp-modal__site.is-selected .sp-modal__site-radio::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #008047;
+}
+
+.sp-modal__site-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sp-modal__site-name {
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-modal__site-url {
+  font-size: 0.8rem;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-modal__error {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fdecea;
+  color: #b71c1c;
+  font-size: 0.88rem;
+}
+
+.sp-modal__footer {
+  flex-wrap: wrap;
+}
+
+.sp-modal__dismiss {
+  margin-right: auto; /* pousse « Ne plus me proposer » à gauche */
+  background-color: transparent;
+  color: #6c757d;
+  text-decoration: underline;
+}
+
+.sp-modal__dismiss:hover:not(:disabled) {
+  background-color: transparent;
+  color: #333;
+}
+
+/* Mode malvoyant : le corps de la modale hérite déjà de k-modal-box. */
+body.high-contrast-mode .sp-modal__site {
+  background: #000;
+  border-color: var(--highlight-color, #33ff33);
+  color: yellow;
+}
+
+body.high-contrast-mode .sp-modal__site-name,
+body.high-contrast-mode .sp-modal__site-url {
+  color: yellow;
+}
+
+body.high-contrast-mode .sp-modal__intro,
+body.high-contrast-mode .sp-modal__label {
+  color: yellow;
+}

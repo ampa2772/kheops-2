@@ -3,6 +3,8 @@ import EntityView from './EntityView';
 import EntityEditForm from './EntityEditForm';
 import AjouterLinkedContact from '../../../../../assets/ajouter_G.svg';
 import HoverToSpeak from '../../../../common/HoverToSpeak';
+import RelationHistoryPanel from '../../../../relations/RelationHistoryPanel';
+import { isFeatureEnabled } from '../../../../../utils/featureFlags';
 
 // Helper functions (passées en props depuis le parent)
 // const getDisplayLabel = (full) => { ... };
@@ -30,10 +32,13 @@ const DossierInfoPanel = ({
               setEditForm={setEditForm}
             />
           ) : (
-            <EntityView
-              selectedEntity={selectedEntity}
-              getDisplayLabel={getDisplayLabel} // Passe la fonction au sous-composant
-            />
+            <>
+              <EntityView
+                selectedEntity={selectedEntity}
+                getDisplayLabel={getDisplayLabel} // Passe la fonction au sous-composant
+              />
+              {isFeatureEnabled('relationGraph') && <RelationHistoryPanel entity={selectedEntity} />}
+            </>
           )}
         </>
       ) : (

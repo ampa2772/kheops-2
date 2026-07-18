@@ -2,7 +2,19 @@
 import io from 'socket.io-client';
 import axios from 'axios'; // <<< NOUVEL IMPORT
 
+// Ce socket HISTORIQUE parlait a l'AGENT DE BUREAU Electron (localhost:8080) :
+// drag & drop, export texte, aide juridictionnelle. Ces evenements ne sont PAS
+// geres par le backend (le chat temps reel a son propre socket.io, chatSocketHandler).
+//
+// En mode WEB HEBERGE il n'existe AUCUN agent local sur 8080 (le compagnon mince
+// n'expose pas socket.io) : tenter la connexion ne faisait qu'echouer bruyamment
+// en console (« WebSocket connection to ws://localhost:8080 failed »), sans rien
+// apporter. On ne se connecte donc QUE dans l'app de bureau Electron
+// (window.electron present). En web, le socket est cree mais NON connecte
+// (autoConnect:false) : les appelants (socket.on/.emit gardes par `.connected`)
+// restent surs, et la console reste propre.
 const SOCKET_URL = process.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:8080';
+const HAS_DESKTOP_AGENT = typeof window !== 'undefined' && !!window.electron;
 let socket = null;
 
 export const initSocket = () => {
@@ -11,6 +23,7 @@ export const initSocket = () => {
       transports: ['websocket'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      autoConnect: HAS_DESKTOP_AGENT, // web hebergé : pas d'agent local → pas de connexion (silence)
     });
 
     socket.on('connect', () => {
@@ -26,7 +39,9 @@ export const initSocket = () => {
       console.warn('[SocketService] Connexion WebSocket impossible:', error.message || error);
     });
   } else {
-    if (!socket.connected) {
+    // Reconnexion UNIQUEMENT dans l'app de bureau (agent local sur 8080). En web
+    // hebergé, ne pas retenter (aucun serveur socket local → bruit console).
+    if (HAS_DESKTOP_AGENT && !socket.connected) {
       socket.connect();
     }
   }

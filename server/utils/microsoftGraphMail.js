@@ -14,24 +14,26 @@ const User = require('../models/App_Users/User');
 // SECURITE rc37 (M-06) : refresh tokens chiffres au repos.
 const { encryptIfNeeded, decryptIfNeeded } = require('./tokenCrypto');
 const { escapeHtml } = require('./escapeHtml');
+const { MICROSOFT_MAIL_SCOPES, MICROSOFT_ONEDRIVE_SCOPES } = require('./microsoftOAuthScopes');
 
 const CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || process.env.MSAL_CLIENT_ID;
 const AUTHORITY = process.env.MICROSOFT_AUTHORITY || 'https://login.microsoftonline.com/common';
 // Doit rester ALIGNÉ avec MICROSOFT_SCOPES de routes/auth.js (le refresh_token
 // obtient un access_token couvrant ces portées). Calendars.Read + Contacts.Read
 // alimentent microsoftGraphExtended (agenda/contacts, lecture seule).
-const SCOPES = ['User.Read', 'Mail.Read', 'Mail.ReadWrite', 'Mail.Send', 'Files.ReadWrite', 'Calendars.Read', 'Contacts.Read', 'offline_access'];
+const SCOPES = MICROSOFT_MAIL_SCOPES;
+const ONEDRIVE_SCOPES = MICROSOFT_ONEDRIVE_SCOPES;
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
 // userId -> { accessToken, refreshToken, expiresAt }
 const tokenCache = new Map();
 
-async function _refresh(refreshToken) {
+async function _refresh(refreshToken, scopes = SCOPES) {
   const response = await axios.post(
     `${AUTHORITY}/oauth2/v2.0/token`,
     new URLSearchParams({
       client_id: CLIENT_ID,
-      scope: SCOPES.join(' '),
+      scope: scopes.join(' '),
       refresh_token: refreshToken,
       grant_type: 'refresh_token',
     }).toString(),
@@ -44,12 +46,55 @@ async function _refresh(refreshToken) {
   };
 }
 
+// userId -> Promise en vol : SINGLE-FLIGHT. Coalesce les rafraichissements
+// concurrents d'un meme utilisateur pour ne redeem le refresh_token PARTAGE
+// qu'UNE fois par salve. Supprime la course mail/mail (ex. listInbox +
+// countFromContacts declenches en parallele au chargement de la messagerie) qui
+// pouvait, hors fenetre de grace Azure, purger un RT pourtant valide.
+const inFlightRefresh = new Map();
+const oneDriveTokenCache = new Map();
+const oneDriveInFlightRefresh = new Map();
+// Génération logique par utilisateur. Une déconnexion/reconnexion incrémente
+// cette valeur : tout refresh démarré avec une ancienne génération devient
+// caduc et n'a plus le droit de remplir le cache ni de persister une rotation.
+const oneDriveTokenEpoch = new Map();
+
+function currentOneDriveEpoch(key) {
+  return oneDriveTokenEpoch.get(key) || 0;
+}
+
+function oneDriveContextChangedError() {
+  const err = new Error('AUTH_CONTEXT_CHANGED');
+  err.code = 'AUTH_CONTEXT_CHANGED';
+  return err;
+}
+
+function assertCurrentOneDriveEpoch(key, epoch) {
+  if (currentOneDriveEpoch(key) !== epoch) throw oneDriveContextChangedError();
+}
+
+function deleteOneDriveCacheForEpoch(key, epoch) {
+  const cached = oneDriveTokenCache.get(key);
+  if (!cached || cached.epoch === epoch) oneDriveTokenCache.delete(key);
+}
+
 async function getAccessTokenForUser(userId) {
   const key = userId.toString();
   const cached = tokenCache.get(key);
   if (cached && Date.now() < cached.expiresAt) {
     return cached.accessToken;
   }
+  const existing = inFlightRefresh.get(key);
+  if (existing) return existing;
+  const p = _refreshAccessToken(userId, 0).finally(() => {
+    if (inFlightRefresh.get(key) === p) inFlightRefresh.delete(key);
+  });
+  inFlightRefresh.set(key, p);
+  return p;
+}
+
+async function _refreshAccessToken(userId, _retryDepth = 0) {
+  const key = userId.toString();
 
   const user = await User.findById(userId).select('microsoftRefreshToken');
   if (!user || !user.microsoftRefreshToken) {
@@ -67,22 +112,137 @@ async function getAccessTokenForUser(userId) {
     const fresh = await _refresh(refreshTokenPlain);
     tokenCache.set(key, fresh);
     if (fresh.refreshToken !== refreshTokenPlain) {
-      // Rotation : on persiste la nouvelle valeur (chiffree)
-      await User.findByIdAndUpdate(userId, {
-        $set: { microsoftRefreshToken: encryptIfNeeded(fresh.refreshToken) },
-      });
+      // Rotation : on persiste la nouvelle valeur (chiffree). Compare-and-set :
+      // ce refresh_token est PARTAGE avec SharePoint/OneDrive ; on ne l'ecrase que
+      // si personne d'autre ne l'a roule entre-temps (sinon on ecraserait un RT
+      // plus recent -> l'autre module casserait).
+      await User.updateOne(
+        { _id: userId, microsoftRefreshToken: user.microsoftRefreshToken },
+        { $set: { microsoftRefreshToken: encryptIfNeeded(fresh.refreshToken) } },
+      );
     }
     return fresh.accessToken;
   } catch (err) {
     if (err.response?.data?.error === 'invalid_grant') {
-      // Token expiré/révoqué → on le purge en BDD pour que l'user reconnecte
+      // invalid_grant = vraie revocation... OU le refresh_token PARTAGE vient
+      // d'etre legitimement roule par un autre module (SharePoint) juste avant.
+      // Purger inconditionnellement (comme avant) deconnecterait a tort mail +
+      // OneDrive + SharePoint. On relit donc la valeur fraiche en base :
+      tokenCache.delete(key);
+      const latest = await User.findById(userId).select('microsoftRefreshToken');
+      const latestPlain = latest && latest.microsoftRefreshToken
+        ? decryptIfNeeded(latest.microsoftRefreshToken)
+        : null;
+      if (latestPlain && latestPlain !== refreshTokenPlain && _retryDepth < 2) {
+        // Le RT a change sous nos pieds (rotation concurrente) : on reessaie avec
+        // la valeur a jour plutot que de detruire un token en realite valide.
+        return _refreshAccessToken(userId, _retryDepth + 1);
+      }
+      // Vraie revocation : purge CONDITIONNELLE (uniquement si c'est toujours
+      // notre RT en base) pour ne jamais ecraser un RT roule par un autre module.
       try {
-        await User.findByIdAndUpdate(userId, { $set: { microsoftRefreshToken: null } });
+        await User.updateOne(
+          { _id: userId, microsoftRefreshToken: user.microsoftRefreshToken },
+          { $set: { microsoftRefreshToken: null } },
+        );
       } catch (_) {}
       throw new Error('AUTH_REFRESH_FAILED');
     }
     throw err;
   }
+}
+
+/**
+ * Jeton Graph réservé aux fichiers OneDrive. Le champ dédié empêche une
+ * déconnexion OneDrive de révoquer la messagerie Outlook. Le repli sur l'ancien
+ * champ conserve la compatibilité des comptes ayant déjà consenti Files.ReadWrite.
+ */
+async function getAccessTokenForOneDriveUser(userId) {
+  const key = String(userId);
+  const epoch = currentOneDriveEpoch(key);
+  const cached = oneDriveTokenCache.get(key);
+  if (cached && cached.epoch === epoch && Date.now() < cached.expiresAt) return cached.accessToken;
+  if (cached && cached.epoch !== epoch) oneDriveTokenCache.delete(key);
+  const existing = oneDriveInFlightRefresh.get(key);
+  if (existing) return existing;
+  const pending = (async () => {
+    const user = await User.findById(userId).select('microsoftOneDriveRefreshToken microsoftRefreshToken microsoftOneDriveAccount.connectedAt microsoftOneDriveAccount.disconnectedAt');
+    assertCurrentOneDriveEpoch(key, epoch);
+    const tokenField = user?.microsoftOneDriveRefreshToken
+      ? 'microsoftOneDriveRefreshToken'
+      : (user?.microsoftOneDriveAccount?.disconnectedAt ? null : 'microsoftRefreshToken');
+    const encrypted = user?.[tokenField];
+    if (!encrypted) throw new Error('AUTH_REQUIRED');
+    const plain = decryptIfNeeded(encrypted);
+    if (!plain) throw new Error('AUTH_REFRESH_FAILED');
+    try {
+      const fresh = await _refresh(plain, ONEDRIVE_SCOPES);
+      assertCurrentOneDriveEpoch(key, epoch);
+      if (fresh.refreshToken !== plain) {
+        const rotationFilter = {
+          _id: userId,
+          [tokenField]: encrypted,
+          // Ces marqueurs changent à chaque déconnexion/reconnexion. Ils
+          // prolongent la protection au-delà du cache de cette instance Cloud
+          // Run : une rotation issue d'un ancien contexte ne matche plus en DB.
+          'microsoftOneDriveAccount.connectedAt': user?.microsoftOneDriveAccount?.connectedAt || null,
+          'microsoftOneDriveAccount.disconnectedAt': user?.microsoftOneDriveAccount?.disconnectedAt || null,
+        };
+        if (tokenField === 'microsoftRefreshToken') {
+          // Le repli historique doit en plus rester valable uniquement tant
+          // qu'aucun consentement OneDrive dédié n'a été rattaché entre-temps.
+          rotationFilter.microsoftOneDriveRefreshToken = user?.microsoftOneDriveRefreshToken || null;
+        }
+        const persisted = await User.updateOne(
+          rotationFilter,
+          { $set: { [tokenField]: encryptIfNeeded(fresh.refreshToken) } },
+        );
+        assertCurrentOneDriveEpoch(key, epoch);
+        // matchedCount=0 signifie qu'une déconnexion, reconnexion ou autre
+        // rotation a déjà remplacé le contexte lu au début du refresh.
+        if (persisted && persisted.matchedCount === 0) throw oneDriveContextChangedError();
+      }
+      oneDriveTokenCache.set(key, { ...fresh, epoch });
+      return fresh.accessToken;
+    } catch (err) {
+      deleteOneDriveCacheForEpoch(key, epoch);
+      if (err?.code === 'AUTH_CONTEXT_CHANGED' || currentOneDriveEpoch(key) !== epoch) {
+        throw oneDriveContextChangedError();
+      }
+      if (err.response?.data?.error === 'invalid_grant') {
+        // Ne purge jamais le jeton Outlook historique depuis le module
+        // OneDrive. Seul le consentement documentaire dédié peut être révoqué ici.
+        if (tokenField === 'microsoftOneDriveRefreshToken') {
+          try {
+            await User.updateOne(
+              { _id: userId, microsoftOneDriveRefreshToken: encrypted },
+              { $set: { microsoftOneDriveRefreshToken: null } },
+            );
+          } catch (_) {}
+        }
+        throw new Error('AUTH_REFRESH_FAILED');
+      }
+      throw err;
+    }
+  })().finally(() => {
+    // Un ancien refresh ne doit surtout pas effacer la nouvelle promesse créée
+    // après clearOneDriveTokenCache().
+    if (oneDriveInFlightRefresh.get(key) === pending) {
+      oneDriveInFlightRefresh.delete(key);
+    }
+  });
+  oneDriveInFlightRefresh.set(key, pending);
+  return pending;
+}
+
+function clearOneDriveTokenCache(userId) {
+  const key = String(userId);
+  oneDriveTokenEpoch.set(key, currentOneDriveEpoch(key) + 1);
+  oneDriveTokenCache.delete(key);
+  // La promesse ne peut pas être réellement annulée, mais elle est détachée :
+  // la prochaine requête démarre avec la nouvelle génération. Ses effets sont
+  // neutralisés par les assertCurrentOneDriveEpoch ci-dessus.
+  oneDriveInFlightRefresh.delete(key);
 }
 
 async function _graphCall(userId, method, urlPath, { params, data, responseType = 'json', headers } = {}) {
@@ -251,6 +411,8 @@ async function countFromContacts(userId, contactEmailsLowerCase) {
 module.exports = {
   // Auth
   getAccessTokenForUser,
+  getAccessTokenForOneDriveUser,
+  clearOneDriveTokenCache,
   // Mail operations
   listInbox,
   getMessage,

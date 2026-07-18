@@ -28,9 +28,9 @@ export default function usePartieData(mode = 'create') {
         ...p,
         // Après l'hydratation par PartieEditReducer, seuls linkedAvocats/linkedContacts existent.
         // idPartie est également garanti par le reducer lors de l'hydratation.
-        linkedAvocats: p.linkedAvocats ?? [],
-        linkedContacts: p.linkedContacts ?? [],
-        idPartie: p.idPartie // Garanti par le reducer lors de l'hydratation pour le mode 'edit'
+        linkedAvocats: p.linkedAvocats ?? p.avocats ?? [],
+        linkedContacts: p.linkedContacts ?? p.contacts ?? [],
+        idPartie: p.idPartie ?? p._id // Garanti par le reducer lors de l'hydratation pour le mode 'edit'
                            // ou déjà présent pour le mode 'create'.
       })),
     [rawParties]
@@ -92,22 +92,22 @@ export default function usePartieData(mode = 'create') {
   /* ---------- Listes des éléments liés COMMUNS à toutes les parties d'un côté ---------- */
   // Nouveau code
   const linkedAvocatsAllPour = useMemo(() => {
-    if (pourParties.length <= 1) return []; // Modification ici
+    if (pourParties.length === 0) return [];
     return intersectArrays(pourParties.map((p) => p.linkedAvocats || []));
   }, [pourParties]);
 
   const linkedAvocatsAllContre = useMemo(() => {
-    if (contreParties.length <= 1) return []; // Modification ici
+    if (contreParties.length === 0) return [];
     return intersectArrays(contreParties.map((p) => p.linkedAvocats || []));
   }, [contreParties]);
 
   const linkedContactsAllPour = useMemo(() => {
-    if (pourParties.length <= 1) return []; // Modification ici
+    if (pourParties.length === 0) return [];
     return intersectArrays(pourParties.map((p) => p.linkedContacts || []));
   }, [pourParties]);
 
   const linkedContactsAllContre = useMemo(() => {
-    if (contreParties.length <= 1) return []; // Modification ici
+    if (contreParties.length === 0) return [];
     return intersectArrays(contreParties.map((p) => p.linkedContacts || []));
   }, [contreParties]);
 

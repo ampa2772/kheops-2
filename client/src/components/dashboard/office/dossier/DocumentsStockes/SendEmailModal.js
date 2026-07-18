@@ -22,6 +22,10 @@ import Modal from "../../createDossier/createPartie/Modal";
 import CreateContact from "../../createContact";
 import { setModifyingContactId } from "../../../../../redux/slices/layoutSlice";
 import { resetFindContact } from "../../../../../redux/slices/findContactSlice";
+import {
+  buildDossierEmailRecipientGroups,
+  flattenDossierEmailRecipientGroups,
+} from './sendEmailRecipientGroups';
 
 /**
  * Construit un label lisible pour un chip destinataire : identité + email.
@@ -73,21 +77,6 @@ function getEntityRoleBadge(entity) {
   if (t === 'Partie') return adv ? { label: 'Partie adverse', cls: 'sem-badge-adverse' } : { label: 'Demandeur', cls: 'sem-badge-demandeur' };
   if (t === 'Avocat') return adv ? { label: 'Avocat adverse', cls: 'sem-badge-avocat-adverse' } : { label: 'Avocat', cls: 'sem-badge-avocat' };
   return { label: 'Contact', cls: 'sem-badge-contact' };
-}
-
-// Liste plate de toutes les entités du sélecteur (pour le compteur).
-function flattenPickerEntities(groupedData) {
-  const out = [];
-  if (!groupedData) return out;
-  ['pour', 'contre'].forEach((side) => {
-    (groupedData[side] || []).forEach((block) => {
-      if (block.partieData) out.push(block.partieData);
-      (block.avocats || []).forEach((a) => out.push(a));
-      (block.contacts || []).forEach((c) => out.push(c));
-    });
-  });
-  (groupedData.dossierContacts || []).forEach((c) => out.push(c));
-  return out;
 }
 
 const getLocalFileContent = async (filePath) => {
@@ -205,36 +194,7 @@ const SendEmailModal = ({
   };
 
   const groupedData = useMemo(() => {
-    const result = { pour: [], contre: [], dossierContacts: [] };
-    if (!currentDossierObject?.dossier) return result;
-    const { parties, responsables = [], avocatsResponsables = [], contactsDuDossier = [] } = currentDossierObject.dossier;
-    const excludedIds = new Set([...responsables, ...avocatsResponsables].map(e => e._id));
-    const officeUserIDs = new Set((officeUsers || []).map(u => u._id));
-    const makeSide = (arr, isContre) => (arr || []).map(p => {
-      const block = { partieData: null, avocats: [], contacts: [] };
-      if (p.partieData && !excludedIds.has(p.partieData._id))
-        block.partieData = { ...p.partieData, type: 'Partie', isContre };
-      block.avocats = (p.avocats || [])
-        .filter(a => !excludedIds.has(a._id))
-        .filter(a => isContre || !officeUserIDs.has(a._id)) // Côté "pour" : exclure les avocats du cabinet
-        .map(a_ => ({
-          ...a_, type: 'Avocat', isContre,
-          nom: a_.nomOfficeUser || a_.nom || '',
-          prenoms: a_.prenomOfficeUser || a_.prenoms || '',
-        }));
-      block.contacts = (p.contacts || []).filter(c => !excludedIds.has(c._id))
-        .filter(c => isContre || !officeUserIDs.has(c._id)) // Côté "pour" : exclure les contacts du cabinet
-        .map(c => ({ ...c, type: 'Contact', isContre }));
-      return block;
-    });
-    if (parties) {
-      result.pour = makeSide(parties.pour, false);
-      result.contre = makeSide(parties.contre, true);
-    }
-    result.dossierContacts = contactsDuDossier
-      .filter(c => !excludedIds.has(c._id))
-      .map(c => ({ ...c, type: 'Contact', isDossierDirect: true }));
-    return result;
+    return buildDossierEmailRecipientGroups(currentDossierObject, officeUsers);
   }, [currentDossierObject, officeUsers]);
 
   const kheopsToken = useSelector((s) => s.login.token);
@@ -956,7 +916,7 @@ const SendEmailModal = ({
               <div className="sem-picker-footer">
                 <span className="sem-picker-count">
                   {(() => {
-                    const ents = flattenPickerEntities(groupedData);
+                    const ents = flattenDossierEmailRecipientGroups(groupedData);
                     const n = ents.filter((e) => isEntityAlreadyInRecipients(e)).length;
                     return `${n} contact${n > 1 ? 's' : ''} sélectionné${n > 1 ? 's' : ''}`;
                   })()}

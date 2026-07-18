@@ -1,6 +1,7 @@
 const express = require('express');
 // Utilise @googleapis/gmail (léger, ~735 Ko) au lieu de googleapis complet (123 Mo)
 const { gmail: gmailApi } = require('@googleapis/gmail');
+const { OAuth2Client: GmailOAuth2Client } = require('googleapis-common');
 require('dotenv').config();
 const { Buffer } = require('buffer');
 const path = require('path');
@@ -31,6 +32,16 @@ const ContactContactDirect = require('../models/Folder/modelsLiaisons/ContactCon
 // On supprime la configuration locale d'OAuth2 pour utiliser celle partagée
 const { oauth2Client } = require('../config/googleConfig');
 
+function createRequestGmailAuth(refreshToken) {
+  const client = new GmailOAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_CALLBACK_URL,
+  );
+  client.setCredentials({ refresh_token: refreshToken });
+  return client;
+}
+
 // --- Helper Microsoft Graph (Outlook) — pour les utilisateurs connectés via Microsoft ---
 const msGraphMail = require('../utils/microsoftGraphMail');
 
@@ -41,6 +52,10 @@ const { decryptIfNeeded } = require('../utils/tokenCrypto');
 const audit = require('../utils/auditLogger');
 const { getAccessibleUserIds } = require('../services/cabinetAccess');
 const { escapeHtml } = require('../utils/escapeHtml');
+const {
+  eligibleNotificationEmails,
+  isEligibleNotificationSender,
+} = require('../services/mail/mailNotificationEligibility');
 
 const router = express.Router();
 
@@ -84,10 +99,13 @@ const getAuthenticatedGmailClient = async (req, res, next) => {
       console.warn(`[mails] refresh token Google indechiffrable pour user ${req.user} (clef rotee ?). Forcer re-OAuth.`);
       throw new Error('AUTH_REFRESH_FAILED');
     }
-    oauth2Client.setCredentials({ refresh_token: refreshTokenPlain });
-    const { credentials } = await oauth2Client.refreshAccessToken();
-    oauth2Client.setCredentials(credentials);
-    req.gmail = gmailApi({ version: 'v1', auth: oauth2Client });
+    const requestAuth = createRequestGmailAuth(refreshTokenPlain);
+    const { credentials } = await requestAuth.refreshAccessToken();
+    requestAuth.setCredentials({
+      ...credentials,
+      refresh_token: credentials.refresh_token || refreshTokenPlain,
+    });
+    req.gmail = gmailApi({ version: 'v1', auth: requestAuth });
     next();
   } catch (error) {
     if (error.response?.data?.error === 'invalid_grant') {
@@ -125,8 +143,12 @@ const getAuthenticatedMailContext = async (req, res, next) => {
         req.mailSource = 'microsoft';
         return next();
       } catch (msErr) {
-        // Si le token Microsoft est invalide MAIS qu'un Google valide existe → fallback Google
-        if (msErr.message === 'AUTH_REFRESH_FAILED' && user.googleRefreshToken) {
+        // Fix 2026-07-04 : QUEL QUE SOIT l'échec Microsoft (refresh KO, réseau,
+        // token indéchiffrable...), si un refresh Google existe on tente Google.
+        // L'ancien filtre (message === 'AUTH_REFRESH_FAILED' uniquement) 401-isait
+        // un utilisateur Google valide dès qu'un token Microsoft cassé traînait.
+        if (user.googleRefreshToken) {
+          console.warn(`[mails] (mailContext) echec Microsoft (${msErr && msErr.message}), repli sur Google user=${req.user}`);
           // Continue vers le bloc Google ci-dessous
         } else {
           throw msErr;
@@ -140,10 +162,13 @@ const getAuthenticatedMailContext = async (req, res, next) => {
         console.warn(`[mails] (mailContext) refresh Google indechiffrable user=${req.user}`);
         throw new Error('AUTH_REFRESH_FAILED');
       }
-      oauth2Client.setCredentials({ refresh_token: refreshTokenPlain });
-      const { credentials } = await oauth2Client.refreshAccessToken();
-      oauth2Client.setCredentials(credentials);
-      req.gmail = gmailApi({ version: 'v1', auth: oauth2Client });
+      const requestAuth = createRequestGmailAuth(refreshTokenPlain);
+      const { credentials } = await requestAuth.refreshAccessToken();
+      requestAuth.setCredentials({
+        ...credentials,
+        refresh_token: credentials.refresh_token || refreshTokenPlain,
+      });
+      req.gmail = gmailApi({ version: 'v1', auth: requestAuth });
       req.mailSource = 'google';
       return next();
     }
@@ -413,22 +438,23 @@ router.get('/notifications/count', requireMailAuth, async (req, res, next) => {
     }
     const currentUserEmail = user.email.toLowerCase();
     const kheopsEmailsMap = await getAllUserEmailsAndNamesFromDB(req.user);
-    if (kheopsEmailsMap.size === 0) {
+    const eligibleEmails = eligibleNotificationEmails(kheopsEmailsMap, currentUserEmail);
+    if (eligibleEmails.length === 0) {
       return res.json({ notificationCount: 0 });
     }
 
     if (req.mailSource === 'microsoft') {
       // Côté Microsoft Graph : pas de filtre $search natif scalable. On échantillonne
       // les 50 derniers messages et on compte les expéditeurs présents en BDD Kheops.
-      const lowerSet = new Set(Array.from(kheopsEmailsMap.keys()).filter(e => e !== currentUserEmail));
+      const lowerSet = new Set(eligibleEmails);
       const count = await msGraphMail.countFromContacts(req.user, lowerSet);
       return res.json({ notificationCount: count });
     }
 
     // Google (existant)
     const { gmail } = req;
-    const fromQuery = `from:(${Array.from(kheopsEmailsMap.keys()).join(' OR ')})`;
-    const gmailQuery = `(in:inbox OR in:spam) ${fromQuery} -from:${currentUserEmail}`;
+    const fromQuery = `from:(${eligibleEmails.join(' OR ')})`;
+    const gmailQuery = `(in:inbox OR in:spam) ${fromQuery}`;
     const { data } = await gmail.users.messages.list({ userId: 'me', q: gmailQuery });
     res.json({ notificationCount: data.resultSizeEstimate || 0 });
   } catch (e) {
@@ -553,8 +579,7 @@ router.get('/notifications/list', requireMailAuth, async (req, res, next) => {
       const notifications = [];
       for (const m of messages) {
         const addr = m.from?.emailAddress?.address?.toLowerCase();
-        if (!addr || addr === currentUserEmail) continue;
-        if (!kheopsContactsMap.has(addr)) continue;
+        if (!isEligibleNotificationSender(addr, currentUserEmail, kheopsContactsMap)) continue;
         notifications.push(_buildNotification({
           id: m.id,
           fromHeader: msGraphMail._formatFrom(m.from),
@@ -585,8 +610,7 @@ router.get('/notifications/list', requireMailAuth, async (req, res, next) => {
       const { data } = response;
       const fromHeader = data.payload.headers.find(h => h.name.toLowerCase() === 'from')?.value;
       const senderEmail = extractSenderEmail(fromHeader);
-      if (senderEmail === currentUserEmail) continue;
-      if (senderEmail && kheopsContactsMap.has(senderEmail)) {
+      if (isEligibleNotificationSender(senderEmail, currentUserEmail, kheopsContactsMap)) {
         const subjectHeader = data.payload.headers.find(h => h.name.toLowerCase() === 'subject')?.value;
         const dateHeader = data.payload.headers.find(h => h.name.toLowerCase() === 'date')?.value;
         notifications.push(_buildNotification({

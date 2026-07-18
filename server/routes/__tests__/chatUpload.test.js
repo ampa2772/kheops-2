@@ -5,21 +5,38 @@
 const express = require('express');
 const http = require('http');
 
-function loadApp({ maxBytes } = {}) {
+const OWNER_USER_ID = '507f1f77bcf86cd799439011';
+const ACTIVE_OFFICE_USER_ID = '507f1f77bcf86cd799439012';
+
+function loadApp({ maxBytes, profileAllowed = true } = {}) {
   jest.resetModules();
   if (maxBytes != null) process.env.STORAGE_MAX_ATTACHMENT_BYTES = String(maxBytes);
   else delete process.env.STORAGE_MAX_ATTACHMENT_BYTES;
 
-  jest.doMock('../../middlewares/middleware-auth', () => (req, _res, next) => { req.user = 'userA'; next(); });
+  jest.doMock('../../middlewares/middleware-auth', () => (req, _res, next) => {
+    req.user = OWNER_USER_ID;
+    next();
+  });
+  jest.doMock('../../models/App_Users/modelsLiaisons/UserOfficeUser', () => ({
+    findOne: jest.fn(() => ({
+      lean: jest.fn().mockResolvedValue(
+        profileAllowed ? { user: OWNER_USER_ID, officeUser: ACTIVE_OFFICE_USER_ID } : null
+      ),
+    })),
+    find: jest.fn(() => ({
+      populate: jest.fn(() => ({ lean: jest.fn().mockResolvedValue([]) })),
+    })),
+  }));
   // Moteur de stockage multer factice : consomme le flux, renvoie une clé + taille.
+  const handleFile = jest.fn((_req, file, cb) => {
+    let size = 0;
+    file.stream.on('data', (d) => { size += d.length; });
+    file.stream.on('end', () => cb(null, { storageKey: `2026/07/x__${file.originalname}`, size }));
+    file.stream.on('error', cb);
+  });
   jest.doMock('../../services/multerStorageEngine', () => ({
     createStorageEngine: () => ({
-      _handleFile(_req, file, cb) {
-        let size = 0;
-        file.stream.on('data', (d) => { size += d.length; });
-        file.stream.on('end', () => cb(null, { storageKey: `2026/07/x__${file.originalname}`, size }));
-        file.stream.on('error', cb);
-      },
+      _handleFile: handleFile,
       _removeFile(_req, _file, cb) { cb(null); },
     }),
   }));
@@ -27,7 +44,7 @@ function loadApp({ maxBytes } = {}) {
   const router = require('../chat');
   const app = express();
   app.use('/api/chat', router);
-  return app;
+  return { app, handleFile };
 }
 
 function multipartBody(boundary, { filename, contentType, content }) {
@@ -37,7 +54,7 @@ function multipartBody(boundary, { filename, contentType, content }) {
   return Buffer.concat([Buffer.from(head, 'utf8'), body, Buffer.from(tail, 'utf8')]);
 }
 
-function post(app, file) {
+function post(app, file, { officeUserId = ACTIVE_OFFICE_USER_ID } = {}) {
   return new Promise((resolve, reject) => {
     const server = app.listen(0, () => {
       const boundary = '----kheopsTestBoundary';
@@ -51,6 +68,7 @@ function post(app, file) {
           'Content-Type': `multipart/form-data; boundary=${boundary}`,
           'Content-Length': payload.length,
           Authorization: 'Bearer t',
+          'X-Office-User-Id': officeUserId,
         },
       }, (res) => {
         let data = '';
@@ -71,23 +89,51 @@ function post(app, file) {
 afterEach(() => { delete process.env.STORAGE_MAX_ATTACHMENT_BYTES; jest.clearAllMocks(); });
 
 test('🔒 type dangereux (.exe) → 415, non stocké', async () => {
-  const app = loadApp();
+  const { app } = loadApp();
   const r = await post(app, { filename: 'virus.exe', contentType: 'application/x-msdownload', content: 'MZ...' });
   expect(r.status).toBe(415);
   expect(r.body.error).toBe('ATTACHMENT_TYPE_BLOCKED');
 });
 
 test('🔒 dépassement de taille → 413', async () => {
-  const app = loadApp({ maxBytes: 10 });
+  const { app } = loadApp({ maxBytes: 10 });
   const r = await post(app, { filename: 'gros.txt', contentType: 'text/plain', content: '0123456789ABCDEF' }); // 16 o > 10
   expect(r.status).toBe(413);
   expect(r.body.error).toBe('ATTACHMENT_TOO_LARGE');
 });
 
 test('fichier normal sous la limite → 201 + metadata', async () => {
-  const app = loadApp();
+  const { app } = loadApp();
   const r = await post(app, { filename: 'note.txt', contentType: 'text/plain', content: 'bonjour' });
   expect(r.status).toBe(201);
   expect(r.body).toMatchObject({ fileName: 'note.txt', mimeType: 'text/plain', sizeBytes: 7 });
   expect(r.body.storageKey).toContain('note.txt');
+});
+
+test('🔒 profil OfficeUser étranger → 403 avant toute écriture multer', async () => {
+  const { app, handleFile } = loadApp({ profileAllowed: false });
+
+  const r = await post(app, {
+    filename: 'confidentiel.pdf',
+    contentType: 'application/pdf',
+    content: '%PDF-1.7',
+  });
+
+  expect(r.status).toBe(403);
+  expect(r.body.error).toBe('ACTIVE_OFFICE_USER_FORBIDDEN');
+  expect(handleFile).not.toHaveBeenCalled();
+});
+
+test('🔒 identifiant OfficeUser mal formé → 403 avant toute écriture multer', async () => {
+  const { app, handleFile } = loadApp();
+
+  const r = await post(app, {
+    filename: 'confidentiel.pdf',
+    contentType: 'application/pdf',
+    content: '%PDF-1.7',
+  }, { officeUserId: 'profil-invalide' });
+
+  expect(r.status).toBe(403);
+  expect(r.body.error).toBe('ACTIVE_OFFICE_USER_INVALID');
+  expect(handleFile).not.toHaveBeenCalled();
 });

@@ -238,3 +238,65 @@ input.marriageNotaire {
   gap: 10px;
   flex-direction: column;
 }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Modale mariage + modale de confirmation : tenir dans l'écran */
+  .modal-content.modal_mariage,
+  .modal-content_confAjout {
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+
+  /* Bouton fermer aberrant (left: 96.5%) repositionné en haut à droite */
+  .close_mariage {
+    position: absolute;
+    right: 8px;
+    left: auto;
+    top: 8px;
+  }
+
+  /* Champs date/lieu du mariage empilés */
+  .date_lieu_mariage {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  /* Régime matrimonial : autoriser le retour à la ligne */
+  .regime_matrimonial {
+    flex-wrap: wrap;
+  }
+
+  /* Nom/prénom notaire et ville/CP/email/tél empilés */
+  .containerNomPrenomsNotaireMariage,
+  .containerVilleCodePNotaireMariage,
+  .containerEmailTelNotaireMariage {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  /* Boutons d'action pleine largeur / repliables */
+  .boutons {
+    flex-wrap: wrap;
+  }
+
+  .boutonsContainer {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content.modal_mariage,
+  .modal-content_confAjout {
+    padding: 12px !important;
+  }
+
+  /* Boutons pleine largeur sur petit téléphone */
+  .boutonsContainer {
+    flex-direction: column;
+  }
+}

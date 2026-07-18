@@ -15,6 +15,17 @@ import apiClient from './apiClient';
 
 const BASE = '/api/chat';
 
+function scopedConfig(officeUserId, config = {}) {
+    if (!officeUserId) return config;
+    return {
+        ...config,
+        headers: {
+            ...(config.headers || {}),
+            'X-Office-User-Id': String(officeUserId),
+        },
+    };
+}
+
 /**
  * Tente de chiffrer un message via IPC Electron. Retourne null si :
  *   - window.electron.crypto absent (browser preview)
@@ -108,13 +119,13 @@ export async function decryptMessages(messages) {
     return Promise.all(messages.map(decryptMessage));
 }
 
-export async function fetchContacts() {
-    const r = await apiClient.get(`${BASE}/contacts`);
+export async function fetchContacts(officeUserId) {
+    const r = await apiClient.get(`${BASE}/contacts`, scopedConfig(officeUserId));
     return r.data; // { contacts: [{ _id, firstName, lastName, email }] }
 }
 
-export async function fetchConversations() {
-    const r = await apiClient.get(`${BASE}/conversations`);
+export async function fetchConversations(officeUserId) {
+    const r = await apiClient.get(`${BASE}/conversations`, scopedConfig(officeUserId));
     // S26 chantier #12 : déchiffrer le lastMessage de chaque conversation pour l'aperçu sidebar
     const data = r.data || {};
     if (Array.isArray(data.conversations)) {
@@ -128,12 +139,12 @@ export async function fetchConversations() {
     return data; // { conversations, currentUserId }
 }
 
-export async function fetchMessages({ contactId, before, limit = 30 }) {
+export async function fetchMessages({ contactId, before, limit = 30, officeUserId }) {
     const params = { limit };
     if (before) params.before = before;
-    const r = await apiClient.get(`${BASE}/messages`, {
+    const r = await apiClient.get(`${BASE}/messages`, scopedConfig(officeUserId, {
         params: { contactId, ...params },
-    });
+    }));
     // S26 chantier #12 : déchiffrer les messages chiffrés avant retour
     const data = r.data || {};
     if (Array.isArray(data.messages)) {
@@ -142,16 +153,24 @@ export async function fetchMessages({ contactId, before, limit = 30 }) {
     return data; // { messages, currentUserId }
 }
 
-export async function sendMessage({ recipientId, text, attachment }) {
+export async function sendMessage({ recipientId, text, attachment, officeUserId }) {
     // S26 chantier #12 : tentative chiffrement E2E
     const encryptedPayload = await tryEncryptPayload({ text, attachment });
     let r;
     if (encryptedPayload) {
         // Mode chiffré : on n'envoie ni text ni attachment en clair
-        r = await apiClient.post(`${BASE}/messages`, { recipientId, encryptedPayload });
+        r = await apiClient.post(
+            `${BASE}/messages`,
+            { recipientId, encryptedPayload },
+            scopedConfig(officeUserId)
+        );
     } else {
         // Fallback mode clair (browser preview ou cabinet pas protégé/verrouillé)
-        r = await apiClient.post(`${BASE}/messages`, { recipientId, text, attachment });
+        r = await apiClient.post(
+            `${BASE}/messages`,
+            { recipientId, text, attachment },
+            scopedConfig(officeUserId)
+        );
     }
     // Le serveur renvoie le msg créé. Si chiffré, on déchiffre pour l'UI immédiate.
     const data = r.data || {};
@@ -161,13 +180,17 @@ export async function sendMessage({ recipientId, text, attachment }) {
     return data; // { message }
 }
 
-export async function markConversationAsRead(contactId) {
-    const r = await apiClient.post(`${BASE}/conversations/${encodeURIComponent(contactId)}/read`);
+export async function markConversationAsRead(contactId, officeUserId) {
+    const r = await apiClient.post(
+        `${BASE}/conversations/${encodeURIComponent(contactId)}/read`,
+        undefined,
+        scopedConfig(officeUserId)
+    );
     return r.data; // { updated }
 }
 
-export async function fetchUnreadCount() {
-    const r = await apiClient.get(`${BASE}/unread-count`);
+export async function fetchUnreadCount(officeUserId) {
+    const r = await apiClient.get(`${BASE}/unread-count`, scopedConfig(officeUserId));
     return r.data; // { count }
 }
 
@@ -185,19 +208,58 @@ export async function uploadAttachment(file, options = {}) {
     if (options.durationSec != null) {
         formData.append('durationSec', String(options.durationSec));
     }
-    const r = await apiClient.post(`${BASE}/attachments/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const r = await apiClient.post(
+        `${BASE}/attachments/upload`,
+        formData,
+        scopedConfig(options.officeUserId, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        })
+    );
     return r.data; // { storageKey, fileName, mimeType, sizeBytes, durationSec }
 }
 
 /**
- * Construit l'URL absolue (ou data: URL) pour lire un attachement.
+ * Télécharge une pièce jointe historique via le client Axios authentifié.
+ *
+ * L'identifiant OfficeUser est fourni explicitement afin que l'intercepteur
+ * apiClient ne puisse pas remplacer le profil qui a initié la requête si
+ * l'utilisateur bascule de profil pendant le téléchargement.
+ *
+ * @param {object|string} attachmentOrKey objet attachment ou storageKey legacy
+ * @param {string} officeUserId profil actif au démarrage de la requête
+ * @param {{ signal?: AbortSignal }} options
+ * @returns {Promise<Blob>}
+ */
+export async function fetchAttachmentBlob(attachmentOrKey, officeUserId, options = {}) {
+    const storageKey = typeof attachmentOrKey === 'string'
+        ? attachmentOrKey
+        : attachmentOrKey?.storageKey;
+    if (!storageKey) {
+        throw new Error('Clé de pièce jointe manquante.');
+    }
+    if (!officeUserId) {
+        throw new Error('Profil interne requis pour télécharger la pièce jointe.');
+    }
+
+    const sk = String(storageKey).split('/').map(encodeURIComponent).join('/');
+    const response = await apiClient.get(
+        `${BASE}/attachments/${sk}`,
+        scopedConfig(officeUserId, {
+            responseType: 'blob',
+            signal: options.signal,
+        })
+    );
+    return response.data;
+}
+
+/**
+ * Construit uniquement la data: URL d'une pièce jointe inline.
  * - Si l'attachement contient `dataBase64`, on retourne un data: URL inline
  *   (le contenu est stocké dans le document Mongo, donc accessible depuis
  *   n'importe quelle machine).
- * - Sinon, fallback sur l'URL serveur authentifiée /api/chat/attachments/*
- *   (utilisé pour les anciens messages avec fichier local).
+ * - Une pièce jointe historique ne doit jamais produire une URL serveur nue :
+ *   elle doit passer par fetchAttachmentBlob() afin de transporter le JWT et
+ *   l'OfficeUser figé, puis être exposée au moyen d'une URL Blob temporaire.
  *
  * @param {object|string} attachmentOrKey  l'objet attachment complet, OU le storageKey legacy
  */
@@ -207,13 +269,7 @@ export function buildAttachmentUrl(attachmentOrKey) {
         const mime = attachmentOrKey.mimeType || 'application/octet-stream';
         return `data:${mime};base64,${attachmentOrKey.dataBase64}`;
     }
-    const storageKey = typeof attachmentOrKey === 'string'
-        ? attachmentOrKey
-        : attachmentOrKey.storageKey;
-    if (!storageKey) return null;
-    const base = (apiClient.defaults && apiClient.defaults.baseURL) || '';
-    const sk = String(storageKey).split('/').map(encodeURIComponent).join('/');
-    return `${base}${BASE}/attachments/${sk}`;
+    return null;
 }
 
 /**

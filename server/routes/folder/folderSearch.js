@@ -419,7 +419,7 @@ router.post(
   "/rechercherContactsLink",
   auth,
   asyncHandler(async (req, res) => {
-    const { searchTerm, selectedContactIds } = req.body;
+    const { searchTerm, selectedContactIds = [] } = req.body;
     // SECURITE rc37 (C-09) : on ignore req.body.user (spoofable). user effectif = req.user.
     const user = { _id: req.user };
     if (req.body.user && String(req.body.user._id || '') !== String(req.user)) {
@@ -507,7 +507,7 @@ router.post(
 
     allContacts.sort((a, b) => {
       const nameA = a.nom || a.raisonSociale || a.denomination;
-      const nameB = b.nom || b.raisonSociale || a.denomination;
+      const nameB = b.nom || b.raisonSociale || b.denomination;
       return nameA.localeCompare(nameB);
     });
 

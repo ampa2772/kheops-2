@@ -6,7 +6,11 @@ const router = express.Router();
 const auth = require("../../middlewares/middleware-auth");
 const { asyncHandler } = require("../../middlewares/folder-middleWare");
 const { log: secLog, EVT } = require('../../utils/securityLogger');
-const { ensureDossierOwnership } = require('../../utils/ownershipHelpers');
+const {
+  ensureDossierOwnership,
+  ensureContactOwnership,
+  getAccessibleRelationEntityIds,
+} = require('../../utils/ownershipHelpers');
 const audit = require('../../utils/auditLogger');
 // A20 — validation structurelle du snapshot Aide juridictionnelle.
 const validateBody = require('../../middlewares/validateBody');
@@ -42,6 +46,115 @@ const snapshotService = require("../../services/snapshotService");
 const propagateEntityToDossiers = require("../../services/propagateEntityToDossiers");
 const { getAccessibleUserIds } = require('../../services/cabinetAccess');
 const { getCabinetRole, canDeleteDossier } = require('../../services/cabinetRoles');
+const {
+  PartyRelationError,
+  normalizeDossierParties,
+  removeLinkedEntity,
+  upsertLinkedEntity,
+} = require('../../services/dossierPartyRelations');
+
+const embeddedEntityId = (entity) => {
+  const value = entity && typeof entity === 'object'
+    ? (entity._id || entity.id || entity.contactId)
+    : entity;
+  return value == null ? '' : String(value);
+};
+
+const collectDossierRelationIds = (snapshot = {}) => {
+  const contactOnlyIds = [];
+  const contactOrOfficeUserIds = [];
+  const add = (target, value) => {
+    const id = embeddedEntityId(value);
+    if (id) target.push(id);
+  };
+
+  const parties = snapshot?.parties || {};
+  ['pour', 'contre'].forEach((side) => {
+    (Array.isArray(parties?.[side]) ? parties[side] : []).forEach((party) => {
+      add(contactOnlyIds, party?.idPartie);
+      add(contactOnlyIds, party?.partieData);
+      [
+        ...(Array.isArray(party?.contacts) ? party.contacts : []),
+        ...(Array.isArray(party?.linkedContacts) ? party.linkedContacts : []),
+      ]
+        .forEach((contact) => add(contactOnlyIds, contact));
+      [
+        ...(Array.isArray(party?.avocats) ? party.avocats : []),
+        ...(Array.isArray(party?.linkedAvocats) ? party.linkedAvocats : []),
+      ]
+        .forEach((lawyer) => add(contactOrOfficeUserIds, lawyer));
+    });
+  });
+
+  (Array.isArray(snapshot?.contactsDuDossier) ? snapshot.contactsDuDossier : [])
+    .forEach((contact) => add(contactOnlyIds, contact));
+  (Array.isArray(snapshot?.avocatsResponsables) ? snapshot.avocatsResponsables : [])
+    .forEach((lawyer) => add(contactOrOfficeUserIds, lawyer));
+  (Array.isArray(snapshot?.dossier?.responsables) ? snapshot.dossier.responsables : [])
+    .forEach((responsible) => add(contactOrOfficeUserIds, responsible));
+
+  return {
+    contactOnlyIds: Array.from(new Set(contactOnlyIds)),
+    contactOrOfficeUserIds: Array.from(new Set(contactOrOfficeUserIds)),
+  };
+};
+
+const getDossierRelationAccess = async (userId, snapshot) => {
+  const relationIds = collectDossierRelationIds(snapshot);
+  const allIds = Array.from(new Set([
+    ...relationIds.contactOnlyIds,
+    ...relationIds.contactOrOfficeUserIds,
+  ]));
+  const accessible = await getAccessibleRelationEntityIds(userId, allIds);
+  return {
+    ...relationIds,
+    accessibleContactIds: new Set(accessible.contactIds.map(String)),
+    accessibleOfficeUserIds: new Set(accessible.officeUserIds.map(String)),
+  };
+};
+
+const validateDossierRelationOwnership = async (req, res, snapshot) => {
+  const relationIds = collectDossierRelationIds(snapshot);
+  const allIds = [...relationIds.contactOnlyIds, ...relationIds.contactOrOfficeUserIds];
+  const invalidId = allIds.find((id) => !mongoose.Types.ObjectId.isValid(String(id)));
+  if (invalidId) {
+    res.status(400).json({
+      message: 'Identifiant de relation invalide dans le dossier.',
+      code: 'INVALID_DOSSIER_RELATION_ID',
+    });
+    return false;
+  }
+
+  const accessible = await getAccessibleRelationEntityIds(req.user, allIds);
+  const access = {
+    ...relationIds,
+    accessibleContactIds: new Set(accessible.contactIds.map(String)),
+    accessibleOfficeUserIds: new Set(accessible.officeUserIds.map(String)),
+  };
+
+  const forbiddenContactId = access.contactOnlyIds.find(
+    (id) => !access.accessibleContactIds.has(String(id)),
+  );
+  const forbiddenFlexibleId = access.contactOrOfficeUserIds.find((id) => (
+    !access.accessibleContactIds.has(String(id))
+    && !access.accessibleOfficeUserIds.has(String(id))
+  ));
+  const forbiddenId = forbiddenContactId || forbiddenFlexibleId;
+  if (forbiddenId) {
+    secLog(EVT.ACCESS_DENIED, {
+      userId: String(req.user),
+      resourceType: 'dossier-relation',
+      resourceId: String(forbiddenId),
+      reason: 'relation-outside-cabinet',
+    }, req);
+    res.status(403).json({
+      message: "Acces refuse : une relation du dossier n'appartient pas a votre cabinet.",
+      code: 'DOSSIER_RELATION_ACCESS_DENIED',
+    });
+    return false;
+  }
+  return true;
+};
 
 // ========================================================================
 // Routes d'interaction avec les dossiers
@@ -90,8 +203,14 @@ router.get(
       // Non bloquant : la query principale continue meme si le rattrapage echoue.
     }
 
+    // Nombre de dossiers retournés : 25 par défaut, réglable depuis la page
+    // d'accueil via ?limit= (liste blanche stricte — évite un limit arbitraire).
+    const ALLOWED_LIMITS = [25, 50, 100, 200, 500];
+    const requestedLimit = parseInt(req.query.limit, 10);
+    const limit = ALLOWED_LIMITS.includes(requestedLimit) ? requestedLimit : 25;
+
     const userDossiers = await UserDossier.find({ user: { $in: await getAccessibleUserIds(userId) } }).select("dossier");
-    console.log(`[last-25-dossiers] UserDossier trouvés: ${userDossiers.length}`);
+    console.log(`[last-25-dossiers] UserDossier trouvés: ${userDossiers.length} (limit=${limit})`);
 
     if (userDossiers.length === 0) {
       return res.json([]);
@@ -101,7 +220,7 @@ router.get(
 
     const lastDossiers = await Dossier.find({ _id: { $in: dossierIds } })
       .sort({ dateCreation: -1 })
-      .limit(25);
+      .limit(limit);
 
     console.log(`[last-25-dossiers] Dossiers retournés: ${lastDossiers.length}`);
     if (userDossiers.length !== lastDossiers.length) {
@@ -535,6 +654,10 @@ router.post(
         });
     }
 
+    // Un identifiant de contact devine ne doit jamais permettre de rattacher au
+    // dossier une fiche appartenant a un autre cabinet.
+    if (!(await ensureContactOwnership(req, res, linkedContactData.existingContactId))) return;
+
     // Essayer de trouver le contact dans toutes les collections possibles
     let contactToLink = await Contact.findById(linkedContactData.existingContactId)
       || await ContactPM.findById(linkedContactData.existingContactId)
@@ -553,60 +676,66 @@ router.post(
       return res.status(404).json({ message: "Dossier non trouvé." });
     }
 
-    let partieTrouvee = null;
-    let isPourPartie = false;
-    if (dossier.dossier.parties && Array.isArray(dossier.dossier.parties.pour)) {
-      partieTrouvee = dossier.dossier.parties.pour.find(
-        (p) => p.partieData && String(p.partieData._id) === partyId
-      );
-      if (partieTrouvee) isPourPartie = true;
+    const parties = dossier.dossier?.parties || {};
+    const matchesParty = (party) => String(
+      party?.idPartie || party?.partieData?._id || '',
+    ) === String(partyId);
+    let side = 'pour';
+    let partyIndex = Array.isArray(parties.pour)
+      ? parties.pour.findIndex(matchesParty)
+      : -1;
+    if (partyIndex === -1) {
+      side = 'contre';
+      partyIndex = Array.isArray(parties.contre)
+        ? parties.contre.findIndex(matchesParty)
+        : -1;
     }
-    if (
-      !partieTrouvee &&
-      dossier.dossier.parties &&
-      Array.isArray(dossier.dossier.parties.contre)
-    ) {
-      partieTrouvee = dossier.dossier.parties.contre.find(
-        (p) => p.partieData && String(p.partieData._id) === partyId
-      );
-    }
-    if (!partieTrouvee) {
+    if (partyIndex === -1) {
       return res
         .status(404)
         .json({ message: "Partie non trouvée dans le dossier." });
     }
 
-    // ---------------------------------------------------------------------
-    // NOUVELLE LOGIQUE : SI LE CONTACT EST AVOCAT, ON L'AJOUTE DANS 'avocats'
-    // SINON ON L'AJOUTE DANS 'contacts'.
-    // On utilise le contactToLink trouvé.
-    // ---------------------------------------------------------------------
-    const isAvocat = contactToLink.pro_contact === true && (contactToLink.type === 'Avocat' || contactToLink.type === 'Avocate');
-
-    if (isAvocat) {
-      if (!partieTrouvee.avocats) {
-        partieTrouvee.avocats = [];
+    let relationResult;
+    try {
+      relationResult = upsertLinkedEntity(
+        parties[side][partyIndex],
+        contactToLink,
+        {
+          ...(Object.prototype.hasOwnProperty.call(linkedContactData, 'isPlaidant')
+            ? { isPlaidant: linkedContactData.isPlaidant }
+            : {}),
+          ...(Object.prototype.hasOwnProperty.call(linkedContactData, 'isPostulant')
+            ? { isPostulant: linkedContactData.isPostulant }
+            : {}),
+          ...(Object.prototype.hasOwnProperty.call(linkedContactData, 'forceRoleUpdate')
+            ? { forceRoleUpdate: linkedContactData.forceRoleUpdate }
+            : {}),
+        },
+      );
+    } catch (error) {
+      if (error instanceof PartyRelationError) {
+        return res.status(error.statusCode).json({
+          message: error.message,
+          code: error.code,
+        });
       }
-      // Éviter les doublons
-      if (!partieTrouvee.avocats.some(av => String(av._id) === String(contactToLink._id))) {
-        partieTrouvee.avocats.push(contactToLink);
-      }
-    } else {
-      if (!partieTrouvee.contacts) {
-        partieTrouvee.contacts = [];
-      }
-      // Éviter les doublons
-      if (!partieTrouvee.contacts.some(ct => String(ct._id) === String(contactToLink._id))) {
-        partieTrouvee.contacts.push(contactToLink);
-      }
+      throw error;
     }
+
+    parties[side][partyIndex] = relationResult.party;
+    dossier.dossier.parties = normalizeDossierParties(parties);
 
     dossier.markModified("dossier");
     await dossier.save();
 
     res.json({
-      message: "Contact lié ajouté avec succès à la partie.",
-      contactLier: contactToLink, // Renvoyer le contact lié
+      message: relationResult.created
+        ? "Contact lié ajouté avec succès à la partie."
+        : "Relation avec la partie mise à jour avec succès.",
+      contactLier: relationResult.linkedEntity,
+      relationType: relationResult.relationType,
+      rolesUpdated: relationResult.rolesUpdated,
       dossier,
     });
   })
@@ -634,46 +763,47 @@ router.post(
       return res.status(404).json({ message: "Dossier non trouvé." });
     }
 
-    let partieTrouvee = null;
-    if (dossier.dossier.parties && Array.isArray(dossier.dossier.parties.pour)) {
-      partieTrouvee = dossier.dossier.parties.pour.find(
-        (p) => p.partieData && String(p.partieData._id) === partyId
-      );
+    const parties = dossier.dossier?.parties || {};
+    const matchesParty = (party) => String(
+      party?.idPartie || party?.partieData?._id || '',
+    ) === String(partyId);
+    let side = 'pour';
+    let partyIndex = Array.isArray(parties.pour)
+      ? parties.pour.findIndex(matchesParty)
+      : -1;
+    if (partyIndex === -1) {
+      side = 'contre';
+      partyIndex = Array.isArray(parties.contre)
+        ? parties.contre.findIndex(matchesParty)
+        : -1;
     }
-    if (
-      !partieTrouvee &&
-      dossier.dossier.parties &&
-      Array.isArray(dossier.dossier.parties.contre)
-    ) {
-      partieTrouvee = dossier.dossier.parties.contre.find(
-        (p) => p.partieData && String(p.partieData._id) === partyId
-      );
-    }
-    if (!partieTrouvee) {
+    if (partyIndex === -1) {
       return res
         .status(404)
         .json({ message: "Partie non trouvée dans le dossier." });
     }
 
-    if (isAvocat) {
-      if (partieTrouvee.avocats) {
-        partieTrouvee.avocats = partieTrouvee.avocats.filter(
-          (av) => String(av._id) !== String(contactId)
-        );
-      }
-    } else {
-      if (partieTrouvee.contacts) {
-        partieTrouvee.contacts = partieTrouvee.contacts.filter(
-          (ct) => String(ct._id) !== String(contactId)
-        );
-      }
+    // Le type envoye par les anciens clients reste accepte, mais la frontiere
+    // serveur supprime l'identite des deux collections afin de corriger aussi
+    // les snapshots historiques mal classes ou dedupliques.
+    void isAvocat;
+    const removal = removeLinkedEntity(parties[side][partyIndex], contactId);
+    if (!removal.removed) {
+      return res.status(404).json({
+        message: "Cette personne n'est pas liee a la partie.",
+        code: 'LINKED_ENTITY_NOT_FOUND',
+      });
     }
+    parties[side][partyIndex] = removal.party;
+    dossier.dossier.parties = normalizeDossierParties(parties);
 
     dossier.markModified("dossier");
     await dossier.save();
 
     res.json({
       message: "Contact lié supprimé avec succès de la partie.",
+      removed: removal.removed,
+      relationType: removal.relationType,
       dossier,
     });
   })
@@ -705,6 +835,12 @@ router.get(
     if (!dossierDoc.dossier.parties) dossierDoc.dossier.parties = { pour: [], contre: [] };
     if (!dossierDoc.dossier.dossier) dossierDoc.dossier.dossier = {};
 
+    // Les snapshots historiques restent lisibles, mais une relation embarquee
+    // ne doit jamais servir de pointeur pour hydrater une fiche d'un autre
+    // cabinet. La resolution est faite en lot avant le premier findById.
+    dossierDoc.dossier.parties = normalizeDossierParties(dossierDoc.dossier.parties);
+    const relationAccess = await getDossierRelationAccess(req.user, dossierDoc.dossier);
+
     // === GARANTIE CRUCIALE : Initialisation du tableau documents ===
     if (!dossierDoc.dossier.documents) {
       dossierDoc.dossier.documents = [];
@@ -712,10 +848,17 @@ router.get(
 
     // ================== DÉBUT DE LA LOGIQUE DE POPULATION CORRIGÉE ==================
     const populatePartieData = async (partie) => {
-      if (!partie || !partie.idPartie || !mongoose.Types.ObjectId.isValid(partie.idPartie)) {
+      const id = String(partie?.idPartie || partie?.partieData?._id || '');
+      if (!partie || !id || !mongoose.Types.ObjectId.isValid(id)) {
         return { ...partie, partieData: partie.partieData || {} };
       }
-      const id = partie.idPartie;
+
+      if (!relationAccess.accessibleContactIds.has(id)) {
+        // On conserve les metadonnees propres au dossier (nomPartie, cote,
+        // etc.) mais jamais la copie de la fiche tierce eventuellement
+        // presente dans un ancien snapshot corrompu.
+        return { ...partie, partieData: {} };
+      }
 
       // Essayer de trouver dans les 3 collections de contacts
       let contactDoc = await Contact.findById(id).lean() ||
@@ -762,21 +905,32 @@ router.get(
     const refreshLinkedItems = async (partie) => {
       // Rafraîchir les contacts liés
       if (Array.isArray(partie.contacts) && partie.contacts.length > 0) {
-        partie.contacts = await Promise.all(partie.contacts.map(async (c) => {
-          if (!c || !c._id) return c;
-          const fresh = await Contact.findById(c._id).lean()
-            || await ContactPM.findById(c._id).lean()
-            || await ContactPMPublique.findById(c._id).lean();
+        const refreshedContacts = await Promise.all(partie.contacts.map(async (c) => {
+          const contactId = embeddedEntityId(c);
+          if (!contactId) return c;
+          if (!relationAccess.accessibleContactIds.has(contactId)) return null;
+          const fresh = await Contact.findById(contactId).lean()
+            || await ContactPM.findById(contactId).lean()
+            || await ContactPMPublique.findById(contactId).lean();
           return fresh || c; // fallback sur la copie embarquée si introuvable
         }));
+        partie.contacts = refreshedContacts.filter(Boolean);
       }
       // Rafraîchir les avocats liés (mapping des champs OfficeUser)
       if (Array.isArray(partie.avocats) && partie.avocats.length > 0) {
-        partie.avocats = await Promise.all(partie.avocats.map(async (a) => {
-          if (!a || !a._id) return a;
-          const fresh = await Contact.findById(a._id).lean()
-            || await ContactPM.findById(a._id).lean()
-            || await ContactPMPublique.findById(a._id).lean();
+        const refreshedLawyers = await Promise.all(partie.avocats.map(async (a) => {
+          const lawyerId = embeddedEntityId(a);
+          if (!lawyerId) return a;
+          const isContact = relationAccess.accessibleContactIds.has(lawyerId);
+          const isOfficeUser = relationAccess.accessibleOfficeUserIds.has(lawyerId);
+          if (!isContact && !isOfficeUser) return null;
+
+          // Les responsables OfficeUser restent leur copie relationnelle. Les
+          // avocats issus du carnet sont seuls rafraichis dans Contact/PM/Pub.
+          if (!isContact) return a;
+          const fresh = await Contact.findById(lawyerId).lean()
+            || await ContactPM.findById(lawyerId).lean()
+            || await ContactPMPublique.findById(lawyerId).lean();
           if (fresh) {
             const mapped = {
               ...a,
@@ -809,6 +963,7 @@ router.get(
           }
           return a;
         }));
+        partie.avocats = refreshedLawyers.filter(Boolean);
       }
       return partie;
     };
@@ -864,22 +1019,12 @@ router.put(
     console.log("Dossier ID from params:", req.params.id);
     const dossierId = req.params.id;
     const updatedDataFromRequest = req.body; // Ce que le client envoie
-    const userId = req.user; // Correction: req.user est directement l'ID de l'utilisateur
 
     /* 1. contrôle ownership ------------------------------------------------ */
+    if (!(await ensureDossierOwnership(req, res, dossierId))) return;
+    if (!(await validateDossierRelationOwnership(req, res, updatedDataFromRequest))) return;
     const dossier = await Dossier.findById(dossierId);
     if (!dossier) return res.status(404).json({ message: "Dossier introuvable" });
-    const isLinked = await UserDossier.findOne({ user: userId, dossier: dossierId });
-    if (!isLinked) {
-      console.error(`Accès refusé pour user ${userId} sur dossier ${dossierId}. Liaison UserDossier non trouvée.`);
-      secLog(EVT.ACCESS_DENIED, {
-        userId: String(userId),
-        resourceType: 'dossier',
-        resourceId: String(dossierId),
-        reason: 'no-userDossier-link',
-      }, req);
-      return res.status(403).json({ message: "Accès refusé." });
-    }
 
     /* 2. hook versioning-ready (si utilisé) -------------------------------- */
     // await snapshotService.beforeUpdate(dossier);
@@ -896,7 +1041,7 @@ router.put(
       dossier.dossier.dossier = { ...existingData, ...dossierDataToSave.dossier };
     }
     if (dossierDataToSave.parties) {
-      dossier.dossier.parties = dossierDataToSave.parties;
+      dossier.dossier.parties = normalizeDossierParties(dossierDataToSave.parties);
     }
     if (dossierDataToSave.liensCommunes) {
       dossier.dossier.liensCommunes = dossierDataToSave.liensCommunes;
@@ -908,8 +1053,14 @@ router.put(
       dossier.dossier.avocatsResponsables = dossierDataToSave.avocatsResponsables;
     }
 
-    // <<< NOUVELLE LOGIQUE : Recalculer le nom du dossier avant de sauvegarder >>>
-    if (dossier.dossier && dossier.dossier.parties) {
+    // <<< Recalcul du nom depuis les parties — UNIQUEMENT si le nom est vide >>>
+    // Fix 2026-07-04 : l'ancien recalcul SYSTÉMATIQUE écrasait le nom choisi
+    // par l'utilisateur à chaque « Mettre à jour » (perte de données constatée
+    // en prod : impossible de renommer un dossier). Le nom envoyé par le client
+    // (fusionné plus haut) fait désormais foi ; on ne génère un nom automatique
+    // que pour un dossier sans nom.
+    const nomActuel = dossier.dossier && dossier.dossier.dossier && dossier.dossier.dossier.nom;
+    if (dossier.dossier && dossier.dossier.parties && !(nomActuel && String(nomActuel).trim())) {
       const pour = dossier.dossier.parties.pour || [];
       const contre = dossier.dossier.parties.contre || [];
 

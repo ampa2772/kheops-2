@@ -13,7 +13,6 @@
 //   DELETE /api/storage/documents/:id           suppression (corbeille)
 
 import apiClient from './apiClient';
-import { resolveApiBase } from '../utils/apiBase';
 
 export const STORAGE_PROVIDERS = Object.freeze({
   GOOGLE_DRIVE: 'google_drive',
@@ -36,7 +35,7 @@ export async function getStorageUsage() {
 
 /**
  * A3 — statut de connexion du OneDrive PERSONNEL de l'utilisateur courant.
- * @returns {Promise<{connected:boolean, connectUrl:string}>}
+ * @returns {Promise<{connected:boolean, connectEndpoint:string}>}
  */
 export async function getOneDriveStatus() {
   const { data } = await apiClient.get('/api/storage/onedrive/status');
@@ -44,31 +43,104 @@ export async function getOneDriveStatus() {
 }
 
 /**
- * URL absolue de connexion Microsoft (même pattern que le login) — le login MS
- * consent déjà Files.ReadWrite, ce qui « connecte » le OneDrive de l'utilisateur.
+ * Lance le consentement OneDrive dédié sans modifier la connexion Kheops/Outlook.
  */
+async function dedicatedConnectUrl(endpoint) {
+  const { data } = await apiClient.post(endpoint);
+  if (!data?.authorizationUrl) throw new Error("L'adresse de connexion n'a pas été fournie.");
+  return data.authorizationUrl;
+}
+
 export function microsoftConnectUrl() {
-  return `${resolveApiBase()}/api/auth/microsoft`;
+  return dedicatedConnectUrl('/api/auth/microsoft/connect-url');
 }
 
 /**
  * A3 — statut de connexion du Google Drive PERSONNEL de l'utilisateur courant.
- * @returns {Promise<{connected:boolean, connectUrl:string}>}
+ * @returns {Promise<{connected:boolean, connectEndpoint:string}>}
  */
 export async function getGoogleDriveStatus() {
   const { data } = await apiClient.get('/api/storage/googledrive/status');
   return data;
 }
 
-/** URL absolue de connexion Google (le login Google consent déjà drive.file). */
+/** Lance le consentement Google Drive dédié sans modifier la connexion Kheops/Gmail. */
 export function googleConnectUrl() {
-  return `${resolveApiBase()}/api/auth/google`;
+  return dedicatedConnectUrl('/api/auth/google/connect-url');
+}
+
+export function sharePointConnectUrl() {
+  return dedicatedConnectUrl('/api/auth/microsoft/sharepoint-connect-url');
 }
 
 /** Définit le mode de rangement du cabinet. */
 export async function selectStorageProvider(provider) {
   const { data } = await apiClient.post('/api/storage/provider/select', { provider });
   return data;
+}
+
+// ── SharePoint PAR UTILISATEUR (Volet B) — optionnel, jamais partagé ─────────
+// Chaque utilisateur connecte SON PROPRE SharePoint. Ces appels sont per-USER.
+
+/**
+ * Statut + détection SharePoint du compte courant.
+ * @returns {Promise<{connected:boolean, available:boolean, enabled:boolean,
+ *   promptDismissed:boolean, selected:?object, sites:Array, connectEndpoint:string}>}
+ */
+export async function getSharePointStatus() {
+  const { data } = await apiClient.get('/api/storage/sharepoint/status');
+  return data;
+}
+
+/** L'utilisateur choisit son site SharePoint (active SharePoint pour lui). */
+export async function selectSharePointSite({ siteId, siteName, webUrl, driveId } = {}) {
+  const { data } = await apiClient.post('/api/storage/sharepoint/select-site', {
+    siteId, siteName, webUrl, driveId,
+  });
+  return data;
+}
+
+/** Désactive SharePoint pour l'utilisateur (retour au rangement du cabinet). */
+export async function disableSharePoint() {
+  const { data } = await apiClient.post('/api/storage/sharepoint/disable', {});
+  return data;
+}
+
+/** « Ne plus me proposer » : masque définitivement la modale d'invitation. */
+export async function dismissSharePointPrompt() {
+  const { data } = await apiClient.post('/api/storage/sharepoint/dismiss-prompt', {});
+  return data;
+}
+
+/**
+ * Backfill : crée sur le cloud de l'utilisateur (SharePoint/OneDrive/Drive) les
+ * dossiers lisibles de TOUS ses dossiers existants (même créés avant) ET y
+ * recopie les documents restés sur le stockage interne. Idempotent.
+ * @returns {Promise<{total:number, ok:number, skipped:number, reasons:Object,
+ *   folders:Object, documents:Object}>}
+ */
+export async function backfillCloudFolders() {
+  const { data } = await apiClient.post('/api/storage/cloud-folders/backfill', {});
+  return data;
+}
+
+/**
+ * Sync (fire-and-forget) d'UN dossier : recopie vers le cloud personnel de
+ * l'utilisateur les documents de ce dossier restés sur le stockage interne.
+ * Le serveur répond 202 immédiatement et poursuit en arrière-plan. Idempotent :
+ * les documents déjà sur cloud perso sont ignorés. À appeler à l'ouverture d'un
+ * dossier. Best-effort côté client : ne jette pas (échec silencieux).
+ * @param {string} dossierId
+ * @returns {Promise<boolean>} true si la demande a été acceptée.
+ */
+export async function syncDossierDocuments(dossierId) {
+  if (!dossierId) return false;
+  try {
+    await apiClient.post(`/api/storage/dossiers/${encodeURIComponent(dossierId)}/sync-documents`, {});
+    return true;
+  } catch (_e) {
+    return false;
+  }
 }
 
 /** Liste les documents (optionnellement filtrés par dossier). */

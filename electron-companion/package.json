@@ -1,12 +1,13 @@
 {
   "name": "kheops2-companion",
   "productName": "Kheops 2 Companion",
-  "version": "1.0.0",
+  "version": "1.0.6",
   "description": "Agent local mince et invisible : ouvre/edite les .docx Kheops dans Microsoft Word, synchronise vers le backend. Aucun secret, aucune connexion MongoDB.",
   "private": true,
   "main": "main.js",
   "author": "Kheops 2",
   "scripts": {
+    "test": "node --test --test-concurrency=1 test",
     "start": "electron .",
     "dist": "electron-builder --config electron-builder.companion.json --projectDir .."
   },

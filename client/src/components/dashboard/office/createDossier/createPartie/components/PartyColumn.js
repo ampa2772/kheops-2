@@ -15,7 +15,7 @@ const PartyColumn = ({
   handleModifyPartie,
   // setIsDraggingOutside est géré par DraggablePartie lui-même
   headerExtra = null,         /* ex : bouton « … » */
-  footerExtra = null,         /* rc64 : bouton "+ Ajouter une personne liée" */
+  footerExtra = null,         /* bouton "+ Ajouter une partie POUR/CONTRE" */
 }) => (
   <DroppableZone typePartie={side} onDrop={movePartie}>
     <div className={`parties_${side.toLowerCase()}`}>

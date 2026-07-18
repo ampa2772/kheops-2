@@ -2,7 +2,6 @@
 // LinkedContactItem.js
 
 import React, { useMemo } from 'react';
-import { useSelector } from 'react-redux';
 import {
   getInitials,
   formatProContact,
@@ -28,16 +27,7 @@ import CreateContact from '../../createContact';
 
 import useLinkedItemActions from './useLinkedItemActions';
 import { removeLinkedContactFromParty } from '../../../../../redux/slices/currentDossierSlice';
-
-/* ------------------------------------------------------------------ */
-/* Hook : choisit dynamiquement l'action adéquate (create / edit)      */
-/* ------------------------------------------------------------------ */
-const useDeletePartieLink = (partieId) => {
-  const isEdit = useSelector((s) =>
-    (s.partieEditData?.parties || []).some((p) => p.idPartie === partieId)
-  );
-  return isEdit ? deletePartieLinkEdit : deletePartieLinkCreate;
-};
+import { getContactTypeLabel } from '../../../../../utils/partyLinking';
 
 // Nouveau code
 /* ------------------------------------------------------------------ */
@@ -48,6 +38,7 @@ const LinkedContactItem = ({
   partieId = null,                 /* idPartie pour le cas "single"          */
   handleDeleteLinkedContact = null, /* fonction custom (allPour / allContre)  */
   groupContextType = null, // Nouvelle prop pour le contexte de groupe
+  mode = 'create',
 }) => {
   const {
     dispatch,
@@ -64,7 +55,7 @@ const LinkedContactItem = ({
     dossierIdFromStore,
   } = useLinkedItemActions(contact._id);
 
-  const deletePartieLink = useDeletePartieLink(partieId); /* alias dynamique */
+  const deletePartieLink = mode === 'edit' ? deletePartieLinkEdit : deletePartieLinkCreate;
 
   /* ----- handlers ----- */
   const handleDelete = () => {
@@ -75,7 +66,7 @@ const LinkedContactItem = ({
       /* single partie */
       dispatch(deletePartieLink(partieId, contact._id));
       // Auto-save en base en mode edit
-      if (dossierIdFromStore) {
+      if (mode === 'edit' && dossierIdFromStore) {
         dispatch(removeLinkedContactFromParty(dossierIdFromStore, partieId, contact._id, false));
       }
     }
@@ -87,7 +78,7 @@ const LinkedContactItem = ({
     () => {
       const isGroupLink = !partieId && !!handleDeleteLinkedContact && !!groupContextType;
       return {
-        mode: 'edit', // Indispensable pour que updateContact déclenche fetchCurrentDossier après sauvegarde
+        mode,
         fromCreatePartieForPartie: {
           isTransformedToPartie: false,
           typePartie: null,
@@ -107,7 +98,7 @@ const LinkedContactItem = ({
         },
       };
     },
-    [contact._id, partieId, handleDeleteLinkedContact, groupContextType, dossierIdFromStore]
+    [contact._id, partieId, handleDeleteLinkedContact, groupContextType, dossierIdFromStore, mode]
   );
 
   /* ------------------------------------------------------------------ */
@@ -116,16 +107,27 @@ const LinkedContactItem = ({
   return (
     <div className="container_initialesOptions">
       <div className="linkedContact">
-        <div className="linkedContactName">
-          {formatProContact(contact)}
+        <div className="k-linked-contact-identity">
+          <div className="linkedContactName">
+            {formatProContact(contact)}
+          </div>
+          <span className="k-linked-type-badge">
+            {getContactTypeLabel(contact)}
+          </span>
         </div>
 
         {/* ====== icône / options ====== */}
-        <div className="OptionsLinkedContact" onClick={handleOptionsClick}>
+        <div className="OptionsLinkedContact">
           {!isOptionsOpen ? (
-            <div className="initials-icon_linkedContact">
+            <button
+              type="button"
+              className="initials-icon_linkedContact"
+              onClick={handleOptionsClick}
+              aria-label={`Gérer ${formatProContact(contact)}`}
+              aria-expanded={false}
+            >
               {getInitials(formatProContact(contact))}
-            </div>
+            </button>
           ) : (
             <div
               className="modif-suppr-options"
@@ -133,32 +135,36 @@ const LinkedContactItem = ({
               onClick={(e) => e.stopPropagation()}
             >
               {/* ----- modifier ----- */}
-              <div
+              <button
+                type="button"
                 className="modifLinkContact"
                 onClick={handleModifierClick}
                 onMouseEnter={() => setIsModifierHovered(true)}
                 onMouseLeave={() => setIsModifierHovered(false)}
+                aria-label={`Modifier ${formatProContact(contact)}`}
               >
                 <img
                   src={isModifierHovered ? modifier_navy : modifier}
                   alt="Modifier"
                   className="k-icon-sm"
                 />
-              </div>
+              </button>
 
               {/* ----- supprimer ----- */}
-              <div
+              <button
+                type="button"
                 className="deleteLinkContact"
                 onClick={handleDelete}
                 onMouseEnter={() => setIsSupprimerHovered(true)}
                 onMouseLeave={() => setIsSupprimerHovered(false)}
+                aria-label={`Retirer ${formatProContact(contact)}`}
               >
                 <img
                   src={isSupprimerHovered ? supprimerLogoPath_navy : supprimerLogoPath}
                   alt="Supprimer"
                   className="k-icon-sm"
                 />
-              </div>
+              </button>
             </div>
           )}
         </div>

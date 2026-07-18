@@ -6,7 +6,11 @@ import {
   openEmailComposeModal,
   openDocumentCreateModal,
 } from '../../../../../../redux/slices/layoutSlice';
-import { setResponsables, resetDossier } from '../../../../../../redux/slices/dossierInfoSlice';
+import {
+  setResponsables,
+  resetDossier,
+  buildDefaultResponsables,
+} from '../../../../../../redux/slices/dossierInfoSlice';
 
 import BaseModal from '../../../../../common/BaseModal';
 import CreateOptionCard from './CreateOptionCard';
@@ -34,9 +38,6 @@ const CreateModal = () => {
 
   const currentOfficeUser = useSelector(state => state.officeUser.officeUser);
   const officeUsers = useSelector(state => state.officeUser.officeUsers);
-  const mainOfficeUser = officeUsers
-    ? officeUsers.find(user => user.mainOfficeUser === true)
-    : null;
 
   const handleClose = () => {
     dispatch(closeCreateModal());
@@ -44,18 +45,7 @@ const CreateModal = () => {
 
   const handleDossierClick = () => {
     dispatch(resetDossier());
-    let responsables = [];
-    if (currentOfficeUser) {
-      if (currentOfficeUser.isAvocat) {
-        responsables.push(currentOfficeUser);
-      } else {
-        if (mainOfficeUser) {
-          responsables.push(mainOfficeUser);
-        }
-        responsables.push(currentOfficeUser);
-      }
-    }
-    dispatch(setResponsables(responsables));
+    dispatch(setResponsables(buildDefaultResponsables(currentOfficeUser, officeUsers)));
     dispatch(closeCreateModal());
     navigate('/dashboard/createDossier/step1');
   };

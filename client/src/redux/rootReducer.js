@@ -48,6 +48,7 @@
    /* ---------- SEARCH (migré RTK — Phase 6) --------------------------- */
    import { allSearchReducer, linkedSearchReducer, globalContactsSearchReducer } from './slices/allSearchSlice';
    import searchTerm                               from './slices/searchTermSlice';
+   import rechercheAvanceeReducer                  from './slices/rechercheAvanceeSlice';
    
    /* ---------- DASHBOARD / LISTES (migré RTK — Phase 6) --------------- */
    import last25DossiersReducer  from './slices/last25DossiersSlice';
@@ -111,6 +112,7 @@
   allSearchReducer,
   linkedSearchReducer,
   globalContactsSearch: globalContactsSearchReducer,
+  rechercheAvancee: rechercheAvanceeReducer,
 
   /* --- Communes / datasets --- */
      communesContactReducer,

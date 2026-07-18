@@ -81,6 +81,12 @@ import { usePartieModal } from './hooks/usePartieModal';
 import { usePartieSearch } from './hooks/usePartieSearch';
 import { usePartieActions } from './hooks/usePartieActions';
 import { useWindowDimensions, calculateDynamicBottom, useOutsideClick } from './fonctions';
+import { buildPartieMovePayload } from './utils/partiesHelpers';
+import {
+  getEntityId,
+  isLawyerContact,
+  normalizeLawyerRoles,
+} from '../../../../../utils/partyLinking';
 
 // Composants UI
 import AddPartieSection from './components/AddPartieSection';
@@ -163,7 +169,15 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
 
   const [fromCreatePartieProps, setFromCreatePartieProps] = useState(null);
   const [pendingNewContact, setPendingNewContact] = useState(false);
+  const [linkActionFeedback, setLinkActionFeedback] = useState({
+    state: 'idle',
+    message: '',
+  });
   const createPartieModalIsOpen = useSelector((s) => s.layout.createPartieModalIsOpen);
+
+  useEffect(() => {
+    setLinkActionFeedback({ state: 'idle', message: '' });
+  }, [modalType, modalData?.idPartie]);
 
   const inputRef = useRef();
   const contactsRef = useRef();
@@ -214,9 +228,9 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
     dispatch(setSearchTerm(''));
   };
 
-  // rc64 : callbacks dédiés pour les boutons "+ Ajouter une personne liée"
-  // en bas de chaque panneau (PartyColumn footer). Fixe le côté + focus champ.
-  const handleAddPersonForSide = useCallback((side) => {
+  // Callbacks dédiés aux boutons "+ Ajouter une partie POUR/CONTRE".
+  // Le formulaire mutualisé est ouvert avec le bon côté et reçoit le focus.
+  const handleAddPartieForSide = useCallback((side) => {
     setSelectedOption(side);
     setIsAddingPartie(true);
     dispatch(setSearchTerm(''));
@@ -229,10 +243,11 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
     dispatch(partieActions.setPartie(selectedOption, contact));
     dispatch(setSearchTerm(''));
     setSelectedOption('Pour');
+    // Une fois la partie ajoutée, les deux CTA contextualisés des colonnes
+    // redeviennent les seuls points d'entrée. Le formulaire mutualisé ne doit
+    // rester visible que lorsqu'un de ces CTA l'a explicitement ouvert.
+    setIsAddingPartie(false);
     setShowSuggestionsFromSearchHook(false);
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
   };
 
   const handlePartieTypeChange = (type) => {
@@ -240,14 +255,9 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
   };
 
   const movePartie = (partieItem, newType) => {
+    const { contactData, linkedContacts, linkedAvocats } = buildPartieMovePayload(partieItem);
     dispatch(partieActions.deletePartie(partieItem.idPartie));
-    const partieDataPayload = partieItem.partieData || {};
-    const newPartieData = {
-      _id: partieItem.idPartie,
-      nomPartie: partieItem.nomPartie,
-      ...partieDataPayload
-    };
-    dispatch(partieActions.setPartie(newType, newPartieData));
+    dispatch(partieActions.setPartie(newType, contactData, linkedContacts, linkedAvocats));
   };
 
   const handleDeletePartie = (idPartie) => dispatch(partieActions.deletePartie(idPartie));
@@ -296,77 +306,137 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
 
   }, [dispatch, setIsAddingPartie, setFromCreatePartieProps, mode, presetDossier, isEdit]);
 
-  const handleSupprAvocatLinked = (avocatId) => {
-    if (modalType === 'single' && modalData?.idPartie) {
-      dispatch(partieActions.deleteLinkedAvocat(modalData.idPartie, avocatId));
-      if (isEdit && presetDossier?._id) {
-        dispatch(removeLinkedContactFromParty(presetDossier._id, modalData.idPartie, avocatId, true));
+  const handleSupprAvocatLinked = async (avocatId) => {
+    setLinkActionFeedback({ state: isEdit ? 'saving' : 'loading', message: isEdit ? 'Suppression et sauvegarde en cours…' : 'Suppression en cours…' });
+    try {
+      if (modalType === 'single' && modalData?.idPartie) {
+        dispatch(partieActions.deleteLinkedAvocat(modalData.idPartie, avocatId));
+        if (isEdit && presetDossier?._id) {
+          await dispatch(removeLinkedContactFromParty(presetDossier._id, modalData.idPartie, avocatId, true));
+        }
+      } else if (modalType === 'allPour') {
+        dispatch(partieActions.deleteLinkedAvocatAllPour(avocatId));
+        if (isEdit && presetDossier?._id) {
+          for (const partie of pourParties) {
+            await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, avocatId, true));
+          }
+        }
+      } else if (modalType === 'allContre') {
+        dispatch(partieActions.deleteLinkedAvocatAllContre(avocatId));
+        if (isEdit && presetDossier?._id) {
+          for (const partie of contreParties) {
+            await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, avocatId, true));
+          }
+        }
       }
-    } else if (modalType === 'allPour') {
-      dispatch(partieActions.deleteLinkedAvocatAllPour(avocatId));
-      if (isEdit && presetDossier?._id) {
-        pourParties.forEach((p) => {
-          dispatch(removeLinkedContactFromParty(presetDossier._id, p.idPartie, avocatId, true));
-        });
-      }
-    } else if (modalType === 'allContre') {
-      dispatch(partieActions.deleteLinkedAvocatAllContre(avocatId));
-      if (isEdit && presetDossier?._id) {
-        contreParties.forEach((p) => {
-          dispatch(removeLinkedContactFromParty(presetDossier._id, p.idPartie, avocatId, true));
-        });
-      }
+      setLinkActionFeedback({ state: 'success', message: 'L’avocat n’est plus lié à la partie.' });
+      return true;
+    } catch (error) {
+      setLinkActionFeedback({
+        state: 'error',
+        message: error?.response?.data?.message || 'La suppression du lien a échoué. Réessayez.',
+      });
+      return false;
     }
   };
-  const handleSupprContactLinked = (contactId) => {
-    if (modalType === 'single' && modalData?.idPartie) {
-      dispatch(partieActions.deleteLinkedContact(modalData.idPartie, contactId));
-      if (isEdit && presetDossier?._id) {
-        dispatch(removeLinkedContactFromParty(presetDossier._id, modalData.idPartie, contactId, false));
+  const handleSupprContactLinked = async (contactId) => {
+    setLinkActionFeedback({ state: isEdit ? 'saving' : 'loading', message: isEdit ? 'Suppression et sauvegarde en cours…' : 'Suppression en cours…' });
+    try {
+      if (modalType === 'single' && modalData?.idPartie) {
+        dispatch(partieActions.deleteLinkedContact(modalData.idPartie, contactId));
+        if (isEdit && presetDossier?._id) {
+          await dispatch(removeLinkedContactFromParty(presetDossier._id, modalData.idPartie, contactId, false));
+        }
+      } else if (modalType === 'allPour') {
+        dispatch(partieActions.deleteLinkedContactAllPour(contactId));
+        if (isEdit && presetDossier?._id) {
+          for (const partie of pourParties) {
+            await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, contactId, false));
+          }
+        }
+      } else if (modalType === 'allContre') {
+        dispatch(partieActions.deleteLinkedContactAllContre(contactId));
+        if (isEdit && presetDossier?._id) {
+          for (const partie of contreParties) {
+            await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, contactId, false));
+          }
+        }
       }
-    } else if (modalType === 'allPour') {
-      dispatch(partieActions.deleteLinkedContactAllPour(contactId));
-      if (isEdit && presetDossier?._id) {
-        pourParties.forEach((p) => {
-          dispatch(removeLinkedContactFromParty(presetDossier._id, p.idPartie, contactId, false));
-        });
-      }
-    } else if (modalType === 'allContre') {
-      dispatch(partieActions.deleteLinkedContactAllContre(contactId));
-      if (isEdit && presetDossier?._id) {
-        contreParties.forEach((p) => {
-          dispatch(removeLinkedContactFromParty(presetDossier._id, p.idPartie, contactId, false));
-        });
-      }
+      setLinkActionFeedback({ state: 'success', message: 'La personne n’est plus liée à la partie.' });
+      return true;
+    } catch (error) {
+      setLinkActionFeedback({
+        state: 'error',
+        message: error?.response?.data?.message || 'La suppression du lien a échoué. Réessayez.',
+      });
+      return false;
     }
   };
 
-  const handleContactClickLinkModal = (contact) => {
-    if (modalType === 'single' && modalData?.idPartie) {
-      dispatch(partieActions.setPartieLink(modalData.idPartie, contact));
-      // Auto-save en base en mode edit
-      if (isEdit && presetDossier?._id && contact?._id) {
-        dispatch(addLinkedContactToParty(presetDossier._id, modalData.idPartie, { existingContactId: contact._id }));
-      }
-    } else if (modalType === 'allPour') {
-      dispatch(partieActions.setPartiesLinkAllPour(contact));
-      // Auto-save en base pour chaque partie Pour
-      if (isEdit && presetDossier?._id && contact?._id) {
-        pourParties.forEach((p) => {
-          dispatch(addLinkedContactToParty(presetDossier._id, p.idPartie, { existingContactId: contact._id }));
-        });
-      }
-    } else if (modalType === 'allContre') {
-      dispatch(partieActions.setPartiesLinkAllContre(contact));
-      // Auto-save en base pour chaque partie Contre
-      if (isEdit && presetDossier?._id && contact?._id) {
-        contreParties.forEach((p) => {
-          dispatch(addLinkedContactToParty(presetDossier._id, p.idPartie, { existingContactId: contact._id }));
-        });
-      }
+  const handleContactClickLinkModal = async (contact) => {
+    const contactId = getEntityId(contact);
+    const targets = modalType === 'allPour'
+      ? pourParties
+      : modalType === 'allContre'
+        ? contreParties
+        : modalData
+          ? [modalData]
+          : [];
+    const alreadyLinkedToEveryTarget = targets.length > 0 && targets.every((partie) => (
+      [...(partie.linkedContacts || []), ...(partie.linkedAvocats || [])]
+        .some((linked) => getEntityId(linked) === contactId)
+    ));
+    if (!contactId || alreadyLinkedToEveryTarget) {
+      setLinkActionFeedback({
+        state: 'info',
+        message: alreadyLinkedToEveryTarget
+          ? 'Cette personne est déjà liée à la cible sélectionnée.'
+          : 'Ce contact ne peut pas être lié.',
+      });
+      return false;
     }
-    dispatch(resetContactsLinkPartie());
-    setShowSuggestionsFromSearchHook(false);
+
+    const roles = normalizeLawyerRoles(contact);
+    const linkedContactData = {
+      existingContactId: contact?._id,
+      ...(isLawyerContact(contact) ? roles : {}),
+    };
+    setLinkActionFeedback({ state: isEdit ? 'saving' : 'loading', message: isEdit ? 'Liaison et sauvegarde en cours…' : 'Liaison en cours…' });
+    try {
+      if (modalType === 'single' && modalData?.idPartie) {
+        dispatch(partieActions.setPartieLink(modalData.idPartie, contact));
+        // Auto-save en base en mode edit
+        if (isEdit && presetDossier?._id && contactId) {
+          await dispatch(addLinkedContactToParty(presetDossier._id, modalData.idPartie, linkedContactData));
+        }
+      } else if (modalType === 'allPour') {
+        dispatch(partieActions.setPartiesLinkAllPour(contact));
+        // Auto-save en base pour chaque partie Pour
+        if (isEdit && presetDossier?._id && contactId) {
+          for (const partie of pourParties) {
+            await dispatch(addLinkedContactToParty(presetDossier._id, partie.idPartie, linkedContactData));
+          }
+        }
+      } else if (modalType === 'allContre') {
+        dispatch(partieActions.setPartiesLinkAllContre(contact));
+        // Auto-save en base pour chaque partie Contre
+        if (isEdit && presetDossier?._id && contactId) {
+          for (const partie of contreParties) {
+            await dispatch(addLinkedContactToParty(presetDossier._id, partie.idPartie, linkedContactData));
+          }
+        }
+      }
+      dispatch(resetContactsLinkPartie());
+      setShowSuggestionsFromSearchHook(false);
+      setLinkActionFeedback({ state: 'success', message: 'La personne est maintenant liée à la bonne partie.' });
+      return true;
+    } catch (error) {
+      setLinkActionFeedback({
+        state: 'error',
+        message: error?.response?.data?.message || 'La liaison a échoué. La fenêtre reste ouverte pour réessayer.',
+      });
+      return false;
+    }
   };
 
   const closeLinkModalHandler = useCallback(() => {
@@ -374,6 +444,7 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
     dispatch(setLinkModalIsOpen(false));
     dispatch(resetContactsLinkPartie());
     setShowSuggestionsFromSearchHook(false);
+    setLinkActionFeedback({ state: 'idle', message: '' });
   }, [closeLinkModal, dispatch, setShowSuggestionsFromSearchHook]);
 
   const sortedLinkedAvocats = useMemo(() => {
@@ -410,6 +481,8 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
     handleContactClickLinkPartie: handleContactClickLinkModal,
     handleSupprAvocatLinked, handleSupprContactLinked,
     switchToSide,
+    loadingContactsLinkPartie,
+    linkActionFeedback,
   };
 
   useEffect(() => {
@@ -443,6 +516,7 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
               dispatch(setCreatePartieModal(false));
               setFromCreatePartieProps(null);
               setPendingNewContact(false);
+              setIsAddingPartie(false);
             }}
           />
         )}
@@ -471,7 +545,7 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
             openAllPourModal={wrappedOpenAllPourModal}
             openAllContreModal={wrappedOpenAllContreModal}
             handleModifyPartie={handleModifyPartieCallback}
-            onAddPersonForSide={handleAddPersonForSide}
+            onAddPartieForSide={handleAddPartieForSide}
           />
         )}
 

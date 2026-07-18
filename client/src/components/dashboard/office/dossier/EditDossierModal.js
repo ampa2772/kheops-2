@@ -80,6 +80,25 @@ const EditDossierModal = ({ dossier, onClose }) => {
     };
   }, [handleClickOutsideMainContent]);
 
+  // Le formulaire de la modale possède son propre scroll. Empêcher la page
+  // située derrière de défiler, puis restaurer exactement son état à la
+  // fermeture (sans interférer avec les classes des modales enfants).
+  useEffect(() => {
+    if (!dossier) return undefined;
+
+    const body = document.body;
+    const classWasAlreadyPresent = body.classList.contains('edit-dossier-modal-open');
+    if (!classWasAlreadyPresent) {
+      body.classList.add('edit-dossier-modal-open');
+    }
+
+    return () => {
+      if (!classWasAlreadyPresent) {
+        body.classList.remove('edit-dossier-modal-open');
+      }
+    };
+  }, [dossier]);
+
   const { loadingEdit } = useSelector((s) => s.currentDossier || {});
 
   if (!dossier) {
@@ -97,7 +116,12 @@ const EditDossierModal = ({ dossier, onClose }) => {
       {/* L'overlay n'a plus besoin de son propre onMouseDown si document gère tout */}
       <div className="k-modal-overlay edit-modal__overlay">
         {/* .edit-modal__content n'a plus besoin de onMouseDown non plus */}
-        <div className="edit-modal__content">
+        <div
+          className="edit-modal__content"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Modifier le dossier"
+        >
           <CreateDossier
             ref={createDossierRef} // Passer la ref à CreateDossier
             key={createDossierKey}

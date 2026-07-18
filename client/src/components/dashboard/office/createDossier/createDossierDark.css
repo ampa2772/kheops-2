@@ -346,6 +346,12 @@
   color: var(--kdn-text-secondary) !important;
 }
 
+/* Indicateur discret : une description est renseignée sur le dossier.
+   (!important requis : la règle de base pose `border: ... !important`.) */
+.k-create-dossier-dark .open_description_modal_button.has-description {
+  border-color: #4dc9ff !important;
+}
+
 /* ─── Section Responsables ────────────────────────────────── */
 .k-create-dossier-dark .responsable-dossier {
   background: var(--kdn-bg-surface);
@@ -638,5 +644,40 @@
   }
   .k-create-dossier-dark .k-cdd-banner-pill {
     align-self: flex-start;
+  }
+}
+
+/* ─── Responsive : écrans peu hauts (portables, tablettes paysage) ──
+   Compacte le bandeau pour maximiser la hauteur disponible du formulaire.
+   (Le scroll du formulaire reste garanti par le "safe center" de styles.css.) */
+@media (max-height: 700px) {
+  .k-create-dossier-dark .k-cdd-banner {
+    padding: 0.6rem 1.4rem 0.7rem;
+    align-items: center;
+  }
+  .k-create-dossier-dark .k-cdd-banner-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+  .k-create-dossier-dark .k-cdd-banner-badge svg {
+    width: 17px;
+    height: 17px;
+  }
+  .k-create-dossier-dark .k-cdd-banner-text {
+    gap: 0.1rem;
+  }
+  .k-create-dossier-dark .k-cdd-banner-sub {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Écrans très bas : on retire le sous-titre du bandeau (info non essentielle)
+   pour donner le maximum de place au formulaire lui-même. */
+@media (max-height: 560px) {
+  .k-create-dossier-dark .k-cdd-banner-sub {
+    display: none;
   }
 }

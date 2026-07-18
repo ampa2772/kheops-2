@@ -79,6 +79,64 @@ describe('uploadFile', () => {
     // 2 POST seulement : token + upload (pas de create folder)
     expect(axios.post).toHaveBeenCalledTimes(2);
   });
+
+  test('importe un TXT comme document Google natif sans extension trompeuse', async () => {
+    gdrive._tokenCache.set('userA', { accessToken: 'AT', expiresAt: Date.now() + 60000 });
+    gdrive._folderCache.set('userA', 'FOLDER1');
+    axios.post.mockResolvedValue({
+      data: {
+        id: 'GOOGLE-DOC-1',
+        name: 'notes',
+        mimeType: 'application/vnd.google-apps.document',
+        webViewLink: 'https://docs.google.com/document/d/GOOGLE-DOC-1/edit',
+      },
+    });
+
+    const result = await gdrive.uploadFile('userA', {
+      name: 'notes.txt',
+      buffer: Buffer.from('Bonjour', 'utf8'),
+      mime: 'text/plain; charset=utf-8',
+      convertToGoogle: true,
+    });
+
+    expect(result).toMatchObject({
+      fileId: 'GOOGLE-DOC-1',
+      name: 'notes',
+      mimeType: 'application/vnd.google-apps.document',
+    });
+    const multipart = axios.post.mock.calls[0][1].toString('utf8');
+    expect(multipart).toContain('"name":"notes"');
+    expect(multipart).toContain('"mimeType":"application/vnd.google-apps.document"');
+    expect(multipart).toContain('Content-Type: text/plain; charset=utf-8');
+  });
+});
+
+describe('downloadEditableFile', () => {
+  test('exporte un document Google natif en texte brut et restitue une extension .txt', async () => {
+    gdrive._tokenCache.set('userA', { accessToken: 'AT', expiresAt: Date.now() + 60000 });
+    axios.get
+      .mockResolvedValueOnce({
+        data: {
+          id: 'GOOGLE-DOC-1',
+          name: 'notes',
+          mimeType: 'application/vnd.google-apps.document',
+          modifiedTime: '2026-01-02T00:00:00.000Z',
+        },
+      })
+      .mockResolvedValueOnce({ data: Buffer.from('Texte modifié', 'utf8') });
+
+    const result = await gdrive.downloadEditableFile('userA', 'GOOGLE-DOC-1', {
+      exportMime: 'text/plain',
+      exportExtension: '.txt',
+    });
+
+    expect(axios.get.mock.calls[1][0])
+      .toBe('https://www.googleapis.com/drive/v3/files/GOOGLE-DOC-1/export');
+    expect(axios.get.mock.calls[1][1].params).toEqual({ mimeType: 'text/plain' });
+    expect(result.name).toBe('notes.txt');
+    expect(result.downloadedMime).toBe('text/plain');
+    expect(result.buffer.equals(Buffer.from('Texte modifié', 'utf8'))).toBe(true);
+  });
 });
 
 describe('isConnected', () => {

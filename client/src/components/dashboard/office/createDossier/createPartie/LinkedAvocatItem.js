@@ -1,6 +1,6 @@
 // LinkedAvocatItem.js
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 
 /* ---------- actions "CREATE" (workflow création) ---------- */
@@ -24,12 +24,17 @@ import CreateContact from '../../createContact';
 
 import useLinkedItemActions from './useLinkedItemActions';
 import { getInitials } from './fonctions';
+import { addLinkedContactToParty } from '../../../../../redux/slices/currentDossierSlice';
+import { normalizeLawyerRoles } from '../../../../../utils/partyLinking';
 
 /* ------------------------------------------------------------------ */
 /* Composant                                                            */
 /* ------------------------------------------------------------------ */
-const LinkedAvocatItem = ({ avocat, modalData, handleSupprAvocatLinked, mode = 'create' }) => {
+const LinkedAvocatItem = ({ avocat, modalData, handleSupprAvocatLinked, mode = 'create', groupContextType = null }) => {
   const dispatch = useDispatch();
+  const [roleError, setRoleError] = useState('');
+  const [roleStatus, setRoleStatus] = useState('');
+  const [isSavingRole, setIsSavingRole] = useState(false);
 
   // rc73 : choix de l'action basé sur le mode du dossier (prop explicite).
   // Avant : heuristique "présence de la partie dans partieEditData" qui se
@@ -55,13 +60,46 @@ const LinkedAvocatItem = ({ avocat, modalData, handleSupprAvocatLinked, mode = '
   } = useLinkedItemActions(avocat._id);
 
   /* ----- toggle propriétés ----- */
-  const togglePlaidant = () => {
-    dispatch(toggleAvocatProperty(modalData.idPartie, avocat._id, 'isPlaidant'));
+  const updateRole = async (property) => {
+    if (isSavingRole) return;
+    if (!modalData?.idPartie) {
+      setRoleError('Les rôles sont propres à chaque partie. Ouvrez une partie pour les modifier.');
+      return;
+    }
+    const current = normalizeLawyerRoles(avocat);
+    const next = { ...current, [property]: !current[property] };
+    if (!next.isPlaidant && !next.isPostulant) {
+      setRoleError('Un avocat lié doit conserver au moins un rôle.');
+      return;
+    }
+    setRoleError('');
+    setRoleStatus(mode === 'edit' ? 'Enregistrement du rôle en cours…' : 'Mise à jour du rôle…');
+    dispatch(toggleAvocatProperty(modalData.idPartie, avocat._id, property));
+    if (mode === 'edit' && dossierIdFromStore) {
+      setIsSavingRole(true);
+      try {
+        await dispatch(addLinkedContactToParty(dossierIdFromStore, modalData.idPartie, {
+          existingContactId: avocat._id,
+          ...next,
+          forceRoleUpdate: true,
+        }));
+        setRoleStatus('Rôle enregistré.');
+      } catch (error) {
+        // Le reducer est optimiste : remettre l'état précédent si la sauvegarde
+        // serveur échoue afin de ne jamais afficher un rôle non persisté.
+        dispatch(toggleAvocatProperty(modalData.idPartie, avocat._id, property));
+        setRoleStatus('');
+        setRoleError(error?.response?.data?.message || 'Le rôle n’a pas pu être enregistré. Réessayez.');
+      } finally {
+        setIsSavingRole(false);
+      }
+    } else {
+      setRoleStatus('Rôle mis à jour.');
+    }
   };
 
-  const togglePostulant = () => {
-    dispatch(toggleAvocatProperty(modalData.idPartie, avocat._id, 'isPostulant'));
-  };
+  const togglePlaidant = () => updateRole('isPlaidant');
+  const togglePostulant = () => updateRole('isPostulant');
 
   /* ----- détection avocat-utilisateur de l'app (responsable du dossier) ----- */
   const isFromResponsable = avocat.fromResponsable;
@@ -71,21 +109,22 @@ const LinkedAvocatItem = ({ avocat, modalData, handleSupprAvocatLinked, mode = '
   const nom    = avocat.nom     || avocat.nomOfficeUser    || '';
   const initialsSource = `${prenom} ${nom}`.trim();
   const initials = getInitials(initialsSource);
+  const isGroupContext = !modalData?.idPartie;
 
   /* ----- fromCreatePartie (mémo) ----- */
   const fromCreatePartie = useMemo(
     () => ({
-      mode: 'edit',
+      mode,
       fromCreatePartieForPartie: {
         isTransformedToPartie: false,
         typePartie           : null,
       },
       fromCreatePartiesForLink: {
-        isLinkedToPartiesGroup: false,
-        isLinkedToSinglePartie: true,
+        isLinkedToPartiesGroup: !!groupContextType,
+        isLinkedToSinglePartie: !groupContextType,
         isLinkedToDossier     : false,
-        linkedPartieId        : modalData.idPartie,
-        linkedGroupType       : null,
+        linkedPartieId        : groupContextType ? null : modalData.idPartie,
+        linkedGroupType       : groupContextType,
       },
       modificationInfo: {
         isModification : true,
@@ -94,7 +133,7 @@ const LinkedAvocatItem = ({ avocat, modalData, handleSupprAvocatLinked, mode = '
         dossierParentId: dossierIdFromStore,
       },
     }),
-    [avocat._id, modalData.idPartie, dossierIdFromStore]
+    [avocat._id, modalData.idPartie, dossierIdFromStore, mode, groupContextType]
   );
 
   /* ------------------------------------------------------------------ */
@@ -104,15 +143,20 @@ const LinkedAvocatItem = ({ avocat, modalData, handleSupprAvocatLinked, mode = '
     <div className="linkedAvocat">
       <div className="identiteAvocat">
         Maître {prenom} {nom}
+        <span className="k-linked-type-badge">Avocat</span>
       </div>
 
       <div className="role">
-        <div
-          className={`plaidant ${avocat.isPlaidant ? 'selection' : ''}`}
-          onClick={togglePlaidant}
-          title={avocat.isPlaidant ? 'Avocat plaidant (cliquer pour retirer)' : 'Cliquer pour désigner avocat plaidant'}
-          aria-label="Avocat plaidant"
-        >
+        {!isGroupContext && (
+          <button
+            type="button"
+            className={`plaidant ${avocat.isPlaidant ? 'selection' : ''}`}
+            onClick={togglePlaidant}
+            title={avocat.isPlaidant ? 'Avocat plaidant (cliquer pour retirer)' : 'Cliquer pour désigner avocat plaidant'}
+            aria-label={`${avocat.isPlaidant ? 'Retirer' : 'Ajouter'} le rôle plaidant à Maître ${prenom} ${nom}`}
+            aria-pressed={avocat.isPlaidant === true}
+            disabled={isSavingRole}
+          >
           {/* rc71 : SVG inline tri-couleur adaptatif.
               Sélectionné (fond gradient teal) → corps NOIR pour contraste.
               Non-sélectionné (fond sombre)     → corps GRIS BLEUTÉ pour visibilité.
@@ -137,70 +181,95 @@ const LinkedAvocatItem = ({ avocat, modalData, handleSupprAvocatLinked, mode = '
               strokeMiterlimit="10"
             />
           </svg>
-        </div>
+            <span className="k-lawyer-role-label">Plaidant</span>
+          </button>
+        )}
 
-        <div
-          className={`postulant ${avocat.isPostulant ? 'selection' : ''}`}
-          onClick={togglePostulant}
-          title={avocat.isPostulant ? 'Avocat postulant (cliquer pour retirer)' : 'Cliquer pour désigner avocat postulant'}
-          aria-label="Avocat postulant"
-        >
-          <img src={postulant} alt="Postulant" className="k-icon-sm" />
-        </div>
+        {!isGroupContext && (
+          <button
+            type="button"
+            className={`postulant ${avocat.isPostulant ? 'selection' : ''}`}
+            onClick={togglePostulant}
+            title={avocat.isPostulant ? 'Avocat postulant (cliquer pour retirer)' : 'Cliquer pour désigner avocat postulant'}
+            aria-label={`${avocat.isPostulant ? 'Retirer' : 'Ajouter'} le rôle postulant à Maître ${prenom} ${nom}`}
+            aria-pressed={avocat.isPostulant === true}
+            disabled={isSavingRole}
+          >
+            <img src={postulant} alt="" className="k-icon-sm" aria-hidden="true" />
+            <span className="k-lawyer-role-label">Postulant</span>
+          </button>
+        )}
+
+        {!isGroupContext && !avocat.isPlaidant && !avocat.isPostulant && (
+          <span className="k-lawyer-role-missing">Rôle à définir</span>
+        )}
+        {isGroupContext && (
+          <span className="k-lawyer-role-context">Rôles propres à chaque partie</span>
+        )}
 
         {/* rc71 : avocat-utilisateur (fromResponsable) → rien à droite.
             Sinon → initiales par défaut, toggle vers modif/suppr au clic. */}
         {!isFromResponsable && (
           <div
             className="OptionsLinkedAvocat"
-            onClick={handleOptionsClick}
             onMouseDown={(e) => e.stopPropagation()}
           >
             {!isOptionsOpen ? (
-              <div
+              <button
+                type="button"
                 className="initials-icon_linkedContact initials-icon_linkedAvocat"
                 title="Voir options"
+                onClick={handleOptionsClick}
+                aria-label={`Gérer Maître ${prenom} ${nom}`}
+                aria-expanded={false}
               >
                 {initials}
-              </div>
+              </button>
             ) : (
               <div
                 className="modif-suppr-options"
                 ref={optionsRef}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div
+                <button
+                  type="button"
                   className="modifLinkContact linkedAv"
                   onClick={handleModifierClick}
                   onMouseEnter={() => setIsModifierHovered(true)}
                   onMouseLeave={() => setIsModifierHovered(false)}
                   title="Modifier l'avocat"
+                  aria-label={`Modifier Maître ${prenom} ${nom}`}
                 >
                   <img
                     src={!isModifierHovered ? modifier_navy : modifier}
                     alt="Modifier"
                     className="k-icon-sm"
                   />
-                </div>
+                </button>
 
-                <div
+                <button
+                  type="button"
                   className="deleteLinkContact linkedAv"
                   onClick={() => handleSupprAvocatLinked(avocat._id)}
                   onMouseEnter={() => setIsSupprimerHovered(true)}
                   onMouseLeave={() => setIsSupprimerHovered(false)}
                   title="Retirer l'avocat de la partie"
+                  aria-label={`Retirer Maître ${prenom} ${nom}`}
                 >
                   <img
                     src={!isSupprimerHovered ? supprimerLogoPathNavy : supprimerLogoPath}
                     alt="Supprimer"
                     className="k-icon-sm"
                   />
-                </div>
+                </button>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {roleError && <div className="k-lawyer-role-error" role="status">{roleError}</div>}
+      {roleStatus && <div className="k-lawyer-role-status" role="status">{roleStatus}</div>}
 
       {/* -------- Modal de modification -------- */}
       <Modal

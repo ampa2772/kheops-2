@@ -173,6 +173,13 @@ const pchSlice = createSlice({
       state.currentPersonne = prevPersonne;
       state.mode = Object.keys(state.currentPersonne).length > 0 ? 'EDIT' : 'ADD';
 
+      // Synchroniser le gabarit de formulaire affiché avec le type de la
+      // personne éditée (adulte/enfant), sinon la modale garde l'ancien gabarit.
+      if (state.mode === 'EDIT') {
+        state.currentFormType = state.currentPersonne.type === 'adulte' ? 'adulte' : 'enfant';
+        state.submitAttempted = false;
+      }
+
       const nav = updateNavigationArrows(state);
       Object.assign(state, nav);
 
@@ -200,6 +207,9 @@ const pchSlice = createSlice({
       } else {
         state.currentPersonne = state.liste[nextPosition] || {};
         state.mode = 'EDIT';
+        // Même synchronisation du gabarit qu'en prev() : adulte ou enfant.
+        state.currentFormType = state.currentPersonne.type === 'adulte' ? 'adulte' : 'enfant';
+        state.submitAttempted = false;
       }
 
       const nav = updateNavigationArrows(state);

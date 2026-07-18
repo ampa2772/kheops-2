@@ -3,10 +3,10 @@
 // Branche Socket.io central pour la livraison temps réel des messages chat.
 //
 // Authentification : JWT au handshake (socket.handshake.auth.token).
-// Sur connexion, le socket rejoint un room nommé `user:<userId>`. Pour livrer
-// un message à un destinataire, on émet vers `user:<recipientId>`. Bonus :
-// l'expéditeur reçoit aussi son propre message via `user:<senderId>` pour
-// que ses autres PCs (multi-device) restent synchronisés.
+// Sur connexion, le socket conserve un room `user:<userId>` pour les événements
+// du compte (invitations, cabinet). Les messages de chat, eux, sont livrés
+// exclusivement dans les rooms `office-user:<officeUserId>` déclarées et
+// vérifiées fenêtre par fenêtre via la présence active.
 //
 // Le handler attache un hook au router /api/chat (setOnMessageCreated) afin
 // que toute création de message via REST soit broadcastée temps réel.
@@ -15,6 +15,7 @@ const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const chatRouter = require('../routes/chat');
 const UserOfficeUser = require('../models/App_Users/modelsLiaisons/UserOfficeUser');
+const { getAccessibleUserIds } = require('./cabinetAccess');
 const { startChangeStream, stopChangeStream } = require('./chatChangeStream');
 const { log } = require('./chatLogger');
 
@@ -37,6 +38,13 @@ let io = null; // exposé pour les tests / shutdown propre
 // est actuellement actif sur sa session via l'event `presence:set-office-user`.
 // On agrege ensuite via getConnectedOfficeUserIds() pour la modale CurrentsUsers.
 const presenceBySocket = new Map();
+// Chaîne de mises à jour par socket : deux changements de profil rapprochés
+// ne peuvent jamais laisser la fenêtre inscrite dans deux rooms OfficeUser.
+const presenceUpdateBySocket = new Map();
+
+function officeUserRoom(officeUserId) {
+    return `office-user:${String(officeUserId)}`;
+}
 
 /**
  * Retourne le Set des officeUserIds (string) ayant au moins un socket actif
@@ -55,8 +63,15 @@ function getConnectedOfficeUserIds() {
  *
  * @returns {Promise<'set'|'cleared'|'rejected'>}
  */
-async function setSocketPresence({ socketId, userId, officeUserId }) {
+async function applySocketPresence({ socketId, userId, officeUserId }) {
     if (!officeUserId) {
+        const socket = io && io.sockets && io.sockets.sockets
+            ? io.sockets.sockets.get(socketId)
+            : null;
+        const previousOfficeUserId = presenceBySocket.get(socketId) || null;
+        if (socket && previousOfficeUserId) {
+            await Promise.resolve(socket.leave(officeUserRoom(previousOfficeUserId)));
+        }
         presenceBySocket.delete(socketId);
         return 'cleared';
     }
@@ -64,16 +79,89 @@ async function setSocketPresence({ socketId, userId, officeUserId }) {
         .findOne({ user: String(userId), officeUser: String(officeUserId) })
         .lean();
     if (!owned) {
-        // Tentative d'usurpation (ou OfficeUser d'un autre compte) → on ignore.
-        presenceBySocket.delete(socketId);
+        // Tentative d'usurpation : conserver atomiquement le profil légitime
+        // précédent et sa room plutôt que de basculer vers une identité invalide.
         return 'rejected';
     }
-    presenceBySocket.set(socketId, String(officeUserId));
+
+    const socket = io && io.sockets && io.sockets.sockets
+        ? io.sockets.sockets.get(socketId)
+        : null;
+    // Quand Socket.io est attaché, l'absence du socket signifie qu'il s'est
+    // déconnecté pendant la vérification DB : ne pas recréer une présence
+    // fantôme. Quand io est null, on autorise l'appel unitaire sans serveur.
+    if (io && !socket) {
+        presenceBySocket.delete(socketId);
+        return 'cleared';
+    }
+    const previousOfficeUserId = presenceBySocket.get(socketId) || null;
+    const nextOfficeUserId = String(officeUserId);
+    if (previousOfficeUserId === nextOfficeUserId) return 'set';
+
+    // Le changement est borné au socket de cette fenêtre. En cas d'échec de
+    // join, on restaure la room précédente et la source de présence.
+    try {
+        if (socket && previousOfficeUserId) {
+            await Promise.resolve(socket.leave(officeUserRoom(previousOfficeUserId)));
+        }
+        if (socket) {
+            await Promise.resolve(socket.join(officeUserRoom(nextOfficeUserId)));
+        }
+        presenceBySocket.set(socketId, nextOfficeUserId);
+    } catch (error) {
+        if (socket && previousOfficeUserId) {
+            try { await Promise.resolve(socket.join(officeUserRoom(previousOfficeUserId))); } catch (_) {}
+        }
+        if (previousOfficeUserId) presenceBySocket.set(socketId, previousOfficeUserId);
+        else presenceBySocket.delete(socketId);
+        throw error;
+    }
     return 'set';
 }
 
+async function setSocketPresence(params) {
+    const socketId = String(params.socketId);
+    const previousUpdate = presenceUpdateBySocket.get(socketId) || Promise.resolve();
+    const update = previousUpdate
+        .catch(() => {})
+        .then(() => applySocketPresence({ ...params, socketId }));
+    presenceUpdateBySocket.set(socketId, update);
+    try {
+        return await update;
+    } finally {
+        if (presenceUpdateBySocket.get(socketId) === update) {
+            presenceUpdateBySocket.delete(socketId);
+        }
+    }
+}
+
 // Exposé pour les tests unitaires (isolation de l'état de présence).
-function _clearPresence() { presenceBySocket.clear(); }
+function _clearPresence() {
+    presenceBySocket.clear();
+    presenceUpdateBySocket.clear();
+}
+
+// Route un message uniquement vers les fenêtres ayant déclaré l'un des deux
+// OfficeUsers concernés. Cette fonction est hors de attach() afin de pouvoir
+// tester le routage réel sans reproduire manuellement son implémentation.
+async function broadcastChatMessage(msg, source = 'unknown') {
+    if (!io || !msg) return;
+    const payload = serializeMessage(msg);
+    try {
+        const officeUserIds = new Set(
+            [msg.sender, msg.recipient].filter(Boolean).map(value => String(value)),
+        );
+        log(`[Broadcast] source=${source} msg=${msg._id} sender=${msg.sender} recipient=${msg.recipient} -> ${officeUserIds.size} OfficeUser(s) cible(s)`);
+        for (const officeUserId of officeUserIds) {
+            const room = officeUserRoom(officeUserId);
+            const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+            log(`[Broadcast]   -> emit vers ${room} (${roomSize} socket(s) connecte(s))`);
+            io.to(room).emit('chat:message', payload);
+        }
+    } catch (err) {
+        log('[Broadcast] FAILED:', err && err.message);
+    }
+}
 
 /**
  * Attache Socket.io à un serveur HTTP existant et configure le handler chat.
@@ -148,10 +236,11 @@ function attach(httpServer, { jwtSecret, corsOrigins } = {}) {
 
             // Détection du format pour diagnostic
             const tokenLen = token.length;
-            const tokenPreview = token.slice(0, 20);
             const looksLikeJwt = /^eyJ/.test(token);
             const looksLikeGoogleOAuth = /^ya29\./.test(token);
-            log(`[Socket] HANDSHAKE token info : len=${tokenLen} preview="${tokenPreview}..." jwt=${looksLikeJwt} google_oauth=${looksLikeGoogleOAuth}`);
+            // Ne jamais journaliser le jeton, même tronqué : les journaux du
+            // serveur peuvent être persistés dans Cloud Logging.
+            log(`[Socket] HANDSHAKE token info : present=${tokenLen > 0} len=${tokenLen} jwt=${looksLikeJwt} google_oauth=${looksLikeGoogleOAuth}`);
 
             if (!token) {
                 log('[Socket] HANDSHAKE REJECTED : no-token');
@@ -162,7 +251,7 @@ function attach(httpServer, { jwtSecret, corsOrigins } = {}) {
             // Le JWT du projet contient soit `user` (objet ou string), soit `id`
             const userId = decoded.user?.id || decoded.user || decoded.id;
             if (!userId) {
-                log('[Socket] HANDSHAKE REJECTED : invalid-payload (decoded=' + JSON.stringify(decoded).slice(0, 100) + ')');
+                log('[Socket] HANDSHAKE REJECTED : invalid-payload');
                 return next(new Error('chat:auth/invalid-payload'));
             }
             socket.data.userId = String(userId);
@@ -184,19 +273,44 @@ function attach(httpServer, { jwtSecret, corsOrigins } = {}) {
         // Pour débogage / tests
         socket.emit('chat:hello', { userId });
 
-        // Heartbeat / typing — extensions futures, on les expose mais
-        // simplement comme pass-through pour le destinataire.
-        socket.on('chat:typing', ({ recipientId, isTyping }) => {
-            if (!recipientId) return;
-            io.to(`user:${recipientId}`).emit('chat:typing', {
-                fromUserId: userId, isTyping: !!isTyping,
-            });
+        // La saisie est attribuée au profil interne actif de CETTE fenêtre et
+        // diffusée uniquement au profil destinataire vérifié du même cabinet.
+        socket.on('chat:typing', async ({ recipientId, isTyping } = {}, acknowledge) => {
+            const activeOfficeUserId = presenceBySocket.get(socket.id) || null;
+            const reject = (error) => {
+                if (typeof acknowledge === 'function') acknowledge({ ok: false, error });
+            };
+            if (!activeOfficeUserId) return reject('ACTIVE_OFFICE_USER_REQUIRED');
+            if (!recipientId) return reject('RECIPIENT_REQUIRED');
+            if (String(recipientId) === String(activeOfficeUserId)) {
+                return reject('SELF_CONVERSATION_NOT_ALLOWED');
+            }
+            try {
+                const accessibleUserIds = await getAccessibleUserIds(userId);
+                const recipientOwned = await UserOfficeUser.findOne({
+                    user: { $in: accessibleUserIds },
+                    officeUser: String(recipientId),
+                }).lean();
+                if (!recipientOwned) return reject('RECIPIENT_FORBIDDEN');
+
+                io.to(officeUserRoom(recipientId)).emit('chat:typing', {
+                    // fromUserId est conservé pour compatibilité, mais désigne
+                    // désormais correctement l'OfficeUser, pas le compte JWT.
+                    fromUserId: activeOfficeUserId,
+                    fromOfficeUserId: activeOfficeUserId,
+                    isTyping: !!isTyping,
+                });
+                if (typeof acknowledge === 'function') acknowledge({ ok: true });
+            } catch (error) {
+                log(`[Typing] ERROR socketId=${socket.id} : ${error.message}`);
+                reject('TYPING_UNAVAILABLE');
+            }
         });
 
         // Presence : le client declare quel OfficeUser est actif sur sa session.
         // On stocke le mapping socketId -> officeUserId pour pouvoir lister les
         // OfficeUsers connectes via /api/presence/connected.
-        socket.on('presence:set-office-user', async ({ officeUserId } = {}) => {
+        socket.on('presence:set-office-user', async ({ officeUserId } = {}, acknowledge) => {
             try {
                 const outcome = await setSocketPresence({
                     socketId: socket.id,
@@ -210,8 +324,14 @@ function attach(httpServer, { jwtSecret, corsOrigins } = {}) {
                 } else {
                     log(`[Presence] CLEAR socketId=${socket.id}`);
                 }
+                if (typeof acknowledge === 'function') {
+                    acknowledge({ ok: outcome !== 'rejected', outcome });
+                }
             } catch (err) {
                 log(`[Presence] ERROR socketId=${socket.id} : ${err.message}`);
+                if (typeof acknowledge === 'function') {
+                    acknowledge({ ok: false, outcome: 'error' });
+                }
             }
         });
 
@@ -220,32 +340,6 @@ function attach(httpServer, { jwtSecret, corsOrigins } = {}) {
             log(`[Socket] DISCONNECT socketId=${socket.id} userId=${userId} reason=${reason}`);
         });
     });
-
-    // ── Broadcast helper : route un message vers les Users proprietaires des
-    //    OfficeUsers impliques (sender + recipient), via le room user:<userId>.
-    async function broadcastChatMessage(msg, source = 'unknown') {
-        if (!io || !msg) return;
-        const payload = serializeMessage(msg);
-        try {
-            const links = await UserOfficeUser.find({
-                officeUser: { $in: [msg.sender, msg.recipient] },
-            }).lean();
-            const userIds = new Set(links.map(l => String(l.user)));
-            log(`[Broadcast] source=${source} msg=${msg._id} sender=${msg.sender} recipient=${msg.recipient} -> ${userIds.size} user(s) cible(s)`);
-            if (userIds.size === 0) {
-                log(`[Broadcast] AUCUN UserOfficeUser trouve pour sender ou recipient !!`);
-                return;
-            }
-            for (const uid of userIds) {
-                const room = `user:${uid}`;
-                const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
-                log(`[Broadcast]   -> emit vers ${room} (${roomSize} socket(s) connecte(s))`);
-                io.to(room).emit('chat:message', payload);
-            }
-        } catch (err) {
-            log('[Broadcast] FAILED:', err && err.message);
-        }
-    }
 
     // ── Voie 1 : hook REST direct (instantané pour la machine émettrice)
     //    Quand le client envoie un message via POST /api/chat/messages, on
@@ -290,13 +384,27 @@ function detach() {
  */
 function _getIoForTesting() { return io; }
 
+/**
+ * Emet un evenement a UN utilisateur precis (toutes ses sessions/onglets), via
+ * le room `user:<userId>` rejoint au handshake. Best-effort : no-op si le
+ * socket n'est pas encore attache ou si userId manque. Retourne true si
+ * l'emission a ete tentee.
+ */
+function emitToUser(userId, event, payload) {
+    if (!io || !userId || !event) return false;
+    io.to(`user:${String(userId)}`).emit(event, payload);
+    return true;
+}
+
 module.exports = {
     attach,
     detach,
     serializeMessage,
     getConnectedOfficeUserIds,
     setSocketPresence,
+    emitToUser,
     MAX_RECONNECT_ATTEMPTS,
     _getIoForTesting,
+    _broadcastChatMessageForTesting: broadcastChatMessage,
     _clearPresence,
 };

@@ -34,6 +34,15 @@ const CabinetMembersSection = () => {
 
   useEffect(() => { reload(); }, [reload]);
 
+  // Rafraîchissement EN DIRECT quand une invitation arrive par socket (événement
+  // DOM émis par useCabinetInvitationListener) : le bouton « Accepter » apparaît
+  // alors sans que la personne ait à recharger la page.
+  useEffect(() => {
+    const onLiveInvite = () => { reload(); };
+    window.addEventListener('kheops:cabinet-invitation', onLiveInvite);
+    return () => window.removeEventListener('kheops:cabinet-invitation', onLiveInvite);
+  }, [reload]);
+
   const handleInvite = async (e) => {
     e.preventDefault();
     if (!email.trim() || busy) return;

@@ -1,6 +1,6 @@
 // C:\Mes_Projets_2\Kheops_2\Version_Web\Kheops_2_Test_Fusion_62\Kheops_2\client\src\components\dashboard\office\createContact\index.js
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom'; // <<< NOUVELLE IMPORTATION
 import {
@@ -40,8 +40,12 @@ import {
   setDetailMariageForModification,
   resetMariageDetailsShared as resetMariageDetails,
 } from '../../../../redux/slices/mariageDetailsSlice';
+import { setCurrentDossier } from '../../../../redux/slices/currentDossierSlice';
+import EmailComposeModal from '../../../contactActions/EmailComposeModal';
+import CreateLetterModal from '../../../contactActions/CreateLetterModal';
 
 import "./styles.css";
+import "./createContactDark.css";
 import CreatePPhy from './FormePP';
 import CreatePM from './FormePM';
 
@@ -115,7 +119,6 @@ const CreateContact = ({
   useEffect(() => {
     const isModifying = modificationInfo.isModification;
     const contactId = modificationInfo.contactId;
-    const hasValidPresetData = modificationInfo.presetContactData && Object.keys(modificationInfo.presetContactData).length > 0;
     const isModifyingPartieContext = fromCreatePartieForPartie.isTransformedToPartie;
 
     let shouldAttemptFetch = 
@@ -260,16 +263,116 @@ const CreateContact = ({
   const searchNavigationContactId = useSelector(state => state.layout.searchNavigationContactId);
   const [isFromSearch, setIsFromSearch] = useState(false);
   const [searchContactId, setSearchContactId] = useState(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [contactActionMode, setContactActionMode] = useState(null);
 
-  // Étape 1 : Au montage, si un searchNavigationContactId est présent, fetch le contact
+  // L'identifiant dans l'URL rend l'edition depuis un dossier robuste a un
+  // rafraichissement de page. Le parcours historique de l'annuaire continue a
+  // utiliser searchNavigationContactId dans Redux.
+  const routeContactContext = useMemo(() => {
+    const params = new URLSearchParams(location?.search || '');
+    const contactId = params.get('contactId') || '';
+    const returnDossierId = params.get('returnDossierId') || '';
+    const returnEntityType = params.get('returnEntityType') || 'Contact';
+    const returnSide = params.get('returnSide') === 'contre' ? 'contre' : 'pour';
+    if (!returnDossierId) return { contactId, contactReturn: null };
+
+    const returnParams = new URLSearchParams({
+      dossierId: returnDossierId,
+      focusContactId: contactId,
+      focusEntityType: returnEntityType,
+      focusSide: returnSide,
+    });
+    return {
+      contactId,
+      contactReturn: {
+        to: `/dashboard/dossier?${returnParams.toString()}`,
+        label: 'Retour au contact',
+      },
+    };
+  }, [location?.search]);
+
+  const returnContext = useMemo(() => {
+    const requested = location?.state?.contactReturn || routeContactContext.contactReturn;
+    if (requested?.to && String(requested.to).startsWith('/dashboard')) {
+      return {
+        to: requested.to,
+        label: requested.label || 'Retour',
+      };
+    }
+    if (searchContactId || searchNavigationContactId || routeContactContext.contactId) {
+      return { to: '/dashboard/contacts', label: 'Retour aux contacts' };
+    }
+    return { to: '/dashboard', label: 'Retour au Bureau' };
+  }, [location?.state, routeContactContext, searchContactId, searchNavigationContactId]);
+
+  const handleContextualBack = useCallback(() => {
+    if (hasUnsavedChanges) {
+      const shouldLeave = window.confirm(
+        'Des modifications ne sont pas enregistrées. Quitter cette fiche sans enregistrer ?'
+      );
+      if (!shouldLeave) return;
+    }
+    setHasUnsavedChanges(false);
+    navigate(returnContext.to);
+  }, [hasUnsavedChanges, navigate, returnContext.to]);
+
+  const actionContact = useMemo(() => {
+    const value = findContact?.contact || findContact?.contactPM || findContact?.contactPMPublique || null;
+    if (!value || !searchContactId) return null;
+    const displayName = value.raisonSociale
+      || value.denomination
+      || [value.prenoms, value.nom].filter(Boolean).join(' ')
+      || 'Contact';
+    return { id: searchContactId, displayName, email: value.email || value.emailEntreprise || value.contactEmail || '' };
+  }, [findContact, searchContactId]);
+
+  const openContactAction = useCallback((mode) => {
+    if (!actionContact) return;
+    if (hasUnsavedChanges) {
+      const proceed = window.confirm(
+        "Cette action utilisera les coordonnées déjà enregistrées. Continuer sans enregistrer les modifications actuelles ?"
+      );
+      if (!proceed) return;
+    }
+    setContactActionMode(mode);
+  }, [actionContact, hasUnsavedChanges]);
+
+  const closeContactAction = useCallback(() => setContactActionMode(null), []);
+
+  const openCreatedLetter = useCallback((letter) => {
+    if (!letter?.dossierId) return;
+    try { localStorage.setItem('kheopsLastOpenedDossierId', String(letter.dossierId)); } catch (_error) {}
+    dispatch(setCurrentDossier({ _id: letter.dossierId }));
+    setHasUnsavedChanges(false);
+    closeContactAction();
+    navigate('/dashboard/dossier', { state: { createdDocumentId: letter.documentId || null, contactId: actionContact?.id || null } });
+  }, [actionContact, closeContactAction, dispatch, navigate]);
+
   useEffect(() => {
-    if (searchNavigationContactId) {
-      setSearchContactId(searchNavigationContactId); // Stocker l'ID pour le mode modification
-      dispatch(fetchContactById(searchNavigationContactId, token));
-      dispatch(setSearchNavigationContactId(null)); // Clear le flag
+    if (!hasUnsavedChanges || !isStandaloneRoute) return undefined;
+    const protectDraft = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', protectDraft);
+    return () => window.removeEventListener('beforeunload', protectDraft);
+  }, [hasUnsavedChanges, isStandaloneRoute]);
+
+  // Étape 1 : charger le contact demandé par l'annuaire (Redux) ou par un
+  // dossier (URL). L'identifiant explicite de l'URL est prioritaire : un ancien
+  // identifiant Redux de l'annuaire ne doit jamais ouvrir un autre contact.
+  useEffect(() => {
+    const requestedContactId = routeContactContext.contactId || searchNavigationContactId;
+    if (requestedContactId) {
+      setSearchContactId(requestedContactId); // Stocker l'ID pour le mode modification
+      dispatch(fetchContactById(requestedContactId, token));
+      if (searchNavigationContactId) {
+        dispatch(setSearchNavigationContactId(null)); // Purge aussi un eventuel reliquat historique
+      }
       setIsFromSearch(true);
     }
-  }, [searchNavigationContactId, dispatch, token]);
+  }, [searchNavigationContactId, routeContactContext.contactId, dispatch, token]);
 
   // Étape 2 : Quand findContact est chargé et qu'on vient de la recherche, configurer le formulaire
   useEffect(() => {
@@ -334,6 +437,7 @@ const CreateContact = ({
   const showPersonneMorale = useSelector((state) => state.layoutFormContact.showPersonneMorale);
 
   const handlePersonnePhysiqueClick = () => {
+    setHasUnsavedChanges(true);
     if (showPersonneMorale) {
       if (!modificationInfo?.isModification) {
         dispatch(resetContactAndErrors());
@@ -345,6 +449,7 @@ const CreateContact = ({
   };
 
   const handlePersonneMoraleClick = () => {
+    setHasUnsavedChanges(true);
     if (showPersonnePhysique) {
        if (!modificationInfo?.isModification) {
          dispatch(resetContactAndErrors());
@@ -374,7 +479,9 @@ const CreateContact = ({
         fromCreatePartieForPartie.isTransformedToPartie ||
         isContextDossierDirectLink;
 
-    const classes = [];
+    // Thème sombre unifié des formulaires contact (création ET modification,
+    // page autonome ET modale) — les surcharges vivent dans createContactDark.css.
+    const classes = ['k-contact-dark'];
     if (isContextDossierDirectLink) {
       classes.push('create-contact-dossier-direct-context');
     } else {
@@ -392,6 +499,7 @@ const CreateContact = ({
   // === NOUVELLE FONCTION DE CALLBACK POUR LA CRÉATION ISOLÉE =============
   // ========================================================================
   const handleSuccessCallback = () => {
+    setHasUnsavedChanges(false);
     // Si une fonction de callback est fournie par le parent (ex: une modale), on l'exécute.
     // C'est le cas pour la création de contact depuis un dossier.
     if (onContactCreatedSuccessfully) {
@@ -417,8 +525,8 @@ const CreateContact = ({
       dispatch(resetPersonneMoralePublique());
       dispatch(resetMariageDetails());
 
-      // 2. On redirige vers la page d'accueil du tableau de bord.
-      navigate('/dashboard/');
+      // 2. On revient au contexte d'origine (annuaire ou Bureau).
+      navigate(returnContext.to);
     }
   };
   // ========================================================================
@@ -428,7 +536,11 @@ const CreateContact = ({
   const hasHeader = isStandaloneRoute || showHeaderToggle;
 
   return (
-    <div className={getContainerClasses()}>
+    <div
+      className={getContainerClasses()}
+      onInputCapture={() => setHasUnsavedChanges(true)}
+      onChangeCapture={() => setHasUnsavedChanges(true)}
+    >
       {/* Header horizontal : bouton "← Accueil" à gauche, toggle PP/PM
           centré (ou seul si le bouton est masqué). Layout grid 3-cols
           pour garder le toggle parfaitement centré quel que soit l'état. */}
@@ -439,11 +551,13 @@ const CreateContact = ({
               <button
                 type="button"
                 className="createContact-header__back"
-                onClick={() => navigate('/dashboard')}
-                title="Retour à l'accueil — votre saisie sera conservée"
+                onClick={handleContextualBack}
+                title={hasUnsavedChanges
+                  ? 'Des modifications non enregistrées seront signalées avant de quitter'
+                  : returnContext.label}
               >
                 <span aria-hidden="true" className="createContact-header__back-arrow">←</span>
-                <span className="createContact-header__back-label">Accueil</span>
+                <span className="createContact-header__back-label">{returnContext.label}</span>
               </button>
             )}
           </div>
@@ -468,7 +582,14 @@ const CreateContact = ({
               </div>
             )}
           </div>
-          <div className="createContact-header__right" />
+          <div className="createContact-header__right">
+            {isStandaloneRoute && actionContact && (
+              <div className="createContact-header__communication" role="group" aria-label="Actions de communication du contact">
+                <button type="button" onClick={() => openContactAction('letter')}><span aria-hidden="true">✉</span> Courrier</button>
+                <button type="button" onClick={() => openContactAction('email')}><span aria-hidden="true">@</span> E-mail</button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -485,6 +606,23 @@ const CreateContact = ({
           onContactCreatedSuccessfully={handleSuccessCallback}
         />
       )}
+      <CreateLetterModal
+        open={contactActionMode === 'letter'}
+        contactId={actionContact?.id}
+        contactSummary={actionContact}
+        onClose={closeContactAction}
+        onOpenLetter={openCreatedLetter}
+      />
+      <EmailComposeModal
+        open={contactActionMode === 'email'}
+        contactId={actionContact?.id}
+        contactSummary={actionContact}
+        onClose={closeContactAction}
+        onOpenSettings={() => {
+          closeContactAction();
+          navigate('/dashboard/parametres?activeTab=connectedServices');
+        }}
+      />
     </div>
   );
 };

@@ -268,7 +268,10 @@ const CreateDossier = React.forwardRef(({
   // Nouveau code
   // useEffect pour la génération automatique du nom en mode ÉDITION
   useEffect(() => {
-    if (mode === "edit" && !userHasManuallyEditedNomInEditMode && partiesFromEditMode.length > 0) {
+    // Fix 2026-07-04 : en édition, ne JAMAIS écraser un nom déjà présent
+    // (le nom sauvegardé est hydraté par INITIALIZE_DOSSIER_INFOS_FOR_EDIT).
+    // L'auto-génération ne joue que si le champ nom est vide.
+    if (mode === "edit" && !userHasManuallyEditedNomInEditMode && !dossierDataFromStore.nom_dossier && partiesFromEditMode.length > 0) {
       const newNom = buildNomDossierFromParties(partiesFromEditMode);
       // On compare avec le nom actuel dans dossierDataFromStore.nom_dossier (qui est alimenté par INITIALIZE_DOSSIER_INFOS_FOR_EDIT ou modifié par l'utilisateur)
       if (newNom && newNom !== dossierDataFromStore.nom_dossier) {
@@ -314,10 +317,11 @@ const CreateDossier = React.forwardRef(({
         }, initialAccumulator);
     }
     
+    // Fix 2026-07-04 : en édition, le store fait TOUJOURS foi (il est initialisé
+    // au nom sauvegardé et suit la saisie) — l'ancien recalcul systématique
+    // écrasait le nom manuel en base à chaque « Mettre à jour ».
     const finalNomDossier = isEditMode
-      ? (userHasManuallyEditedNomInEditMode
-        ? dossierDataFromStore.nom_dossier
-        : buildNomDossierFromParties(parties))
+      ? (dossierDataFromStore.nom_dossier || buildNomDossierFromParties(parties))
       : (userHasManuallyEditedNomDossier
         ? dossierDataFromStore.nom_dossier
         : buildNomDossierFromParties(parties));
@@ -621,7 +625,12 @@ const CreateDossier = React.forwardRef(({
         {/* La modale pour l'onglet PARTIES est gérée à l'intérieur de CreatePartieForm via son propre composant Modal */}
         {/* et utilise createPartieModalIsOpen (Redux) et contactModalConfig (passé via openPartieContactModal) */}
 
-        <div className="formDossier">
+        <div
+          className="formDossier"
+          role="region"
+          aria-label={`Contenu de l'onglet ${localStep === 'step2' ? 'Parties' : (localStep === 'step3' ? 'Contacts' : 'Dossier')}`}
+          tabIndex={0}
+        >
           {renderContent()}
         </div>
 

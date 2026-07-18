@@ -1,198 +1,193 @@
-// C:\Mes_Projets_2\Kheops_2\Version_Web\Kheops_2_Test_Fusion_62\Kheops_2\client\src\components\dashboard\office\dossier\facturation\Facture.js
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { initSocket, subscribeToEvent, unsubscribeFromEvent } from '../../../../../services/socketService';
-import { addPaymentToInvoice, archiveInvoice, updateCurrentDossierFromSocket } from '../../../../../redux/slices/currentDossierSlice';
+import { saveDossierInvoice, replaceInvoicePayments } from '../../../../../redux/slices/currentDossierSlice';
 import HoverToSpeak from '../../../../common/HoverToSpeak';
-import { speak, stopSpeaking } from '../../../../../services/speechService';
 import ArchivedInvoiceDetailModal from './ArchivedInvoiceDetailModal';
 import Voir from '../../../../../assets/voir.svg';
 import { useToast } from '../../../../common/notifications/useToast';
+import InlineEditField, { eur } from './InlineEditField';
 import './Facture.css';
+
+const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
 const Facture = () => {
   const dispatch = useDispatch();
   const toast = useToast();
-  const { dossier: currentDossier } = useSelector(state => state.currentDossier);
-  const token = useSelector(state => state.login.token);
-  const isSpeechEnabled = useSelector(state => state.login.user?.isSpeechEnabled || false);
+  const { dossier: currentDossier } = useSelector((state) => state.currentDossier);
+  const dossierId = currentDossier?._id;
 
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [showPaymentInput, setShowPaymentInput] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('');
   const [showArchiveModal, setShowArchiveModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savingPayments, setSavingPayments] = useState(false);
+  const [savingTotal, setSavingTotal] = useState(false);
   const [selectedArchivedInvoice, setSelectedArchivedInvoice] = useState(null);
-
-  useEffect(() => {
-    const handleInvoiceSuccess = (data) => {
-      if (data.dossierId === currentDossier?._id) {
-        dispatch(updateCurrentDossierFromSocket(data.updatedDossier));
-      }
-    };
-
-    subscribeToEvent('invoice_generation_success', handleInvoiceSuccess);
-
-    return () => {
-      unsubscribeFromEvent('invoice_generation_success', handleInvoiceSuccess);
-    };
-  }, [dispatch, currentDossier?._id]);
+  const [newPayment, setNewPayment] = useState({ amount: '', date: new Date().toISOString().slice(0, 10), note: '' });
 
   const { activeInvoices, archivedInvoices } = useMemo(() => {
-    const allInvoices = currentDossier?.factures || [];
+    const all = currentDossier?.factures || [];
     return {
-      activeInvoices: allInvoices.filter(inv => inv.status !== 'archived').sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation)),
-      archivedInvoices: allInvoices.filter(inv => inv.status === 'archived').sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation))
+      activeInvoices: all.filter((inv) => inv.status !== 'archived').sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation)),
+      archivedInvoices: all.filter((inv) => inv.status === 'archived').sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation)),
     };
   }, [currentDossier]);
 
+  // Re-synchronise la facture sélectionnée quand le dossier change.
   useEffect(() => {
     if (selectedInvoice?._id) {
-      const updatedInvoice = currentDossier?.factures.find(inv => inv._id === selectedInvoice._id);
-      setSelectedInvoice(updatedInvoice || null);
+      const updated = currentDossier?.factures.find((inv) => inv._id === selectedInvoice._id);
+      setSelectedInvoice(updated || null);
     }
   }, [currentDossier, selectedInvoice?._id]);
-  
+
   useEffect(() => {
-    const currentSelectionIsActive = selectedInvoice && activeInvoices.some(inv => inv._id === selectedInvoice._id);
+    const stillActive = selectedInvoice && activeInvoices.some((inv) => inv._id === selectedInvoice._id);
+    if (!stillActive) setSelectedInvoice(activeInvoices[0] || null);
+  }, [activeInvoices]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (!currentSelectionIsActive && activeInvoices.length > 0) {
-      const newSelection = activeInvoices[0];
-      setSelectedInvoice(newSelection);
-
-      if (newSelection.status === 'pending') {
-        setShowPaymentInput(true);
-      } else {
-        setShowPaymentInput(false);
-      }
-    } 
-    else if (activeInvoices.length === 0) {
-      setSelectedInvoice(null);
-      setShowPaymentInput(false);
-    }
-    
-  }, [activeInvoices]);
-
-  const handleOpenInvoiceFile = (invoice) => {
-    const socket = initSocket();
-    if (socket && socket.connected) {
-      const docToOpen = {
-        _id: currentDossier._id, 
-        nomDocument: invoice.nomDocument
-      };
-      
-      socket.emit('message', JSON.stringify({ type: 'display-file', data: docToOpen }));
-    } else {
-      toast.error("Connexion à l'application de bureau perdue.");
+  const savePayments = async (payments) => {
+    if (!selectedInvoice) return;
+    setSavingPayments(true);
+    try {
+      await dispatch(replaceInvoicePayments(dossierId, selectedInvoice._id, payments));
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Enregistrement des paiements impossible.');
+    } finally {
+      setSavingPayments(false);
     }
   };
 
-  const handleSelectInvoice = (invoice) => {
-    if (selectedInvoice?._id === invoice._id) {
-      setShowPaymentInput(!showPaymentInput);
-    } else {
-      setSelectedInvoice(invoice);
-      setShowPaymentInput(true);
+  const updatePayment = (index, patch) => {
+    const payments = (selectedInvoice.payments || []).map((p, i) => (i === index ? { amount: p.amount, date: p.date, note: p.note || '', ...patch } : { amount: p.amount, date: p.date, note: p.note || '' }));
+    savePayments(payments);
+  };
+
+  const deletePayment = (index) => {
+    const payments = (selectedInvoice.payments || []).filter((_, i) => i !== index);
+    savePayments(payments);
+  };
+
+  const addPayment = () => {
+    const amount = parseFloat(String(newPayment.amount).replace(',', '.'));
+    if (!isFinite(amount) || amount <= 0) {
+      toast.warning('Saisissez un montant de paiement valide.');
+      return;
     }
-    setPaymentAmount('');
+    const payments = [
+      ...(selectedInvoice.payments || []).map((p) => ({ amount: p.amount, date: p.date, note: p.note || '' })),
+      { amount, date: new Date(`${newPayment.date}T00:00:00`).toISOString(), note: newPayment.note || '' },
+    ];
+    savePayments(payments);
+    setNewPayment({ amount: '', date: new Date().toISOString().slice(0, 10), note: '' });
   };
 
-  const handleAddPayment = async () => {
-    if (!paymentAmount || isNaN(paymentAmount) || !selectedInvoice) return;
-    setIsSubmitting(true);
-    await dispatch(addPaymentToInvoice(currentDossier._id, selectedInvoice._id, paymentAmount, token));
-    setPaymentAmount('');
-    setIsSubmitting(false);
-  };
-  
-  const handleArchiveInvoice = async (invoiceId) => {
-    setIsSubmitting(true);
-    await dispatch(archiveInvoice(currentDossier._id, invoiceId, token));
-    setIsSubmitting(false);
-  };
-  
-  const handleOpenArchiveModal = () => {
-    setSelectedArchivedInvoice(null);
-    setShowArchiveModal(true);
-  };
-
-  const handleCloseArchiveModal = () => {
-    setShowArchiveModal(false);
-    setSelectedArchivedInvoice(null);
-  };
-
-  const handleBackToList = () => {
-    setSelectedArchivedInvoice(null);
-  };
-  
-  const handleOverlayClick = () => {
-    if (selectedArchivedInvoice) {
-      handleBackToList();
-    } else {
-      handleCloseArchiveModal();
+  // Correction manuelle du TOTAL de la facture (erreur, remise, majoration…).
+  const saveTotal = async (newTotal) => {
+    if (!selectedInvoice) return;
+    setSavingTotal(true);
+    try {
+      await dispatch(saveDossierInvoice(dossierId, { _id: selectedInvoice._id, nomDocument: selectedInvoice.nomDocument, totalTTC: round2(newTotal) }));
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Mise à jour du total impossible.');
+    } finally {
+      setSavingTotal(false);
     }
   };
 
   const InvoiceDetailPanel = () => {
     if (!selectedInvoice) {
-      return (
-        <HoverToSpeak textToSpeak="Selectionnez une facture pour voir les details et gerer les paiements">
-          <div className="invoice-detail-placeholder">Sélectionnez une facture pour voir les détails et gérer les paiements.</div>
-        </HoverToSpeak>
-      );
+      return <div className="invoice-detail-placeholder">Sélectionnez une facture pour voir les détails et gérer les paiements.</div>;
     }
-
-    const totalPaid = (selectedInvoice.payments || []).reduce((sum, p) => sum + p.amount, 0);
-    const remainingAmount = selectedInvoice.totalTTC - totalPaid;
-    const fmtEur = (n) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+    const payments = selectedInvoice.payments || [];
+    const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
+    const remaining = round2(selectedInvoice.totalTTC - totalPaid);
 
     return (
       <div className="invoice-detail-content">
-        <HoverToSpeak textToSpeak="Titre: Details de la facture">
-          <h3>Détails de la facture</h3>
-        </HoverToSpeak>
+        <h3>Détails de la facture</h3>
         <div className="payment-summary">
-          <HoverToSpeak textToSpeak={`Total Facture: ${fmtEur(selectedInvoice.totalTTC)}`}>
-            <div className="summary-item">
-              <span>Total Facture :</span>
-              <span>{fmtEur(selectedInvoice.totalTTC)}</span>
-            </div>
-          </HoverToSpeak>
-          <HoverToSpeak textToSpeak={`Total Paye: ${fmtEur(totalPaid)}`}>
-            <div className="summary-item">
-              <span>Total Payé :</span>
-              <span>{fmtEur(totalPaid)}</span>
-            </div>
-          </HoverToSpeak>
-          <HoverToSpeak textToSpeak={`Restant du: ${fmtEur(remainingAmount)}`}>
-            <div className="summary-item remaining">
-              <span>Restant dû :</span>
-              <span>{fmtEur(remainingAmount)}</span>
-            </div>
-          </HoverToSpeak>
+          <div className="summary-item">
+            <span>Total Facture :</span>
+            <InlineEditField type="amount" value={selectedInvoice.totalTTC} onSave={saveTotal} saving={savingTotal} ariaLabel="Total de la facture" />
+          </div>
+          <div className="summary-item">
+            <span>Total Payé :</span>
+            <span>{eur(totalPaid)}</span>
+          </div>
+          <div className="summary-item remaining">
+            <span>Restant dû :</span>
+            <span>{eur(remaining)}</span>
+          </div>
         </div>
-        {showPaymentInput && selectedInvoice.status === 'pending' && (
-          <div className="payment-input-container">
+
+        {/* ── Historique des paiements intermédiaires (éditable) ── */}
+        <div className="payments-history">
+          <div className="payments-history__head">
+            <span>Paiements reçus</span>
+            {savingPayments && <span className="payments-history__saving">enregistrement…</span>}
+          </div>
+
+          {payments.length === 0 && <p className="payments-history__empty">Aucun paiement enregistré pour le moment.</p>}
+
+          {payments.length > 0 && (
+            <ul className="payments-history__list">
+              {payments.map((p, i) => (
+                <li className="payment-row" key={i}>
+                  <InlineEditField type="date" value={p.date} onSave={(v) => updatePayment(i, { date: v })} ariaLabel="Date du paiement" className="payment-row__date" />
+                  <InlineEditField type="amount" value={p.amount} onSave={(v) => updatePayment(i, { amount: v })} ariaLabel="Montant du paiement" className="payment-row__amount" />
+                  <input
+                    className="payment-row__note"
+                    type="text"
+                    value={p.note || ''}
+                    placeholder="Libellé (facultatif)"
+                    onChange={(e) => {
+                      const note = e.target.value;
+                      setSelectedInvoice((prev) => ({ ...prev, payments: prev.payments.map((pp, j) => (j === i ? { ...pp, note } : pp)) }));
+                    }}
+                    onBlur={(e) => updatePayment(i, { note: e.target.value })}
+                  />
+                  <button type="button" className="payment-row__delete" title="Supprimer ce paiement" onClick={() => deletePayment(i)}>×</button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Ajout d'un paiement */}
+          <div className="payment-add-row">
             <input
+              className="payment-add-row__date"
+              type="date"
+              value={newPayment.date}
+              onChange={(e) => setNewPayment((s) => ({ ...s, date: e.target.value }))}
+              aria-label="Date du nouveau paiement"
+            />
+            <input
+              className="payment-add-row__amount"
               type="text"
               inputMode="decimal"
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
-              placeholder="Montant du paiement reçu"
-              className="payment-input"
-              autoFocus
-              onMouseEnter={() => { if (isSpeechEnabled) speak(paymentAmount ? `Champ Montant du paiement: ${paymentAmount}` : 'Champ Montant du paiement recu, saisissez le montant'); }}
-              onMouseLeave={() => { if (isSpeechEnabled) stopSpeaking(); }}
+              value={newPayment.amount}
+              onChange={(e) => setNewPayment((s) => ({ ...s, amount: e.target.value }))}
+              placeholder="Montant (€)"
+              aria-label="Montant du nouveau paiement"
+              onKeyDown={(e) => { if (e.key === 'Enter') addPayment(); }}
             />
-            <HoverToSpeak textToSpeak={isSubmitting ? 'Validation en cours' : 'Bouton Valider le paiement'}>
-              <button onClick={handleAddPayment} className="validate-payment-btn" disabled={isSubmitting}>
-                {isSubmitting ? 'Validation...' : 'Valider'}
-              </button>
-            </HoverToSpeak>
+            <input
+              className="payment-add-row__note"
+              type="text"
+              value={newPayment.note}
+              onChange={(e) => setNewPayment((s) => ({ ...s, note: e.target.value }))}
+              placeholder="Libellé (facultatif)"
+              aria-label="Libellé du nouveau paiement"
+            />
+            <button type="button" className="payment-add-row__btn" onClick={addPayment} disabled={savingPayments}>+ Ajouter</button>
           </div>
-        )}
+        </div>
       </div>
     );
+  };
+
+  const handleOverlayClick = () => {
+    if (selectedArchivedInvoice) setSelectedArchivedInvoice(null);
+    else setShowArchiveModal(false);
   };
 
   return (
@@ -200,59 +195,37 @@ const Facture = () => {
       <div className="facture-content-wrapper">
         <div className="invoice-list-pane">
           <div className="pane-header">
-            {archivedInvoices.length > 0 &&
-              <HoverToSpeak textToSpeak={`Bouton Voir les archives, ${archivedInvoices.length} facture${archivedInvoices.length > 1 ? 's' : ''} archivee${archivedInvoices.length > 1 ? 's' : ''}`}>
-                <button className="archive-link-btn" onClick={handleOpenArchiveModal}>
-                  Voir les archives ({archivedInvoices.length})
-                </button>
-              </HoverToSpeak>
-            }
+            {archivedInvoices.length > 0 && (
+              <button className="archive-link-btn" onClick={() => { setSelectedArchivedInvoice(null); setShowArchiveModal(true); }}>
+                Voir les archives ({archivedInvoices.length})
+              </button>
+            )}
           </div>
           <div className="invoice-list">
             {activeInvoices.length > 0 ? (
-              activeInvoices.map(invoice => {
-                const totalPaid = (invoice.payments || []).reduce((sum, p) => sum + p.amount, 0);
-                const remainingAmount = invoice.totalTTC - totalPaid;
-                const isPaid = remainingAmount <= 0.005;
-
-                const textToSpeak = `Facture du ${new Date(invoice.dateCreation).toLocaleDateString('fr-FR')}, solde restant : ${remainingAmount.toFixed(2).replace('.', ' virgule ')} euros.`;
-
+              activeInvoices.map((invoice) => {
+                const totalPaid = (invoice.payments || []).reduce((s, p) => s + p.amount, 0);
+                const remaining = round2(invoice.totalTTC - totalPaid);
+                const isPaid = remaining <= 0.005;
                 return (
-                  <HoverToSpeak key={invoice._id} textToSpeak={textToSpeak}>
-                    <div 
-                      className={`invoice-list-item-card ${isPaid ? 'paid' : ''} ${selectedInvoice?._id === invoice._id ? 'selected' : ''}`}
-                      onClick={() => handleSelectInvoice(invoice)}
-                    >
-                      <div className="invoice-card-header">
-                        <span className="invoice-card-name">Facture</span>
-                        <span className="invoice-card-amount">
-                          {remainingAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                        </span>
-                      </div>
-                      <div className="invoice-card-body">
-                        <span className="invoice-card-date">
-                          Créée le {new Date(invoice.dateCreation).toLocaleDateString('fr-FR')}
-                        </span>
-                        {isPaid && <span className="invoice-paid-status">Facture Honorée</span>}
-                      </div>
-                      <div className="invoice-card-actions">
-                        <HoverToSpeak textToSpeak="Bouton Editer la facture">
-                          <button className="edit-invoice-btn" onClick={(e) => { e.stopPropagation(); handleOpenInvoiceFile(invoice); }}>
-                            Éditer la facture
-                          </button>
-                        </HoverToSpeak>
-                        {/* --- MODIFICATION : Le bouton "Archiver" est retiré ---
-                           Le processus est maintenant automatique via le backend lorsque le solde est à zéro.
-                        */}
-                      </div>
+                  <div
+                    key={invoice._id}
+                    className={`invoice-list-item-card ${isPaid ? 'paid' : ''} ${selectedInvoice?._id === invoice._id ? 'selected' : ''}`}
+                    onClick={() => setSelectedInvoice(invoice)}
+                  >
+                    <div className="invoice-card-header">
+                      <span className="invoice-card-name">Facture</span>
+                      <span className="invoice-card-amount">{eur(remaining)}</span>
                     </div>
-                  </HoverToSpeak>
+                    <div className="invoice-card-body">
+                      <span className="invoice-card-date">Créée le {new Date(invoice.dateCreation).toLocaleDateString('fr-FR')}</span>
+                      {isPaid && <span className="invoice-paid-status">Facture honorée</span>}
+                    </div>
+                  </div>
                 );
               })
             ) : (
-              <HoverToSpeak textToSpeak="Aucune facture active pour ce dossier">
-                <p className="no-invoices-message">Aucune facture active pour ce dossier.</p>
-              </HoverToSpeak>
+              <p className="no-invoices-message">Aucune facture active. Générez-la depuis l'onglet « Bilan facturation ».</p>
             )}
           </div>
         </div>
@@ -260,48 +233,28 @@ const Facture = () => {
           <InvoiceDetailPanel />
         </div>
       </div>
-      
+
       {showArchiveModal && (
         <div className="archive-modal-overlay" onClick={handleOverlayClick}>
-          <div className="archive-modal-content" onClick={e => e.stopPropagation()}>
-            <button onClick={handleOverlayClick} className="archive-modal-close-x-btn" title="Fermer ou Retour">
-              ×
-            </button>
-
+          <div className="archive-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button onClick={handleOverlayClick} className="archive-modal-close-x-btn" title="Fermer ou Retour">×</button>
             {selectedArchivedInvoice ? (
-              <ArchivedInvoiceDetailModal
-                invoice={selectedArchivedInvoice}
-                onBack={handleBackToList}
-                onEditInvoice={handleOpenInvoiceFile}
-              />
+              <ArchivedInvoiceDetailModal invoice={selectedArchivedInvoice} onBack={() => setSelectedArchivedInvoice(null)} onEditInvoice={() => {}} />
             ) : (
               <>
-                <h3>Factures Archivées</h3>
+                <h3>Factures archivées</h3>
                 <div className="archived-invoice-list">
                   {archivedInvoices.length > 0 ? (
-                    archivedInvoices.map(invoice => {
-                      const dateToDisplay = invoice.archivedDate ? new Date(invoice.archivedDate) : new Date(invoice.dateCreation);
-                      const formattedDate = dateToDisplay.toLocaleDateString('fr-FR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric'
-                      });
-                      const displayText = `Facture du ${formattedDate}`;
-                      const textToSpeak = `Facture archivée le ${formattedDate}`;
-
+                    archivedInvoices.map((invoice) => {
+                      const d = invoice.archivedDate ? new Date(invoice.archivedDate) : new Date(invoice.dateCreation);
+                      const formatted = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
                       return (
-                        <HoverToSpeak key={invoice._id} textToSpeak={textToSpeak}>
-                          <div className="archived-invoice-item">
-                            <span>{displayText}</span>
-                            <button 
-                              className="view-details-icon-btn" 
-                              onClick={() => setSelectedArchivedInvoice(invoice)}
-                              title="Voir les détails"
-                            >
-                              <img src={Voir} alt="Voir les détails" className="k-icon-sm" />
-                            </button>
-                          </div>
-                        </HoverToSpeak>
+                        <div className="archived-invoice-item" key={invoice._id}>
+                          <span>Facture du {formatted}</span>
+                          <button className="view-details-icon-btn" onClick={() => setSelectedArchivedInvoice(invoice)} title="Voir les détails">
+                            <img src={Voir} alt="Voir les détails" className="k-icon-sm" />
+                          </button>
+                        </div>
                       );
                     })
                   ) : (

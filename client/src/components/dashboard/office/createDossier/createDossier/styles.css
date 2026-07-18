@@ -749,3 +749,66 @@
 
 .modsuppr_typeCIcon:hover { border: 1px solid var(--k-primary, #0977a5); }
 .modsuppr_typeCIcon img { height: 18px; width: 18px; }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Cartes de section : padding réduit */
+  .textarea_container,
+  .responsable-dossier {
+    padding: 12px 14px;
+  }
+
+  /* Modale TypeDossier : bornée à la largeur écran, sans décalage margin-left */
+  .modal_content {
+    width: min(75%, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px);
+    max-height: 90vh;
+    overflow-y: auto;
+    margin-left: 0;
+    padding: 12px 14px;
+  }
+
+  /* Textarea de description : hauteur bornée sur petit écran */
+  .modal_textarea {
+    height: 40vh;
+  }
+
+  /* Modale de création dossier : bornée, sans décalage, scrollable */
+  .modal-create-dossier-content {
+    width: min(85%, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px);
+    height: auto;
+    max-height: 90vh;
+    overflow-y: auto;
+    margin-left: 0;
+    padding: 14px;
+  }
+
+  /* Options / listes internes : pleine largeur pour rester utilisables */
+  .modal-create-dossier-option {
+    width: 100%;
+  }
+
+  .suggestions {
+    width: 100%;
+  }
+
+  .state-city-list,
+  .state-empty,
+  .state-selected-tribunal {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Petit téléphone : paddings encore réduits */
+  .textarea_container,
+  .responsable-dossier {
+    padding: 10px 12px;
+  }
+
+  .modal_content,
+  .modal-create-dossier-content {
+    padding: 10px 12px;
+  }
+}

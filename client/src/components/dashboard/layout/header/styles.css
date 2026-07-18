@@ -66,6 +66,67 @@
   position: relative;
 }
 
+/* ─── Déclencheur de la messagerie (même groupe que la cloche) ─── */
+.chat-header-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--k2-radius-full, 9999px);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: background-color var(--k2-duration-normal, 150ms) ease,
+              color var(--k2-duration-normal, 150ms) ease,
+              transform var(--k2-duration-fast, 100ms) ease;
+}
+
+.chat-header-button:hover,
+.chat-header-button--open {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.chat-header-button:active {
+  transform: scale(0.97);
+}
+
+.chat-header-button:focus-visible {
+  outline: 2px solid var(--k-color-focus, #8ab4f8);
+  outline-offset: 2px;
+}
+
+.chat-header-button__icon {
+  width: var(--k-header-icon-size, 20px);
+  height: var(--k-header-icon-size, 20px);
+  stroke: currentColor;
+}
+
+.chat-header-button__badge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 1px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 2px solid var(--k-header-bg, var(--color-header-footer));
+  border-radius: var(--k2-radius-full, 9999px);
+  background: var(--k-danger, #dc3545);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 1170px) {
   .header {
@@ -87,6 +148,10 @@
     width: 32px;
     height: 32px;
   }
+  .chat-header-button {
+    width: 32px;
+    height: 32px;
+  }
 }
 
 /* ─── HIGH-CONTRAST ─── */
@@ -103,4 +168,75 @@ body.high-contrast-mode .header-icon-btn:focus-visible {
   box-shadow: var(--k-focus-ring);
   outline: 2px solid yellow;
   outline-offset: 2px;
+}
+
+body.high-contrast-mode .chat-header-button {
+  color: yellow;
+  border: 1px solid yellow;
+}
+
+body.high-contrast-mode .chat-header-button:hover,
+body.high-contrast-mode .chat-header-button--open {
+  background: rgba(255, 255, 0, 0.15);
+}
+
+body.high-contrast-mode .chat-header-button:focus-visible {
+  outline-color: yellow;
+}
+
+body.high-contrast-mode .chat-header-button__badge {
+  background: yellow;
+  color: #000;
+  border-color: #000;
+}
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+/* Le header a overflow:hidden qui TRONQUE les actions au lieu de les
+   reorganiser. Sous 768/600 on reduit gaps/paddings, on autorise le titre a
+   s'ellipser plutot que de pousser les icones hors cadre, et ≤600 on masque le
+   libelle du nom d'utilisateur (on garde l'icone). Le desktop (≥1024px) reste
+   intact : ces regles sont sous @media. */
+@media (max-width: 768px) {
+  /* Permet au bloc logo+titre de retrecir pour que le titre s'ellipse au lieu
+     de pousser les icones sous overflow:hidden. */
+  .title_logo {
+    min-width: 0;
+  }
+  .title_logo .title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  /* Resserre l'espacement inter-icones (le clamp desktop monte jusqu'a 38px). */
+  .icons {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .icons {
+    gap: 10px;
+  }
+  /* Masque le libelle prenom/nom, garde l'icone du compte cliquable. */
+  .main-user-infos {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .icons {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 360px) {
+  /* Le logo suffit a identifier la page sur les ecrans les plus etroits ;
+     toutes les actions du header restent ainsi visibles et cliquables. */
+  .title_logo .title {
+    display: none;
+  }
+  .icons {
+    gap: 6px;
+  }
 }

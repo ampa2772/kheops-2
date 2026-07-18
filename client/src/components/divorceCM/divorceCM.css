@@ -1462,3 +1462,105 @@
     justify-self: start;
   }
 }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Wizard : padding réduit pour ne pas déborder */
+  .k-dcm-wizard-root {
+    padding: 1rem 0.9rem 1.25rem;
+  }
+
+  /* Tous les grids du wizard en 1 colonne (renforce le bloc 900px) */
+  .k-dcm-grid,
+  .k-dcm-grid.cols-3,
+  .k-dcm-grid.cols-4 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Neutralise les inline styles gridColumn span posés en JSX */
+  .k-dcm-grid > *,
+  .k-dcm-grid.cols-3 > *,
+  .k-dcm-grid.cols-4 > * {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Récap : 2 col -> 1 col */
+  .k-dcm-recap-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Header du wizard empilé */
+  .k-dcm-wizard-header {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  /* Bloc identité de l'étape : badge + textes + compteur empilés */
+  .k-dcm-step-identity {
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+  }
+
+  .k-dcm-step-counter {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  /* Banner (voie judiciaire) : icône + texte, empilage toléré */
+  .k-dcm-banner {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  /* Footer navigation : boutons peuvent passer à la ligne */
+  .k-dcm-footer {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  /* Bandeau info avec action : empilage propre */
+  .k-dcm-info-banner--with-action {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Cards : padding réduit */
+  .k-dcm-card {
+    padding: 1rem;
+  }
+
+  /* Inputs / selects / textarea bornés à la largeur du parent */
+  .k-dcm-field input,
+  .k-dcm-field select,
+  .k-dcm-field textarea {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Petit téléphone : wizard et cards encore plus compacts */
+  .k-dcm-wizard-root {
+    padding: 0.85rem 0.7rem 1rem;
+  }
+
+  .k-dcm-card {
+    padding: 0.85rem;
+  }
+
+  /* Badge de step réduit pour laisser de la place au titre */
+  .k-dcm-step-badge {
+    width: 44px;
+    height: 44px;
+    font-size: 1.3rem;
+  }
+
+  /* Footer : boutons en pleine largeur pour rester cliquables */
+  .k-dcm-footer .k-dcm-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}

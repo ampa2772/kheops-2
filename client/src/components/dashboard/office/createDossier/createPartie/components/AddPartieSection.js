@@ -359,9 +359,15 @@ const AddPartieSection = ({
 
     if (isAddingPartie) {
         return renderAddPartieForm();
-    } else {
-        return renderAddPartieButton();
     }
+
+    // Dès qu'une partie existe, les deux CTA contextualisés des colonnes
+    // deviennent l'unique point d'entrée. Le CTA général serait redondant.
+    if (parties.length > 0) {
+        return null;
+    }
+
+    return renderAddPartieButton();
 };
 
 export default AddPartieSection;

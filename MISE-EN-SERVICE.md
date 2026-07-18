@@ -59,12 +59,12 @@
 
 ## 7. Mise en ligne
 - [x] **(Claude, 2026-07-01)** Rebuild client + redeploy Cloud Run → révision `kheops-2-backend-00003-62n`
-      en ligne (projet `kheops-2`). ⚠️ **PAS** via `deploy.sh` (périmé : cible `kheops-2-app` + écrase les env vars) ;
+      en ligne (projet `kheops-2`). À cette date, `deploy.sh` ciblait encore `kheops-2-app` et écrasait les variables ;
       fait via `gcloud run deploy --source . --project kheops-2` en **préservant** secrets + env. Smoke-test OK.
 - [x] **(Claude, 2026-07-01)** Décommissionner l'ancien déploiement redondant (`apma2772` / `kheops-2-app`) —
       service supprimé, URL canonique confirmée = `kheops-2`. (Secrets Secret Manager de `kheops-2-app` = nettoyage optionnel.)
 - [ ] **(Adrien)** Configurer `MICROSOFT_CLIENT_ID`/`MICROSOFT_AUTHORITY`/`MICROSOFT_CALLBACK_URL` (absents en prod → login MS KO).
-- [ ] **(Adrien)** Corriger `deploy.sh` (projet `kheops-2` + ne pas écraser `GCS_BUCKET`/URLs) OU documenter la commande manuelle utilisée.
+- [x] **(Codex, 2026-07-10)** `deploy.sh` corrigé : projet par défaut `kheops-2`, avec préservation explicite de `GCS_BUCKET` et des URLs de production.
 - [ ] **(Adrien/Codex)** `npm audit` (40 vulns) : upgrades CASSANTS requis (nodemailer, @azure/msal-node) → passe dédiée + testée, hors déploiement.
 
 ## État côté Claude (fait)

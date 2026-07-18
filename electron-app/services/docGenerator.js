@@ -238,7 +238,7 @@ function injectSignatureImageInBody(docxPath, signatureImageBase64) {
 /**
  * Crée un document pour un client (DOCUMENT FINAL basé sur TEMPLATE)
  */
-async function createDocumentForClient(docId, clientData, templateFileNameInput, finalDocumentNameInput, io) {
+async function createDocumentForClient(docId, clientData, templateFileNameInput, finalDocumentNameInput, io, options = {}) {
   let templateFileName = templateFileNameInput;
   if (templateFileName && !/\.[^/.]+$/.test(templateFileName)) {
     templateFileName += '.docx';
@@ -493,10 +493,13 @@ async function createDocumentForClient(docId, clientData, templateFileNameInput,
 
     markAsRecentlyUploaded(localFinalDocPath);
 
-    // 9. Ouverture automatique et notification (inchangé)
-    await shell.openPath(localFinalDocPath).catch(err => {
-      console.error(`[createDocument] Erreur lors de l'ouverture auto:`, err);
-    });
+    // 9. L'ouverture est désormais pilotée par le choix de l'utilisateur.
+    // Les anciens appels gardent le comportement historique par défaut.
+    if (options.openAfterCreation !== false) {
+      await shell.openPath(localFinalDocPath).catch(err => {
+        console.error(`[createDocument] Erreur lors de l'ouverture auto:`, err);
+      });
+    }
 
     if (io && typeof io.emit === 'function') {
       io.emit('document_operation_success', {

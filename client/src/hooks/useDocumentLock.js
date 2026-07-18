@@ -61,10 +61,14 @@ export function useDocumentLock() {
         const result = await acquireLock(docId);
         if (result.granted) {
             heldRef.current.add(docId);
+            // userId/displayName : hint appelant, sinon ceux renvoyes par le
+            // serveur a l'acquire. Sans proprietaire, selectIsDocLockedByOther
+            // considerait NOTRE PROPRE verrou comme celui « d'un autre
+            // utilisateur » (badge trompeur pendant ~5s jusqu'au poll suivant).
             dispatch(markLocked({
                 docId,
-                userId: ownerHint?.userId,
-                displayName: ownerHint?.displayName,
+                userId: ownerHint?.userId ?? result.userId,
+                displayName: ownerHint?.displayName ?? result.displayName,
                 lockedAt: Date.now(),
             }));
             startHeartbeatIfNeeded();

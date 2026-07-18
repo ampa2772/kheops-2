@@ -576,7 +576,7 @@ describe('authSlice performLogout', () => {
       if (typeof action === 'function') return action(dispatch, getState);
       return action;
     });
-    getState = () => ({ login: { user: { _id: 'u1' } } });
+    getState = () => ({ login: { token: 'jwt-kheops-user', user: { _id: 'u1' } } });
   });
 
   test('deconnecte meme sans window.electron (mode web) : dispatch logout et revient au login', async () => {
@@ -598,6 +598,34 @@ describe('authSlice performLogout', () => {
     await performLogout({ navigate })(dispatch, getState);
     // lockCabinetEncryption est dispatche comme thunk (fonction) en best-effort
     expect(dispatch).toHaveBeenCalledWith(expect.any(Function));
+  });
+
+  test('revoque toutes les sessions compagnon avant d effacer le JWT', async () => {
+    apiClient.post.mockResolvedValue({ data: { revokedCount: 2 } });
+
+    await performLogout()(dispatch, getState);
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/word/companion/revoke-all',
+      {},
+      {
+        headers: { Authorization: 'Bearer jwt-kheops-user' },
+        timeout: 3000,
+      },
+    );
+    const logoutCallIndex = dispatch.mock.calls.findIndex(([action]) => action?.type === logout().type);
+    expect(logoutCallIndex).toBeGreaterThanOrEqual(0);
+    expect(apiClient.post.mock.invocationCallOrder[0]).toBeLessThan(
+      dispatch.mock.invocationCallOrder[logoutCallIndex],
+    );
+  });
+
+  test('une panne de revoke-all ne bloque jamais la deconnexion', async () => {
+    apiClient.post.mockRejectedValueOnce(new Error('serveur indisponible'));
+
+    await expect(performLogout()(dispatch, getState)).resolves.toBeUndefined();
+
+    expect(dispatch).toHaveBeenCalledWith(logout());
   });
 });
 

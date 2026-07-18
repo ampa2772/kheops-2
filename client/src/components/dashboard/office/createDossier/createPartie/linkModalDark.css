@@ -23,6 +23,28 @@
   -webkit-backdrop-filter: blur(4px) !important;
 }
 
+/*
+ * Hôte géométrique stable du dialogue.
+ *
+ * Le legacy utilisait un wrapper `0 x 0` lorsque la fiche de création de
+ * contact était fermée. Dès que le dialogue est passé de `fixed` à `relative`,
+ * son `width: 100%` a donc été calculé sur zéro. Ce shell remplit toujours le
+ * viewport et centre le dialogue indépendamment des feuilles CSS de la page
+ * dossier ou du wizard.
+ */
+.modal-overlay-partieLink .k-linked-person-modal-shell {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 2vw, 28px);
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .modal-overlay-partieLink .modal-content-partie-link {
   background:
     radial-gradient(ellipse at top left, rgba(45, 80, 130, 0.35) 0%, transparent 55%),
@@ -31,7 +53,89 @@
   border-radius: 16px !important;
   box-shadow: 0 28px 60px rgba(0, 0, 0, 0.55) !important;
   color: var(--kdn-text-primary) !important;
-  padding: 1.4rem 1.4rem 1.2rem !important;
+  width: min(720px, 100%) !important;
+  max-width: 720px !important;
+  min-width: 0 !important;
+  padding: clamp(1rem, 2.5vw, 1.5rem) !important;
+  position: relative !important;
+  inset: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  pointer-events: auto;
+}
+
+.modal-overlay-partieLink .modal-content-partie-link,
+.modal-overlay-partieLink .modal-content-partie-link *,
+.modal-overlay-partieLink .modal-content-partie-link *::before,
+.modal-overlay-partieLink .modal-content-partie-link *::after {
+  box-sizing: border-box;
+}
+
+.modal-overlay-partieLink .titleAndInput {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  align-items: stretch !important;
+  padding-inline: 0 !important;
+}
+
+.modal-overlay-partieLink .k-linked-person-heading,
+.modal-overlay-partieLink .listeAvocats,
+.modal-overlay-partieLink .contacts_deja_lies,
+.modal-overlay-partieLink .linkedContactsList,
+.modal-overlay-partieLink .linkedAvocat,
+.modal-overlay-partieLink .linkedContact,
+.modal-overlay-partieLink .container_initialesOptions,
+.modal-overlay-partieLink .inputWithCreerPartie,
+.modal-overlay-partieLink .k-link-suggest-list,
+.modal-overlay-partieLink .k-lawyer-role-picker,
+.modal-overlay-partieLink .k-link-action-feedback {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.modal-overlay-partieLink .identiteAvocat,
+.modal-overlay-partieLink .linkedContactName,
+.modal-overlay-partieLink .k-linked-empty-state,
+.modal-overlay-partieLink .k-link-suggest-copy,
+.modal-overlay-partieLink .k-link-suggest-name,
+.modal-overlay-partieLink .k-link-suggest-meta,
+.modal-overlay-partieLink .k-link-suggest-type,
+.modal-overlay-partieLink .k-lawyer-role-picker h3,
+.modal-overlay-partieLink .k-lawyer-role-picker p,
+.modal-overlay-partieLink .k-link-action-feedback {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.modal-overlay-partieLink .k-linked-person-close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 4;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(120, 180, 240, 0.25);
+  border-radius: 9px;
+  color: var(--kdn-text-primary);
+  background: rgba(8, 22, 42, 0.82);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-overlay-partieLink .k-linked-person-close:hover {
+  border-color: rgba(77, 201, 255, 0.58);
+  background: rgba(77, 201, 255, 0.12);
 }
 
 /* Titres "Avocats liés..." / "Contacts liés..." */
@@ -117,10 +221,10 @@
 }
 
 /* Badge "Avocat" vert à côté du nom — via pseudo-element */
-.modal-overlay-partieLink .identiteAvocat::after {
-  content: 'Avocat';
+.modal-overlay-partieLink .k-linked-type-badge {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   padding: 0.12rem 0.5rem;
   font-size: 0.65rem;
   font-weight: 700;
@@ -130,6 +234,17 @@
   color: #6ee7b7;
   border: 1px solid rgba(16, 185, 129, 0.45);
   border-radius: 5px;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.modal-overlay-partieLink .k-linked-contact-identity {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
 }
 
 /* Container des icônes (role) à droite */
@@ -144,7 +259,8 @@
 /* Icônes plaidant/postulant : carrés sombres avec icône blanche */
 .modal-overlay-partieLink .linkedAvocat .plaidant,
 .modal-overlay-partieLink .linkedAvocat .postulant {
-  width: 32px !important;
+  width: auto !important;
+  min-width: 32px !important;
   height: 32px !important;
   border-radius: 7px !important;
   background: rgba(8, 22, 42, 0.8) !important;
@@ -154,11 +270,18 @@
   justify-content: center !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease;
-  padding: 0 !important;
+  padding: 0 0.55rem !important;
   margin: 0 !important;
   pointer-events: auto !important;
   position: relative !important;
   z-index: 1 !important;
+}
+
+.modal-overlay-partieLink .k-lawyer-role-label {
+  color: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 /* Empêche les <img> internes d'intercepter le clic — l'event remonte au div parent */
@@ -243,6 +366,15 @@
   max-height: none !important;
 }
 
+.modal-overlay-partieLink .k-linked-empty-state {
+  margin: 0.45rem 0 0.8rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed rgba(116, 195, 255, 0.28);
+  border-radius: 10px;
+  color: #93a9bf;
+  font-size: 0.88rem;
+}
+
 .modal-overlay-partieLink .linkedContactsList {
   display: flex !important;
   flex-direction: column !important;
@@ -280,6 +412,8 @@
   display: flex !important;
   align-items: center !important;
   width: 100%;
+  height: auto !important;
+  min-height: 36px;
 }
 
 .modal-overlay-partieLink .linkedContactsList .linkedContact {
@@ -303,6 +437,16 @@
   color: var(--kdn-text-primary) !important;
   font-weight: 500;
   line-height: 1.3;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.modal-overlay-partieLink .k-linked-add-label {
+  margin: 0.15rem 0 0.45rem;
+  color: var(--kdn-text-primary);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .modal-overlay-partieLink .linkedContactsList .OptionsLinkedContact {
@@ -619,6 +763,336 @@
    peut scroller si le contenu est trop grand. Les sections internes ont
    leur propre scroll au besoin. */
 .modal-overlay-partieLink .modal-content-partie-link {
-  max-height: 90vh !important;
+  max-height: calc(100vh - 32px) !important;
+  max-height: min(90dvh, calc(100dvh - 32px)) !important;
   overflow-y: auto !important;
+}
+
+/* Contexte et distinction stricte des personnes liées. */
+.modal-overlay-partieLink .k-linked-person-heading {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0 0 0.75rem;
+  padding: 0 2.7rem 0.7rem 0;
+  border-bottom: 1px solid rgba(120, 180, 240, 0.16);
+}
+
+.modal-overlay-partieLink .k-linked-person-heading > span {
+  color: #7dd3fc;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.modal-overlay-partieLink .k-linked-person-heading h2 {
+  margin: 0;
+  color: var(--kdn-text-primary);
+  font-size: clamp(1rem, 2.4vw, 1.3rem);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.modal-overlay-partieLink .k-link-suggest-item {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+}
+
+.modal-overlay-partieLink .k-link-suggest-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.08rem;
+}
+
+.modal-overlay-partieLink .k-link-suggest-meta {
+  color: var(--kdn-text-muted);
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modal-overlay-partieLink .k-link-suggest-type {
+  flex: 0 0 auto;
+  max-width: 38%;
+  padding: 0.18rem 0.45rem;
+  border: 1px solid rgba(77, 201, 255, 0.28);
+  border-radius: 999px;
+  color: #bae6fd;
+  background: rgba(77, 201, 255, 0.1);
+  font-size: 0.65rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modal-overlay-partieLink .k-lawyer-role-picker {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 12px;
+  background: rgba(45, 30, 8, 0.24);
+}
+
+.modal-overlay-partieLink .k-lawyer-role-picker h3,
+.modal-overlay-partieLink .k-lawyer-role-picker p {
+  margin: 0;
+}
+
+.modal-overlay-partieLink .k-lawyer-role-picker h3 {
+  color: var(--kdn-text-primary);
+  font-size: 0.92rem;
+}
+
+.modal-overlay-partieLink .k-lawyer-role-picker p {
+  color: var(--kdn-text-secondary);
+  font-size: 0.75rem;
+}
+
+.modal-overlay-partieLink .k-lawyer-role-picker__choices,
+.modal-overlay-partieLink .k-lawyer-role-picker__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.modal-overlay-partieLink .k-lawyer-role-picker__choices button,
+.modal-overlay-partieLink .k-lawyer-role-picker__actions button {
+  min-height: 38px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 180, 240, 0.3);
+  padding: 0.45rem 0.8rem;
+  color: var(--kdn-text-primary);
+  background: rgba(15, 32, 56, 0.9);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.modal-overlay-partieLink .k-lawyer-role-picker__choices button.is-selected {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.35);
+}
+
+.modal-overlay-partieLink .k-lawyer-role-picker__actions {
+  justify-content: flex-end;
+}
+
+.modal-overlay-partieLink .k-lawyer-role-picker__actions .primary {
+  border-color: #38bdf8;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+}
+
+.modal-overlay-partieLink .k-lawyer-role-picker__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.modal-overlay-partieLink .k-lawyer-role-picker__error,
+.modal-overlay-partieLink .k-lawyer-role-error {
+  color: #fecaca !important;
+  font-size: 0.72rem;
+}
+
+.modal-overlay-partieLink .k-lawyer-role-missing {
+  color: #fcd34d;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.modal-overlay-partieLink .k-lawyer-role-context {
+  color: var(--kdn-text-muted);
+  font-size: 0.66rem;
+  font-style: italic;
+}
+
+.modal-overlay-partieLink .linkedAvocat .plaidant:disabled,
+.modal-overlay-partieLink .linkedAvocat .postulant:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.62;
+}
+
+.modal-overlay-partieLink .linkedAvocat .plaidant,
+.modal-overlay-partieLink .linkedAvocat .postulant,
+.modal-overlay-partieLink .initials-icon_linkedContact,
+.modal-overlay-partieLink .modifLinkContact,
+.modal-overlay-partieLink .deleteLinkContact,
+.modal-overlay-partieLink .CreerContactLinkPartie {
+  font: inherit;
+}
+
+.modal-overlay-partieLink button:focus-visible,
+.modal-overlay-partieLink input:focus-visible,
+.modal-overlay-partieLink [role="button"]:focus-visible {
+  outline: 3px solid rgba(125, 211, 252, 0.85) !important;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .modal-overlay-partieLink .k-linked-person-modal-shell {
+    padding: 12px;
+  }
+
+  .modal-overlay-partieLink .modal-content-partie-link {
+    width: min(680px, 100%) !important;
+    max-width: 680px !important;
+    max-height: calc(100dvh - 24px) !important;
+    padding: 1rem !important;
+  }
+
+  .modal-overlay-partieLink .linkedAvocat,
+  .modal-overlay-partieLink .linkedContact {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+
+  .modal-overlay-partieLink .k-linked-contact-identity {
+    align-items: flex-start;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .modal-overlay-partieLink .k-linked-type-badge {
+    align-self: flex-start;
+  }
+
+  .modal-overlay-partieLink .linkedAvocat .role {
+    width: 100%;
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+  }
+
+  .modal-overlay-partieLink .k-link-suggest-head {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .modal-overlay-partieLink .k-link-suggest-head-count {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-overlay-partieLink .k-linked-person-modal-shell {
+    padding: 8px;
+  }
+
+  .modal-overlay-partieLink .modal-content-partie-link {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100dvh - 16px) !important;
+    border-radius: 12px !important;
+    padding: 0.75rem !important;
+  }
+
+  .modal-overlay-partieLink .linkedContactsList > div,
+  .modal-overlay-partieLink .linkedContactsList > * {
+    padding: 0.65rem !important;
+  }
+
+  .modal-overlay-partieLink .linkedContactsList .container_initialesOptions,
+  .modal-overlay-partieLink .linkedContactsList .linkedContact {
+    align-items: stretch !important;
+    height: auto !important;
+  }
+
+  .modal-overlay-partieLink .linkedContactsList .OptionsLinkedContact {
+    align-self: flex-start;
+  }
+
+  .modal-overlay-partieLink .k-link-suggest-item {
+    align-items: flex-start !important;
+    flex-wrap: wrap;
+  }
+
+  .modal-overlay-partieLink .k-link-suggest-type {
+    max-width: 100%;
+    margin-left: 0;
+  }
+
+  .modal-overlay-partieLink .k-link-suggest-name,
+  .modal-overlay-partieLink .k-link-suggest-meta,
+  .modal-overlay-partieLink .k-link-suggest-type,
+  .modal-overlay-partieLink .k-lawyer-role-label,
+  .modal-overlay-partieLink .k-lawyer-role-missing {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .modal-overlay-partieLink .k-lawyer-role-picker__choices,
+  .modal-overlay-partieLink .k-lawyer-role-picker__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .modal-overlay-partieLink .k-lawyer-role-picker__choices button,
+  .modal-overlay-partieLink .k-lawyer-role-picker__actions button {
+    width: 100%;
+  }
+}
+.k-link-action-feedback {
+  margin: 0.25rem 0 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  border-radius: 8px;
+  background: rgba(30, 64, 175, 0.2);
+  color: #dbeafe;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.k-link-action-feedback.is-success {
+  border-color: rgba(52, 211, 153, 0.55);
+  background: rgba(6, 95, 70, 0.24);
+  color: #d1fae5;
+}
+
+.k-link-action-feedback.is-error {
+  border-color: rgba(248, 113, 113, 0.65);
+  background: rgba(127, 29, 29, 0.25);
+  color: #fee2e2;
+}
+
+.k-link-action-feedback.is-loading,
+.k-link-action-feedback.is-saving {
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.k-lawyer-role-status {
+  margin-top: 0.35rem;
+  color: #a7f3d0;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 480px), (max-height: 620px) {
+  .k-link-action-feedback {
+    margin-bottom: 0.5rem;
+    padding: 0.45rem 0.55rem;
+    font-size: 0.78rem;
+  }
+}
+
+body.high-contrast-mode .k-link-action-feedback,
+body.high-contrast-mode .k-lawyer-role-status {
+  border-color: currentColor;
+  background: #000;
+  color: #fff;
+}
+
+@media (forced-colors: active) {
+  .k-link-action-feedback,
+  .k-lawyer-role-status {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    forced-color-adjust: auto;
+  }
 }

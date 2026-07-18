@@ -1023,3 +1023,59 @@ body.high-contrast-mode .fac-card {
   background: #000000;
   border-color: #ffff00;
 }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Padding de page réduit pour gagner de la largeur utile. */
+  .facturations-container.fac-page {
+    padding: 10px 10px 12px;
+    gap: 10px;
+  }
+  /* Topbar : titre puis actions empilés, chaque bloc pleine largeur. */
+  .fac-topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .fac-actions {
+    justify-content: flex-start;
+  }
+  /* Le champ de recherche à largeur fixe (240px) s'étire à la fenêtre. */
+  .fac-search {
+    width: 100%;
+  }
+  /* Récap : en-tête empilé, le sélecteur de période passe dessous. */
+  .fac-summary-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  /* Popovers bornés à la largeur de la fenêtre pour ne pas déborder. */
+  .fac-popover,
+  .fac-popover-wide {
+    min-width: 0;
+    width: min(320px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+  }
+}
+
+@media (max-width: 480px) {
+  .facturations-container.fac-page {
+    padding: 8px 8px 10px;
+  }
+  .fac-title { font-size: 1.25rem; }
+  /* Boutons d'action : ils passent à la ligne proprement. */
+  .fac-btn-secondary,
+  .fac-btn-primary {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  /* La plage de dates (période) s'aligne verticalement plutôt que d'être
+     compressée à côté du reste de la barre. */
+  .fac-period-range {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+    width: 100%;
+  }
+  .fac-monthly-legend { gap: 8px; }
+}

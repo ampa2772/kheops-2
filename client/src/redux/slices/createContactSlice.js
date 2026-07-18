@@ -23,6 +23,7 @@ import {
   loadInitialState,
   getDefaultContact
 } from '../utils/FonctionsCreateContact';
+import { isLawyerContact, normalizeLawyerRoles, withLawyerRoles } from '../../utils/partyLinking';
 
 // ========================================================================
 // Thunks classiques (cross-slice dispatch + re-fetch)
@@ -136,9 +137,10 @@ const createContactSlice = createSlice({
         Object.assign(state, resetState);
         state.isModificationMode = false;
 
-        // Par defaut : Client/Partie, type standard, pas d'appellation
+        // Par defaut : Client/Partie, type standard, appellation par defaut
+        // (le reset force genre Masculin -> 'Cher Monsieur')
         state.contactDetails.contact.type = 'Partie (Client/Adversaire)';
-        state.contactDetails.contact.appellationCourrier = '';
+        state.contactDetails.contact.appellationCourrier = 'Cher Monsieur';
         state.contactDetails.contact.appellationCourrierIsCustom = false;
         state.contactDetails.contact.pro_contact = false;
 
@@ -160,6 +162,20 @@ const createContactSlice = createSlice({
         // verite. L'utilisateur peut toujours la re-editer manuellement.
         state.contactDetails.contact.appellationCourrierIsCustom = true;
         state.isModificationMode = true;
+
+        // Fix 2026-07-04 : restaurer le statut marital AFFICHE depuis le contact
+        // charge. On alimentait contact.maritalStatus mais pas
+        // currentStatusMarital (source du bouton affiche) ni statusMaritauxGenre
+        // (options du dropdown) => un contact marie reaffichait « Celibataire »
+        // et le bouton « D » (details mariage) disparaissait a la reouverture.
+        const loadedMaritalStatus = state.contactDetails.contact.maritalStatus;
+        if (loadedMaritalStatus) {
+          state.contactDetails.currentStatusMarital = loadedMaritalStatus;
+          const genreKey = (state.contactDetails.contact.genre || 'Masculin').toLowerCase();
+          state.contactDetails.statusMaritauxGenre = state.contactDetails.optionsStatusMaritaux
+            .map(option => option[genreKey])
+            .filter(status => status !== loadedMaritalStatus);
+        }
 
         state.formErrors.errorForm = initializeErrorForm(state.contactDetails.contact, state.contactDetails.contact.pro_contact, true);
         state.formErrors.errorForm.email = false;
@@ -183,7 +199,8 @@ const createContactSlice = createSlice({
         state.contactDetails.contact = {
           ...getDefaultContact(state.contactDetails.contact.genre, state.contactDetails.currentStatusMarital),
           type: 'Partie (Client/Adversaire)',
-          appellationCourrier: '',
+          // Appellation par defaut alignee sur le genre conserve par le reset.
+          appellationCourrier: state.contactDetails.contact.genre === 'Feminin' ? 'Chère Madame' : 'Cher Monsieur',
           appellationCourrierIsCustom: false,
           pro_contact: false,
         };
@@ -276,8 +293,10 @@ export const createContact = (contact, token, options = {}) => async (dispatch, 
   const currentSetPartiesLinkAllContre = mode === 'edit' ? setPartiesLinkAllContreEdit : setPartiesLinkAllContreCreate;
 
   try {
+    const transientRoles = normalizeLawyerRoles(contact?.linkRoles || contact);
+    const { linkRoles: _transientLinkRoles, ...contactForApi } = contact || {};
     const payload = {
-      contact,
+      contact: contactForApi,
       options: { ...options, userId: options.userId },
     };
     const res = await apiClient.post(
@@ -286,6 +305,14 @@ export const createContact = (contact, token, options = {}) => async (dispatch, 
     );
     dispatch({ type: 'CREATE_CONTACT_SUCCESS', payload: res.data });
     const newContactData = res.data;
+    // Certains endpoints historiques renvoient une fiche partielle. Le type
+    // saisi avant création reste alors la source de secours pour classer la
+    // relation sans jamais persister `linkRoles` sur la fiche maître.
+    const createdContactIsLawyer = isLawyerContact(newContactData) || isLawyerContact(contact);
+    const relationRoles = createdContactIsLawyer ? transientRoles : {};
+    const linkedContactData = createdContactIsLawyer
+      ? withLawyerRoles(newContactData, transientRoles)
+      : newContactData;
 
     if (contactType === 'notaireMariage') {
       dispatch({ type: 'RESET_NOTAIRES', payload: res.data });
@@ -308,21 +335,24 @@ export const createContact = (contact, token, options = {}) => async (dispatch, 
       } else if (fromCreatePartie.fromCreatePartiesForLink?.isLinkedToSinglePartie) {
         const targetPartyId = fromCreatePartie.fromCreatePartiesForLink.linkedPartieId;
         if (targetPartyId) {
-          dispatch(currentSetPartieLink(targetPartyId, newContactData));
+          dispatch(currentSetPartieLink(targetPartyId, linkedContactData));
           // Auto-save en base en mode edit
           if (mode === 'edit') {
             const currentDossierId = getState().currentDossier?.dossier?._id;
             if (currentDossierId) {
-              dispatch(addLinkedContactToParty(currentDossierId, targetPartyId, { existingContactId: newContactData._id }));
+              dispatch(addLinkedContactToParty(currentDossierId, targetPartyId, {
+                existingContactId: newContactData._id,
+                ...relationRoles,
+              }));
             }
           }
         }
       } else if (fromCreatePartie.fromCreatePartiesForLink?.isLinkedToPartiesGroup) {
         const linkedGroupType = fromCreatePartie.fromCreatePartiesForLink.linkedGroupType;
         if (linkedGroupType === 'Pour') {
-          dispatch(currentSetPartiesLinkAllPour({ contact: newContactData }));
+          dispatch(currentSetPartiesLinkAllPour({ contact: linkedContactData }));
         } else if (linkedGroupType === 'Contre') {
-          dispatch(currentSetPartiesLinkAllContre({ contact: newContactData }));
+          dispatch(currentSetPartiesLinkAllContre({ contact: linkedContactData }));
         }
         // Auto-save en base en mode edit pour toutes les parties du groupe
         if (mode === 'edit') {
@@ -330,9 +360,15 @@ export const createContact = (contact, token, options = {}) => async (dispatch, 
           const partieState = getState().partieEditData;
           if (currentDossierId && partieState?.parties) {
             const targetParties = partieState.parties.filter(p => p.typePartie === linkedGroupType);
-            targetParties.forEach(p => {
-              dispatch(addLinkedContactToParty(currentDossierId, p.idPartie, { existingContactId: newContactData._id }));
-            });
+            // Le dossier est un snapshot partagé : les sauvegardes d'un même
+            // groupe doivent être séquentielles pour éviter qu'une réponse
+            // plus ancienne écrase la relation ajoutée juste après.
+            for (const partie of targetParties) {
+              await dispatch(addLinkedContactToParty(currentDossierId, partie.idPartie, {
+                existingContactId: newContactData._id,
+                ...relationRoles,
+              }));
+            }
           }
         }
       } else if (fromCreatePartie.fromCreatePartiesForLink?.isLinkedToDossier) {
@@ -368,14 +404,20 @@ export const updateContact = (contactId, contactData, token, options = {}) => as
   console.log('[DEBUG updateContact] contactId:', contactId, '| mode:', options.fromCreatePartie?.mode, '| modificationType:', options.modificationType);
   console.log('[DEBUG updateContact] isLinkedToSinglePartie:', options.fromCreatePartie?.fromCreatePartiesForLink?.isLinkedToSinglePartie, '| email envoyé:', contactData?.email);
   try {
+    // `linkRoles` n'appartient pas à la fiche maître du contact : les rôles
+    // sont portés par la relation avocat ↔ partie.
+    const { linkRoles: _transientLinkRoles, ...contactForApi } = contactData || {};
     const payloadForApi = {
-      contact: contactData,
+      contact: contactForApi,
       options: {
         fromCreatePartie: options.fromCreatePartie,
         modificationType: options.modificationType,
         // Transmet la liste actuelle des personnes à charge pour synchronisation
         // côté serveur (création/mise à jour/suppression par diff sur les _id).
         personnesCharge: options.personnesCharge,
+        // Fix 2026-07-04 : transmettre aussi les détails de mariage au PUT
+        // (avant, ils n'étaient persistés qu'à la création du contact).
+        detailMariage: options.detailMariage,
       }
     };
 

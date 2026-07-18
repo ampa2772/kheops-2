@@ -1,0 +1,74 @@
+/* Champ éditable en ligne (facturation) — thème sombre teal, façon « Aria ».
+   Valeur et input occupent la même boîte → aucun décalage à l'édition. */
+
+.inline-edit-field__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  color: #eef3f8;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid transparent; /* réserve la place de la bordure d'édition */
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.inline-edit-field__value:hover:not(.is-disabled) {
+  background: rgba(90, 181, 214, 0.12);
+  border-color: rgba(90, 181, 214, 0.45);
+}
+
+.inline-edit-field__value.is-disabled {
+  cursor: default;
+  color: #8fa6bb;
+}
+
+.inline-edit-field__input {
+  font: inherit;
+  font-weight: 600;
+  color: #eef3f8;
+  background: rgba(10, 26, 39, 0.9);
+  border: 1px solid #5ab5d6;
+  border-radius: 6px;
+  padding: 2px 8px;
+  width: 130px;
+  max-width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(90, 181, 214, 0.18);
+}
+
+/* Le calendrier natif du type=date en variante sombre. */
+.inline-edit-field__input[type='date'] {
+  color-scheme: dark;
+}
+
+.inline-edit-field__spinner {
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #5ab5d6;
+  border-radius: 50%;
+  animation: inline-edit-spin 0.7s linear infinite;
+}
+
+@keyframes inline-edit-spin {
+  to { transform: rotate(360deg); }
+}
+
+body.high-contrast-mode .inline-edit-field__value {
+  color: yellow;
+}
+body.high-contrast-mode .inline-edit-field__value:hover:not(.is-disabled) {
+  background: rgba(255, 255, 0, 0.12);
+  border-color: yellow;
+}
+body.high-contrast-mode .inline-edit-field__input {
+  background: #000;
+  color: yellow;
+  border-color: yellow;
+  box-shadow: none;
+}

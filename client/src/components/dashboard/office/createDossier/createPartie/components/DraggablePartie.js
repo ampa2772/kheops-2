@@ -74,12 +74,30 @@ const DraggablePartie = ({
   const hasLinkedContacts = (partie.linkedContacts || []).length > 0;
   const hasLinkedAvocats = (partie.linkedAvocats || []).length > 0;
   const hasAnyLinks = hasLinkedContacts || hasLinkedAvocats;
+  const destinationSide = partie.typePartie === 'Pour' ? 'Contre' : 'Pour';
+  const keyboardShortcut = partie.typePartie === 'Pour' ? 'Alt+ArrowRight' : 'Alt+ArrowLeft';
+  const optionsId = `partie-options-${String(partie.idPartie ?? partie._id ?? partie.nomPartie)
+    .replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+
+  const handleCardKeyDown = (event) => {
+    const expectedArrow = partie.typePartie === 'Pour' ? 'ArrowRight' : 'ArrowLeft';
+    if (event.altKey && event.key === expectedArrow && movePartie) {
+      event.preventDefault();
+      event.stopPropagation();
+      movePartie(partie, destinationSide);
+    }
+  };
 
   return (
     <div
       ref={drag}
       style={{ opacity: isDragging ? 0.5 : 1, cursor: isDragging ? 'grabbing' : 'grab' }}
       className={itemClass}
+      role="group"
+      tabIndex={0}
+      aria-keyshortcuts={keyboardShortcut}
+      aria-label={`Partie ${partie.nomPartie}, camp ${partie.typePartie}. ${keyboardShortcut} pour la déplacer vers ${destinationSide}.`}
+      onKeyDown={handleCardKeyDown}
     >
       {/* ── Ligne 1 : Nom de la partie (dominant) ── */}
       <div className="partie-card__header">
@@ -87,56 +105,83 @@ const DraggablePartie = ({
           {partie.nomPartie}
         </div>
         {/* Initiales — toujours visibles, toggle pour fallback clic */}
-        <div
+        <button
+          type="button"
           className="initials-icon"
           onClick={(e) => { e.stopPropagation(); setIsOptionsOpen(!isOptionsOpen); }}
-          title="Options"
+          title={`Options de la partie ${partie.nomPartie}`}
+          aria-label={`Options de la partie ${partie.nomPartie}`}
+          aria-expanded={isOptionsOpen}
+          aria-controls={optionsId}
+          style={{ padding: 0, border: 0, font: 'inherit' }}
         >
           {getInitials(partie.nomPartie)}
-        </div>
+        </button>
       </div>
 
       {/* ── Ligne 2 : Indicateurs + Actions ── */}
       <div className="partie-card__footer" ref={itemRef}>
         {/* Badges : avocats + contacts + bouton ajouter */}
-        <div
+        <button
+          type="button"
           className={`ajoutContactContainer ${hasAnyLinks ? '' : 'padBordNone'}`}
           onClick={(e) => { e.stopPropagation(); handleOpenLinkModal(); }}
+          aria-label={`Gérer les personnes liées à ${partie.nomPartie}`}
+          title={`Gérer les personnes liées à ${partie.nomPartie}`}
+          style={{ font: 'inherit', color: 'inherit' }}
         >
           {/* Avocats Count */}
           {hasLinkedAvocats && (
-            <div className="nombreContactsLies">
-              <div className="contactCount">
+            <span className="nombreContactsLies">
+              <span className="contactCount">
                 {(partie.linkedAvocats || []).length}
                 <img src={plaidantIcon} alt="Avocat(s)" className="k-icon-sm" />
-              </div>
-            </div>
+              </span>
+            </span>
           )}
 
           {/* Contacts Count */}
           {hasLinkedContacts && (
-            <div className="nombreContactsLies">
-              <div className="contactCount">
+            <span className="nombreContactsLies">
+              <span className="contactCount">
                 {(partie.linkedContacts || []).length}
                 <img src={contactLinkIcon} alt="Contact(s)" className="k-icon-sm" />
-              </div>
-            </div>
+              </span>
+            </span>
           )}
 
           {/* "Add Link" Icon */}
-          <div className={`ajoutContactLie ${hasAnyLinks ? 'ajoutContactLie_alt' : ''}`}>
+          <span className={`ajoutContactLie ${hasAnyLinks ? 'ajoutContactLie_alt' : ''}`}>
             <img src={ajoutPartie} alt="Lier" className="k-icon-sm" />
-          </div>
-        </div>
+          </span>
+        </button>
 
         {/* Boutons action — visibles au hover CSS ou au toggle clic */}
-        <div className={`optionsContainer ${isOptionsOpen ? 'optionsContainer--open' : ''}`}>
-          <div className="deletePartie" onClick={(e) => { e.stopPropagation(); handleDeletePartie(partie.idPartie); }}>
-            <img src={supprimerLogoPath} alt="Supprimer" className="k-icon-sm" />
-          </div>
-          <div className="modifPartie" onClick={(e) => { e.stopPropagation(); handleModifyClick(); }}>
-            <img src={modifier} alt="Modifier" className="k-icon-sm" />
-          </div>
+        <div
+          id={optionsId}
+          className={`optionsContainer ${isOptionsOpen ? 'optionsContainer--open' : ''}`}
+          aria-hidden={!isOptionsOpen}
+        >
+          <button
+            type="button"
+            className="deletePartie"
+            onClick={(e) => { e.stopPropagation(); handleDeletePartie(partie.idPartie); }}
+            aria-label={`Supprimer la partie ${partie.nomPartie}`}
+            title={`Supprimer la partie ${partie.nomPartie}`}
+            tabIndex={isOptionsOpen ? 0 : -1}
+          >
+            <img src={supprimerLogoPath} alt="" aria-hidden="true" className="k-icon-sm" />
+          </button>
+          <button
+            type="button"
+            className="modifPartie"
+            onClick={(e) => { e.stopPropagation(); handleModifyClick(); }}
+            aria-label={`Modifier la partie ${partie.nomPartie}`}
+            title={`Modifier la partie ${partie.nomPartie}`}
+            tabIndex={isOptionsOpen ? 0 : -1}
+          >
+            <img src={modifier} alt="" aria-hidden="true" className="k-icon-sm" />
+          </button>
         </div>
       </div>
     </div>

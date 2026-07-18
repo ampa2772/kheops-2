@@ -1,13 +1,39 @@
 import React, { useRef, useState, useMemo, useLayoutEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { SketchPicker } from 'react-color';
 import ReactDOM from 'react-dom';
 import './styles.css';
 
-import { updateDocumentColor, updateSubfolder } from '../../../../../redux/slices/currentDossierSlice';
+import { fetchAllDocumentsInDossier, updateDocumentColor, updateSubfolder } from '../../../../../redux/slices/currentDossierSlice';
 // Compagnon Electron mince (mode web) : ouverture des .docx dans Microsoft Word.
-import { openDocumentInWord, triggerCompanionInstall } from '../../../../../services/companion/companionClient';
+import {
+  openDocumentInWord,
+  triggerCompanionInstall,
+  detectCompanion,
+  getCompanionInstallerInfo,
+} from '../../../../../services/companion/companionClient';
 import { downloadWordDocument, classifyWordDownloadError } from '../../../../../services/wordDocumentClient';
+import { downloadDroppedDocument } from '../../../../../services/droppedFileService';
+import DocumentImportAffordance from './DocumentImportAffordance';
+import { getDocumentCompatibility, listExternalSessions, openExternalDocument } from '../../../../../services/externalDocumentEditing';
+import useDocumentOpening from '../../../../../hooks/useDocumentOpening';
+import { updateDocumentOpeningPreferences } from '../../../../../services/documentOpeningClient';
+import {
+  loadDocumentPreviewInWindow,
+  reserveDocumentPreviewWindow,
+} from '../../../../../services/documentBrowserPreview';
+import { DocumentOpeningModal, TextDocumentPreviewModal } from '../../../../documentOpening';
+import { DOCUMENT_OPENING_MODES } from '../../../../../constants/documentOpening';
+import {
+  DOCUMENT_FILE_OPENING_ACTIONS,
+  classifyDocumentFileOpening,
+  getDocumentFileExtension,
+} from '../../../../../constants/documentFileRouting';
+import { KheopsDocumentEditor } from '../../../../documentEditor';
+import { previewDocumentAsPdf } from '../../../../../services/documentPdfPreview';
+import { isFeatureEnabled } from '../../../../../utils/featureFlags';
+import { getDossierColorKey, resolveDocumentColor } from '../../../../../constants/documentColors';
 
 // Verrouillage collaboratif de documents (cross-PC)
 import { useDocumentLock } from '../../../../../hooks/useDocumentLock';
@@ -26,21 +52,26 @@ import SendEmailModal from './SendEmailModal';
 import HoverToSpeak from '../../../../common/HoverToSpeak';
 import { stopSpeaking } from '../../../../../services/speechService';
 import { useToast } from '../../../../common/notifications/useToast';
+import ExternalEditingSessionModal from './ExternalEditingSessionModal';
+import DocumentHistoryModal from './DocumentHistoryModal';
+import DocumentSyncDetailsModal from '../../../../documentSync/DocumentSyncDetailsModal';
+import {
+  calculateDocumentActionMenuLayout,
+  getVisibleViewportRect,
+} from './documentActionMenuLayout';
+
+const DOCUMENT_ACTION_MENU_ID = 'document-actions-menu';
+const DOCUMENT_ACTION_MENU_MARGIN = 12;
+const DOCUMENT_ACTION_MENU_GAP = 4;
 
 // --- Helpers pour le nouvel affichage des documents ---
-const getDocExtension = (doc) => {
-  const name = doc?.nomDocument || '';
-  const m = name.match(/\.([a-z0-9]+)$/i);
-  return m ? m[1].toLowerCase() : '';
-};
-
 const getDocTypeBadge = (doc) => {
-  const ext = getDocExtension(doc);
+  const ext = getDocumentFileExtension(doc);
   if (ext === 'pdf') return { label: 'PDF', cls: 'doc-badge--pdf' };
   if (ext === 'doc' || ext === 'docx') return { label: 'DOC', cls: 'doc-badge--doc' };
   if (ext === 'xls' || ext === 'xlsx' || ext === 'csv') return { label: 'XLS', cls: 'doc-badge--xls' };
   if (ext === 'txt') return { label: 'TXT', cls: 'doc-badge--txt' };
-  if (ext === 'jpg' || ext === 'jpeg' || ext === 'png' || ext === 'zip' || ext === 'gif') {
+  if (ext === 'jpg' || ext === 'jpeg' || ext === 'png' || ext === 'gif' || ext === 'webp') {
     return { label: 'IMG', cls: 'doc-badge--img' };
   }
   return { label: ext ? ext.toUpperCase().slice(0, 3) : 'DOC', cls: 'doc-badge--doc' };
@@ -114,7 +145,7 @@ const createDragGhost = (sourceRow) => {
     ghost.classList.add('k-drag-ghost');
     ghost.removeAttribute('draggable');
     // Retirer les éléments interactifs qui n'ont aucun sens dans le ghost
-    ghost.querySelectorAll('.threeDotsIcon, .download-doc-btn').forEach(el => el.remove());
+    ghost.querySelectorAll('.threeDotsIcon, .download-doc-btn, .doc-row__open-controls').forEach(el => el.remove());
     ghost.style.width = `${Math.round(rect.width)}px`;
     ghost.style.height = `${Math.round(rect.height)}px`;
     // Copier les computed styles depuis la source pour preserver le look
@@ -136,9 +167,12 @@ const createDragGhost = (sourceRow) => {
 // data-attributes et highlighted via classList direct (pas React state).
 const DraggableDocument = ({
   doc,
+  resolvedColor,
   onDoubleClick,
   onThreeDotsClick,
   onDownload,
+  onOpen,
+  onOpenWith,
   isSelected,
   newlyCreatedDocId,
   newlyCreatedDocLabels,
@@ -179,6 +213,8 @@ const DraggableDocument = ({
     <HoverToSpeak textToSpeak={textToSpeak}>
       <div
         className={`docListItem doc-row${lockedByOther ? ' doc-row--locked' : ''}${isRenaming ? ' doc-row--renaming' : ''}`}
+        role="group"
+        aria-label={`Document ${doc?.nomDocument || displayText || 'sans titre'}`}
         draggable={!lockedByOther && !isRenaming}
         onMouseDown={(e) => {
           if (lockedByOther || isRenaming) return;
@@ -212,7 +248,7 @@ const DraggableDocument = ({
         title={lockTitle}
         aria-disabled={lockedByOther ? 'true' : undefined}
         style={{
-          backgroundColor: doc.color || undefined,
+          backgroundColor: resolvedColor,
           opacity: lockedByOther ? 0.55 : 1,
           cursor: lockedByOther ? 'not-allowed' : 'grab',
         }}
@@ -275,13 +311,35 @@ const DraggableDocument = ({
           </div>
         )}
 
+        <div className="doc-row__open-controls" onMouseDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="doc-row__open-main"
+            onClick={(e) => { e.stopPropagation(); onOpen?.(doc); }}
+            disabled={lockedByOther || isRenaming}
+            title="Ouvrir le document avec votre méthode habituelle"
+          >
+            Ouvrir le document
+          </button>
+          <button
+            type="button"
+            className="doc-row__open-more"
+            onClick={(e) => { e.stopPropagation(); onOpenWith?.(doc); }}
+            disabled={lockedByOther || isRenaming}
+            aria-label="Ouvrir avec une autre méthode"
+            title="Ouvrir avec…"
+          >⌄</button>
+        </div>
+
         {/* Icône Télécharger : historiquement limitée aux .txt (export texte) ;
             élargie aux .docx/.doc depuis que le téléchargement serveur existe
-            en mode web (GET /api/word/:docId/download). */}
-        {/\.(txt|docx?)$/i.test(doc.nomDocument || '') && onDownload && (
+            en mode web (GET /api/word/:docId/download), et à TOUS les fichiers
+            DÉPOSÉS (drag & drop web → stockage cabinet, PDF/images/etc.). */}
+        {(/\.(txt|docx?)$/i.test(doc.nomDocument || '') || doc.categorie === 'dropped') && onDownload && (
           <div
             className="download-doc-btn"
             onClick={(e) => onDownload(e, doc)}
+            onDoubleClick={(e) => e.stopPropagation()}
             onMouseEnter={(e) => { e.stopPropagation(); stopSpeaking(); }}
             title="Telecharger"
           >
@@ -289,10 +347,24 @@ const DraggableDocument = ({
           </div>
         )}
         <div
+          id={`document-actions-trigger-${doc._id}`}
           className={`threeDotsIcon ${isSelected ? 'activeDot' : ''}`}
           onClick={(e) => onThreeDotsClick(e, doc._id, 'document')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+              e.preventDefault();
+              onThreeDotsClick(e, doc._id, 'document');
+            }
+          }}
+          onDoubleClick={(e) => e.stopPropagation()}
           onMouseEnter={(e) => { e.stopPropagation(); stopSpeaking(); }}
           title="Options"
+          role="button"
+          tabIndex={0}
+          aria-haspopup="menu"
+          aria-expanded={isSelected}
+          aria-controls={isSelected ? DOCUMENT_ACTION_MENU_ID : undefined}
+          aria-label={`Options du document ${doc.nomDocument || ''}`.trim()}
         >&#x22EE;</div>
         {children}
       </div>
@@ -360,10 +432,23 @@ const DroppableSubfolder = ({ subfolder, onThreeDotsClick, onNavigate, isSelecte
         </span>
         {documentCount > 0 && <span className="subfolder-item-count">({documentCount})</span>}
         <div
+          id={`document-actions-trigger-${subfolder._id}`}
           className={`threeDotsIcon ${isSelected ? 'activeDot' : ''}`}
           onClick={(e) => onThreeDotsClick(e, subfolder._id, 'subfolder')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+              e.preventDefault();
+              onThreeDotsClick(e, subfolder._id, 'subfolder');
+            }
+          }}
           onMouseEnter={(e) => { e.stopPropagation(); stopSpeaking(); }}
           title="Options"
+          role="button"
+          tabIndex={0}
+          aria-haspopup="menu"
+          aria-expanded={isSelected}
+          aria-controls={isSelected ? DOCUMENT_ACTION_MENU_ID : undefined}
+          aria-label={`Options du sous-dossier ${subfolder.name || ''}`.trim()}
         >⋮</div>
         {children}
       </div>
@@ -434,6 +519,8 @@ const DocumentList = ({
   handleDragEnter,
   handleDragLeave,
   handleDrop,
+  handleImportFiles,
+  isImportingFiles = false,
   uploadError,
   isUploading,
   newlyCreatedDocId,
@@ -442,6 +529,7 @@ const DocumentList = ({
   classifyDocument,
 }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const toast = useToast();
   const [showSendModal, setShowSendModal] = useState(false);
   const [emailData, setEmailData] = useState({ to: '', docs: [], displayName: '', isLocalAttachment: false });
@@ -449,18 +537,54 @@ const DocumentList = ({
   const [colorPickerItemId, setColorPickerItemId] = useState(null);
   const [liveColor, setLiveColor] = useState(null);
   const [miniModalItemType, setMiniModalItemType] = useState(null);
-  const [flipUp, setFlipUp] = useState(false);
-  const [miniModalPosition, setMiniModalPosition] = useState({ top: 0, left: 0 });
+  const [miniModalPosition, setMiniModalPosition] = useState({
+    top: 0,
+    left: 0,
+    maxHeight: 0,
+    placement: 'bottom',
+    ready: false,
+  });
+  const [activeOpeningDocument, setActiveOpeningDocument] = useState(null);
+  const [pendingOpeningAction, setPendingOpeningAction] = useState(null);
+  const [openingPurpose, setOpeningPurpose] = useState('open');
+  const [editorDocument, setEditorDocument] = useState(null);
+  const [textPreviewDocument, setTextPreviewDocument] = useState(null);
+  const [externalSession, setExternalSession] = useState(null);
+  const [historyDocument, setHistoryDocument] = useState(null);
+  const [syncDocument, setSyncDocument] = useState(null);
   const colorPickerModalRef = useRef(null);
   const miniModalRef = useRef(null);
+  const miniModalTriggerRef = useRef(null);
+  const openingRequestInFlightRef = useRef(false);
   const { dossier: currentDossier } = useSelector(state => state.currentDossier);
   const token = useSelector(state => state.login.token);
+  const user = useSelector(state => state.login.user);
+  const dossierTypeColorKey = useMemo(() => getDossierColorKey(currentDossier), [currentDossier]);
+  const resolveColorForDocument = useCallback((document) => resolveDocumentColor({
+    document,
+    documentPreferences: user?.documentColorPreferences,
+    dossierPreferences: user?.dossierColorPreferences,
+    dossierTypeKey: dossierTypeColorKey,
+  }), [user?.documentColorPreferences, user?.dossierColorPreferences, dossierTypeColorKey]);
 
   // ── Verrouillage collaboratif ────────────────────────────────────────────
   // Démarre le polling sur les documents visibles et expose acquire/release.
   const visibleDocIds = useMemo(() => documents.map(d => d._id).filter(Boolean), [documents]);
   useDocumentLockPolling(visibleDocIds);
-  const { tryOpen: tryAcquireDocLock } = useDocumentLock();
+  const { tryOpen: tryAcquireDocLock, release: releaseDocLock } = useDocumentLock();
+
+  React.useEffect(() => {
+    const onWordConflict = (event) => {
+      const message = event?.detail?.message
+        || 'Une autre version de ce document a été enregistrée pendant votre édition.';
+      toast.error(
+        `${message} Votre version et la version actuelle ont toutes les deux été conservées. Ouvrez l’historique pour choisir celle à garder.`,
+        { title: 'Conflit de versions Word' },
+      );
+    };
+    window.addEventListener('kheops:word-version-conflict', onWordConflict);
+    return () => window.removeEventListener('kheops:word-version-conflict', onWordConflict);
+  }, [toast]);
 
   // ── Drag custom mouse-based (indépendant de HTML5 drag / startDrag) ─────
   // Sur mousedown sur une ligne : enregistre la position. Au-delà de 5 px de
@@ -470,7 +594,7 @@ const DocumentList = ({
   const handleSourceMouseDown = useCallback((e, doc) => {
     if (e.button !== 0) return; // left click only
     // Ignore clicks sur les sous-éléments interactifs (menu ⋮, télécharger)
-    if (e.target.closest('.threeDotsIcon, .download-doc-btn, .colorOptionContainer, .actionBtn, input, .doc-row__title--editing')) return;
+    if (e.target.closest('.threeDotsIcon, .download-doc-btn, .doc-row__open-controls, .colorOptionContainer, .actionBtn, input, .doc-row__title--editing')) return;
 
     // Capture le DOM de la ligne source AVANT que e ne soit recyclé par React.
     // Le clone servira de ghost semi-transparent dans le mousemove.
@@ -686,6 +810,107 @@ const DocumentList = ({
     return { recentDocs, olderDocs, recentDateLabel };
   }, [sortedDocuments]);
 
+  const restoreMiniModalTriggerFocus = useCallback(() => {
+    const trigger = miniModalTriggerRef.current;
+    window.requestAnimationFrame(() => {
+      if (trigger?.isConnected && typeof trigger.focus === 'function') {
+        trigger.focus();
+      }
+    });
+  }, []);
+
+  const closeMiniModal = useCallback((restoreFocus = false) => {
+    setMiniModalItemId(null);
+    if (restoreFocus) restoreMiniModalTriggerFocus();
+  }, [restoreMiniModalTriggerFocus, setMiniModalItemId]);
+
+  const focusMiniModalItem = useCallback((item) => {
+    if (!item) return;
+    try {
+      item.focus({ preventScroll: true });
+    } catch (_) {
+      item.focus();
+    }
+    if (typeof item.scrollIntoView === 'function') {
+      item.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }, []);
+
+  const updateMiniModalPosition = useCallback(() => {
+    const menu = miniModalRef.current;
+    const trigger = miniModalTriggerRef.current;
+    if (!menu || !trigger) return;
+    if (!trigger.isConnected) {
+      setMiniModalItemId(null);
+      return;
+    }
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    const layout = calculateDocumentActionMenuLayout({
+      anchorRect: triggerRect,
+      menuWidth: menuRect.width || menu.offsetWidth,
+      menuHeight: menu.scrollHeight || menuRect.height,
+      viewportRect: getVisibleViewportRect(window),
+      margin: DOCUMENT_ACTION_MENU_MARGIN,
+      gap: DOCUMENT_ACTION_MENU_GAP,
+    });
+
+    setMiniModalPosition((previous) => {
+      const next = { ...layout, ready: true };
+      if (
+        previous.ready
+        && previous.top === next.top
+        && previous.left === next.left
+        && previous.maxHeight === next.maxHeight
+        && previous.placement === next.placement
+      ) {
+        return previous;
+      }
+      return next;
+    });
+  }, [setMiniModalItemId]);
+
+  useLayoutEffect(() => {
+    if (!miniModalItemId) return undefined;
+
+    let animationFrame = 0;
+    const schedulePositionUpdate = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(updateMiniModalPosition);
+    };
+    const handleViewportScroll = (event) => {
+      if (miniModalRef.current?.contains(event.target)) return;
+      schedulePositionUpdate();
+    };
+
+    schedulePositionUpdate();
+    window.addEventListener('resize', schedulePositionUpdate);
+    window.addEventListener('scroll', handleViewportScroll, true);
+    window.visualViewport?.addEventListener('resize', schedulePositionUpdate);
+    window.visualViewport?.addEventListener('scroll', schedulePositionUpdate);
+
+    const resizeObserver = typeof ResizeObserver === 'function'
+      ? new ResizeObserver(schedulePositionUpdate)
+      : null;
+    if (resizeObserver && miniModalRef.current) resizeObserver.observe(miniModalRef.current);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener('resize', schedulePositionUpdate);
+      window.removeEventListener('scroll', handleViewportScroll, true);
+      window.visualViewport?.removeEventListener('resize', schedulePositionUpdate);
+      window.visualViewport?.removeEventListener('scroll', schedulePositionUpdate);
+      resizeObserver?.disconnect();
+    };
+  }, [miniModalItemId, miniModalItemType, updateMiniModalPosition]);
+
+  useLayoutEffect(() => {
+    if (!miniModalItemId || !miniModalPosition.ready) return;
+    const firstItem = miniModalRef.current?.querySelector('[role="menuitem"]');
+    focusMiniModalItem(firstItem);
+  }, [focusMiniModalItem, miniModalItemId, miniModalPosition.ready]);
+
   useLayoutEffect(() => {
     const handleClickOutside = (event) => {
       const isClickingInsideMiniModal = miniModalRef.current && miniModalRef.current.contains(event.target);
@@ -696,43 +921,66 @@ const DocumentList = ({
         setColorPickerItemId(null);
       }
     };
+    const handleEscape = (event) => {
+      if (event.key !== 'Escape' || !miniModalItemId) return;
+      event.preventDefault();
+      closeMiniModal(true);
+    };
 
     if (miniModalItemId || colorPickerItemId) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
     };
-  }, [miniModalItemId, colorPickerItemId, setMiniModalItemId, setColorPickerItemId]);
+  }, [closeMiniModal, miniModalItemId, colorPickerItemId, setMiniModalItemId, setColorPickerItemId]);
+
+  const handleMiniModalKeyDown = useCallback((event) => {
+    const menuItems = Array.from(
+      miniModalRef.current?.querySelectorAll('[role="menuitem"]') || [],
+    );
+    const currentIndex = menuItems.indexOf(document.activeElement);
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMiniModal(true);
+      return;
+    }
+
+    let targetIndex = null;
+    if (event.key === 'ArrowDown') targetIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % menuItems.length;
+    if (event.key === 'ArrowUp') targetIndex = currentIndex < 0 ? menuItems.length - 1 : (currentIndex - 1 + menuItems.length) % menuItems.length;
+    if (event.key === 'Home') targetIndex = 0;
+    if (event.key === 'End') targetIndex = menuItems.length - 1;
+
+    if (targetIndex !== null && menuItems[targetIndex]) {
+      event.preventDefault();
+      focusMiniModalItem(menuItems[targetIndex]);
+      return;
+    }
+
+    if ((event.key === 'Enter' || event.key === ' ') && document.activeElement?.getAttribute('role') === 'menuitem') {
+      event.preventDefault();
+      document.activeElement.click();
+    }
+  }, [closeMiniModal, focusMiniModalItem]);
 
   const onThreeDotsClick = (e, itemId, itemType) => {
     e.stopPropagation();
     stopSpeaking();
+
+    const dotEl = e.currentTarget;
+    miniModalTriggerRef.current = dotEl;
 
     if (miniModalItemId === itemId) {
       setMiniModalItemId(null);
       return;
     }
 
-    // Capturer la position du bouton ⋮ pour le portal
-    const dotEl = e.currentTarget;
-    const dotRect = dotEl.getBoundingClientRect();
-
-    // Détection moitié basse → flipUp
-    const docListEl = dotEl.closest('.docList');
-    let shouldFlipUp = false;
-    if (docListEl) {
-      const listRect = docListEl.getBoundingClientRect();
-      shouldFlipUp = dotRect.top > listRect.top + listRect.height / 2;
-    }
-    setFlipUp(shouldFlipUp);
-
-    // Position pour le portal (fixed par rapport au viewport)
-    setMiniModalPosition({
-      top: shouldFlipUp ? dotRect.top - 4 : dotRect.bottom + 4,
-      left: dotRect.right + 4,
-    });
-
+    setMiniModalPosition((previous) => ({ ...previous, ready: false }));
     setMiniModalItemType(itemType);
     setMiniModalItemId(itemId);
   };
@@ -892,7 +1140,7 @@ const DocumentList = ({
           `Document ouvert par ${owner}${since ? ` depuis ${since}` : ''}. Réessayez plus tard ou demandez-lui de le fermer.`,
           { title: 'Document verrouillé' }
         );
-        return;
+        return null;
       }
     } catch (lockErr) {
       // Erreur réseau lors de l'acquisition : on log et on continue (mieux
@@ -901,6 +1149,11 @@ const DocumentList = ({
     }
 
     // ── Étape 2 : ouverture effective du document ───────────────────────
+    // IMPORTANT : si l'ouverture n'aboutit PAS à une session Word suivie
+    // (échec compagnon, simple téléchargement, fichier non-Word...), on
+    // LIBÈRE le verrou acquis à l'étape 1. Sinon le document restait marqué
+    // « verrouillé » ~90s (TTL serveur) après chaque tentative échouée, et
+    // l'utilisateur se voyait lui-même comme « un autre utilisateur ».
     // Mode Electron : utiliser IPC direct
     if (window.electron?.openDocument) {
       try {
@@ -912,12 +1165,16 @@ const DocumentList = ({
         if (!result.success) {
           console.error('[Electron] Erreur ouverture document:', result.error);
           toast.error("Erreur lors de l'ouverture du document : " + result.error);
+          releaseDocLock(doc._id);
+          return null;
         }
+        return { mode: 'word_desktop', documentId: doc._id };
       } catch (error) {
         console.error('[Electron] Erreur IPC:', error);
         toast.error("Erreur lors de l'ouverture du document.");
+        releaseDocLock(doc._id);
+        return null;
       }
-      return;
     }
     // ── Mode WEB (navigateur) : ouverture dans Microsoft Word via le
     //    COMPAGNON Electron mince (agent local sur 127.0.0.1). Remplace
@@ -925,28 +1182,85 @@ const DocumentList = ({
     const ext = (doc?.nomDocument || '').split('.').pop()?.toLowerCase();
     const isWord = ext === 'doc' || ext === 'docx';
     if (!isWord) {
+      // Fichier déposé (PDF, image, etc.) : on le télécharge pour que
+      // l'utilisateur l'ouvre avec l'application associée. Pas de session Word
+      // suivie -> le verrou n'a pas lieu d'être conservé.
+      if (doc.categorie === 'dropped') {
+        try {
+          await downloadDroppedDocument(doc);
+          toast.success("Document téléchargé — ouvrez-le avec l'application associée.", { title: 'Téléchargement' });
+        } catch (error) {
+          console.error('[Open web dropped] Erreur:', error);
+          toast.error('Le téléchargement a échoué. Réessayez dans un instant.');
+        } finally {
+          releaseDocLock(doc._id);
+        }
+        return null;
+      }
       toast.info("L'ouverture locale via le compagnon Kheops concerne les documents Word (.docx).");
-      return;
+      releaseDocLock(doc._id);
+      return null;
     }
     try {
       await openDocumentInWord(doc._id, { fileName: doc.nomDocument });
       toast.info('Ouverture dans Microsoft Word…', { title: 'Compagnon Kheops' });
+      return { mode: 'word_desktop', documentId: doc._id };
     } catch (error) {
       console.error("[Companion] Ouverture impossible:", error);
-      // Compagnon absent : proposer l'installeur, et sinon offrir un REPLI
-      // 100 % navigateur — télécharger le .docx pour l'ouvrir soi-même.
+      // Aucune session Word ne suivra : libérer le verrou avant les replis.
+      releaseDocLock(doc._id);
+      // NE PAS presumer « compagnon absent » sur toute erreur : s'il repond au
+      // ping /health, il TOURNE — l'echec vient d'autre chose (jeton, doc, reseau).
+      // Afficher « pas installe » serait trompeur (bug rapporte : la modale
+      // reapparaissait alors que le compagnon tournait). On distingue les 2 cas.
+      let present = false;
+      try { present = await detectCompanion(); } catch (_) { present = false; }
+      if (present) {
+        toast.error(
+          "Le compagnon est bien lancé, mais l'ouverture a échoué. Le document va être téléchargé — ouvrez-le avec Word.",
+          { title: 'Compagnon Kheops' }
+        );
+        try {
+          await downloadWordDocument(doc._id, doc.nomDocument);
+        } catch (dlErr) {
+          console.error('[Download repli] Erreur:', dlErr);
+          toast.error(classifyWordDownloadError(dlErr).message);
+        }
+        return null;
+      }
+      // Compagnon reellement absent : proposer l'installeur, et sinon offrir un
+      // REPLI 100 % navigateur — télécharger le .docx pour l'ouvrir soi-même.
+      const installer = getCompanionInstallerInfo();
+      if (!installer.available) {
+        toast.info(
+          `${installer.unavailableReason} Le document va être téléchargé pour que vous puissiez l'ouvrir vous-même.`,
+          { title: `Compagnon Kheops — ${installer.platformLabel}` },
+        );
+        try {
+          await downloadWordDocument(doc._id, doc.nomDocument);
+          toast.success('Document téléchargé — ouvrez-le avec Word.', { title: 'Téléchargement' });
+        } catch (dlErr) {
+          console.error('[Download repli] Erreur:', dlErr);
+          toast.error(classifyWordDownloadError(dlErr).message);
+        }
+        return null;
+      }
       const wantInstall = window.confirm(
         "Le compagnon Kheops n'est pas installé sur cet ordinateur.\n\n"
         + "Il permet d'ouvrir les documents directement dans Microsoft Word.\n\n"
-        + "OK : télécharger l'installateur du compagnon.\n"
+        + `OK : télécharger l'installateur pour ${installer.platformLabel}.\n`
         + "Annuler : télécharger simplement le document pour l'ouvrir vous-même."
       );
       if (wantInstall) {
-        triggerCompanionInstall();
-        toast.info(
-          "Téléchargement en cours. Ouvrez le fichier téléchargé, laissez-le s'installer (une fenêtre bleue Windows peut demander « Informations complémentaires » → « Exécuter quand même »), puis réessayez d'ouvrir le document.",
-          { title: 'Installation du compagnon' }
-        );
+        const started = triggerCompanionInstall();
+        if (started) {
+          toast.info(
+            `Téléchargement en cours. ${installer.installHint} Puis réessayez d'ouvrir le document.`,
+            { title: `Installation du compagnon — ${installer.platformLabel}` }
+          );
+        } else {
+          toast.error("Le téléchargement de l'installateur n'a pas pu démarrer.");
+        }
       } else {
         try {
           await downloadWordDocument(doc._id, doc.nomDocument);
@@ -956,12 +1270,13 @@ const DocumentList = ({
           toast.error(classifyWordDownloadError(dlErr).message);
         }
       }
+      return null;
     }
   };
 
   // ======= Télécharger un document =======
-  const handleDownloadDocument = async (e, doc) => {
-    e.stopPropagation();
+  const handleDownloadDocument = useCallback(async (e, doc) => {
+    e?.stopPropagation?.();
     stopSpeaking();
     if (window.electron?.downloadDocument) {
       try {
@@ -974,6 +1289,18 @@ const DocumentList = ({
         console.error('[Download] Erreur IPC:', error);
         toast.error("Erreur lors du téléchargement.");
       }
+    } else if (doc.categorie === 'dropped') {
+      // Mode WEB, fichier DÉPOSÉ (drag & drop) : ses octets vivent dans le
+      // stockage du cabinet (StoredDocument), pas sous documents/<docId>.docx.
+      try {
+        await downloadDroppedDocument(doc);
+      } catch (error) {
+        console.error('[Download web dropped] Erreur:', error);
+        const status = error?.response?.status;
+        toast.error(status === 404
+          ? "Ce fichier n'a pas d'exemplaire sur le serveur (probablement déposé avec l'ancienne application de bureau)."
+          : 'Le téléchargement a échoué. Réessayez dans un instant.');
+      }
     } else {
       // Mode WEB : téléchargement direct depuis le serveur (documents/<docId>.docx).
       // Plus besoin de l'application de bureau.
@@ -984,7 +1311,303 @@ const DocumentList = ({
         toast.error(classifyWordDownloadError(error).message);
       }
     }
+  }, [toast]);
+
+  const handleBrowserDocumentPreview = useCallback(async (doc, previewKind) => {
+    let previewWindow;
+    try {
+      // Reserve avant toute attente reseau afin que le navigateur reconnaisse
+      // bien le geste utilisateur et ne bloque pas le nouvel onglet.
+      previewWindow = reserveDocumentPreviewWindow(doc?.nomDocument || 'Document');
+    } catch (error) {
+      toast.warning(
+        `${error?.message || "Le navigateur a bloqué l'ouverture du document."} Le fichier va être téléchargé.`,
+        { title: 'Ouverture dans le navigateur indisponible' },
+      );
+      await handleDownloadDocument(null, doc);
+      return { mode: 'download', documentId: doc?._id, fallbackFrom: 'browser_preview' };
+    }
+
+    try {
+      await loadDocumentPreviewInWindow(doc?._id, previewKind, previewWindow);
+      return {
+        mode: 'browser_preview',
+        documentId: doc?._id,
+        previewKind,
+        readOnly: true,
+      };
+    } catch (error) {
+      const message = error?.response?.data?.message
+        || error?.response?.data?.error
+        || error?.message
+        || "Le document n'a pas pu être ouvert dans le navigateur.";
+      toast.warning(`${message} Le fichier va être téléchargé.`, {
+        title: 'Ouverture dans le navigateur indisponible',
+      });
+      await handleDownloadDocument(null, doc);
+      return { mode: 'download', documentId: doc?._id, fallbackFrom: 'browser_preview' };
+    }
+  }, [handleDownloadDocument, toast]);
+
+  const handlePreviewPdf = async (doc) => {
+    if (!doc?._id) return;
+    try {
+      await previewDocumentAsPdf(doc._id);
+      toast.info("L'aperçu est prêt. Dans la fenêtre d'impression, choisissez « Enregistrer au format PDF ».");
+    } catch (previewError) {
+      const message = previewError?.response?.data?.message
+        || previewError.message
+        || "Impossible de préparer l'aperçu PDF.";
+      if (previewError.code === 'PDF_PREVIEW_POPUP_BLOCKED') toast.warning(message);
+      else toast.error(message);
+    }
   };
+
+  const acquireAlternativeLock = async (doc) => {
+    try {
+      const lockResult = await tryAcquireDocLock(doc._id);
+      if (!lockResult.granted) {
+        const owner = lockResult.lockedBy?.displayName || 'un autre utilisateur';
+        toast.warning(`Document ouvert par ${owner}. Réessayez plus tard.`, { title: 'Document verrouillé' });
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.warn('[DocumentOpening] Verrou indisponible, protection par versions activée:', err.message);
+      return true;
+    }
+  };
+
+  const handleOpenUsingMode = async (mode, doc) => {
+    if (mode === DOCUMENT_OPENING_MODES.BROWSER_PREVIEW) {
+      setTextPreviewDocument(doc);
+      return { mode, documentId: doc._id, readOnly: true };
+    }
+    if (mode === 'word_desktop') return handleOpenDocument(doc);
+
+    if (mode === 'kheops') {
+      if (!(await acquireAlternativeLock(doc))) return null;
+      setEditorDocument(doc);
+      return { mode, documentId: doc._id };
+    }
+
+    if (mode === 'word_web' || mode === 'google_docs') {
+      const providerLabel = mode === 'word_web' ? 'votre OneDrive' : 'votre Google Drive';
+      const consentKey = mode === 'word_web' ? 'oneDrive' : 'googleDrive';
+      const consents = openingController.availability?.preference?.externalTransferConsents || {};
+      let consent = consents[consentKey] === true;
+      if (!consent) {
+        consent = window.confirm(
+          `Une copie de travail de ce document va être placée dans ${providerLabel}.\n\n`
+          + 'Kheops 2 conservera le document original et son historique. Continuer ?',
+        );
+        if (consent) {
+          updateDocumentOpeningPreferences({
+            externalTransferConsents: { [consentKey]: true },
+          }).catch(() => {});
+        }
+      }
+      if (!consent) {
+        return null;
+      }
+      let convertToGoogle = false;
+      if (mode === 'google_docs'
+        && openingController.availability?.policy?.allowGoogleConversion === true) {
+        if (getDocumentFileExtension(doc) === 'txt') {
+          const confirmedTextImport = window.confirm(
+            'Google Docs va importer une copie de ce fichier texte. Le fichier .txt original restera inchangé dans Kheops 2. Continuer ?',
+          );
+          if (!confirmedTextImport) return null;
+          convertToGoogle = true;
+        } else {
+          convertToGoogle = window.confirm(
+            'Voulez-vous convertir cette copie en document Google natif ?\n\n'
+            + 'OK : convertir (la mise en page peut légèrement changer).\n'
+            + 'Annuler : conserver le format Word .docx — recommandé.',
+          );
+        }
+      }
+
+      // Cet appel est volontairement placé AVANT le premier await : après un
+      // clic dans la modale, Chrome autorise encore l'onglet. En mode
+      // automatique (après la vérification réseau), il peut rester bloqué ; le
+      // lien explicite de la modale de session prend alors le relais.
+      const externalTab = window.open('about:blank', '_blank');
+      if (!(await acquireAlternativeLock(doc))) {
+        try { externalTab?.close(); } catch (_) {}
+        return null;
+      }
+      try {
+        const compatibility = await getDocumentCompatibility(doc._id).catch(() => null);
+        if (mode === 'google_docs' && compatibility?.level === 'complex') {
+          const continueInGoogle = window.confirm(
+            'Ce document contient des éléments Word complexes. Microsoft Word est recommandé pour mieux préserver sa mise en page.\n\n'
+            + `${(compatibility.warnings || []).slice(0, 3).join('\n')}\n\n`
+            + 'Continuer quand même dans Google Docs ?',
+          );
+          if (!continueInGoogle) {
+            try { externalTab?.close(); } catch (_) {}
+            return null;
+          }
+        }
+        const result = await openExternalDocument(doc._id, mode, {
+          consentExternalTransfer: true,
+          keepRemoteCopy: true,
+          convertToGoogle,
+        });
+        if (externalTab && !externalTab.closed) {
+          try { externalTab.opener = null; } catch (_) {}
+          externalTab.location.replace(result.openUrl);
+        }
+        setExternalSession(result.session);
+        try {
+          localStorage.setItem('kheopsExternalEditingSession', JSON.stringify({
+            documentId: result.session.documentId,
+            sessionId: result.session.id,
+          }));
+        } catch (_) {}
+        toast.success(
+          externalTab
+            ? `Document ouvert dans ${mode === 'word_web' ? 'Word pour le web' : 'Google Docs'}. Revenez ensuite synchroniser vos modifications.`
+            : `La copie est prête. Cliquez sur « Rouvrir » dans la fenêtre pour lancer ${mode === 'word_web' ? 'Word pour le web' : 'Google Docs'}.`,
+          { title: 'Copie de travail créée' },
+        );
+        return result;
+      } catch (err) {
+        try { externalTab?.close(); } catch (_) {}
+        throw err;
+      } finally {
+        // La copie distante est protégée par baseVersionId + historique. On ne
+        // garde pas un verrou local pendant tout le temps passé dans un onglet externe.
+        releaseDocLock(doc._id);
+      }
+    }
+
+    throw new Error("Méthode d'ouverture inconnue.");
+  };
+
+  const openingController = useDocumentOpening({
+    document: activeOpeningDocument,
+    onOpen: handleOpenUsingMode,
+    onDownload: () => {
+      if (activeOpeningDocument) handleDownloadDocument({ stopPropagation: () => {} }, activeOpeningDocument);
+    },
+    onPreviewPdf: activeOpeningDocument && getDocumentFileExtension(activeOpeningDocument) === 'docx'
+      ? () => handlePreviewPdf(activeOpeningDocument)
+      : undefined,
+    onManagePreferences: () => navigate('/dashboard/parametres', { state: { activeTab: 'documentOpening' } }),
+  });
+
+  const requestDocumentOpening = useCallback((doc, forceChooser = false, purpose = 'open') => {
+    if (openingRequestInFlightRef.current) return;
+    openingRequestInFlightRef.current = true;
+    const routing = classifyDocumentFileOpening(doc);
+    setMiniModalItemId(null);
+
+    if (routing.action === DOCUMENT_FILE_OPENING_ACTIONS.BROWSER_PREVIEW) {
+      const opening = handleBrowserDocumentPreview(doc, routing.previewKind);
+      Promise.resolve(opening).finally(() => { openingRequestInFlightRef.current = false; });
+      return opening;
+    }
+
+    if (routing.action === DOCUMENT_FILE_OPENING_ACTIONS.DOWNLOAD) {
+      const download = handleDownloadDocument(null, doc);
+      Promise.resolve(download).finally(() => { openingRequestInFlightRef.current = false; });
+      return download;
+    }
+
+    setActiveOpeningDocument(doc);
+    setOpeningPurpose(purpose);
+    setPendingOpeningAction({ docId: String(doc._id), forceChooser, nonce: Date.now() });
+    return undefined;
+  }, [handleBrowserDocumentPreview, handleDownloadDocument, setMiniModalItemId]);
+
+  const rememberExternalSession = useCallback((session) => {
+    setExternalSession(session);
+    try {
+      localStorage.setItem('kheopsExternalEditingSession', JSON.stringify({
+        documentId: session.documentId,
+        sessionId: session.id,
+      }));
+    } catch (_) {}
+  }, []);
+
+  const resumeExternalSession = useCallback(async (doc) => {
+    setMiniModalItemId(null);
+    try {
+      const sessions = await listExternalSessions(doc._id);
+      const active = sessions.find((session) => ['open', 'synced', 'conflict'].includes(session.state));
+      if (!active) {
+        toast.info('Aucune session Word pour le web ou Google Docs à reprendre pour ce document.');
+        return null;
+      }
+      rememberExternalSession(active);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Impossible de récupérer la session externe.');
+    }
+  }, [rememberExternalSession, setMiniModalItemId, toast]);
+
+  React.useEffect(() => {
+    let marker = null;
+    try { marker = JSON.parse(localStorage.getItem('kheopsExternalEditingSession') || 'null'); } catch (_) {}
+    if (!marker?.documentId || externalSession) return;
+    if (!documents.some((doc) => String(doc._id) === String(marker.documentId))) return;
+    let active = true;
+    listExternalSessions(marker.documentId)
+      .then((sessions) => {
+        if (!active) return;
+        const session = sessions.find((item) => String(item.id) === String(marker.sessionId))
+          || sessions.find((item) => ['open', 'synced', 'conflict'].includes(item.state));
+        if (session) setExternalSession(session);
+        else {
+          try { localStorage.removeItem('kheopsExternalEditingSession'); } catch (_) {}
+        }
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [documents, externalSession]);
+
+  React.useEffect(() => {
+    if (!pendingOpeningAction || !activeOpeningDocument) return;
+    if (String(activeOpeningDocument._id) !== pendingOpeningAction.docId) return;
+    setPendingOpeningAction(null);
+    const run = pendingOpeningAction.forceChooser
+      ? openingController.showChooser()
+      : openingController.openDocument();
+    Promise.resolve(run).finally(() => { openingRequestInFlightRef.current = false; });
+  }, [activeOpeningDocument, openingController, pendingOpeningAction]);
+
+  React.useEffect(() => {
+    const openAISource = (event) => {
+      const documentId = event?.detail?.documentId;
+      if (!documentId) return;
+      const source = (allDocuments || []).find((document) => String(document._id) === String(documentId));
+      if (source) requestDocumentOpening(source, false);
+      else toast.info('La version source n’est plus visible dans ce dossier.');
+    };
+    window.addEventListener('kheops:open-ai-source', openAISource);
+    return () => window.removeEventListener('kheops:open-ai-source', openAISource);
+  }, [allDocuments, requestDocumentOpening, toast]);
+
+  // Après création, le thunk conserve la demande pendant la navigation vers le dossier.
+  React.useEffect(() => {
+    let pending = null;
+    try { pending = JSON.parse(sessionStorage.getItem('kheopsPendingDocumentOpen') || 'null'); } catch (_) {}
+    if (!pending?.doc?._id || String(pending.dossierId) !== String(currentDossier?._id)) return;
+    try { sessionStorage.removeItem('kheopsPendingDocumentOpen'); } catch (_) {}
+    requestDocumentOpening(pending.doc, false, pending.reason === 'created' ? 'create' : 'open');
+  }, [currentDossier?._id, requestDocumentOpening]);
+
+  React.useEffect(() => {
+    const onCreated = (event) => {
+      const pending = event.detail;
+      if (!pending?.doc?._id || String(pending.dossierId) !== String(currentDossier?._id)) return;
+      try { sessionStorage.removeItem('kheopsPendingDocumentOpen'); } catch (_) {}
+      requestDocumentOpening(pending.doc, false, pending.reason === 'created' ? 'create' : 'open');
+    };
+    window.addEventListener('kheops:document-created', onCreated);
+    return () => window.removeEventListener('kheops:document-created', onCreated);
+  }, [currentDossier?._id, requestDocumentOpening]);
 
   const itemForPicker = miniModalItemType === 'subfolder'
     ? subfolders.find(i => i._id === colorPickerItemId)
@@ -993,33 +1616,71 @@ const DocumentList = ({
   const renderMiniModal = (item, type) => {
     const modalStyle = {
       position: 'fixed',
-      top: flipUp ? 'auto' : `${miniModalPosition.top}px`,
-      bottom: flipUp ? `${window.innerHeight - miniModalPosition.top}px` : 'auto',
+      top: `${miniModalPosition.top}px`,
       left: `${miniModalPosition.left}px`,
-      transform: 'translateX(-100%)',
+      maxHeight: `${miniModalPosition.maxHeight}px`,
+      visibility: miniModalPosition.ready ? 'visible' : 'hidden',
     };
     return ReactDOM.createPortal(
-      <div ref={miniModalRef} className="miniModal miniModal-portal" style={modalStyle}>
+      <div
+        id={DOCUMENT_ACTION_MENU_ID}
+        ref={miniModalRef}
+        className="miniModal miniModal-portal"
+        style={modalStyle}
+        role="menu"
+        aria-orientation="vertical"
+        aria-labelledby={`document-actions-trigger-${item._id}`}
+        aria-label={type === 'document' ? 'Actions du document' : 'Actions du sous-dossier'}
+        data-placement={miniModalPosition.placement}
+        onKeyDown={handleMiniModalKeyDown}
+      >
         {type === 'document' && (
           <>
+            <HoverToSpeak textToSpeak="Ouvrir le document">
+              <div role="menuitem" tabIndex={-1} className="actionBtn openBtn" onClick={(e) => { e.stopPropagation(); requestDocumentOpening(item, false); }}>
+                <span className="actionIcon actionIcon--text" aria-hidden="true">↗</span> Ouvrir le document
+              </div>
+            </HoverToSpeak>
+            <HoverToSpeak textToSpeak="Ouvrir avec une autre méthode">
+              <div role="menuitem" tabIndex={-1} className="actionBtn openWithBtn" onClick={(e) => { e.stopPropagation(); requestDocumentOpening(item, true); }}>
+                <span className="actionIcon actionIcon--text" aria-hidden="true">⌄</span> Ouvrir avec…
+              </div>
+            </HoverToSpeak>
+            <HoverToSpeak textToSpeak="Consulter l'historique des versions">
+              <div role="menuitem" tabIndex={-1} className="actionBtn historyBtn" onClick={(e) => { e.stopPropagation(); setHistoryDocument(item); setMiniModalItemId(null); }}>
+                <span className="actionIcon actionIcon--text" aria-hidden="true">↶</span> Historique des versions
+              </div>
+            </HoverToSpeak>
+            <HoverToSpeak textToSpeak="Reprendre une édition dans Word pour le web ou Google Docs">
+              <div role="menuitem" tabIndex={-1} className="actionBtn externalSessionBtn" onClick={(e) => { e.stopPropagation(); resumeExternalSession(item); }}>
+                <span className="actionIcon actionIcon--text" aria-hidden="true">☁</span> Reprendre une édition externe
+              </div>
+            </HoverToSpeak>
+            {isFeatureEnabled('documentSyncV2') && (
+              <HoverToSpeak textToSpeak="Voir les copies, versions et conflits de synchronisation">
+                <div role="menuitem" tabIndex={-1} className="actionBtn syncDetailsBtn" onClick={(e) => { e.stopPropagation(); setSyncDocument(item); setMiniModalItemId(null); }}>
+                  <span className="actionIcon actionIcon--text" aria-hidden="true">⇄</span> État de synchronisation
+                </div>
+              </HoverToSpeak>
+            )}
             <HoverToSpeak textToSpeak="Dupliquer le document">
-              <div className="actionBtn duplicateBtn" onClick={(e) => { e.stopPropagation(); handleDuplicateDocument(item); }}>
+              <div role="menuitem" tabIndex={-1} className="actionBtn duplicateBtn" onClick={(e) => { e.stopPropagation(); handleDuplicateDocument(item); }}>
                 <img src={Dupliquer} alt="Dupliquer" className="actionIcon" /> Dupliquer
               </div>
             </HoverToSpeak>
             <HoverToSpeak textToSpeak="Renommer le document">
-              <div className="actionBtn renameBtn" onClick={(e) => { e.stopPropagation(); handleRenameDocument(item); }}>
+              <div role="menuitem" tabIndex={-1} className="actionBtn renameBtn" onClick={(e) => { e.stopPropagation(); handleRenameDocument(item); }}>
                 <img src={Renommer} alt="Renommer" className="actionIcon" /> Renommer
               </div>
             </HoverToSpeak>
             <HoverToSpeak textToSpeak="Envoyer le document par mail">
-              <div className="actionBtn sendBtn" onClick={(e) => handleSendClick(e, item)}>
+              <div role="menuitem" tabIndex={-1} className="actionBtn sendBtn" onClick={(e) => handleSendClick(e, item)}>
                 <img src={Envoyer} alt="Envoyer" className="actionIcon sendIcon"/> Envoyer
               </div>
             </HoverToSpeak>
             <div className="colorOptionContainer">
               <HoverToSpeak textToSpeak="Colorer le document, ouvrir la palette de couleurs">
-                <div className="colorOptionHeader" onClick={(e) => { e.stopPropagation(); setColorPickerItemId(item._id); setLiveColor(item.color || '#ffffff'); setMiniModalItemId(null); }}>
+                <div role="menuitem" tabIndex={-1} className="colorOptionHeader" onClick={(e) => { e.stopPropagation(); setColorPickerItemId(item._id); setLiveColor(item.color || '#ffffff'); setMiniModalItemId(null); }}>
                   <span className="color-palette-label">
                     <img src={ColorIcon} alt="Colorer" className="actionIcon" /> Colorer
                   </span>
@@ -1027,7 +1688,7 @@ const DocumentList = ({
               </HoverToSpeak>
             </div>
             <HoverToSpeak textToSpeak="Supprimer le document">
-              <div className="actionBtn deleteBtn" onClick={(e) => { e.stopPropagation(); confirmDeleteItem(item, 'document'); }}>
+              <div role="menuitem" tabIndex={-1} className="actionBtn deleteBtn" onClick={(e) => { e.stopPropagation(); confirmDeleteItem(item, 'document'); }}>
                 <img src={SupprDoc} alt="Supprimer" className="actionIcon deleteIcon" /> Supprimer
               </div>
             </HoverToSpeak>
@@ -1036,18 +1697,18 @@ const DocumentList = ({
         {type === 'subfolder' && (
           <>
             <HoverToSpeak textToSpeak="Renommer le dossier">
-              <div className="actionBtn renameBtn" onClick={(e) => { e.stopPropagation(); handleRenameSubfolder(item); }}>
+              <div role="menuitem" tabIndex={-1} className="actionBtn renameBtn" onClick={(e) => { e.stopPropagation(); handleRenameSubfolder(item); }}>
                 <img src={Renommer} alt="Renommer" className="actionIcon" /> Renommer
               </div>
             </HoverToSpeak>
             <HoverToSpeak textToSpeak="Envoyer le dossier par mail">
-              <div className="actionBtn sendBtn" onClick={(e) => handleSendSubfolderClick(e, item)}>
+              <div role="menuitem" tabIndex={-1} className="actionBtn sendBtn" onClick={(e) => handleSendSubfolderClick(e, item)}>
                 <img src={Envoyer} alt="Envoyer" className="actionIcon sendIcon"/> Envoyer
               </div>
             </HoverToSpeak>
             <div className="colorOptionContainer">
               <HoverToSpeak textToSpeak="Colorer le dossier, ouvrir la palette de couleurs">
-                <div className="colorOptionHeader" onClick={(e) => { e.stopPropagation(); setColorPickerItemId(item._id); setLiveColor(item.color || '#ffffff'); setMiniModalItemId(null); }}>
+                <div role="menuitem" tabIndex={-1} className="colorOptionHeader" onClick={(e) => { e.stopPropagation(); setColorPickerItemId(item._id); setLiveColor(item.color || '#ffffff'); setMiniModalItemId(null); }}>
                   <span className="color-palette-label">
                     <img src={ColorIcon} alt="Colorer" className="actionIcon" /> Colorer
                   </span>
@@ -1055,7 +1716,7 @@ const DocumentList = ({
               </HoverToSpeak>
             </div>
             <HoverToSpeak textToSpeak="Supprimer le dossier">
-              <div className="actionBtn deleteBtn" onClick={(e) => { e.stopPropagation(); confirmDeleteItem(item, 'subfolder'); }}>
+              <div role="menuitem" tabIndex={-1} className="actionBtn deleteBtn" onClick={(e) => { e.stopPropagation(); confirmDeleteItem(item, 'subfolder'); }}>
                 <img src={SupprDoc} alt="Supprimer" className="actionIcon deleteIcon" /> Supprimer
               </div>
             </HoverToSpeak>
@@ -1075,12 +1736,22 @@ const DocumentList = ({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      <DocumentImportAffordance
+        onImportFiles={handleImportFiles}
+        disabled={isImportingFiles}
+      />
       {uploadError && <p className="errorMessage">Erreur : {uploadError}</p>}
       {isUploading && <p className="uploadingMessage">Ajout du document en cours...</p>}
       {!isUploading && subfolders.length === 0 && documents.length === 0 && !isDraggingOver && (
-        <p className="drop-instruction">Glissez un fichier ici ou recherchez un modèle</p>
+        <p className="drop-instruction">Aucun document stocké. Vous pouvez aussi rechercher un modèle.</p>
       )}
-      {!isUploading && isDraggingOver && <p className="drop-instruction">Relâchez pour ajouter le fichier</p>}
+      {!isUploading && isDraggingOver && (
+        <div className="drop-overlay" role="status" aria-live="polite">
+          <span className="drop-overlay__icon" aria-hidden="true">&#8595;</span>
+          <span>Relâchez pour ajouter le document</span>
+          <span className="drop-overlay__hint">Jusqu’à 100 Mo par fichier · exécutables et scripts refusés</span>
+        </div>
+      )}
 
       {sortedSubfolders.map(subfolder => (
         <DroppableSubfolder
@@ -1105,7 +1776,10 @@ const DocumentList = ({
           <DraggableDocumentWithLock
             key={doc._id}
             doc={doc}
-            onDoubleClick={handleOpenDocument}
+            resolvedColor={resolveColorForDocument(doc)}
+            onDoubleClick={(docToOpen) => requestDocumentOpening(docToOpen, false)}
+            onOpen={(docToOpen) => requestDocumentOpening(docToOpen, false)}
+            onOpenWith={(docToOpen) => requestDocumentOpening(docToOpen, true)}
             onThreeDotsClick={onThreeDotsClick}
             onDownload={handleDownloadDocument}
             isSelected={miniModalItemId === doc._id}
@@ -1151,8 +1825,6 @@ const DocumentList = ({
         );
       })()}
 
-      {isDraggingOver && <div className="drop-overlay">Relâchez pour ajouter</div>}
-
       {showSendModal && (
         <SendEmailModal
           recipient={emailData.to}
@@ -1160,6 +1832,87 @@ const DocumentList = ({
           displayName={emailData.displayName}
           onClose={() => setShowSendModal(false)}
           isLocalAttachment={emailData.isLocalAttachment}
+        />
+      )}
+
+      <DocumentOpeningModal {...openingController.modalProps} purpose={openingPurpose} />
+
+      <TextDocumentPreviewModal
+        isOpen={Boolean(textPreviewDocument)}
+        document={textPreviewDocument}
+        onClose={() => setTextPreviewDocument(null)}
+        onDownload={() => {
+          if (textPreviewDocument) {
+            handleDownloadDocument({ stopPropagation: () => {} }, textPreviewDocument);
+          }
+        }}
+      />
+
+      {editorDocument && (
+        <KheopsDocumentEditor
+          open
+          documentId={editorDocument._id}
+          title={editorDocument.nomDocument}
+          matterId={currentDossier?._id || ''}
+          matterTitle={currentDossier?.dossier?.dossier?.nom || currentDossier?.reference || 'Dossier actif'}
+          aiEnabled={isFeatureEnabled('aiAssistant')}
+          aiSources={(allDocuments || []).map((document) => ({
+            id: document._id,
+            documentId: document._id,
+            label: document.nomDocument || 'Document sans titre',
+            version: document.currentVersionId || document.version || 'courante',
+            pages: document.pages || null,
+            categorie: document.categorie || '',
+            confidential: document.confidential === true,
+            kind: String(document._id) === String(editorDocument._id) ? 'current-document' : 'document',
+            selectable: document.deletedAt == null,
+          }))}
+          onAICitationOpen={(citation) => {
+            const sourceId = citation?.documentId || citation?.sourceId;
+            const source = (allDocuments || []).find((document) => String(document._id) === String(sourceId));
+            if (source) requestDocumentOpening(source, false);
+            else toast.info('La version source n’est plus visible dans ce dossier.');
+          }}
+          onAIDocumentCreated={(result) => {
+            if (currentDossier?._id) dispatch(fetchAllDocumentsInDossier(currentDossier._id, token));
+            const created = result?.document || result;
+            toast.success(
+              created?.nomDocument || created?.title
+                ? `Brouillon « ${created.nomDocument || created.title} » créé et à valider.`
+                : 'Brouillon IA créé et à valider.',
+              { title: 'Assistant IA' },
+            );
+          }}
+          onOpenAISettings={() => navigate('/dashboard/parametres', { state: { activeTab: 'ai' } })}
+          onClose={() => {
+            releaseDocLock(editorDocument._id);
+            setEditorDocument(null);
+          }}
+        />
+      )}
+
+      {externalSession && (
+        <ExternalEditingSessionModal
+          session={externalSession}
+          onSynced={() => toast.success('Nouvelle version enregistrée.', { title: 'Synchronisation' })}
+          onClose={(result) => {
+            if (result?.closed) {
+              try { localStorage.removeItem('kheopsExternalEditingSession'); } catch (_) {}
+            }
+            setExternalSession(null);
+          }}
+        />
+      )}
+
+      {historyDocument && (
+        <DocumentHistoryModal document={historyDocument} onClose={() => setHistoryDocument(null)} />
+      )}
+
+      {syncDocument && (
+        <DocumentSyncDetailsModal
+          document={syncDocument}
+          dossierId={currentDossier?._id}
+          onClose={() => setSyncDocument(null)}
         />
       )}
 

@@ -14,10 +14,12 @@ import Tooltip from '../../../common/Tooltip';
 import NotificationsModal from './notifications/NotificationsModal';
 import CloudSyncStatus from './cloudSync';
 import { fetchNotifications, openNotificationsModal, closeNotificationsModal } from '../../../../redux/slices/layoutSlice';
+import { selectTotalUnread } from '../../../../redux/slices/chatSlice';
 
-const Header = () => {
+const Header = ({ isChatOpen = false, onToggleChat = () => {} }) => {
   const isAuthenticated = useSelector((state) => state.login.isAuthenticated);
   const dispatch = useDispatch();
+  const totalUnread = useSelector(selectTotalUnread);
 
   const isNotificationsModalOpen = useSelector(state => state.layout.isNotificationsModalOpen);
   const { list: notificationsList, lastFetched } = useSelector(state => state.layout.notifications);
@@ -114,6 +116,37 @@ const Header = () => {
             </Tooltip>
 
             <CloudSyncStatus />
+
+            <Tooltip text="Messagerie" position="bottom" speechText="Messagerie">
+              <button
+                type="button"
+                className={`chat-header-button${isChatOpen ? ' chat-header-button--open' : ''}`}
+                onClick={onToggleChat}
+                aria-label="Messagerie"
+                aria-expanded={isChatOpen}
+                aria-controls="kheops-chat-panel"
+              >
+                <svg
+                  className="chat-header-button__icon"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.85"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
+                {totalUnread > 0 && !isChatOpen && (
+                  <span className="chat-header-button__badge" aria-label={`${totalUnread} message${totalUnread > 1 ? 's' : ''} non lu${totalUnread > 1 ? 's' : ''}`}>
+                    {totalUnread > 99 ? '99+' : totalUnread}
+                  </span>
+                )}
+              </button>
+            </Tooltip>
 
             <div ref={notificationIconRef} className="notification-icon-wrapper">
               <Tooltip text="Notifications" position="bottom" speechText="Notifications">

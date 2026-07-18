@@ -5,6 +5,7 @@ const {
     buildFileStorage,
     resolveStorageConfig,
     sanitizeKey,
+    GCS_READINESS_PROBE_KEY,
     LocalDiskStorage,
     GcsStorage,
 } = require('../fileStorage');
@@ -94,5 +95,35 @@ describe('fileStorage — GcsStorage (instanciation, sans reseau)', () => {
         expect(s).toBeInstanceOf(GcsStorage);
         expect(s.kind).toBe('gcs');
         expect(s.bucketName).toBe('test-bucket');
+    });
+
+    test('readiness lit seulement les metadonnees et signe une cle factice', async () => {
+        const s = buildFileStorage({ GCS_BUCKET: 'test-bucket', GCS_PROJECT_ID: 'test-proj' });
+        const getMetadata = jest.fn().mockResolvedValue([{ name: 'test-bucket' }]);
+        const getSignedUrl = jest.fn().mockResolvedValue(['https://storage.googleapis.test/signed']);
+        const file = jest.fn().mockReturnValue({ getSignedUrl });
+        s._bucket = { getMetadata, file };
+
+        await expect(s.checkReadiness()).resolves.toEqual({ metadata: true, signing: true });
+        expect(getMetadata).toHaveBeenCalledTimes(1);
+        expect(file).toHaveBeenCalledWith(GCS_READINESS_PROBE_KEY);
+        expect(getSignedUrl).toHaveBeenCalledWith(expect.objectContaining({
+            version: 'v4',
+            action: 'read',
+        }));
+        // Le double de test ne fournit volontairement ni save(), ni download(),
+        // ni listFiles() : leur utilisation ferait echouer ce test.
+    });
+
+    test('readiness echoue si la signature ne peut pas etre generee', async () => {
+        const s = buildFileStorage({ GCS_BUCKET: 'test-bucket', GCS_PROJECT_ID: 'test-proj' });
+        s._bucket = {
+            getMetadata: jest.fn().mockResolvedValue([{ name: 'test-bucket' }]),
+            file: jest.fn().mockReturnValue({
+                getSignedUrl: jest.fn().mockRejectedValue(Object.assign(new Error('interdit'), { code: 403 })),
+            }),
+        };
+
+        await expect(s.checkReadiness()).rejects.toMatchObject({ code: 403 });
     });
 });

@@ -3,7 +3,7 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setDraftField } from '../../../redux/slices/divorceCMSlice';
 import {
-  toDateInputValue, formatDate, formatMontant, fullNameEpoux, fullNameEnfant,
+  toDateInputValue, formatDate, formatMontant, fullNameEpoux, fullNameEnfant, fullNameAdulte,
 } from '../divorceCMHelpers';
 import ContactSearchBox from '../widgets/ContactSearchBox';
 import CommunePicker from '../widgets/CommunePicker';
@@ -36,6 +36,7 @@ const StepNotaireRecap = () => {
   const logement = draft.logementFamilial || {};
 
   const nbEnfants = (draft.enfants || []).length;
+  const nbAdultesCharge = (draft.adultesCharge || []).length;
   const nbPensions = (draft.pensionsAlimentaires || []).length;
   const labelRegime = (constants?.regimesMatrimoniaux || []).find(r => r.code === draft.mariage?.regime)?.label || '—';
   const labelLogement = (constants?.typesLogement || []).find(t => t.code === logement.type)?.label || '—';
@@ -148,6 +149,15 @@ const StepNotaireRecap = () => {
               {nbEnfants === 0 ? 'Aucun enfant' : `${nbEnfants} enfant(s)`}
               {(draft.enfants || []).map((e, idx) => (
                 `\n• ${fullNameEnfant(e) || `Enfant ${idx + 1}`}`
+              )).join('')}
+            </div>
+          </div>
+          <div className="k-dcm-recap-card">
+            <div className="k-dcm-recap-label">Adultes a charge</div>
+            <div className="k-dcm-recap-value">
+              {nbAdultesCharge === 0 ? 'Aucun' : `${nbAdultesCharge} adulte(s) a charge`}
+              {(draft.adultesCharge || []).map((a, idx) => (
+                `\n• ${fullNameAdulte(a) || `Adulte ${idx + 1}`}`
               )).join('')}
             </div>
           </div>

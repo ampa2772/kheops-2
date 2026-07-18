@@ -131,7 +131,7 @@ describe('createBlankDocument (mode web)', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: DELETE_DOCUMENT_SUCCESS, payload: { docId: DOC_ID } });
   });
 
-  test('mode Electron inchangé : IPC appelé, pas de route create-blank', async () => {
+  test('mode Electron : crée le fichier sans l’ouvrir avant le choix de l’utilisateur', async () => {
     window.electron = { handleBlankDocumentCreation: jest.fn().mockResolvedValue({ success: true }) };
     apiClient.post.mockResolvedValueOnce(metadataResponse);
 
@@ -139,7 +139,7 @@ describe('createBlankDocument (mode web)', () => {
     await createBlankDocument(DOSSIER_ID, null)(dispatch);
 
     expect(window.electron.handleBlankDocumentCreation).toHaveBeenCalledWith({
-      docId: DOC_ID, fileName: 'Courrier.docx',
+      docId: DOC_ID, fileName: 'Courrier.docx', openAfterCreation: false,
     });
     const blankCalls = apiClient.post.mock.calls.filter(([url]) => url.includes('create-blank'));
     expect(blankCalls).toHaveLength(0);

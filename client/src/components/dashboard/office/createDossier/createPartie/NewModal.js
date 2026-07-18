@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useSelector } from 'react-redux';
 
@@ -11,8 +11,10 @@ const NewModal = ({
   showContacts,    // État d'affichage de la liste de suggestions DANS la modale
   allContactsLinkPartie, // Utilisé pour conditionner l'affichage de la liste
   modalContext = 'creation',
+  ariaLabel = 'Lier des personnes à une partie',
 }) => {
   const modalRef = useRef();
+  const previouslyFocusedRef = useRef(null);
   // -- Ajout d'un état local pour forcer un rafraîchissement du composant si besoin (peut-être plus nécessaire)
   // const [refreshFlag, setRefreshFlag] = useState(0);
 
@@ -63,14 +65,66 @@ const NewModal = ({
     };
   }, [isOpen, showContacts, onClose, setShowContacts, mainContactsRef, isMainModalOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    previouslyFocusedRef.current = document.activeElement;
+    const focusTimer = window.setTimeout(() => {
+      modalRef.current?.focus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      const previouslyFocused = previouslyFocusedRef.current;
+      if (previouslyFocused?.isConnected && typeof previouslyFocused.focus === 'function') {
+        previouslyFocused.focus();
+      }
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleDialogKeyDown = (event) => {
+      if (isMainModalOpen) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        if (showContacts) {
+          setShowContacts(false);
+        } else {
+          onClose();
+        }
+        return;
+      }
+
+      if (event.key === 'Tab' && modalRef.current) {
+        const focusable = Array.from(modalRef.current.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        )).filter((element) => element.getAttribute('aria-hidden') !== 'true');
+        if (focusable.length === 0) {
+          event.preventDefault();
+          modalRef.current.focus();
+          return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleDialogKeyDown);
+    return () => document.removeEventListener('keydown', handleDialogKeyDown);
+  }, [isOpen, isMainModalOpen, onClose, setShowContacts, showContacts]);
+
 
   if (!isOpen) return null;
-
-  // Détermine la classe de la modale pour gérer la marge gauche si la Modal principale (CreateContact) est ouverte
-  const modalWrapperClassName = isMainModalOpen // Utiliser la variable correcte indiquant si CreateContact est ouvert
-    ? 'modal-content-partie-link-margin' // Avec marge (si CreateContact est ouvert à gauche)
-    : 'modal-content-partie-link-margin-alt'; // Sans marge spéciale (ou centré)
-
 
   const contentClassName = `modal-content-partie-link ${
     showContacts && allContactsLinkPartie && allContactsLinkPartie.length > 0
@@ -80,10 +134,35 @@ const NewModal = ({
 
   const modalJSX = (
     <div className="modal-overlay-partieLink" data-context={modalContext}>
-      {/* Le wrapper est utilisé pour le positionnement global si CreateContact est ouvert */}
-      <div className={modalWrapperClassName}>
+      {/*
+        Le shell possède toujours les dimensions du viewport. Les anciennes
+        classes margin/margin-alt utilisaient un wrapper 0 x 0 dans l'état
+        normal et rendaient la largeur du dialogue dépendante de la cascade
+        CSS de la page hôte.
+      */}
+      <div
+        className={`k-linked-person-modal-shell ${isMainModalOpen ? 'is-contact-form-open' : ''}`}
+        data-testid="linked-person-modal-shell"
+        data-main-modal-open={isMainModalOpen ? 'true' : 'false'}
+      >
         {/* modalRef est sur le contenu réel de NewModal */}
-        <div className={contentClassName} ref={modalRef} /*data-refresh={refreshFlag}*/>
+        <div
+          className={contentClassName}
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={ariaLabel}
+          tabIndex={-1}
+        >
+          <button
+            type="button"
+            className="k-linked-person-close"
+            onClick={onClose}
+            aria-label="Fermer la fenêtre des personnes liées"
+            title="Fermer"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
           {children}
         </div>
       </div>

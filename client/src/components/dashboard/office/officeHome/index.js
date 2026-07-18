@@ -1,11 +1,12 @@
 // File: Kheops_2/client/src/components/dashboard/office/officeHome/index.js
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import DossierListe from "./dossiersListe";
 import Todoliste from "./todoListe";
 import AgendaListe from "./agendaListe";
 import PilotageBandeau from "./pilotageBandeau";
+import RechercheAvancee from "./rechercheAvancee";
 import HoverToSpeak from '../../../common/HoverToSpeak';
 import "./styles.css";
 import "../../../divorceCM/divorceCM.css";
@@ -14,7 +15,12 @@ import "../../../divorceCM/divorceCM.css";
 import {
   fetchLast25Dossiers,
   resetDossier,
+  setResponsables,
+  buildDefaultResponsables,
   hasMeaningfulDossierDraft,
+  HOME_DOSSIERS_LIMITS,
+  HOME_DOSSIERS_LIMIT_KEY,
+  getHomeDossiersLimit,
 } from '../../../../redux/slices/dossierInfoSlice';
 import { fetchAgendaEvents, fetchTop25Tasks } from '../../../../redux/slices/agendaSlice';
 import {
@@ -41,6 +47,16 @@ const OfficeHome = () => {
 
   // Récupération de l'utilisateur connecté
   const user = useSelector((state) => state.login.user);
+
+  // Utilisateurs du cabinet : nécessaires pour préremplir les responsables
+  // d'un nouveau dossier (même logique que la modale header "Créer un nouveau...")
+  const currentOfficeUser = useSelector((state) => state.officeUser.officeUser);
+  const officeUsers = useSelector((state) => state.officeUser.officeUsers);
+
+  // Mode « Recherche avancee par criteres croises » : active par la loupe du
+  // header. Quand il est vrai, le Bureau affiche la vue de recherche a la
+  // place des colonnes habituelles.
+  const isAdvancedSearchMode = useSelector((state) => state.layout.isAdvancedSearchMode);
 
   const { lastDossiers, fetchAttempted } = useSelector((state) => state.last25Dossiers);
 
@@ -104,6 +120,15 @@ const OfficeHome = () => {
     navigate('/dashboard/createDossier/step1');
   };
 
+  // Démarre un dossier vierge : reset complet + responsables par défaut,
+  // à l'identique de la modale header "Créer un nouveau..." → Dossier.
+  const startFreshDossier = () => {
+    dispatch(resetDossier());
+    dispatch(partieCreateActions.resetParties());
+    dispatch(setResponsables(buildDefaultResponsables(currentOfficeUser, officeUsers)));
+    navigate('/dashboard/createDossier/step1');
+  };
+
   const handleRestartDossier = async () => {
     const ok = await confirm({
       title: 'Recommencer un nouveau dossier ?',
@@ -113,9 +138,7 @@ const OfficeHome = () => {
       danger: true,
     });
     if (ok) {
-      dispatch(resetDossier());
-      dispatch(partieCreateActions.resetParties());
-      navigate('/dashboard/createDossier/step1');
+      startFreshDossier();
     }
   };
 
@@ -129,10 +152,8 @@ const OfficeHome = () => {
         danger: true,
       });
       if (!ok) return;
-      dispatch(resetDossier());
-      dispatch(partieCreateActions.resetParties());
     }
-    navigate('/dashboard/createDossier/step1');
+    startFreshDossier();
   };
 
   const handleResumeContact = () => {
@@ -165,6 +186,20 @@ const OfficeHome = () => {
   // Ref pour s'assurer que les fetches ne s'exécutent qu'une seule fois au montage
   const hasFetchedRef = useRef(false);
 
+  // Nombre de dossiers affichés dans la colonne « Dossiers récents »
+  // (25 par défaut, préférence mémorisée en localStorage).
+  const [dossiersLimit, setDossiersLimit] = useState(getHomeDossiersLimit);
+
+  const handleDossiersLimitChange = (e) => {
+    const v = parseInt(e.target.value, 10);
+    const limit = HOME_DOSSIERS_LIMITS.includes(v) ? v : 25;
+    setDossiersLimit(limit);
+    try {
+      localStorage.setItem(HOME_DOSSIERS_LIMIT_KEY, String(limit));
+    } catch (_) { /* stockage local indisponible : préférence non mémorisée */ }
+    dispatch(fetchLast25Dossiers(limit));
+  };
+
   // CORRECTIF : Un seul useEffect au montage, avec un ref pour garantir
   // l'exécution unique. Les tableaux `agendaEvents` et `topTasks` étaient
   // dans le tableau de dépendances, ce qui causait des re-rendus infinis
@@ -172,11 +207,25 @@ const OfficeHome = () => {
   useEffect(() => {
     if (user && user._id && !hasFetchedRef.current) {
       hasFetchedRef.current = true;
-      dispatch(fetchLast25Dossiers());
+      dispatch(fetchLast25Dossiers(dossiersLimit));
       dispatch(fetchAgendaEvents());
       dispatch(fetchTop25Tasks());
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, user]);
+
+  // Loupe du header -> le Bureau se transforme en systeme de recherche avancee
+  // par criteres croises. Le bouton « Retour » (dans RechercheAvancee) remet
+  // ce flag a false et restaure le Bureau classique ci-dessous.
+  if (isAdvancedSearchMode) {
+    return (
+      <div className='OfficeHome'>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <RechercheAvancee />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='OfficeHome'>
@@ -302,39 +351,52 @@ const OfficeHome = () => {
           </span>
         </button>
       </div>
-      <div className="officeHome-column">
-        <HoverToSpeak textToSpeak="Colonne: Dossiers recents">
-          <div className="officeHome-column-header">
-            <h3 className="officeHome-column-title">Dossiers récents</h3>
-          </div>
-        </HoverToSpeak>
-        {(!hasDossiers && fetchAttempted) ? (
-          <HoverToSpeak textToSpeak="Il n'y a aucun dossier dans cette application">
-            <div className="dossierListe-empty">
-              Il n'y a aucun dossier dans cette application
+      <div className="officeHome-columns">
+        <div className="officeHome-column">
+          <HoverToSpeak textToSpeak="Colonne: Dossiers recents">
+            <div className="officeHome-column-header">
+              <h3 className="officeHome-column-title">Dossiers récents</h3>
+              <select
+                className="officeHome-limit-select"
+                value={dossiersLimit}
+                onChange={handleDossiersLimitChange}
+                aria-label="Nombre de dossiers affichés"
+                title="Nombre de dossiers affichés"
+              >
+                {HOME_DOSSIERS_LIMITS.map((n) => (
+                  <option key={n} value={n}>{n} dossiers</option>
+                ))}
+              </select>
             </div>
           </HoverToSpeak>
-        ) : (!hasDossiers && !fetchAttempted) ? (
-          <SkeletonList rows={5} />
-        ) : (
-          <DossierListe dossiers={lastDossiers} />
-        )}
-      </div>
-      <div className="officeHome-column">
-        <HoverToSpeak textToSpeak="Colonne: Agenda">
-          <div className="officeHome-column-header">
-            <h3 className="officeHome-column-title">Agenda</h3>
-          </div>
-        </HoverToSpeak>
-        <AgendaListe />
-      </div>
-      <div className="officeHome-column">
-        <HoverToSpeak textToSpeak="Colonne: Taches">
-          <div className="officeHome-column-header">
-            <h3 className="officeHome-column-title">Tâches</h3>
-          </div>
-        </HoverToSpeak>
-        <Todoliste />
+          {(!hasDossiers && fetchAttempted) ? (
+            <HoverToSpeak textToSpeak="Il n'y a aucun dossier dans cette application">
+              <div className="dossierListe-empty">
+                Il n'y a aucun dossier dans cette application
+              </div>
+            </HoverToSpeak>
+          ) : (!hasDossiers && !fetchAttempted) ? (
+            <SkeletonList rows={5} />
+          ) : (
+            <DossierListe dossiers={lastDossiers} />
+          )}
+        </div>
+        <div className="officeHome-column">
+          <HoverToSpeak textToSpeak="Colonne: Agenda">
+            <div className="officeHome-column-header">
+              <h3 className="officeHome-column-title">Agenda</h3>
+            </div>
+          </HoverToSpeak>
+          <AgendaListe />
+        </div>
+        <div className="officeHome-column">
+          <HoverToSpeak textToSpeak="Colonne: Taches">
+            <div className="officeHome-column-header">
+              <h3 className="officeHome-column-title">Tâches</h3>
+            </div>
+          </HoverToSpeak>
+          <Todoliste />
+        </div>
       </div>
     </div>
   );

@@ -305,8 +305,9 @@ const CreateDossierform = ({
   // Sélectionner nom_dossier directement depuis Redux pour la comparaison
   const nomDossierFromRedux = useSelector((state) => state.dossierInfos.dossierData?.nom_dossier);
 
-
-
+  // Aperçu texte brut de la description (le contenu est du HTML riche) :
+  // sert au libellé du bouton "Description du dossier" quand une description existe.
+  const descPlain = (dossierDataForDisplay.description_dossier || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').trim();
 
   return (
     <>
@@ -352,15 +353,21 @@ const CreateDossierform = ({
           onMouseLeave={() => { if (isSpeechEnabled) stopSpeaking(); }}
         />
 
-        <HoverToSpeak textToSpeak="Bouton Description du dossier. Cliquez pour saisir une description.">
+        <HoverToSpeak
+          textToSpeak={descPlain
+            ? `Description du dossier : ${descPlain.slice(0, 60)}. Cliquez pour la modifier.`
+            : "Bouton Description du dossier. Cliquez pour saisir une description."}
+        >
           <div
             role="button"
             tabIndex={0}
-            className="open_description_modal_button"
+            className={`open_description_modal_button${descPlain ? ' has-description' : ''}`}
             onClick={() => setShowDescriptionModal(true)}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowDescriptionModal(true); }}
           >
-            Description du dossier
+            {descPlain
+              ? `Description : ${descPlain.slice(0, 60)}${descPlain.length > 60 ? '…' : ''}`
+              : 'Description du dossier'}
           </div>
         </HoverToSpeak>
       </div>

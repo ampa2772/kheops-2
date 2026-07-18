@@ -41,17 +41,22 @@ const ContactPickerModal = ({ open, onClose }) => {
             dispatch(loadAvailableContacts());
             setSearch('');
         }
-    }, [open, dispatch]);
+    }, [open, myOfficeUserId, dispatch]);
+
+    const eligibleContacts = useMemo(
+        () => contacts.filter(c => String(c?._id) !== String(myOfficeUserId)),
+        [contacts, myOfficeUserId]
+    );
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
-        if (!q) return contacts;
-        return contacts.filter(c => {
+        if (!q) return eligibleContacts;
+        return eligibleContacts.filter(c => {
             const name = fullName(c).toLowerCase();
             const role = (c.roleOfficeUser || '').toLowerCase();
             return name.includes(q) || role.includes(q);
         });
-    }, [contacts, search]);
+    }, [eligibleContacts, search]);
 
     function handlePick(contact) {
         // On ne peut pas démarrer une conversation avec soi-même
@@ -110,13 +115,12 @@ const ContactPickerModal = ({ open, onClose }) => {
                     {loading && <li className="chat-modal__loading">Chargement…</li>}
                     {!loading && filtered.length === 0 && (
                         <li className="chat-modal__empty">
-                            {contacts.length === 0
+                            {eligibleContacts.length === 0
                                 ? 'Aucun autre membre du cabinet.'
                                 : 'Aucun résultat.'}
                         </li>
                     )}
                     {!loading && filtered.map((c, idx) => {
-                        const isSelf = String(c._id) === String(myOfficeUserId);
                         const itemProps = getItemProps(idx);
                         return (
                             <li
@@ -124,18 +128,15 @@ const ContactPickerModal = ({ open, onClose }) => {
                                 className={[
                                     'chat-modal__item',
                                     c.mainOfficeUser ? 'chat-modal__item--main' : '',
-                                    isSelf ? 'chat-modal__item--self' : '',
                                     activeIndex === idx ? 'is-active' : '',
                                 ].filter(Boolean).join(' ')}
                                 onClick={() => handlePick(c)}
-                                aria-disabled={isSelf}
                                 {...itemProps}
                             >
                                 <div className="chat-modal__item-avatar" aria-hidden="true">{getInitials(c)}</div>
                                 <div className="chat-modal__item-info">
                                     <div className="chat-modal__item-name">
                                         {fullName(c)}
-                                        {isSelf && <span className="chat-modal__item-self-tag"> (vous)</span>}
                                     </div>
                                     {c.roleOfficeUser && (
                                         <div className="chat-modal__item-role">

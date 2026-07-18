@@ -1,6 +1,6 @@
 // File: C:\Mes_Projets_2\Kheops_2\Version_Web\Kheops_2_Test_56\Kheops_2\client\src\components\dashboard\index.js
 // C:\Mes_Projets_2\Kheops_2\Version_Web\Kheops_2_Test_54\Kheops_2\client\src\components\dashboard\index.js
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import Header from "./layout/header";
 import './styles.css';
@@ -22,6 +22,7 @@ const Dashboard = () => {
   
   // <<< RÉCUPÉRER LE NOUVEL ÉTAT >>>
   const { isSetupRequired } = useSelector(state => state.officeUser);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const isMetricsAvailable =
     distanceFromTop !== undefined &&
@@ -43,15 +44,16 @@ const Dashboard = () => {
           ou en etat initial. */}
       <EncryptionGate />
 
-      {/* Compagnon Electron mince : detection silencieuse au login + boite
-          d'installation non-intrusive si absent. Remplace l'ancienne
-          <ElectronDownloadBanner /> (retiree : erreur d'archi + fuite de
-          secrets). N'affiche RIEN si le compagnon est present. */}
+      {/* Compagnon Electron mince : détection et miroir silencieux au login.
+          L'installation n'est proposée qu'après une action explicite. */}
       <CompanionManager />
 
       {isMetricsAvailable && (
         <header className="dashboard-header" role="banner">
-          <Header />
+          <Header
+            isChatOpen={isChatOpen}
+            onToggleChat={() => setIsChatOpen(current => !current)}
+          />
         </header>
       )}
       <main className="dashboard-main">
@@ -77,8 +79,8 @@ const Dashboard = () => {
 
       {isSetupRequired && <Modal />}
 
-      {/* Chat collaboratif (FAB en bas à droite + panneau slide-in) */}
-      <ChatPanel />
+      {/* Le panneau reste monte globalement ; seul son declencheur vit dans le header. */}
+      <ChatPanel open={isChatOpen} onOpenChange={setIsChatOpen} />
     </div>
   );
 };

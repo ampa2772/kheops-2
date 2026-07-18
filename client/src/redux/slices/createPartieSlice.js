@@ -3,6 +3,12 @@
 // Les quelques divergences sont gerees par des callbacks dans la config.
 
 import { createSlice } from '@reduxjs/toolkit';
+import {
+  getEntityId,
+  hasLawyerRole,
+  isLawyerContact,
+  normalizeLawyerRoles,
+} from '../../utils/partyLinking';
 
 /* ====================================================================
    Helpers partages (identiques entre les deux slices)
@@ -38,7 +44,7 @@ const recalcResponsablesForPour = (avocatsList) => {
 /**
  * Construit un objet avocat a partir d'un contact.
  */
-const buildAvocatFromContact = (contact, typePartie) => ({
+const buildAvocatFromContact = (contact) => ({
   _id: contact._id,
   prenomOfficeUser: contact.prenoms,
   nomOfficeUser: contact.nom,
@@ -49,8 +55,7 @@ const buildAvocatFromContact = (contact, typePartie) => ({
   city: contact.ville,
   postalCode: contact.codePostal,
   isAvocat: true,
-  isPlaidant: typePartie === 'Contre',
-  isPostulant: true,
+  ...normalizeLawyerRoles(contact),
   fromResponsable: false,
 });
 
@@ -58,13 +63,23 @@ const buildAvocatFromContact = (contact, typePartie) => ({
  * Ajoute un lien contact/avocat a une partie (mutatif — Immer).
  */
 const addLinkToPartie = (partie, contact) => {
-  const linkedContacts = Array.isArray(partie.linkedContacts) ? partie.linkedContacts : [];
-  const linkedAvocats = Array.isArray(partie.linkedAvocats) ? partie.linkedAvocats : [];
+  const contactId = getEntityId(contact);
+  if (!contactId) return;
 
-  if (contact.pro_contact && (contact.type === 'Avocat' || contact.type === 'Avocate')) {
-    if (linkedAvocats.some((av) => av._id === contact._id)) return;
+  let linkedContacts = Array.isArray(partie.linkedContacts) ? partie.linkedContacts : [];
+  let linkedAvocats = Array.isArray(partie.linkedAvocats) ? partie.linkedAvocats : [];
 
-    const newAv = buildAvocatFromContact(contact, partie.typePartie);
+  if (isLawyerContact(contact)) {
+    // Les données historiques sont tolérées à l'hydratation, mais toute
+    // nouvelle liaison doit expliciter au moins un rôle.
+    if (!hasLawyerRole(contact)) return;
+    // Une même personne ne doit jamais exister simultanément dans les deux
+    // collections. Les rôles déjà définis sur une partie restent inchangés.
+    linkedContacts = linkedContacts.filter((linked) => getEntityId(linked) !== contactId);
+    partie.linkedContacts = linkedContacts;
+    if (linkedAvocats.some((av) => getEntityId(av) === contactId)) return;
+
+    const newAv = buildAvocatFromContact(contact);
     linkedAvocats.push(newAv);
 
     if (partie.typePartie === 'Pour' && newAv.isPostulant) {
@@ -80,7 +95,11 @@ const addLinkToPartie = (partie, contact) => {
     return;
   }
 
-  if (linkedContacts.some((ct) => ct._id === contact._id)) return;
+  // La classification du carnet fait foi : si un ancien lien avocat existe
+  // pour cette personne, il est retiré avant de créer le lien contact.
+  linkedAvocats = linkedAvocats.filter((linked) => getEntityId(linked) !== contactId);
+  partie.linkedAvocats = linkedAvocats;
+  if (linkedContacts.some((ct) => getEntityId(ct) === contactId)) return;
   partie.linkedContacts = [...linkedContacts, contact];
 };
 

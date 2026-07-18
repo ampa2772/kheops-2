@@ -13,8 +13,9 @@ const GoogleCallbackHandler = () => {
     useEffect(() => {
         const handleAuth = async () => {
             console.log("[GoogleCallbackHandler] === DÉMARRAGE handleAuth ===");
-            console.log("[GoogleCallbackHandler] URL:", window.location.href);
-            console.log("[GoogleCallbackHandler] location.search:", location.search);
+            // Ne jamais journaliser l'URL complete ni location.search : le JWT
+            // Kheops est transmis temporairement dans le parametre `token`.
+            console.log("[GoogleCallbackHandler] Route:", window.location.pathname);
 
             const queryParams = new URLSearchParams(location.search);
             const token = queryParams.get('token');
@@ -30,7 +31,7 @@ const GoogleCallbackHandler = () => {
                 return;
             }
 
-            console.log("[GoogleCallbackHandler] Token reçu (début):", token.substring(0, 20) + "...");
+            console.log("[GoogleCallbackHandler] Token reçu et gardé hors des journaux.");
 
             // CORRECTIF : Nettoyage COMPLET du localStorage (toutes les données
             // du compte précédent) puis injection du nouveau token.
@@ -56,7 +57,7 @@ const GoogleCallbackHandler = () => {
                     console.log("[GoogleCallbackHandler] Pas de window.electron.authReady (mode web ?)");
                 }
             } catch (err) {
-                console.error("[GoogleCallbackHandler] ❌ Erreur loadUser:", err);
+                console.error("[GoogleCallbackHandler] ❌ Erreur loadUser:", err?.message || 'erreur inconnue');
                 setError("Erreur lors de la connexion. Veuillez réessayer.");
                 if (window.electron && window.electron.authReady) {
                     window.electron.authReady();

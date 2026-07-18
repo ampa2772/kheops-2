@@ -1189,3 +1189,65 @@ body.high-contrast-mode .agenda-new-btn { background: yellow; color: #000; }
 .agenda-autoflip-edge-right .agenda-autoflip-label {
   transform: rotate(180deg);
 }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  .agenda-container-kheops {
+    padding: 4px 4px 6px 4px;
+  }
+  /* Barre d'outils (tabs Jour/Semaine/Mois/Liste) : autorise le retour à la
+     ligne pour ne pas déborder */
+  .agenda-view-tabs {
+    flex-wrap: wrap;
+  }
+  /* Vue Mois : empêche la grille de déborder horizontalement */
+  .agenda-main-calendar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Vues Semaine/Jour : la grille horaire (60px + 7 colonnes) devient
+     scrollable horizontalement plutôt que de comprimer les colonnes. */
+  .agenda-time-grid {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .time-grid-header,
+  .time-grid-body {
+    min-width: 560px;
+  }
+  /* Vue Jour : une seule colonne, pas besoin de largeur minimale */
+  .day-view-grid .time-grid-header,
+  .day-view-grid .time-grid-body {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Vue Liste : la meta (durée/catégorie) passe sous le titre pour éviter
+     un débordement de la grille 4 colonnes */
+  .agenda-listview-row {
+    grid-template-columns: 64px 4px 1fr;
+    row-gap: 4px;
+  }
+  .agenda-listview-meta {
+    grid-column: 3 / 4;
+    white-space: normal;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .agenda-title-main {
+    font-size: 16px;
+  }
+  /* Contrôles d'en-tête : boutons pill autorisés à passer à la ligne */
+  .agenda-header-left-controls,
+  .agenda-header-right-controls {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  /* Vue Liste : titre de jour compact */
+  .agenda-listview-day-num {
+    font-size: 18px;
+  }
+}

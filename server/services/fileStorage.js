@@ -20,12 +20,18 @@
 //   exists(key)                        -> Promise<boolean>
 //   delete(key)                        -> Promise<void>
 //   getSignedUrl(key, { expiresInSec, action }) -> Promise<string>
+//   checkReadiness()                   -> Promise<{ metadata, signing }>
 //   kind : 'local' | 'gcs'
 
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const fsp = fs.promises;
+
+// Cle reservee au controle de signature. Aucun objet n'est cree a cet endroit :
+// GCS peut signer une URL pour une cle inexistante, ce qui permet de verifier
+// les droits de signature sans lire, ecrire ou lister un document utilisateur.
+const GCS_READINESS_PROBE_KEY = '__kheops_readiness__/signed-url-probe';
 
 // Empeche le path traversal : pas de '..', pas de chemin absolu. Normalise les
 // backslashes Windows en '/'.
@@ -133,6 +139,26 @@ class GcsStorage {
         });
         return url;
     }
+    async checkReadiness({ expiresInSec = 60 } = {}) {
+        // getMetadata() valide l'existence du bucket et le droit de le
+        // consulter. Cela ne liste ni ne lit aucun objet.
+        const [metadata] = await this._bucket.getMetadata();
+        if (!metadata || typeof metadata !== 'object') {
+            throw new Error('Metadonnees du bucket GCS indisponibles.');
+        }
+
+        // La generation V4 exerce aussi la capacite de signature du compte de
+        // service (locale ou via IAM signBlob selon les credentials). L'URL est
+        // volontairement jetee et ne doit jamais etre exposee par le healthcheck.
+        const signedUrl = await this.getSignedUrl(GCS_READINESS_PROBE_KEY, {
+            action: 'read',
+            expiresInSec,
+        });
+        if (typeof signedUrl !== 'string' || !signedUrl.startsWith('https://')) {
+            throw new Error('Signature GCS indisponible.');
+        }
+        return { metadata: true, signing: true };
+    }
 }
 
 // Racine de stockage local par defaut (writable et persistante). Surcharger
@@ -185,6 +211,7 @@ module.exports = {
     buildFileStorage,
     resolveStorageConfig,
     sanitizeKey,
+    GCS_READINESS_PROBE_KEY,
     LocalDiskStorage,
     GcsStorage,
 };

@@ -27,6 +27,11 @@ const Message = require('../models/Chat/Message');
 async function sendMessage({ senderId, recipientId, text, attachment, encryptedPayload }) {
     if (!senderId) throw new Error('senderId required');
     if (!recipientId) throw new Error('recipientId required');
+    if (String(senderId) === String(recipientId)) {
+        const error = new Error('Une conversation individuelle avec soi-même est interdite.');
+        error.code = 'SELF_CONVERSATION_NOT_ALLOWED';
+        throw error;
+    }
 
     // === Mode CHIFFRE (S26 chantier #12) ===
     if (encryptedPayload && typeof encryptedPayload === 'object' &&
@@ -113,6 +118,10 @@ async function getInbox({ userId }) {
         { $match: {
             deletedAt: null,
             $or: [{ sender: uid }, { recipient: uid }],
+            // Nettoyage rétrocompatible : les anciennes versions autorisaient
+            // parfois sender === recipient. Ces messages historiques ne
+            // doivent jamais recréer une conversation « avec soi-même ».
+            $expr: { $ne: ['$sender', '$recipient'] },
         } },
         // Calculer l'autre user (= le contact)
         { $addFields: {
@@ -169,6 +178,11 @@ async function getTotalUnreadCount({ userId }) {
         recipient: userId,
         readAt: null,
         deletedAt: null,
+        // Les anciennes versions ont pu enregistrer des messages envoyes a
+        // soi-meme. Ils ne constituent jamais une notification de chat et ne
+        // doivent pas survivre dans le badge global apres le durcissement des
+        // conversations individuelles.
+        $expr: { $ne: ['$sender', '$recipient'] },
     });
 }
 

@@ -395,3 +395,46 @@ body.high-contrast-mode .todoGeneral-new-task-btn:hover {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Header de page : titre + bouton "Nouvelle tâche" empilés */
+  .todoGeneral-page-header {
+    flex-wrap: wrap;
+  }
+  .todoGeneral-new-task-btn {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Header : bouton pleine largeur sous le titre */
+  .todoGeneral-page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--k-space-2, 8px);
+  }
+  .todoGeneral-new-task-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  /* Carte tâche : date empilée au-dessus des détails pour libérer de la
+     largeur au titre + nom de dossier sur petits téléphones */
+  .todoGeneral-task-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--k-space-1, 4px);
+  }
+  .todoGeneral-task-date-container {
+    flex-direction: row;
+    align-self: stretch;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .todoGeneral-task-details {
+    width: 100%;
+  }
+  .todoGeneral-task-title {
+    white-space: normal;
+  }
+}

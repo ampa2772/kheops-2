@@ -11,6 +11,8 @@ const StoredDocument = require('../models/Storage/StoredDocument');
 const { ensureDossierOwnership } = require('../utils/ownershipHelpers');
 const {
   getStorageProvider,
+  getProviderForStorageKey,
+  getUploadProvider,
   resolveTenantId,
   selectStorageProvider,
   toTenantObjectId,
@@ -22,6 +24,8 @@ const {
   releaseQuota,
   getUsage,
 } = require('../services/storage/quota');
+const { assertAttachmentAllowed } = require('../services/attachmentPolicy');
+const { readableMatterFolder } = require('../services/storage/matterFolderName');
 
 const router = express.Router();
 
@@ -73,6 +77,10 @@ function toClientDocument(doc) {
       filename: version.filename,
       createdAt: version.createdAt,
       createdBy: version.createdBy ? String(version.createdBy) : null,
+      editor: version.editor || null,
+      origin: version.origin || null,
+      comment: version.comment || null,
+      status: version.status || 'draft',
     })),
   };
 }
@@ -119,6 +127,15 @@ router.post('/documents/upload', auth, requireTenant, upload.single('file'), asy
       return res.status(400).json({ error: 'FILE_REQUIRED', message: 'Fichier manquant (champ "file").' });
     }
 
+    // Défense commune anti-exécutables/scripts (même règle que chat et mail —
+    // A15/A16), désormais aussi sur le dépôt direct (drag & drop web). On passe
+    // maxBytes explicitement pour CONSERVER la limite propre au stockage
+    // (100 Mo, alignée sur multer) au lieu des 25 Mo par défaut de la politique.
+    assertAttachmentAllowed(
+      { filename: req.file.originalname, mime: req.file.mimetype, size: req.file.size },
+      { maxBytes: 100 * 1024 * 1024 },
+    );
+
     const tenantId = resolveTenantId(req);
     const ownerUserId = toTenantObjectId(req.user);
     const dossierId = toObjectId(req.body.dossierId || req.body.matterId, 'dossierId');
@@ -134,7 +151,9 @@ router.post('/documents/upload', auth, requireTenant, upload.single('file'), asy
     await reserveQuota(tenantId, req.file.size);
     quotaReserved = req.file.size;
 
-    const provider = await getStorageProvider(tenantId);
+    // Volet B : le provider d'UPLOAD depend de CET utilisateur — s'il a active son
+    // propre SharePoint, ses documents y vont ; sinon provider du cabinet.
+    const provider = await getUploadProvider(tenantId, req.user);
     const requestedDocumentId = toObjectId(req.body.documentId, 'documentId');
     const storedDocumentId = toObjectId(req.body.storedDocumentId, 'storedDocumentId');
 
@@ -154,6 +173,20 @@ router.post('/documents/upload', auth, requireTenant, upload.single('file'), asy
 
     const documentId = storedDocument?.documentId || requestedDocumentId || new mongoose.Types.ObjectId();
     const versionId = provider.createVersionId();
+
+    // Volet A : nom de dossier cloud LISIBLE (OneDrive/SharePoint). On recupere
+    // le nom + la reference du dossier pour ranger le fichier sous un dossier au
+    // vrai nom (ex. "Durand c- Petit — 202601") au lieu d'un identifiant.
+    let matterLabel = null;
+    if (dossierId) {
+      try {
+        const Dossier = require('../models/Folder/Dossier');
+        const dossierDoc = await Dossier.findById(dossierId).select('reference dossier.dossier.nom').lean();
+        if (dossierDoc) matterLabel = readableMatterFolder(dossierDoc?.dossier?.dossier?.nom, dossierDoc.reference);
+      } catch (_) { /* repli : schema par IDs si le dossier est introuvable */ }
+    }
+    const versionOrdinal = (storedDocument?.versions?.length || 0) + 1;
+
     uploadedVersion = await provider.uploadVersion({
       tenantId,
       matterId: dossierId,
@@ -166,6 +199,8 @@ router.post('/documents/upload', auth, requireTenant, upload.single('file'), asy
       // est écrit dans le OneDrive de l'utilisateur qui uploade. Les providers
       // tenant-scopés (managed_gcs) ignorent ce champ.
       ownerUserId: req.user,
+      matterLabel,       // Volet A : dossier cloud lisible (utilise par OneDrive)
+      versionOrdinal,    // Volet A : suffixe " (v2)" pour les versions suivantes
     });
 
     // A4 : confirmer que le fichier est bien arrivé chez le cloud par utilisateur
@@ -181,6 +216,11 @@ router.post('/documents/upload', auth, requireTenant, upload.single('file'), asy
       filename: uploadedVersion.filename,
       createdAt: new Date(),
       createdBy: ownerUserId,
+      // Un depot direct (bouton ou glisser-deposer) a une provenance connue.
+      // La renseigner evite de traiter cette version comme un ancien import
+      // sans metadata et alimente correctement l'historique documentaire.
+      editor: 'upload',
+      origin: 'upload',
     };
 
     if (!storedDocument) {
@@ -198,6 +238,28 @@ router.post('/documents/upload', auth, requireTenant, upload.single('file'), asy
     }
 
     await storedDocument.save();
+    if (dossierId) {
+      try {
+        const { saveVersion } = require('../services/documentHistoryService');
+        await saveVersion({
+          tenantId,
+          dossierId,
+          documentId,
+          userId: ownerUserId,
+          buffer: req.file.buffer,
+          filename: req.file.originalname,
+          mime: req.file.mimetype,
+          editor: 'upload',
+          origin: 'storage-upload',
+          comment: storedDocument.versions.length > 1 ? 'Nouvelle version déposée' : 'Document original déposé',
+          baseVersionId: req.body.baseVersionId || null,
+        });
+      } catch (historyError) {
+        // Le stockage principal vient d'être committé : une indisponibilité du
+        // journal central est signalée mais ne provoque pas la suppression du fichier utilisateur.
+        console.warn('[storage/upload] Historique central non bloquant:', historyError.message);
+      }
+    }
     // Le quota est DÉJÀ à jour (réservé en amont) : on lit simplement l'usage.
     const usage = await getUsage(tenantId);
 
@@ -211,7 +273,7 @@ router.post('/documents/upload', auth, requireTenant, upload.single('file'), asy
     if (uploadedVersion?.storageKey) {
       try {
         const tenantId = resolveTenantId(req);
-        const provider = await getStorageProvider(tenantId);
+        const provider = await getProviderForStorageKey(tenantId, uploadedVersion.storageKey);
         await provider.deleteVersion({ storageKey: uploadedVersion.storageKey });
       } catch (cleanupErr) {
         console.warn('[storage/upload] cleanup blob failed:', cleanupErr.message);
@@ -236,12 +298,35 @@ router.get('/documents/:id/download', auth, requireTenant, async (req, res) => {
       return res.status(404).json({ error: 'DOCUMENT_NOT_FOUND', message: 'Document introuvable.' });
     }
 
+    // Sans version explicitement demandée, l'historique central prévaut sur
+    // l'ancien pointeur StoredDocument. Les éditions Word/Google/Kheops sont
+    // ainsi visibles de façon identique depuis toutes les routes de téléchargement.
+    if (!req.query.versionId) {
+      const DocumentHistory = require('../models/Storage/DocumentHistory');
+      const { readVersion } = require('../services/documentHistoryService');
+      const history = await DocumentHistory.findOne({
+        tenantId,
+        dossierId: storedDocument.dossierId,
+        documentId: storedDocument.documentId || storedDocument._id,
+      });
+      if (history?.currentVersionId) {
+        const current = await readVersion(history, history.currentVersionId);
+        if (current) {
+          const filename = safeDownloadName(current.version.filename, `${storedDocument.documentId || storedDocument._id}`);
+          res.setHeader('Content-Type', current.version.mime || 'application/octet-stream');
+          res.setHeader('Content-Length', current.buffer.length);
+          res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+          return res.send(current.buffer);
+        }
+      }
+    }
+
     const version = currentVersionOf(storedDocument, req.query.versionId);
     if (!version) {
       return res.status(404).json({ error: 'VERSION_NOT_FOUND', message: 'Version introuvable.' });
     }
 
-    const provider = await getStorageProvider(tenantId);
+    const provider = await getProviderForStorageKey(tenantId, version.storageKey);
     if (String(req.query.signed || '').toLowerCase() === 'true') {
       try {
         const url = await provider.getDownloadUrl({
@@ -283,7 +368,7 @@ router.get('/documents/:id/verify', auth, requireTenant, async (req, res) => {
     if (!version) {
       return res.status(404).json({ error: 'VERSION_NOT_FOUND', message: 'Version introuvable.' });
     }
-    const provider = await getStorageProvider(tenantId);
+    const provider = await getProviderForStorageKey(tenantId, version.storageKey);
     let synced = true;
     if (typeof provider.exists === 'function') {
       try {
@@ -366,9 +451,7 @@ router.get('/onedrive/status', auth, async (req, res) => {
     const connected = await oneDrive.isConnected(req.user);
     return res.json({
       connected,
-      // Le client redirige l'utilisateur ici pour (re)connecter son OneDrive.
-      // Le login Microsoft existant consent déjà Files.ReadWrite + offline_access.
-      connectUrl: '/api/auth/microsoft',
+      connectEndpoint: '/api/auth/microsoft/connect-url',
     });
   } catch (err) {
     return handleStorageError(res, err);
@@ -382,9 +465,219 @@ router.get('/googledrive/status', auth, async (req, res) => {
     const connected = await gdrive.isConnected(req.user);
     return res.json({
       connected,
-      // Le login Google existant consent déjà le scope drive.file.
-      connectUrl: '/api/auth/google',
+      connectEndpoint: '/api/auth/google/connect-url',
     });
+  } catch (err) {
+    return handleStorageError(res, err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Volet B — SharePoint PAR UTILISATEUR (optionnel, jamais partage).
+// Chaque utilisateur connecte SON PROPRE SharePoint. Ces routes sont per-USER
+// (auth seul, pas requireTenant) : elles lisent/ecrivent User.sharePoint.
+// ---------------------------------------------------------------------------
+
+// Statut + detection. Le client s'en sert pour :
+//   - decider d'afficher (ou non) la modale d'invitation au login :
+//     available === true && enabled === false && promptDismissed === false ;
+//   - afficher l'etat dans Parametres > Rangement (site choisi, liste des sites).
+router.get('/sharepoint/status', auth, async (req, res) => {
+  try {
+    const sharePoint = require('../services/storage/sharePointClient');
+    const User = require('../models/App_Users/User');
+
+    const user = await User.findById(req.user)
+      .select('sharePoint microsoftSharePointRefreshToken microsoftRefreshToken')
+      .lean();
+    const sp = user?.sharePoint || {};
+
+    // Detection tolerante (ne leve jamais) : { available, sites[] }.
+    const { available, sites } = await sharePoint.detect(req.user);
+
+    return res.json({
+      connected: available,          // SharePoint joignable pour ce compte
+      available,                     // idem (semantique modale)
+      enabled: !!sp.enabled,         // l'utilisateur a active son SharePoint
+      promptDismissed: !!sp.promptDismissed,
+      selected: sp.enabled && sp.driveId
+        ? { siteId: sp.siteId || null, siteName: sp.siteName || '', webUrl: sp.webUrl || '', driveId: sp.driveId }
+        : null,
+      sites,                         // sites disponibles pour le choix
+      configured: Boolean(user?.microsoftSharePointRefreshToken || user?.microsoftRefreshToken),
+      account: sp.accountEmail
+        ? {
+          email: sp.accountEmail,
+          displayName: sp.accountDisplayName || '',
+          accountType: sp.accountType || '',
+        }
+        : null,
+      connectEndpoint: '/api/auth/microsoft/sharepoint-connect-url',
+    });
+  } catch (err) {
+    return handleStorageError(res, err);
+  }
+});
+
+// L'utilisateur CHOISIT un site SharePoint. On resout la bibliotheque de documents
+// (drive) par defaut du site et on persiste le choix sur SON compte. Active
+// egalement SharePoint pour cet utilisateur (enabled=true).
+router.post('/sharepoint/select-site', auth, async (req, res) => {
+  try {
+    const sharePoint = require('../services/storage/sharePointClient');
+    const User = require('../models/App_Users/User');
+
+    const siteId = String(req.body.siteId || '').trim();
+    if (!siteId) {
+      return res.status(400).json({ error: 'SITE_ID_REQUIRED', message: 'siteId manquant.' });
+    }
+
+    // driveId fourni par le client (bibliotheque precise) OU drive par defaut du site.
+    let driveId = String(req.body.driveId || '').trim();
+    let siteName = String(req.body.siteName || '').trim();
+    let webUrl = String(req.body.webUrl || '').trim();
+    if (!driveId) {
+      const drive = await sharePoint.getSiteDefaultDrive(req.user, siteId);
+      driveId = drive.driveId;
+      if (!webUrl) webUrl = drive.webUrl || '';
+    }
+
+    await User.findByIdAndUpdate(req.user, {
+      $set: {
+        'sharePoint.enabled': true,
+        'sharePoint.driveId': driveId,
+        'sharePoint.siteId': siteId,
+        'sharePoint.siteName': siteName,
+        'sharePoint.webUrl': webUrl,
+        'sharePoint.promptDismissed': true, // choix effectue -> plus d'invitation
+        'sharePoint.connectedAt': new Date(),
+      },
+    });
+
+    // BACKFILL automatique (fire-and-forget) : des qu'un site est choisi, on
+    // materialise sur SharePoint TOUS les dossiers existants de l'utilisateur
+    // (au vrai nom) ET on y recopie les documents existants restes sur le
+    // stockage interne, y compris ceux crees avant cette fonctionnalite.
+    try {
+      const { triggerBackfillUserCloud } = require('../services/storage/documentMigrator');
+      triggerBackfillUserCloud(req.user, 'select-site');
+    } catch (_) { /* best effort */ }
+
+    return res.json({
+      ok: true,
+      selected: { siteId, siteName, webUrl, driveId },
+      enabled: true,
+    });
+  } catch (err) {
+    return handleStorageError(res, err);
+  }
+});
+
+// Desactive SharePoint pour cet utilisateur (ses PROCHAINS documents repartent
+// vers le provider du cabinet). Les documents deja ranges sur SharePoint restent
+// telechargeables (le driveId est dans leur storageKey).
+router.post('/sharepoint/disable', auth, async (req, res) => {
+  try {
+    const User = require('../models/App_Users/User');
+    await User.findByIdAndUpdate(req.user, {
+      $set: { 'sharePoint.enabled': false },
+    });
+    return res.json({ ok: true, enabled: false });
+  } catch (err) {
+    return handleStorageError(res, err);
+  }
+});
+
+// BACKFILL a la demande : materialise sur le cloud de l'utilisateur (SharePoint
+// perso si actif, sinon OneDrive/Google Drive du cabinet) les dossiers cloud de
+// TOUS ses Dossiers ET y recopie les documents existants restes sur le stockage
+// interne — y compris ceux crees AVANT la fonctionnalite. Idempotent (reutilise
+// les dossiers cloud existants ; ignore les documents deja sur cloud perso) ->
+// re-executable sans risque. C'est le bouton « Synchroniser mes dossiers existants ».
+router.post('/cloud-folders/backfill', auth, async (req, res) => {
+  try {
+    const { backfillUserFolders } = require('../services/storage/matterFolderMaterializer');
+    const { backfillUserDocuments } = require('../services/storage/documentMigrator');
+    // Migration heritage Drive en arriere-plan (fire-and-forget) : le bouton
+    // « Synchroniser » couvre aussi les fichiers de l'ancienne app de bureau,
+    // sans attendre un re-login (les sessions durent 14 jours).
+    try {
+      const { triggerLegacyDriveMigration } = require('../services/storage/legacyDriveMigrator');
+      triggerLegacyDriveMigration(req.user, 'backfill-bouton');
+    } catch (_) { /* best effort */ }
+    const folders = await backfillUserFolders(req.user);
+    const documents = await backfillUserDocuments(req.user);
+    // Retro-compat : on conserve les champs de niveau superieur (total/ok/skipped)
+    // correspondant aux DOSSIERS pour ne rien casser cote client existant, et on
+    // ajoute le detail documents.
+    return res.json({ ...folders, folders, documents });
+  } catch (err) {
+    return handleStorageError(res, err);
+  }
+});
+
+// MIGRATION HERITAGE GOOGLE DRIVE (Phase 1 « rangement coherent ») : deplace les
+// fichiers de l'ancienne app de bureau (Files_Clients/<idDossier>) vers le
+// rangement lisible Kheops2/Dossiers/<nom> ET les enregistre dans le systeme
+// documentaire quand la correspondance est sans ambiguite. Idempotent, borne.
+// Repond 202 : la migration se poursuit en arriere-plan (rapport dans les logs).
+router.post('/legacy-drive/migrate', auth, async (req, res) => {
+  try {
+    const { migrateLegacyDriveForUser } = require('../services/storage/legacyDriveMigrator');
+    migrateLegacyDriveForUser(req.user)
+      .then((r) => console.log('[legacy-drive/migrate] rapport :', r))
+      .catch(() => {});
+    return res.status(202).json({ started: true });
+  } catch (err) {
+    return handleStorageError(res, err);
+  }
+});
+
+// ARCHIVAGE HERITAGE (Phase 3, sur demande explicite de l'utilisateur) :
+// renomme Files_Clients -> _ARCHIVE_Files_Clients dans SON Drive, UNIQUEMENT si
+// plus aucun fichier n'y reste (sinon rapport de blocage, rien n'est touche).
+// Jamais de suppression. Synchrone : le rapport est renvoye au client.
+router.post('/legacy-drive/archive', auth, async (req, res) => {
+  try {
+    const { archiveLegacyDrive } = require('../services/storage/legacyDriveMigrator');
+    const report = await archiveLegacyDrive(req.user);
+    console.log('[legacy-drive/archive] rapport :', report);
+    return res.json(report);
+  } catch (err) {
+    return handleStorageError(res, err);
+  }
+});
+
+// SYNC D'UN DOSSIER (fire-and-forget) : a l'ouverture d'un dossier, on recopie
+// vers le cloud PERSONNEL de l'utilisateur les documents de CE dossier restes
+// sur le stockage interne. Idempotent (les documents deja sur cloud perso sont
+// ignores). Repond 202 immediatement : la migration se poursuit en arriere-plan
+// pour ne pas bloquer l'affichage du dossier.
+router.post('/dossiers/:dossierId/sync-documents', auth, async (req, res) => {
+  try {
+    const dossierId = toObjectId(req.params.dossierId, 'dossierId');
+    const { syncDossierDocuments } = require('../services/storage/documentMigrator');
+    syncDossierDocuments(req.user, dossierId)
+      .then((s) => {
+        if (s && s.migrated) {
+          console.log(`[dossier/sync-documents] 📄 ${s.migrated}/${s.total} documents migres`, s.reasons || {});
+        }
+      })
+      .catch(() => {});
+    return res.status(202).json({ started: true });
+  } catch (err) {
+    return handleStorageError(res, err);
+  }
+});
+
+// « Ne plus me proposer » : la modale d'invitation au login ne reapparait plus.
+router.post('/sharepoint/dismiss-prompt', auth, async (req, res) => {
+  try {
+    const User = require('../models/App_Users/User');
+    await User.findByIdAndUpdate(req.user, {
+      $set: { 'sharePoint.promptDismissed': true },
+    });
+    return res.json({ ok: true, promptDismissed: true });
   } catch (err) {
     return handleStorageError(res, err);
   }

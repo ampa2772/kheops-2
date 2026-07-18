@@ -1603,3 +1603,64 @@ body.high-contrast-mode .customAllParties:hover {
 body.high-contrast-mode .customAllParties img {
   filter: brightness(0) !important;
 }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Board Pour / Contre : les 2 camps passent l'un sous l'autre */
+  .liste_selected_parties {
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* Chaque colonne prend toute la largeur disponible */
+  .parties_pour,
+  .parties_contre,
+  .droppableZone {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Si une seule colonne, ne pas la brider à 65% sur mobile */
+  .liste_selected_parties > .droppableZone:only-child {
+    max-width: 100%;
+  }
+
+  /* Board conteneur : padding réduit */
+  .selected_partie {
+    padding: 12px;
+  }
+
+  /* Modale principale : bornée à la largeur écran */
+  .modal-content-fromPartie {
+    width: min(90vw, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Modale de lien de partie : bornée, centrée, scrollable */
+  .modal-content-partie-link {
+    width: min(580px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Petit téléphone : gaps et paddings encore réduits */
+  .liste_selected_parties {
+    gap: 8px;
+  }
+
+  .selected_partie {
+    padding: 8px;
+  }
+
+  .parties_pour,
+  .parties_contre {
+    padding: 8px;
+  }
+}

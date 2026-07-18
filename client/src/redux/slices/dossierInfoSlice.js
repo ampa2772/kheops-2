@@ -390,6 +390,28 @@ export const hasMeaningfulDossierDraft = (dossierInfosState, partieDataState) =>
   return hasName || hasType || hasDesc || hasParties;
 };
 
+// Construit la liste des responsables par défaut d'un nouveau dossier :
+// l'utilisateur courant s'il est avocat, sinon l'avocat principal (mainOfficeUser)
+// d'abord puis l'utilisateur courant. Logique partagée entre la modale header
+// "Créer un nouveau..." et la carte "Nouveau dossier" du Bureau.
+export const buildDefaultResponsables = (currentOfficeUser, officeUsers) => {
+  const mainOfficeUser = officeUsers
+    ? officeUsers.find(user => user.mainOfficeUser === true)
+    : null;
+  const responsables = [];
+  if (currentOfficeUser) {
+    if (currentOfficeUser.isAvocat) {
+      responsables.push(currentOfficeUser);
+    } else {
+      if (mainOfficeUser) {
+        responsables.push(mainOfficeUser);
+      }
+      responsables.push(currentOfficeUser);
+    }
+  }
+  return responsables;
+};
+
 export const setNomDossier = (nom) => ({ type: 'SET_NOM_DOSSIER', payload: nom });
 export const setTypeDossier = (type) => ({ type: 'SET_TYPE_DOSSIER', payload: type });
 export const setDescriptionDossier = (description) => ({ type: 'SET_DESCRIPTION_DOSSIER', payload: description });
@@ -505,7 +527,23 @@ export const createDossierServer = (dossierObj, options = {}) => async (dispatch
   }
 };
 
-export const fetchLast25Dossiers = () => async (dispatch, getState) => {
+// Nombre de dossiers affichés sur la page d'accueil : valeurs proposées par le
+// sélecteur de la colonne « Dossiers récents » + clé localStorage de la
+// préférence. Partagés avec officeHome/index.js.
+export const HOME_DOSSIERS_LIMITS = [25, 50, 100, 200, 500];
+export const HOME_DOSSIERS_LIMIT_KEY = 'kheopsHomeDossiersLimit';
+
+/** Préférence mémorisée du nombre de dossiers affichés (25 par défaut). */
+export const getHomeDossiersLimit = () => {
+  try {
+    const v = parseInt(localStorage.getItem(HOME_DOSSIERS_LIMIT_KEY), 10);
+    return HOME_DOSSIERS_LIMITS.includes(v) ? v : 25;
+  } catch (_) {
+    return 25;
+  }
+};
+
+export const fetchLast25Dossiers = (limit) => async (dispatch, getState) => {
   dispatch({ type: 'FETCH_LAST_25_DOSSIERS_REQUEST' });
   try {
     const { token } = getState().login;
@@ -520,7 +558,14 @@ export const fetchLast25Dossiers = () => async (dispatch, getState) => {
       dispatch({ type: 'FETCH_LAST_25_DOSSIERS_ERROR', payload: 'Utilisateur non authentifié' });
       return Promise.resolve();
     }
-    const res = await apiClient.get('/api/folder/last-25-dossiers');
+    // Limite explicite (sélecteur de la home) ou préférence mémorisée : ainsi
+    // TOUS les rafraîchissements (après création de dossier, édition, etc.)
+    // respectent le choix de l'utilisateur. Sans préférence → appel historique
+    // sans paramètre (le serveur applique 25).
+    const effectiveLimit = HOME_DOSSIERS_LIMITS.includes(limit) ? limit : getHomeDossiersLimit();
+    const res = effectiveLimit && effectiveLimit !== 25
+      ? await apiClient.get('/api/folder/last-25-dossiers', { params: { limit: effectiveLimit } })
+      : await apiClient.get('/api/folder/last-25-dossiers');
     dispatch({ type: 'FETCH_LAST_25_DOSSIERS_SUCCESS', payload: res.data });
     return Promise.resolve();
   } catch (err) {

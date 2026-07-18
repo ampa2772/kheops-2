@@ -22,7 +22,7 @@ const UserContactPMPublique = require("../../models/Folder/modelsLiaisons/UserCo
 
 // Middleware d'authentification
 const auth = require("../../middlewares/middleware-auth");
-const { ensureContactOwnership } = require("../../utils/ownershipHelpers");
+const { ensureContactOwnership, ensureDossierOwnership } = require("../../utils/ownershipHelpers");
 const { log: secLog, EVT } = require('../../utils/securityLogger');
 const audit = require("../../utils/auditLogger");
 // Autres middlewares spécifiques
@@ -479,6 +479,45 @@ router.get(
   })
 );
 
+// Liaison explicite depuis l'état vide de la modale « Dossiers liés ».
+router.post(
+  "/contacts/:id/dossiers/:dossierId/link",
+  auth,
+  asyncHandler(async (req, res) => {
+    if (!(await ensureContactOwnership(req, res, req.params.id))) return;
+    if (!(await ensureDossierOwnership(req, res, req.params.dossierId))) return;
+    const DossierContact = require("../../models/Folder/modelsLiaisons/DossierContact");
+    const link = await DossierContact.findOneAndUpdate(
+      { contact: req.params.id, dossier: req.params.dossierId },
+      { $setOnInsert: { contact: req.params.id, dossier: req.params.dossierId } },
+      { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
+    );
+    audit.create(req, "dossier-contact-link", link._id, {
+      contactId: req.params.id,
+      dossierId: req.params.dossierId,
+      source: "contacts-linked-dossiers-empty-state",
+    });
+    return res.status(201).json({ ok: true, linkId: String(link._id) });
+  }),
+);
+
+// Trace dédiée exigée pour une ouverture lancée depuis une fiche/contact.
+router.post(
+  "/contacts/:id/dossiers/:dossierId/open-audit",
+  auth,
+  asyncHandler(async (req, res) => {
+    if (!(await ensureContactOwnership(req, res, req.params.id))) return;
+    if (!(await ensureDossierOwnership(req, res, req.params.dossierId))) return;
+    audit.log({
+      action: "OPEN",
+      entityType: "dossier-from-contact",
+      entityId: req.params.dossierId,
+      extra: { contactId: req.params.id, source: "linked-dossiers" },
+    }, req);
+    return res.status(204).end();
+  }),
+);
+
 // ------------------------------------------------------------------------
 // GET /contacts/:id/dossiers — Dossiers dans lesquels ce contact apparaît
 // Cherche via DossierContact (lien direct écrit pour chaque contact) ET via
@@ -539,14 +578,29 @@ router.get(
     if (!finalIds.length) return res.json({ dossiers: [] });
 
     const docs = await Dossier.find({ _id: { $in: finalIds } })
-      .select("reference dossier")
+      .select("reference dossier.dossier.nom dossier.dossier.type_dossier dossier.avocatsResponsables _lastUpdated dateCreation")
       .lean();
+
+    const responsibleLabel = (responsible) => {
+      if (!responsible) return "";
+      if (typeof responsible === "string") return responsible;
+      return [responsible.prenomOfficeUser || responsible.firstName || responsible.prenom,
+        responsible.nomOfficeUser || responsible.lastName || responsible.nom]
+        .filter(Boolean).join(" ").trim()
+        || responsible.displayName || responsible.email || "";
+    };
 
     const dossiers = docs
       .map((d) => ({
         id: String(d._id),
         reference: d.reference || "",
         nom: (d.dossier && d.dossier.dossier && d.dossier.dossier.nom) || "",
+        type: d.dossier?.dossier?.type_dossier || "",
+        status: "active",
+        statusLabel: "Actif",
+        archived: false,
+        lastActivity: d._lastUpdated || d.dateCreation || null,
+        responsibleLawyers: (d.dossier?.avocatsResponsables || []).map(responsibleLabel).filter(Boolean),
       }))
       .sort((a, b) => String(b.reference).localeCompare(String(a.reference), "fr", { numeric: true }));
 
@@ -773,7 +827,12 @@ router.post(
       // Gestion des personnes à charge
       if (personnesCharge && personnesCharge.length > 0) {
         for (const pc of personnesCharge) {
-          const newPersonneCharge = new PersonneCharge(pc);
+          // Le client (pchSlice) attribue aux fiches un id temporaire Date.now()
+          // (+ position d'affichage). Sans strip, Mongoose mappe `id` sur `_id`
+          // => CastError => 400 APRES la création du contact (écriture partielle,
+          // doublons silencieux). Même strip que la boucle diff du PUT.
+          const { _id, id, position, ...pcData } = pc; // eslint-disable-line no-unused-vars
+          const newPersonneCharge = new PersonneCharge(pcData);
           await newPersonneCharge.save();
           console.log("Personne à charge créée:", newPersonneCharge);
 
@@ -946,6 +1005,42 @@ router.put(
       await propagatePersonnesChargeToDossiers(contactId, userId);
     }
 
+    // ====================================================================
+    // Synchronisation des détails de mariage (fix 2026-07-04)
+    // Avant : seuls POST /contact les créait — toute modification sur un
+    // contact existant était perdue. Upsert : liaison existante -> update,
+    // sinon création DetailMariage + liaison. Même garde keysToCheck qu'au
+    // POST pour ne pas créer de détails vides.
+    // ====================================================================
+    if (options && options.detailMariage) {
+      const { notary, _id, ...detailMariageFields } = options.detailMariage; // eslint-disable-line no-unused-vars
+      const keysToCheck = ["marriageLocation", "marriageDate", "contractDate", "notaryName"];
+      if (keysToCheck.some((k) => detailMariageFields[k])) {
+        const existingLink = await ContactDetailMariage.findOne({ contact: contactId });
+        let detailMariageId;
+        if (existingLink) {
+          await DetailMariage.findByIdAndUpdate(existingLink.detailMariage, detailMariageFields, { runValidators: true });
+          detailMariageId = existingLink.detailMariage;
+        } else {
+          const newDetailMariage = new DetailMariage(detailMariageFields);
+          await newDetailMariage.save();
+          await new ContactDetailMariage({ contact: contactId, detailMariage: newDetailMariage._id }).save();
+          detailMariageId = newDetailMariage._id;
+        }
+        // Notaire lié (si sélectionné dans la base et de type Notaire), comme au POST.
+        if (notary && typeof notary === "object" && notary._id) {
+          const existingNotary = await Contact.findById(notary._id);
+          if (existingNotary && existingNotary.type === "Notaire") {
+            await ContactNotaireMariage.findOneAndUpdate(
+              { detailMariage: detailMariageId },
+              { contact: contactId, detailMariage: detailMariageId, notary: existingNotary._id },
+              { upsert: true }
+            );
+          }
+        }
+      }
+    }
+
     // Propagation dans les copies embarquées de tous les dossiers
     const nbPropagated = await propagateEntityToDossiers(contactId, updatedContact.toObject(), userId);
     console.log(`[PUT /contact/:id] Propagation terminée : ${nbPropagated} dossier(s) mis à jour.`);
@@ -1078,6 +1173,16 @@ router.delete(
 
     if (contactId) {
       await propagatePersonnesChargeToDossiers(contactId, userId);
+      // Fix 2026-07-04 : comme POST/PUT, propager aussi vers les fiches divorce.
+      // La liaison venant d'etre supprimee, le chemin remove A22 retire l'entree
+      // propagee (pchId) de la fiche divorce — sans ca elle restait jusqu'au
+      // prochain re-enregistrement manuel du contact.
+      try {
+        const contactDoc = await Contact.findById(contactId).lean();
+        if (contactDoc) await propagateContactToDivorces(contactId, contactDoc, userId);
+      } catch (e) {
+        console.warn('[DELETE personne-charge] Propagation divorce CM echouee:', e && e.message);
+      }
     }
 
     const updatedDossier = await buildFullDossierResponse(dossierId);

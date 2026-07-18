@@ -5,6 +5,7 @@ import {
   formatContact,
   formatProContact,
   getInitials,
+  buildPartieMovePayload,
 } from '../partiesHelpers';
 
 // ===================== arraysAreEqual =====================
@@ -132,6 +133,48 @@ describe('intersectArrays', () => {
     const arr2 = [{ _id: '2' }];
     const arr3 = [{ _id: '1' }]; // ne devrait pas etre verifie car deja vide
     expect(intersectArrays([arr1, arr2, arr3])).toEqual([]);
+  });
+});
+
+// ===================== buildPartieMovePayload =====================
+describe('buildPartieMovePayload', () => {
+  it('conserve les contacts, les avocats et leurs rôles pendant un déplacement', () => {
+    const partie = {
+      idPartie: 'partie-1',
+      nomPartie: 'Antoine Lefèvre',
+      partieData: { nom: 'Lefèvre', prenoms: 'Antoine' },
+      linkedContacts: [{ _id: 'contact-1', nom: 'Roussel' }],
+      linkedAvocats: [{
+        _id: 'avocat-1',
+        nomOfficeUser: 'Jalet',
+        isPlaidant: true,
+        isPostulant: false,
+      }],
+    };
+
+    const payload = buildPartieMovePayload(partie);
+
+    expect(payload.contactData).toEqual({
+      _id: 'partie-1',
+      nomPartie: 'Antoine Lefèvre',
+      nom: 'Lefèvre',
+      prenoms: 'Antoine',
+    });
+    expect(payload.linkedContacts).toEqual(partie.linkedContacts);
+    expect(payload.linkedAvocats).toEqual(partie.linkedAvocats);
+    expect(payload.linkedContacts).not.toBe(partie.linkedContacts);
+    expect(payload.linkedAvocats[0]).not.toBe(partie.linkedAvocats[0]);
+  });
+
+  it('accepte les anciens noms contacts et avocats', () => {
+    expect(buildPartieMovePayload({
+      _id: 'legacy-1',
+      contacts: [{ _id: 'contact-1' }],
+      avocats: [{ _id: 'avocat-1', isPlaidant: false, isPostulant: true }],
+    })).toEqual(expect.objectContaining({
+      linkedContacts: [{ _id: 'contact-1' }],
+      linkedAvocats: [{ _id: 'avocat-1', isPlaidant: false, isPostulant: true }],
+    }));
   });
 });
 

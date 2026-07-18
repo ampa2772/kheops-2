@@ -44,6 +44,7 @@ const DocumentSearchBar = ({
   selectedEntity,
   isEditing,
   handleToggleEdit,
+  editOpensFullContact = false,
   openLinkedContactModal,
   onOpenBlankEmail,
   onAddSubfolderClick,
@@ -60,6 +61,7 @@ const DocumentSearchBar = ({
   currentView,
   onNavigateToRoot,
   onGenerateTextExport,
+  onOpenAIAssistant,
   // === Tri (les pills sont rendues separement via DocumentFilterPills) ===
   sortMode,
   onToggleSort,
@@ -180,9 +182,13 @@ const DocumentSearchBar = ({
                 onKeyDown={onKeyActivate(handleToggleEdit)}
                 role="button"
                 tabIndex={0}
-                aria-label={isEditing ? "Enregistrer les modifications" : "Modifier l'entite selectionnee"}
+                aria-label={isEditing
+                  ? "Enregistrer les modifications"
+                  : (editOpensFullContact ? "Modifier le contact" : "Modifier l'entite selectionnee")}
                 className="header-icon-btn"
-                title={isEditing ? "Enregistrer" : "Modifier"}
+                title={isEditing
+                  ? "Enregistrer"
+                  : (editOpensFullContact ? "Modifier le contact" : "Modifier")}
               >
                 <img src={Modif} alt="" aria-hidden="true" className="header-icon-img" />
               </div>
@@ -280,6 +286,22 @@ const DocumentSearchBar = ({
           >
             <img src={ExportTexteIcon} alt="" aria-hidden="true" className="header-icon-img" />
           </div>
+        </HoverToSpeak>
+      )}
+
+      {/* Assistant IA du dossier : ouvre un panneau contrôlé, sans envoyer de
+          document tant que le préflight n'a pas été confirmé. */}
+      {!showInfosDossier && onOpenAIAssistant && (
+        <HoverToSpeak textToSpeak="Ouvrir l'Assistant IA du dossier">
+          <button
+            type="button"
+            className="header-icon-btn dossier-ai-launcher"
+            title="Assistant IA"
+            onClick={onOpenAIAssistant}
+            aria-label="Ouvrir l'Assistant IA du dossier"
+          >
+            <span aria-hidden="true">IA</span>
+          </button>
         </HoverToSpeak>
       )}
 

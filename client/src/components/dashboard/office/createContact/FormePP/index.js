@@ -20,6 +20,7 @@ import BirthInfoSection from './components/BirthInfoSection';
 import { computeAppellationCourrier } from './ContactTypeSwitch';
 import CreatePersonneChargeModal from './personneCharge';
 import Mariage_modal from './Mariage_Modal';
+import { hasLawyerRole, isLawyerContact } from '../../../../../utils/partyLinking';
 
 const CreateContactPP = ({ fromCreatePartie, onContactCreatedSuccessfully }) => {
     const dispatch = useDispatch();
@@ -72,7 +73,14 @@ const CreateContactPP = ({ fromCreatePartie, onContactCreatedSuccessfully }) => 
 
     const handleSubmit = useCallback((event) => {
         event.preventDefault();
-        // Vérifications désactivées : pas de setSubmitAttempted, pas de return guards
+        const isLinkedPersonContext = !!(
+            fromCreatePartiesForLink.isLinkedToSinglePartie ||
+            fromCreatePartiesForLink.isLinkedToPartiesGroup
+        );
+        if (!isModificationMode && isLinkedPersonContext && isLawyerContact(contact) && !hasLawyerRole(contact.linkRoles || contact)) {
+            setSubmitAttempted(true);
+            return;
+        }
 
         let options = {
             userId: user._id,
@@ -126,7 +134,12 @@ const CreateContactPP = ({ fromCreatePartie, onContactCreatedSuccessfully }) => 
         }
     };
 
-    const shouldHideSelectTypeContact = (fromCreatePartiesForLink.isLinkedToSinglePartie || fromCreatePartieForPartie.isTransformedToPartie || fromCreatePartiesForLink.isLinkedToDossier) && modificationInfo.isModification;
+    const shouldHideSelectTypeContact = (
+        fromCreatePartiesForLink.isLinkedToSinglePartie ||
+        fromCreatePartiesForLink.isLinkedToPartiesGroup ||
+        fromCreatePartieForPartie.isTransformedToPartie ||
+        fromCreatePartiesForLink.isLinkedToDossier
+    ) && modificationInfo.isModification;
 
     const getButtonConfig = () => {
         let buttonText = isModificationMode ? "Modifier contact" : "Créer un contact";

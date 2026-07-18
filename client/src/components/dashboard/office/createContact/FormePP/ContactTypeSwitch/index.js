@@ -72,7 +72,7 @@ const resolveSelectedType = (rawType) => {
   return { selected: 'Autre', otherText: rawType };
 };
 
-const ContactTypeSwitch = ({ submitAttempted }) => {
+const ContactTypeSwitch = ({ submitAttempted, linkedPersonContext = false }) => {
   const dispatch = useDispatch();
   const contact = useSelector(
     (state) => state.createContactReducer.contactDetails.contact
@@ -84,6 +84,9 @@ const ContactTypeSwitch = ({ submitAttempted }) => {
     () => resolveSelectedType(contact.type),
     [contact.type]
   );
+  const linkRoles = contact.linkRoles || { isPlaidant: false, isPostulant: false };
+  const missingLawyerRole = linkedPersonContext && proContact && selected === 'Avocat'
+    && !linkRoles.isPlaidant && !linkRoles.isPostulant;
 
   // Re-remplit l'appellation a chaque changement de type/pro/genre,
   // SAUF si l'utilisateur a deja saisi une appellation manuellement
@@ -114,6 +117,7 @@ const ContactTypeSwitch = ({ submitAttempted }) => {
       // Client / Partie : libelle standard, laisse vide ou label historique si pertinent
       dispatch(setContactField('type', 'Partie (Client/Adversaire)'));
       maybeFillAppellation('Partie (Client/Adversaire)', false, genre);
+      dispatch(setContactField('linkRoles', null));
     }
   };
 
@@ -132,6 +136,9 @@ const ContactTypeSwitch = ({ submitAttempted }) => {
       labelToWrite = newSelected;
     }
     dispatch(setContactField('type', labelToWrite));
+    if (newSelected !== 'Avocat') {
+      dispatch(setContactField('linkRoles', null));
+    }
     maybeFillAppellation(labelToWrite, true, genre);
   };
 
@@ -157,6 +164,14 @@ const ContactTypeSwitch = ({ submitAttempted }) => {
 
   const hasError = submitAttempted && !contact.type;
 
+  const toggleRole = (role) => {
+    dispatch(setContactField('linkRoles', {
+      isPlaidant: !!linkRoles.isPlaidant,
+      isPostulant: !!linkRoles.isPostulant,
+      [role]: !linkRoles[role],
+    }));
+  };
+
   return (
     <div className={`contact-type-switch ${hasError ? 'error' : ''}`}>
       {/* Couleur du label dependante du mode :
@@ -174,7 +189,7 @@ const ContactTypeSwitch = ({ submitAttempted }) => {
             role="radio"
             aria-checked={!proContact}
           >
-            Client / Partie
+            {linkedPersonContext ? 'Particulier / non professionnel' : 'Client / Partie'}
           </button>
           <button
             type="button"
@@ -239,6 +254,33 @@ const ContactTypeSwitch = ({ submitAttempted }) => {
             />
           )}
         </div>
+      )}
+
+      {linkedPersonContext && proContact && selected === 'Avocat' && (
+        <fieldset className={`cts-lawyer-roles ${missingLawyerRole && submitAttempted ? 'error' : ''}`}>
+          <legend>Rôle dans le dossier (au moins un choix)</legend>
+          <div className="cts-lawyer-role-actions">
+            <button
+              type="button"
+              className={`cts-role-option ${linkRoles.isPlaidant ? 'active' : ''}`}
+              aria-pressed={!!linkRoles.isPlaidant}
+              onClick={() => toggleRole('isPlaidant')}
+            >
+              Plaidant
+            </button>
+            <button
+              type="button"
+              className={`cts-role-option ${linkRoles.isPostulant ? 'active' : ''}`}
+              aria-pressed={!!linkRoles.isPostulant}
+              onClick={() => toggleRole('isPostulant')}
+            >
+              Postulant
+            </button>
+          </div>
+          {missingLawyerRole && submitAttempted && (
+            <p role="alert" className="cts-role-error">Choisissez Plaidant, Postulant, ou les deux.</p>
+          )}
+        </fieldset>
       )}
     </div>
   );

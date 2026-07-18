@@ -1,0 +1,95 @@
+const mongoose = require('mongoose');
+
+const SourceAnchorSchema = new mongoose.Schema({
+  sourceId: { type: String, required: true },
+  sourceType: { type: String, enum: ['document', 'matter', 'selection'], default: 'document' },
+  documentId: { type: mongoose.Schema.Types.ObjectId, default: null },
+  versionId: { type: String, default: null },
+  label: { type: String, required: true },
+  mime: { type: String, default: null },
+  checksum: { type: String, default: null },
+  excerpt: { type: String, default: null, maxlength: 2000 },
+  page: { type: Number, default: null },
+  paragraph: { type: Number, default: null },
+  blockId: { type: String, default: null },
+}, { _id: false });
+
+const AITaskSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  matterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Dossier', required: true, index: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  connectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'AIProviderConnection', required: true, index: true },
+  provider: { type: String, required: true },
+  model: { type: String, required: true },
+  taskType: { type: String, required: true, index: true },
+  status: {
+    type: String,
+    enum: [
+      'queued', 'budget_reserved', 'preparing', 'running', 'streaming',
+      'retry_wait', 'cancel_requested', 'cancelled', 'succeeded', 'failed',
+      'blocked_budget',
+    ],
+    default: 'queued',
+    index: true,
+  },
+  idempotencyKey: { type: String, required: true, maxlength: 200 },
+  contextManifest: {
+    includeMatterData: { type: Boolean, default: false },
+    includeTimeline: { type: Boolean, default: false },
+    includeContacts: { type: Boolean, default: false },
+    includeNotes: { type: Boolean, default: false },
+    includeMetadata: { type: Boolean, default: false },
+    documentIds: [{ type: mongoose.Schema.Types.ObjectId }],
+    currentDocumentId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    selectedText: { type: String, default: null, maxlength: 30000 },
+    excludedDocumentIds: [{ type: mongoose.Schema.Types.ObjectId }],
+    redactionCategories: { type: [String], default: [] },
+    allowConfidentialDocuments: { type: Boolean, default: false },
+    requestedVersions: { type: mongoose.Schema.Types.Mixed, default: {} },
+    includeAllVersions: { type: Boolean, default: false },
+    maxCharacters: { type: Number, min: 1000, max: 2000000, default: 200000 },
+  },
+  promptTemplateId: { type: String, required: true },
+  promptVersion: { type: Number, required: true },
+  userInstruction: { type: String, default: '', maxlength: 30000 },
+  estimatedUsage: { type: mongoose.Schema.Types.Mixed, default: {} },
+  pricingSnapshot: {
+    catalogueVersion: { type: String, required: true },
+    currency: { type: String, enum: ['EUR', 'USD'], required: true },
+    inputPerMillion: { type: Number, min: 0, required: true },
+    outputPerMillion: { type: Number, min: 0, required: true },
+    cachedInputPerMillion: { type: Number, min: 0, default: null },
+    dimensionRates: { type: mongoose.Schema.Types.Mixed, default: {} },
+    minimumCharge: { type: Number, min: 0, default: 0 },
+  },
+  actualUsage: { type: mongoose.Schema.Types.Mixed, default: {} },
+  estimatedCost: { type: Number, min: 0, required: true },
+  actualCost: { type: Number, min: 0, default: null },
+  actualCostNature: { type: String, enum: ['official', 'calculated', 'estimated'], default: null },
+  currency: { type: String, enum: ['EUR', 'USD'], required: true },
+  budgetReservationId: { type: mongoose.Schema.Types.ObjectId, ref: 'AIBudgetReservation', default: null },
+  budgetOverrideAuthorized: { type: Boolean, default: false },
+  resultArtifactIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'AIArtifact' }],
+  sourceAnchors: { type: [SourceAnchorSchema], default: [] },
+  resultPreview: { type: String, default: null, maxlength: 4000 },
+  errorCode: { type: String, default: null },
+  errorMessage: { type: String, default: null, maxlength: 1000 },
+  providerRequestId: { type: String, default: null },
+  eventSequence: { type: Number, min: 0, default: 0 },
+  attempts: { type: Number, min: 0, default: 0 },
+  maxAttempts: { type: Number, min: 1, max: 10, default: 3 },
+  availableAt: { type: Date, default: Date.now, index: true },
+  leaseOwner: { type: String, default: null },
+  leaseUntil: { type: Date, default: null, index: true },
+  cancellationRequestedAt: { type: Date, default: null },
+  startedAt: { type: Date, default: null },
+  completedAt: { type: Date, default: null },
+  retentionUntil: { type: Date, required: true },
+}, { timestamps: true });
+
+AITaskSchema.index({ tenantId: 1, userId: 1, idempotencyKey: 1 }, { unique: true });
+AITaskSchema.index({ status: 1, availableAt: 1, leaseUntil: 1 });
+AITaskSchema.index({ tenantId: 1, matterId: 1, createdAt: -1 });
+AITaskSchema.index({ retentionUntil: 1 }, { expireAfterSeconds: 0 });
+
+module.exports = mongoose.models.AITask || mongoose.model('AITask', AITaskSchema);

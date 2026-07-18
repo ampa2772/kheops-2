@@ -93,6 +93,29 @@ export const intersectArrays = (arrays = []) => {
     return cleanedArrays[0].filter(item => intersectionIds.has(item._id.toString()));
 };
 
+/**
+ * Prépare les données nécessaires au changement de camp d'une partie.
+ * Les relations sont copiées explicitement afin que le cycle historique
+ * suppression/réinsertion ne perde ni les contacts, ni les rôles d'avocat.
+ */
+export const buildPartieMovePayload = (partie = {}) => {
+  const cloneRelations = (items) => (Array.isArray(items)
+    ? items.map((item) => (
+        item && typeof item === 'object' ? { ...item } : item
+      ))
+    : []);
+
+  return {
+    contactData: {
+      _id: partie.idPartie ?? partie._id,
+      nomPartie: partie.nomPartie,
+      ...(partie.partieData || {}),
+    },
+    linkedContacts: cloneRelations(partie.linkedContacts ?? partie.contacts),
+    linkedAvocats: cloneRelations(partie.linkedAvocats ?? partie.avocats),
+  };
+};
+
 /* ─────────────── formateurs de libellés ─────────────── */
 
 /**

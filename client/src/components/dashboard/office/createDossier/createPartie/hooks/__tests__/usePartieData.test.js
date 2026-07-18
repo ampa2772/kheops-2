@@ -295,7 +295,7 @@ describe('usePartieData', () => {
       expect(result.current.linkedContactsAllContre).toEqual([]);
     });
 
-    it('retourne tableau vide si une seule partie Pour (pas d intersection possible)', () => {
+    it('conserve les liens de la partie quand un côté ne contient qu une seule partie', () => {
       const wrapper = createWrapper({
         partieData: {
           parties: [partiesFixture[0]], // une seule partie Pour
@@ -303,7 +303,8 @@ describe('usePartieData', () => {
       });
       const { result } = renderHook(() => usePartieData('create'), { wrapper });
 
-      expect(result.current.linkedAvocatsAllPour).toEqual([]);
+      expect(result.current.linkedAvocatsAllPour).toEqual(partiesFixture[0].linkedAvocats);
+      expect(result.current.linkedContactsAllPour).toEqual(partiesFixture[0].linkedContacts);
     });
   });
 

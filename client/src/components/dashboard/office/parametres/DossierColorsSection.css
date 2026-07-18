@@ -3,9 +3,11 @@
    ========================================================================== */
 
 .dossier-colors-section {
-  max-width: 760px;
-  margin: 0;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
   padding: 4px 0 24px;
+  box-sizing: border-box;
 }
 
 .dossier-colors__head {
@@ -80,7 +82,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -244,4 +246,155 @@ body.high-contrast-mode .dossier-colors__hex {
 body.high-contrast-mode .dossier-colors__row {
   background: #000;
   border-color: yellow;
+}
+
+/* Couleurs des documents et règles d'héritage */
+.document-colors {
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.document-colors__head {
+  margin-bottom: 16px;
+}
+
+.document-colors__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.document-colors__row {
+  display: grid;
+  grid-template-columns: 48px minmax(110px, 1fr) minmax(150px, auto) 36px;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--k-bg-white, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+}
+
+.document-colors__row.is-custom {
+  border-color: rgba(77, 155, 255, 0.5);
+}
+
+.document-colors__swatch {
+  width: 42px;
+  height: 42px;
+  cursor: default;
+}
+
+.document-colors__swatch:has(input) {
+  cursor: pointer;
+}
+
+.document-colors__swatch.is-none {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #d1d5db 25%, transparent 25%),
+    linear-gradient(-45deg, #d1d5db 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #d1d5db 75%),
+    linear-gradient(-45deg, transparent 75%, #d1d5db 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+}
+
+.document-colors__mode-help {
+  margin-top: 3px;
+  color: var(--k-text-secondary, #666);
+  font-size: 0.76rem;
+}
+
+.document-colors__mode-select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 28px 8px 9px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--k-text-primary, #1a1a1a);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+body.high-contrast-mode .document-colors {
+  border-top-color: yellow;
+}
+
+body.high-contrast-mode .document-colors__row {
+  background: #000;
+  border-color: yellow;
+}
+
+body.high-contrast-mode .document-colors__mode-help {
+  color: yellow;
+}
+
+body.high-contrast-mode .document-colors__mode-select {
+  background: #000;
+  color: yellow;
+  border-color: yellow;
+}
+
+@media (max-width: 900px) {
+  .dossier-colors__list,
+  .document-colors__list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .dossier-colors-section {
+    padding-inline: 0;
+  }
+
+  .dossier-colors__head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dossier-colors__reset-all-wrap,
+  .dossier-colors__reset-all {
+    width: 100%;
+  }
+
+  .dossier-colors__reset-all {
+    justify-content: center;
+  }
+
+  .dossier-colors__list,
+  .document-colors__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .document-colors__row {
+    grid-template-columns: 44px minmax(0, 1fr) 36px;
+    gap: 10px;
+  }
+
+  .document-colors__mode-select {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 360px) {
+  .dossier-colors__row {
+    grid-template-columns: 48px minmax(0, 1fr) 32px;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .dossier-colors__type-label {
+    white-space: normal;
+  }
+
+  .dossier-colors__hex {
+    flex-wrap: wrap;
+  }
 }

@@ -678,3 +678,53 @@ body.high-contrast-mode .email-compose-status {
   border-color: yellow;
   color: yellow;
 }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Boîte : borner à l'écran (base 600px) */
+  .email-compose-box {
+    width: min(600px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    max-height: 90vh;
+  }
+
+  /* Header : marge droite pour ne pas passer sous le bouton fermer */
+  .email-compose-box .k-modal-header {
+    padding-right: 56px;
+  }
+
+  /* Formulaire : padding réduit */
+  .email-compose-form {
+    padding: 16px;
+  }
+
+  /* Tags destinataires : ne pas dépasser la largeur du conteneur */
+  .email-compose-tag {
+    max-width: 100%;
+  }
+
+  /* Footer : boutons pleine largeur, empilés proprement */
+  .email-compose-footer {
+    flex-wrap: wrap;
+  }
+  .email-compose-footer .k-modal-btn--cancel,
+  .email-compose-footer .k-modal-btn--primary {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .email-compose-form {
+    padding: 12px;
+  }
+  .email-compose-box .k-modal-header {
+    padding: 18px 56px 14px 18px;
+  }
+  .email-compose-footer {
+    padding: 12px 16px;
+  }
+  /* Champ objet/message : plein confort de saisie */
+  textarea.email-compose-field-input {
+    min-height: 100px;
+  }
+}

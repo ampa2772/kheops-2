@@ -1,13 +1,22 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 
 import { useDocumentActions } from './hooks/useDocumentActions';
 import { useDossierInfo } from './hooks/useDossierInfo';
 import { useSocketListeners } from './hooks/useSocketListeners';
 import { useTemplateSearch } from './hooks/useTemplateSearch';
-import { processDroppedFile, requestTextExport, subscribeToEvent, unsubscribeFromEvent } from '../../../../services/socketService';
-import { fetchAllDocumentsInDossier, createBlankDocument } from '../../../../redux/slices/currentDossierSlice';
+import apiClient from '../../../../services/apiClient';
+import {
+    filesFromDrop,
+    isExternalFileDrag,
+    uploadDroppedFileWeb,
+} from '../../../../services/droppedFileService';
+import { fetchAllDocumentsInDossier, createBlankDocument, addDroppedDocumentToList } from '../../../../redux/slices/currentDossierSlice';
 import { useToast } from '../../../common/notifications/useToast';
+import { AIAssistantPanel } from '../../../ai';
+import { isFeatureEnabled } from '../../../../utils/featureFlags';
 
 import DocumentSearchBar, { DocumentFilterPills } from './DocumentsStockes/DocumentSearchBar';
 import DocumentList from './DocumentsStockes/DocumentList';
@@ -23,6 +32,10 @@ import UploadProgressBar from './DocumentsStockes/UploadProgressBar';
 import DocumentGenerationProgress from './DocumentsStockes/DocumentGenerationProgress';
 import ModalSelectReceiver from './DocumentsStockes/ModalSelectReceiver';
 import TextExportProgressModal from './DocumentsStockes/TextExportProgressModal';
+import {
+    buildDossierContactEditNavigation,
+    isClassicContactEntity,
+} from './contactEditNavigation';
 
 import { SkeletonList } from '../../../common/Skeleton';
 import './styles.css';
@@ -74,7 +87,10 @@ function groupPartiesAndContacts(dossier) {
 
 const DocumentsStockesDossier = ({ dossierInfoOverride } = {}) => {
     const containerRef = useRef(null);
+    const externalDragDepthRef = useRef(0);
+    const uploadResetTimerRef = useRef(null);
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { dossier: currentDossier, loading: dossierLoading } = useSelector(state => state.currentDossier);
     const token = useSelector(state => state.login.token);
 
@@ -92,6 +108,7 @@ const DocumentsStockesDossier = ({ dossierInfoOverride } = {}) => {
     const [isSubfolderModalOpen, setIsSubfolderModalOpen] = useState(false);
     const [isAJModalOpen, setIsAJModalOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+    const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
     const [textExportProgress, setTextExportProgress] = useState(null);
     // Filtre par categorie : all | courriers | actes | pieces
     const [activeFilter, setActiveFilter] = useState('all');
@@ -100,43 +117,40 @@ const DocumentsStockesDossier = ({ dossierInfoOverride } = {}) => {
 
     useSocketListeners();
 
-    // === Listeners pour l'export texte ===
-    useEffect(() => {
-      const handleProgress = (data) => {
-        if (data.dossierId === currentDossier?._id) {
-          setTextExportProgress({ current: data.current, total: data.total, currentDoc: data.currentDoc });
-        }
-      };
-      const handleSuccess = (data) => {
-        if (data.dossierId === currentDossier?._id) {
-          setTextExportProgress({ current: data.total || 0, total: data.total || 0, done: true, fileName: data.fileName, errorCount: data.errorCount || 0 });
-          // Rafraîchir la liste des documents depuis le serveur
-          if (token) {
-            dispatch(fetchAllDocumentsInDossier(data.dossierId, token));
-          }
-        }
-      };
-      const handleError = (data) => {
-        if (data.dossierId === currentDossier?._id) {
-          setTextExportProgress((prev) => ({ ...(prev || {}), done: false, error: data.message }));
-        }
-      };
-
-      subscribeToEvent('text_export_progress', handleProgress);
-      subscribeToEvent('text_export_success', handleSuccess);
-      subscribeToEvent('text_export_error', handleError);
-
-      return () => {
-        unsubscribeFromEvent('text_export_progress', handleProgress);
-        unsubscribeFromEvent('text_export_success', handleSuccess);
-        unsubscribeFromEvent('text_export_error', handleError);
-      };
-    }, [currentDossier?._id, dispatch]);
-
-    const handleGenerateTextExport = useCallback(() => {
+    // === Export texte du dossier (mode WEB : REST serveur) ===
+    // L'ancien flux passait par l'agent de bureau via socket.io (localhost:8080),
+    // qui n'existe pas en web -> restait bloque sur « Initialisation ». Desormais
+    // le SERVEUR extrait le texte de tous les documents (docx/pdf/txt) et renvoie
+    // le TXT ; on declenche ici le telechargement cote navigateur.
+    const handleGenerateTextExport = useCallback(async () => {
       if (!currentDossier?._id || !token) return;
-      setTextExportProgress({ current: 0, total: 0, currentDoc: 'Initialisation...' });
-      requestTextExport(currentDossier._id, token);
+      setTextExportProgress({ current: 0, total: 0, currentDoc: 'Extraction en cours sur le serveur…' });
+      try {
+        const { data } = await apiClient.post(
+          `/api/word/text-export/${currentDossier._id}`,
+          {},
+          { timeout: 300000 }, // extraction de tout un dossier : jusqu'a 5 min
+        );
+        // Telechargement navigateur du .txt genere.
+        const blob = new Blob([data.txtContent || ''], { type: 'text/plain;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.fileName || 'Export_dossier.txt';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => window.URL.revokeObjectURL(url), 4000);
+        setTextExportProgress({
+          current: data.total || 0, total: data.total || 0, done: true,
+          fileName: data.fileName, errorCount: data.errorCount || 0,
+        });
+      } catch (err) {
+        setTextExportProgress({
+          done: false,
+          error: err.response?.data?.message || err.message || "L'export a échoué.",
+        });
+      }
     }, [currentDossier?._id, token]);
 
     const toast = useToast();
@@ -160,73 +174,182 @@ const DocumentsStockesDossier = ({ dossierInfoOverride } = {}) => {
     const [isDraggingOver, setIsDraggingOver] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(null);
 
+    useEffect(() => () => {
+        if (uploadResetTimerRef.current) clearTimeout(uploadResetTimerRef.current);
+    }, []);
+
     // Le drag interne (move depuis et vers les sous-dossiers) est géré par
     // un drag custom mouse-based dans DocumentList (handleSourceMouseDown).
     // handleDrop ci-dessous ne traite plus que le drop EXTERNE depuis Explorer
     // Windows pour l'upload. Cf. DocumentList.js pour le drag custom.
 
     const handleDragOver = useCallback((e) => {
+        if (!isExternalFileDrag(e.dataTransfer)) return;
+        // Sans preventDefault, Chromium ouvre le fichier a la place de
+        // l'application. dropEffect donne en plus le curseur « copie » natif.
         e.preventDefault();
-        if (e.dataTransfer.types.includes('Files')) {
-            setIsDraggingOver(true);
-        }
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+        setIsDraggingOver(true);
     }, []);
 
-    const handleDragEnter = handleDragOver;
+    const handleDragEnter = useCallback((e) => {
+        if (!isExternalFileDrag(e.dataTransfer)) return;
+        e.preventDefault();
+        externalDragDepthRef.current += 1;
+        setIsDraggingOver(true);
+    }, []);
 
     const handleDragLeave = useCallback((e) => {
+        // Chromium peut vider dataTransfer.types sur le dernier dragleave :
+        // le compteur actif reste alors la source de verite.
+        if (!isExternalFileDrag(e.dataTransfer) && externalDragDepthRef.current === 0) return;
         e.preventDefault();
-        if (!e.currentTarget.contains(e.relatedTarget)) {
+        externalDragDepthRef.current = Math.max(0, externalDragDepthRef.current - 1);
+        if (externalDragDepthRef.current === 0) {
             setIsDraggingOver(false);
         }
     }, []);
 
-    const handleDrop = useCallback(async (e) => {
-        e.preventDefault();
-        setIsDraggingOver(false);
-
-        if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+    const handleImportFiles = useCallback(async (selectedFiles) => {
+        if (uploadResetTimerRef.current) {
+            clearTimeout(uploadResetTimerRef.current);
+            uploadResetTimerRef.current = null;
+        }
+        const files = Array.from(selectedFiles || []).filter(Boolean);
+        if (files.length === 0) return;
 
         if (!currentDossier?._id || !token) {
             const errorMsg = "Aucun dossier selectionne ou session invalide.";
             console.error(`[Drop] Erreur: ${errorMsg}`);
             setUploadProgress({ error: errorMsg });
-            setTimeout(() => setUploadProgress(null), 3000);
+            uploadResetTimerRef.current = setTimeout(() => setUploadProgress(null), 3000);
             return;
         }
 
-        const files = Array.from(e.dataTransfer.files);
         const totalFiles = files.length;
+        let completedFiles = 0;
+        let uploadedFiles = 0;
+        const failures = [];
 
-        setUploadProgress({ currentFile: 1, totalFiles, currentFileName: files[0].name, error: null });
+        setUploadProgress({
+            status: 'uploading',
+            currentFile: 1,
+            completedFiles: 0,
+            totalFiles,
+            currentFileName: files[0].name,
+            error: null,
+        });
 
         for (let i = 0; i < totalFiles; i++) {
             const file = files[i];
             const currentFileNumber = i + 1;
 
-            setUploadProgress(prev => ({ ...prev, currentFile: currentFileNumber, totalFiles, currentFileName: file.name, error: null }));
+            setUploadProgress({
+                status: 'uploading',
+                currentFile: currentFileNumber,
+                completedFiles,
+                totalFiles,
+                currentFileName: file.name,
+                error: null,
+            });
 
             try {
-                await processDroppedFile(file, currentDossier._id, token, currentView.folderId);
+                // Mode WEB pur : fiche + octets envoyés directement au serveur
+                // (remplace l'ancien agent Electron local, disparu).
+                const doc = await uploadDroppedFileWeb(file, currentDossier._id, currentView.folderId);
+                // Affichage immédiat dans la liste (l'événement socket
+                // 'single_document_added' de l'ancien agent n'existe plus).
+                dispatch(addDroppedDocumentToList(doc));
+                uploadedFiles += 1;
             } catch (err) {
                 const errorMessage = err?.message || 'Erreur inconnue lors de l\'upload.';
                 console.error(`[Drop Loop] ERREUR sur le fichier "${file.name}":`, errorMessage);
-                setUploadProgress(prev => ({ ...prev, error: `Erreur sur "${file.name}": ${errorMessage}` }));
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                failures.push(`« ${file.name} » : ${errorMessage}`);
+            } finally {
+                completedFiles += 1;
+                setUploadProgress({
+                    status: 'uploading',
+                    currentFile: currentFileNumber,
+                    completedFiles,
+                    totalFiles,
+                    currentFileName: file.name,
+                    error: null,
+                });
             }
         }
 
-        setTimeout(() => setUploadProgress(null), 1500);
+        // Le rafraichissement autoritatif evite tout ecart entre l'ajout
+        // optimiste et le dossier reel (socket coupe, normalisation serveur,
+        // nettoyage d'une fiche apres erreur de stockage, etc.).
+        try {
+            await dispatch(fetchAllDocumentsInDossier(currentDossier._id, token));
+        } catch (refreshError) {
+            console.warn('[Drop] Rafraichissement du dossier impossible:', refreshError?.message);
+        }
 
-    }, [currentDossier, token, currentView.folderId]);
+        if (failures.length > 0) {
+            const summary = uploadedFiles > 0
+                ? `${uploadedFiles} fichier${uploadedFiles > 1 ? 's' : ''} ajouté${uploadedFiles > 1 ? 's' : ''}. ${failures.length} échec${failures.length > 1 ? 's' : ''}.`
+                : `Aucun fichier ajouté. ${failures.length} échec${failures.length > 1 ? 's' : ''}.`;
+            const error = `${summary} ${failures.join(' ')}`;
+            setUploadProgress(prev => ({ ...prev, status: 'error', error }));
+            toast.error(summary, { title: 'Documents' });
+            uploadResetTimerRef.current = setTimeout(() => setUploadProgress(null), 6000);
+            return;
+        }
+
+        setUploadProgress(prev => ({
+            ...prev,
+            status: 'success',
+            completedFiles: totalFiles,
+            currentFile: totalFiles,
+        }));
+        toast.success(
+            `${uploadedFiles} fichier${uploadedFiles > 1 ? 's' : ''} ajouté${uploadedFiles > 1 ? 's' : ''} au dossier.`,
+            { title: 'Documents' },
+        );
+        uploadResetTimerRef.current = setTimeout(() => setUploadProgress(null), 1400);
+
+    }, [currentDossier, token, currentView.folderId, dispatch, toast]);
+
+    const handleDrop = useCallback((e) => {
+        e.preventDefault();
+        externalDragDepthRef.current = 0;
+        setIsDraggingOver(false);
+        return handleImportFiles(filesFromDrop(e.dataTransfer));
+    }, [handleImportFiles]);
     // Si un hook lifte est passe en prop (depuis Dossier/index.js), on l'utilise.
     // Sinon, on instancie le hook localement (pour conserver la compat avec
     // les usages historiques de DocumentsStockesDossier).
     const localDossierInfo = useDossierInfo(currentDossier);
     const dossierInfo = dossierInfoOverride || localDossierInfo;
+    const selectedDossierEntity = dossierInfo.selectedEntity;
+    const handleInlineEntityEdit = dossierInfo.handleToggleEdit;
     const [showSendModal, setShowSendModal] = useState(false);
     const [emailData, setEmailData] = useState({ to: '', doc: null, displayName: '', isLocalAttachment: false });
     const [showEditDossierModal, setShowEditDossierModal] = useState(false);
+
+    // Une personne/organisation issue du referentiel de contacts doit etre
+    // modifiee dans le formulaire complet. Les rares snapshots OfficeUser
+    // continuent d'utiliser l'editeur compact historique, qui est le seul a
+    // connaitre leur modele de donnees.
+    const editOpensFullContact = isClassicContactEntity(selectedDossierEntity);
+    const handleEditSelectedEntity = useCallback(() => {
+        const navigation = buildDossierContactEditNavigation({
+            dossierId: currentDossier?._id,
+            selectedEntity: selectedDossierEntity,
+        });
+        if (!navigation) {
+            handleInlineEntityEdit();
+            return;
+        }
+        navigate(navigation.to, { state: navigation.state });
+    }, [
+        currentDossier?._id,
+        selectedDossierEntity,
+        handleInlineEntityEdit,
+        navigate,
+    ]);
 
     // === Hook de recherche de templates (remplace le bouton "+") ===
     const templateSearch = useTemplateSearch();
@@ -303,7 +426,8 @@ const DocumentsStockesDossier = ({ dossierInfoOverride } = {}) => {
                     handleBackOrToggleInfos={dossierInfo.showInfosDossier ? dossierInfo.handleBackOrToggleInfos : handleOpenEditDossierModal}
                     selectedEntity={dossierInfo.selectedEntity}
                     isEditing={dossierInfo.isEditing}
-                    handleToggleEdit={dossierInfo.handleToggleEdit}
+                    handleToggleEdit={handleEditSelectedEntity}
+                    editOpensFullContact={editOpensFullContact && !dossierInfo.isEditing}
                     openLinkedContactModal={dossierInfo.openLinkedContactModal}
                     onOpenBlankEmail={() => { setEmailData({ to: '', doc: null }); setShowSendModal(true); }}
                     onAddSubfolderClick={() => setIsSubfolderModalOpen(true)}
@@ -320,6 +444,7 @@ const DocumentsStockesDossier = ({ dossierInfoOverride } = {}) => {
                     currentView={currentView}
                     onNavigateToRoot={handleNavigateToRoot}
                     onGenerateTextExport={handleGenerateTextExport}
+                    onOpenAIAssistant={isFeatureEnabled('aiAssistant') ? () => setIsAIAssistantOpen(true) : undefined}
                     sortMode={sortMode}
                     onToggleSort={handleToggleSort}
                 />
@@ -360,6 +485,8 @@ const DocumentsStockesDossier = ({ dossierInfoOverride } = {}) => {
                         handleDragEnter={handleDragEnter}
                         handleDragLeave={handleDragLeave}
                         handleDrop={handleDrop}
+                        handleImportFiles={handleImportFiles}
+                        isImportingFiles={uploadProgress?.status === 'uploading'}
                         sortMode={sortMode}
                         classifyDocument={classifyDocument}
                         {...docActions}
@@ -428,6 +555,41 @@ const DocumentsStockesDossier = ({ dossierInfoOverride } = {}) => {
               onClose={() => setTextExportProgress(null)}
               progress={textExportProgress}
             />
+            {isAIAssistantOpen && ReactDOM.createPortal(
+              <div className="dossier-ai-drawer" role="presentation">
+                <AIAssistantPanel
+                  matterId={currentDossier?._id || ''}
+                  matterTitle={currentDossier?.dossier?.dossier?.nom || currentDossier?.reference || 'Dossier actif'}
+                  availableSources={(allDocuments || []).map((document) => ({
+                    id: document._id,
+                    documentId: document._id,
+                    label: document.nomDocument || 'Document sans titre',
+                    version: document.currentVersionId || document.version || 'courante',
+                    pages: document.pages || null,
+                    categorie: document.categorie || '',
+                    confidential: document.confidential === true,
+                    selectable: document.deletedAt == null,
+                  }))}
+                  onClose={() => setIsAIAssistantOpen(false)}
+                  onOpenSettings={() => navigate('/dashboard/parametres', { state: { activeTab: 'ai' } })}
+                  onOpenCitation={(citation) => {
+                    const sourceId = citation?.documentId || citation?.sourceId;
+                    window.dispatchEvent(new CustomEvent('kheops:open-ai-source', { detail: { documentId: sourceId } }));
+                  }}
+                  onDocumentCreated={(result) => {
+                    if (currentDossier?._id) dispatch(fetchAllDocumentsInDossier(currentDossier._id, token));
+                    const created = result?.document || result;
+                    toast.success(
+                      created?.nomDocument || created?.title
+                        ? `Brouillon « ${created.nomDocument || created.title} » créé et à valider.`
+                        : 'Brouillon IA créé et à valider.',
+                      { title: 'Assistant IA' },
+                    );
+                  }}
+                />
+              </div>,
+              document.body,
+            )}
         </div>
     );
 };

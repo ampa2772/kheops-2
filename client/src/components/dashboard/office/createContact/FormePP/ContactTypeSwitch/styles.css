@@ -197,3 +197,67 @@
   box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.25);
   background: linear-gradient(180deg, #f8fcfe 0%, #fff 100%);
 }
+
+.cts-lawyer-roles {
+  margin: 0;
+  padding: 10px 12px 12px;
+  border: 1px solid rgba(138, 180, 248, 0.35);
+  border-radius: 10px;
+  min-width: 0;
+}
+
+.cts-lawyer-roles legend {
+  padding: 0 6px;
+  color: #dbeafe;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.cts-lawyer-role-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cts-role-option {
+  min-height: 38px;
+  padding: 8px 16px;
+  border-radius: 9px;
+  border: 1px solid rgba(138, 180, 248, 0.4);
+  background: rgba(4, 58, 79, 0.45);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cts-role-option.active {
+  border-color: #4dc9ff;
+  background: linear-gradient(135deg, #0ea5d1, #2563eb);
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.16);
+}
+
+.cts-lawyer-roles.error {
+  border-color: #f87171;
+}
+
+.cts-role-error {
+  margin: 8px 0 0;
+  color: #fecaca;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .cts-row,
+  .cts-switch,
+  .cts-lawyer-role-actions {
+    width: 100%;
+  }
+
+  .cts-option,
+  .cts-role-option {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 8px;
+    white-space: normal;
+  }
+}

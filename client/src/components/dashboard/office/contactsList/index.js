@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../../../services/apiClient';
@@ -8,7 +8,11 @@ import {
   setShowPersonneMorale,
   setSearchNavigationContactId,
 } from '../../../../redux/slices/layoutSlice';
+import { setCurrentDossier } from '../../../../redux/slices/currentDossierSlice';
 import OutlookContactsPanel, { useOutlookContacts } from './OutlookContactsPanel';
+import { readContactsListState, writeContactsListState } from './contactListState';
+import EmailComposeModal from '../../../contactActions/EmailComposeModal';
+import CreateLetterModal from '../../../contactActions/CreateLetterModal';
 import './styles.css';
 
 // ---------------------------------------------------------------------------
@@ -170,17 +174,30 @@ const ContactsList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  const initialListStateRef = useRef(readContactsListState());
+  const contactsPageRef = useRef(null);
+  const dossiersModalRef = useRef(null);
+  const dossiersTriggerRef = useRef(null);
+  const contactActionTriggerRef = useRef(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [rows, setRows] = useState([]);
-  const [activeTab, setActiveTab] = useState('tous');
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState({ field: null, dir: 'asc' });
+  const [activeTab, setActiveTab] = useState(initialListStateRef.current.activeTab);
+  const [query, setQuery] = useState(initialListStateRef.current.query);
+  const [sort, setSort] = useState(initialListStateRef.current.sort);
+  const [selectedId, setSelectedId] = useState(initialListStateRef.current.selectedId);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [dossiersTarget, setDossiersTarget] = useState(null);
   const [dossiersLoading, setDossiersLoading] = useState(false);
   const [dossiersError, setDossiersError] = useState(null);
   const [dossiersList, setDossiersList] = useState([]);
+  const [dossiersQuery, setDossiersQuery] = useState('');
+  const [dossiersSort, setDossiersSort] = useState('reference-desc');
+  const [dossiersLinkMode, setDossiersLinkMode] = useState(false);
+  const [dossiersNotice, setDossiersNotice] = useState('');
+  const [contactActionMode, setContactActionMode] = useState(null);
+  const [contactActionTarget, setContactActionTarget] = useState(null);
 
   // Contacts Outlook (consultation seule). L'onglet n'existe que si un compte
   // Microsoft est relié — sinon le hook passe en 'hidden' et rien ne s'affiche.
@@ -208,6 +225,35 @@ const ContactsList = () => {
     load();
   }, [load]);
 
+  const persistListState = useCallback((overrides = {}) => {
+    const current = {
+      activeTab,
+      query,
+      sort,
+      scrollTop: contactsPageRef.current
+        ? contactsPageRef.current.scrollTop
+        : (initialListStateRef.current.scrollTop || 0),
+      selectedId,
+      ...overrides,
+    };
+    initialListStateRef.current = writeContactsListState(current);
+    return initialListStateRef.current;
+  }, [activeTab, query, sort, selectedId]);
+
+  useEffect(() => {
+    persistListState();
+  }, [persistListState]);
+
+  useEffect(() => {
+    if (loading || !contactsPageRef.current) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      if (contactsPageRef.current) {
+        contactsPageRef.current.scrollTop = initialListStateRef.current.scrollTop || 0;
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [loading, activeTab]);
+
   // Fermeture du menu d'actions au clic à l'extérieur.
   useEffect(() => {
     if (!openMenuId) return undefined;
@@ -230,6 +276,12 @@ const ContactsList = () => {
   const visibleTabs = useMemo(() => (
     outlook.status === 'hidden' ? TABS : [...TABS, { id: 'outlook', label: 'Outlook' }]
   ), [outlook.status]);
+
+  useEffect(() => {
+    if (activeTab === 'outlook' && outlook.status === 'hidden') {
+      setActiveTab('tous');
+    }
+  }, [activeTab, outlook.status]);
 
   const tabRows = useMemo(() => {
     if (activeTab === 'personnes') return rows.filter((r) => r.kind === 'physique');
@@ -300,9 +352,16 @@ const ContactsList = () => {
     );
   };
 
+  const contactReturnState = useCallback(() => ({
+    to: '/dashboard/contacts',
+    label: 'Retour aux contacts',
+  }), []);
+
   const openContact = (id) => {
+    setSelectedId(String(id));
+    persistListState({ selectedId: String(id) });
     dispatch(setSearchNavigationContactId(id));
-    navigate('/dashboard/createContact');
+    navigate('/dashboard/createContact', { state: { contactReturn: contactReturnState() } });
   };
 
   const openNewPerson = () => {
@@ -310,7 +369,8 @@ const ContactsList = () => {
     dispatch(setContactType('physique'));
     dispatch(setShowPersonnePhysique(true));
     dispatch(setShowPersonneMorale(false));
-    navigate('/dashboard/createContact');
+    persistListState({ selectedId: null });
+    navigate('/dashboard/createContact', { state: { contactReturn: contactReturnState() } });
   };
 
   const openNewOrganisation = () => {
@@ -318,11 +378,12 @@ const ContactsList = () => {
     dispatch(setContactType('morale'));
     dispatch(setShowPersonnePhysique(false));
     dispatch(setShowPersonneMorale(true));
-    navigate('/dashboard/createContact');
+    persistListState({ selectedId: null });
+    navigate('/dashboard/createContact', { state: { contactReturn: contactReturnState() } });
   };
 
-  const openDossiers = async (row) => {
-    setDossiersTarget(row);
+  const loadDossiers = useCallback(async (row) => {
+    if (!row) return;
     setDossiersLoading(true);
     setDossiersError(null);
     setDossiersList([]);
@@ -336,12 +397,159 @@ const ContactsList = () => {
     } finally {
       setDossiersLoading(false);
     }
+  }, []);
+
+  const openDossiers = (row, trigger = null) => {
+    dossiersTriggerRef.current = trigger || document.activeElement;
+    setDossiersTarget(row);
+    setDossiersQuery('');
+    setDossiersSort('reference-desc');
+    setDossiersLinkMode(false);
+    setDossiersNotice('');
+    loadDossiers(row);
   };
 
-  const closeDossiers = () => {
+  const startLinkingDossier = async () => {
+    setDossiersLoading(true);
+    setDossiersError(null);
+    setDossiersNotice('');
+    try {
+      const response = await apiClient.get('/api/folder/last-25-dossiers', { params: { limit: 500 } });
+      const linkedIds = new Set(dossiersList.map((dossier) => String(dossier.id)));
+      const choices = (response.data || []).map((dossier) => ({
+        id: String(dossier._id),
+        reference: dossier.reference || '',
+        nom: dossier.dossier?.dossier?.nom || '',
+        type: dossier.dossier?.dossier?.type_dossier || '',
+        status: 'active',
+        statusLabel: 'Actif',
+        lastActivity: dossier._lastUpdated || dossier.dateCreation || null,
+        responsibleLawyers: (dossier.dossier?.avocatsResponsables || []).map((responsible) => (
+          [responsible?.prenomOfficeUser || responsible?.firstName, responsible?.nomOfficeUser || responsible?.lastName]
+            .filter(Boolean).join(' ').trim()
+        )).filter(Boolean),
+      })).filter((dossier) => !linkedIds.has(dossier.id));
+      setDossiersList(choices);
+      setDossiersLinkMode(true);
+      setDossiersQuery('');
+    } catch (linkError) {
+      setDossiersError(linkError.response?.data?.message || linkError.message || 'Impossible de charger les dossiers disponibles.');
+    } finally {
+      setDossiersLoading(false);
+    }
+  };
+
+  const linkDossier = async (dossier) => {
+    if (!dossiersTarget?.id || !dossier?.id) return;
+    setDossiersLoading(true);
+    setDossiersError(null);
+    try {
+      await apiClient.post(`/api/folder/contacts/${dossiersTarget.id}/dossiers/${dossier.id}/link`);
+      setDossiersLinkMode(false);
+      setDossiersNotice(`Le dossier ${dossier.reference || dossier.nom || ''} est maintenant lié au contact.`.trim());
+      await loadDossiers(dossiersTarget);
+    } catch (linkError) {
+      setDossiersError(linkError.response?.data?.message || linkError.message || 'Impossible de lier ce dossier.');
+    } finally {
+      setDossiersLoading(false);
+    }
+  };
+
+  const openContactAction = (row, mode, trigger = null) => {
+    contactActionTriggerRef.current = trigger
+      || document.querySelector(`[data-contact-actions="${row.id}"]`)
+      || document.activeElement;
+    setOpenMenuId(null);
+    setContactActionTarget(row);
+    setContactActionMode(mode);
+  };
+
+  const closeContactAction = useCallback(() => {
+    setContactActionMode(null);
+    setContactActionTarget(null);
+    window.requestAnimationFrame(() => contactActionTriggerRef.current?.focus?.());
+  }, []);
+
+  const openCreatedLetter = useCallback((letter) => {
+    if (!letter?.dossierId) return;
+    try { localStorage.setItem('kheopsLastOpenedDossierId', String(letter.dossierId)); } catch (_error) {}
+    dispatch(setCurrentDossier({ _id: letter.dossierId }));
+    closeContactAction();
+    navigate('/dashboard/dossier', {
+      state: {
+        contactReturn: contactReturnState(),
+        contactId: contactActionTarget?.id || null,
+        createdDocumentId: letter.documentId || null,
+      },
+    });
+  }, [closeContactAction, contactActionTarget, contactReturnState, dispatch, navigate]);
+
+  const closeDossiers = useCallback(() => {
     setDossiersTarget(null);
     setDossiersError(null);
     setDossiersList([]);
+    setDossiersLinkMode(false);
+    setDossiersNotice('');
+    window.requestAnimationFrame(() => dossiersTriggerRef.current?.focus?.());
+  }, []);
+
+  useEffect(() => {
+    if (!dossiersTarget || !dossiersModalRef.current) return undefined;
+    const modal = dossiersModalRef.current;
+    const getFocusable = () => Array.from(modal.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+    ));
+    window.requestAnimationFrame(() => getFocusable()[0]?.focus());
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeDossiers();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = getFocusable();
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    modal.addEventListener('keydown', handleKeyDown);
+    return () => modal.removeEventListener('keydown', handleKeyDown);
+  }, [dossiersTarget, closeDossiers]);
+
+  const displayedDossiers = useMemo(() => {
+    const q = dossiersQuery.trim().toLocaleLowerCase('fr');
+    const result = dossiersList.filter((d) => (
+      !q || [d.reference, d.nom, d.statusLabel, ...(d.responsibleLawyers || [])]
+        .some((value) => String(value || '').toLocaleLowerCase('fr').includes(q))
+    ));
+    const direction = dossiersSort.endsWith('-asc') ? 1 : -1;
+    const field = dossiersSort.startsWith('nom') ? 'nom' : 'reference';
+    return [...result].sort((a, b) => direction * String(a[field] || '').localeCompare(
+      String(b[field] || ''), 'fr', { numeric: true }
+    ));
+  }, [dossiersList, dossiersQuery, dossiersSort]);
+
+  const openLinkedDossier = (dossier, { newTab = false } = {}) => {
+    if (!dossier?.id) return;
+    const dossierUrl = `/dashboard/dossier?dossierId=${encodeURIComponent(String(dossier.id))}`;
+    try { localStorage.setItem('kheopsLastOpenedDossierId', String(dossier.id)); } catch (_error) {}
+    apiClient.post(`/api/folder/contacts/${dossiersTarget?.id}/dossiers/${dossier.id}/open-audit`).catch(() => {});
+    if (newTab) {
+      window.open(dossierUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    dispatch(setCurrentDossier({ _id: dossier.id }));
+    closeDossiers();
+    navigate(dossierUrl, {
+      state: { contactReturn: contactReturnState(), contactId: dossiersTarget?.id || null },
+    });
   };
 
   const renderCell = (row, col) => {
@@ -383,7 +591,11 @@ const ContactsList = () => {
   const subtitle = `${counts.tous} contact${counts.tous > 1 ? 's' : ''} · ${counts.personnes} personne${counts.personnes > 1 ? 's' : ''} · ${counts.organisations} organisation${counts.organisations > 1 ? 's' : ''}`;
 
   return (
-    <div className="contacts-page">
+    <div
+      className="contacts-page"
+      ref={contactsPageRef}
+      onScroll={() => persistListState({ scrollTop: contactsPageRef.current?.scrollTop || 0 })}
+    >
       <div className="contacts-panel">
         <div className="contacts-panel__header">
           <div className="contacts-panel__heading">
@@ -473,18 +685,17 @@ const ContactsList = () => {
                   {columns.map((col) => {
                     const active = sort.field === col.key;
                     return (
-                      <th
-                        key={col.key}
-                        className="contacts-th-sortable"
-                        onClick={() => toggleSort(col.key)}
-                        aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                      >
-                        <span className="contacts-th-inner">
+                      <th key={col.key} aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button
+                          type="button"
+                          className="contacts-th-sortable contacts-th-inner"
+                          onClick={() => toggleSort(col.key)}
+                        >
                           {col.label}
                           <span className={`contacts-sort-arrow ${active ? 'is-active' : ''}`}>
                             {active ? (sort.dir === 'asc' ? '▲' : '▼') : '⇅'}
                           </span>
-                        </span>
+                        </button>
                       </th>
                     );
                   })}
@@ -495,8 +706,16 @@ const ContactsList = () => {
                 {displayed.map((row) => (
                   <tr
                     key={`${row.kind}-${row.id}`}
-                    className="contacts-row"
+                    className={`contacts-row ${String(selectedId) === String(row.id) ? 'is-selected' : ''}`}
                     onClick={() => openContact(row.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        openContact(row.id);
+                      }
+                    }}
+                    tabIndex={0}
+                    aria-selected={String(selectedId) === String(row.id)}
                   >
                     {columns.map((col) => (
                       <td key={col.key}>{renderCell(row, col)}</td>
@@ -506,6 +725,9 @@ const ContactsList = () => {
                         type="button"
                         className="contacts-kebab-btn"
                         aria-label="Actions du contact"
+                        aria-haspopup="menu"
+                        aria-expanded={openMenuId === row.id}
+                        data-contact-actions={row.id}
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenMenuId(openMenuId === row.id ? null : row.id);
@@ -538,12 +760,37 @@ const ContactsList = () => {
                           <button
                             type="button"
                             className="contacts-menu-item"
-                            onClick={() => {
+                            onClick={(event) => {
                               setOpenMenuId(null);
-                              openDossiers(row);
+                              openDossiers(
+                                row,
+                                document.querySelector(`[data-contact-actions="${row.id}"]`) || event.currentTarget
+                              );
                             }}
                           >
                             Dossiers liés
+                          </button>
+                          <button
+                            type="button"
+                            className="contacts-menu-item contacts-menu-item--communication"
+                            onClick={(event) => openContactAction(
+                              row,
+                              'letter',
+                              document.querySelector(`[data-contact-actions="${row.id}"]`) || event.currentTarget,
+                            )}
+                          >
+                            Créer un courrier
+                          </button>
+                          <button
+                            type="button"
+                            className="contacts-menu-item contacts-menu-item--communication"
+                            onClick={(event) => openContactAction(
+                              row,
+                              'email',
+                              document.querySelector(`[data-contact-actions="${row.id}"]`) || event.currentTarget,
+                            )}
+                          >
+                            Envoyer un e-mail
                           </button>
                         </div>
                       )}
@@ -560,31 +807,103 @@ const ContactsList = () => {
         <div className="contacts-modal-overlay" role="presentation" onClick={closeDossiers}>
           <div
             className="contacts-modal"
+            ref={dossiersModalRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="contacts-dos-title"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 id="contacts-dos-title" className="contacts-modal__title">
-              Dossiers liés
+              {dossiersLinkMode ? 'Lier à un dossier' : 'Dossiers liés'}
             </h2>
             <p className="contacts-modal__text">
               {dossiersTarget.displayName || 'Ce contact'}
             </p>
+            {dossiersNotice && <p className="contacts-modal__notice" role="status">{dossiersNotice}</p>}
+            {!dossiersLoading && !dossiersError && dossiersList.length > 1 && (
+              <div className="contacts-modal__toolbar">
+                <label className="contacts-modal__search">
+                  <span className="sr-only">Rechercher dans les dossiers liés</span>
+                  <input
+                    type="search"
+                    className="k2-input"
+                    value={dossiersQuery}
+                    onChange={(event) => setDossiersQuery(event.target.value)}
+                    placeholder="Rechercher un dossier…"
+                  />
+                </label>
+                <label className="contacts-modal__sort">
+                  <span className="sr-only">Trier les dossiers liés</span>
+                  <select value={dossiersSort} onChange={(event) => setDossiersSort(event.target.value)}>
+                    <option value="reference-desc">Référence décroissante</option>
+                    <option value="reference-asc">Référence croissante</option>
+                    <option value="nom-asc">Nom A–Z</option>
+                    <option value="nom-desc">Nom Z–A</option>
+                  </select>
+                </label>
+              </div>
+            )}
             {dossiersLoading ? (
               <p className="contacts-modal__muted">Chargement…</p>
             ) : dossiersError ? (
-              <p className="contacts-modal__error">{dossiersError}</p>
-            ) : dossiersList.length === 0 ? (
-              <p className="contacts-modal__muted">Ce contact n'est lié à aucun dossier.</p>
+              <div className="contacts-modal__error-state" role="alert">
+                <p className="contacts-modal__error">{dossiersError}</p>
+                <button type="button" className="k2-btn k2-btn-secondary k2-btn-sm" onClick={() => loadDossiers(dossiersTarget)}>
+                  Réessayer
+                </button>
+              </div>
+            ) : dossiersList.length === 0 && !dossiersLinkMode ? (
+              <div className="contacts-modal__empty-state">
+                <p className="contacts-modal__muted">Ce contact n'est lié à aucun dossier.</p>
+                <button
+                  type="button"
+                  className="k2-btn k2-btn-secondary k2-btn-sm"
+                  onClick={startLinkingDossier}
+                >
+                  Lier à un dossier
+                </button>
+              </div>
+            ) : displayedDossiers.length === 0 ? (
+              <p className="contacts-modal__muted">{dossiersLinkMode ? 'Aucun autre dossier disponible.' : 'Aucun dossier ne correspond à cette recherche.'}</p>
             ) : (
               <ul className="contacts-modal__dossiers">
-                {dossiersList.map((d) => (
+                {displayedDossiers.map((d) => (
                   <li key={d.id} className="contacts-modal__dossier">
-                    <span className="contacts-modal__dossier-ref">{d.reference || '—'}</span>
-                    {d.nom ? (
-                      <span className="contacts-modal__dossier-nom">{d.nom}</span>
-                    ) : null}
+                    <div
+                      className="contacts-modal__dossier-link"
+                      role={dossiersLinkMode ? 'button' : 'link'}
+                      tabIndex={0}
+                      onClick={() => (dossiersLinkMode ? linkDossier(d) : openLinkedDossier(d))}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          if (dossiersLinkMode) linkDossier(d);
+                          else openLinkedDossier(d);
+                        }
+                      }}
+                      aria-label={`${dossiersLinkMode ? 'Lier' : 'Ouvrir'} le dossier ${d.reference || ''} ${d.nom || ''}`.trim()}
+                    >
+                      <span className="contacts-modal__dossier-ref">{d.reference || '—'}</span>
+                      {d.nom ? <span className="contacts-modal__dossier-nom">{d.nom}</span> : null}
+                      <span className="contacts-modal__dossier-meta">
+                        {d.statusLabel || 'Actif'}
+                        {d.lastActivity ? ` · activité ${new Date(d.lastActivity).toLocaleDateString('fr-FR')}` : ''}
+                      </span>
+                      {d.responsibleLawyers?.length ? (
+                        <span className="contacts-modal__dossier-responsibles">
+                          Responsable{d.responsibleLawyers.length > 1 ? 's' : ''} : {d.responsibleLawyers.join(', ')}
+                        </span>
+                      ) : null}
+                    </div>
+                    {!dossiersLinkMode && <button
+                      type="button"
+                      className="contacts-modal__new-tab"
+                      onClick={() => openLinkedDossier(d, { newTab: true })}
+                      aria-label={`Ouvrir ${d.reference || d.nom || 'ce dossier'} dans un nouvel onglet`}
+                      title="Ouvrir dans un nouvel onglet"
+                    >
+                      ↗
+                    </button>}
                   </li>
                 ))}
               </ul>
@@ -597,6 +916,24 @@ const ContactsList = () => {
           </div>
         </div>
       )}
+
+      <CreateLetterModal
+        open={contactActionMode === 'letter'}
+        contactId={contactActionTarget?.id}
+        contactSummary={contactActionTarget}
+        onClose={closeContactAction}
+        onOpenLetter={openCreatedLetter}
+      />
+      <EmailComposeModal
+        open={contactActionMode === 'email'}
+        contactId={contactActionTarget?.id}
+        contactSummary={contactActionTarget}
+        onClose={closeContactAction}
+        onOpenSettings={() => {
+          closeContactAction();
+          navigate('/dashboard/parametres?activeTab=connectedServices');
+        }}
+      />
     </div>
   );
 };

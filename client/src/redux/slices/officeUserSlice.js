@@ -1,8 +1,117 @@
 // officeUserSlice.js — migre depuis officeUserReducer/officeUserReducer.js
 // Phase 9A : logique migree depuis officeUserActions.js + loadUser.js
-// Persistance : wrapper pattern (localStorage read a l'init, write apres chaque dispatch)
+// Persistance : le profil actif est propre a chaque fenetre/onglet. On ne
+// persiste donc que son identifiant dans sessionStorage, namespace par User
+// Kheops. La liste et les objets OfficeUser restent canoniques et proviennent
+// toujours du serveur.
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import apiClient from '../../services/apiClient';
+
+export const ACTIVE_OFFICE_USER_SESSION_PREFIX = 'kheops.activeOfficeUserId.';
+
+const LEGACY_OFFICE_USER_KEYS = ['officeUser', 'officeUsers'];
+
+export const getActiveOfficeUserSessionKey = (ownerUserId) => {
+  const normalizedOwnerId = String(ownerUserId || '').trim();
+  return normalizedOwnerId ? `${ACTIVE_OFFICE_USER_SESSION_PREFIX}${normalizedOwnerId}` : null;
+};
+
+const getWindowSessionStorage = () => {
+  try {
+    return typeof window !== 'undefined' ? window.sessionStorage : null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const getWindowLocalStorage = () => {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage : null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const readActiveOfficeUserId = (ownerUserId) => {
+  const key = getActiveOfficeUserSessionKey(ownerUserId);
+  const storage = getWindowSessionStorage();
+  if (!key || !storage) return null;
+
+  try {
+    const value = storage.getItem(key);
+    if (!value || value === 'undefined' || value === 'null') {
+      storage.removeItem(key);
+      return null;
+    }
+    return String(value);
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeActiveOfficeUserId = (ownerUserId, officeUserId) => {
+  const key = getActiveOfficeUserSessionKey(ownerUserId);
+  const storage = getWindowSessionStorage();
+  if (!key || !storage) return;
+
+  try {
+    if (officeUserId) storage.setItem(key, String(officeUserId));
+    else storage.removeItem(key);
+  } catch (error) {
+    console.error('Erreur sessionStorage officeUser:', error);
+  }
+};
+
+const clearActiveOfficeUserSession = (ownerUserId = null) => {
+  const storage = getWindowSessionStorage();
+  if (!storage) return;
+
+  try {
+    const exactKey = getActiveOfficeUserSessionKey(ownerUserId);
+    if (exactKey) {
+      storage.removeItem(exactKey);
+      return;
+    }
+
+    // Lors d'un logout/auth error, le User peut deja avoir ete retire du
+    // state. On nettoie alors toutes les selections de CETTE fenetre.
+    const keysToRemove = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key && key.startsWith(ACTIVE_OFFICE_USER_SESSION_PREFIX)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => storage.removeItem(key));
+  } catch (error) {
+    console.error('Erreur nettoyage sessionStorage officeUser:', error);
+  }
+};
+
+const readLegacyOfficeUserId = () => {
+  const storage = getWindowLocalStorage();
+  if (!storage) return null;
+
+  try {
+    const raw = storage.getItem('officeUser');
+    if (!raw || raw === 'undefined' || raw === 'null') return null;
+    const parsed = JSON.parse(raw);
+    const id = parsed && typeof parsed === 'object' ? parsed._id : parsed;
+    return id ? String(id) : null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const clearLegacyOfficeUserStorage = () => {
+  const storage = getWindowLocalStorage();
+  if (!storage) return;
+  try {
+    LEGACY_OFFICE_USER_KEYS.forEach((key) => storage.removeItem(key));
+  } catch (error) {
+    console.error('Erreur nettoyage ancien localStorage officeUser:', error);
+  }
+};
 
 // ========================================================================
 // Async Thunks
@@ -75,12 +184,15 @@ export const updateOfficeUser = createAsyncThunk(
 /**
  * loadOfficeUsers — Charge la liste des officeUsers depuis le backend.
  * Reste un thunk classique car il dispatch CREATE_OFFICE_USER_SUCCESS
- * et gere la logique localStorage + INITIAL_OFFICE_USER_SETUP_REQUIRED.
+ * et gere la selection sessionStorage, la migration de l'ancien localStorage
+ * et INITIAL_OFFICE_USER_SETUP_REQUIRED.
  */
 export const loadOfficeUsers = (explicitToken = null) => async (dispatch, getState) => {
   try {
-    const loginToken = getState().login.token;
+    const loginState = getState().login || {};
+    const loginToken = loginState.token;
     const token = explicitToken || loginToken;
+    const ownerUserId = loginState.user?._id || loginState.user?.id || null;
 
     if (!token) {
       return dispatch({ type: 'LOAD_OFFICE_USERS_FAILURE', payload: { message: 'Non authentifie' } });
@@ -92,29 +204,41 @@ export const loadOfficeUsers = (explicitToken = null) => async (dispatch, getSta
     const officeUsersList = res.data.officeUsers;
 
     if (officeUsersList && officeUsersList.length > 0) {
-      dispatch({ type: 'LOAD_OFFICE_USERS_SUCCESS', payload: officeUsersList });
+      dispatch({
+        type: 'LOAD_OFFICE_USERS_SUCCESS',
+        payload: officeUsersList,
+        meta: { ownerUserId },
+      });
 
       let singleUser = officeUsersList.find(user => user.mainOfficeUser === true);
       if (!singleUser) {
         singleUser = officeUsersList[0];
       }
 
-      const localStorageOfficeUser = localStorage.getItem('officeUser');
-      if (localStorageOfficeUser) {
-        try {
-          const parsedOfficeUser = JSON.parse(localStorageOfficeUser);
-          if (officeUsersList.some(u => u._id === parsedOfficeUser._id)) {
-            singleUser = parsedOfficeUser;
-          }
-        } catch (e) {
-          console.error('Erreur parsing officeUser depuis localStorage');
-        }
-      }
+      const sessionOfficeUserId = readActiveOfficeUserId(ownerUserId);
+      const legacyOfficeUserId = sessionOfficeUserId ? null : readLegacyOfficeUserId();
+      const requestedOfficeUserId = sessionOfficeUserId || legacyOfficeUserId;
+      const canonicalSelection = requestedOfficeUserId
+        ? officeUsersList.find(user => String(user._id) === String(requestedOfficeUserId))
+        : null;
 
-      dispatch({ type: 'CREATE_OFFICE_USER_SUCCESS', payload: singleUser });
+      // Un id de session inconnu ne doit jamais restaurer un objet perime :
+      // on retombe sur le main (ou le premier) issu de la reponse serveur.
+      if (canonicalSelection) singleUser = canonicalSelection;
+
+      dispatch({
+        type: 'CREATE_OFFICE_USER_SUCCESS',
+        payload: singleUser,
+        meta: { ownerUserId },
+      });
+      clearLegacyOfficeUserStorage();
     } else {
       console.log('Aucun OfficeUser trouve. Declenchement du formulaire de creation de profil initial.');
-      dispatch({ type: 'INITIAL_OFFICE_USER_SETUP_REQUIRED' });
+      dispatch({
+        type: 'INITIAL_OFFICE_USER_SETUP_REQUIRED',
+        meta: { ownerUserId },
+      });
+      clearLegacyOfficeUserStorage();
     }
   } catch (err) {
     dispatch({
@@ -128,12 +252,10 @@ export const loadOfficeUsers = (explicitToken = null) => async (dispatch, getSta
 // Slice
 // ========================================================================
 
-const officeUserFromStorage = localStorage.getItem('officeUser');
-const officeUsersFromStorage = localStorage.getItem('officeUsers');
-
 const initialState = {
-  officeUser: (officeUserFromStorage && officeUserFromStorage !== "undefined") ? JSON.parse(officeUserFromStorage) : null,
-  officeUsers: (officeUsersFromStorage && officeUsersFromStorage !== "undefined") ? JSON.parse(officeUsersFromStorage) : [],
+  officeUser: null,
+  officeUsers: [],
+  sessionOwnerUserId: null,
   isLoading: false,
   error: null,
   userToDelete: null,
@@ -167,6 +289,7 @@ const officeUserSlice = createSlice({
       // --- CREATE (string types pour compat cross-slice, ex: loadOfficeUsers dispatch) ---
       .addCase('CREATE_OFFICE_USER_SUCCESS', (state, action) => {
         state.officeUser = action.payload;
+        state.sessionOwnerUserId = action.meta?.ownerUserId || state.sessionOwnerUserId;
         state.isSetupRequired = false;
         state.isLoading = false;
         state.error = null;
@@ -175,6 +298,7 @@ const officeUserSlice = createSlice({
       // --- LOAD (string types pour loadOfficeUsers thunk classique) ---
       .addCase('LOAD_OFFICE_USERS_SUCCESS', (state, action) => {
         state.officeUsers = action.payload;
+        state.sessionOwnerUserId = action.meta?.ownerUserId || state.sessionOwnerUserId;
         state.isLoading = false;
         state.error = null;
       })
@@ -184,9 +308,10 @@ const officeUserSlice = createSlice({
       })
 
       // --- INITIAL SETUP REQUIRED ---
-      .addCase('INITIAL_OFFICE_USER_SETUP_REQUIRED', (state) => {
+      .addCase('INITIAL_OFFICE_USER_SETUP_REQUIRED', (state, action) => {
         state.officeUsers = [];
         state.officeUser = null;
+        state.sessionOwnerUserId = action.meta?.ownerUserId || state.sessionOwnerUserId;
         state.isSetupRequired = true;
         state.isLoading = false;
       })
@@ -223,7 +348,28 @@ const officeUserSlice = createSlice({
         state.isLoading = true;
       })
       .addCase(deleteOfficeUser.fulfilled, (state, action) => {
-        state.officeUsers = state.officeUsers.filter(user => user._id !== action.payload);
+        const deletedOfficeUserId = String(action.payload || '');
+        const deletedActiveProfile = String(state.officeUser?._id || '') === deletedOfficeUserId;
+        state.officeUsers = state.officeUsers.filter(
+          user => String(user._id) !== deletedOfficeUserId
+        );
+
+        if (deletedActiveProfile) {
+          // La liste Redux est la copie canonique issue du serveur. Le profil
+          // de repli doit provenir de cette liste (jamais d'un ancien objet de
+          // localStorage), avec la meme priorite main -> premier que le login.
+          state.officeUser = state.officeUsers.find(user => user.mainOfficeUser === true)
+            || state.officeUsers[0]
+            || null;
+        } else if (state.officeUser) {
+          // Conserver egalement une reference canonique lorsqu'un autre profil
+          // est supprime.
+          state.officeUser = state.officeUsers.find(
+            user => String(user._id) === String(state.officeUser._id)
+          ) || null;
+        }
+
+        state.userToDelete = null;
         state.isLoading = false;
         state.error = null;
       })
@@ -241,6 +387,9 @@ const officeUserSlice = createSlice({
         if (index !== -1) {
           state.officeUsers[index] = action.payload;
         }
+        if (state.officeUser?._id === action.payload._id) {
+          state.officeUser = action.payload;
+        }
         state.isSetupRequired = false;
         state.isLoading = false;
         state.error = null;
@@ -256,6 +405,7 @@ const officeUserSlice = createSlice({
       .addCase('LOGOUT', (state) => {
         state.officeUser = null;
         state.officeUsers = [];
+        state.sessionOwnerUserId = null;
         state.isSetupRequired = false;
         state.isLoading = false;
         state.error = null;
@@ -263,6 +413,7 @@ const officeUserSlice = createSlice({
       .addCase('AUTH_ERROR', (state) => {
         state.officeUser = null;
         state.officeUsers = [];
+        state.sessionOwnerUserId = null;
         state.isSetupRequired = false;
         state.isLoading = false;
         state.error = null;
@@ -270,6 +421,17 @@ const officeUserSlice = createSlice({
       .addCase('ACCOUNT_DELETED', (state) => {
         state.officeUser = null;
         state.officeUsers = [];
+        state.sessionOwnerUserId = null;
+        state.isSetupRequired = false;
+        state.isLoading = false;
+        state.error = null;
+      })
+      // Le logout RTK reel est `auth/logout`; conserver aussi `LOGOUT`
+      // ci-dessus pour la compatibilite avec les anciens dispatchs.
+      .addCase('auth/logout', (state) => {
+        state.officeUser = null;
+        state.officeUsers = [];
+        state.sessionOwnerUserId = null;
         state.isSetupRequired = false;
         state.isLoading = false;
         state.error = null;
@@ -285,13 +447,9 @@ export const {
   resetInitialData,
 } = officeUserSlice.actions;
 
-// --- Wrapper pour la persistance localStorage ---
-const PERSIST_ACTIONS = new Set([
+// --- Wrapper pour la persistance de la selection dans CETTE fenetre ---
+const SESSION_SELECTION_ACTIONS = new Set([
   'CREATE_OFFICE_USER_SUCCESS',
-  'LOAD_OFFICE_USERS_SUCCESS',
-  'LOGOUT',
-  'AUTH_ERROR',
-  'ACCOUNT_DELETED',
   officeUserSlice.actions.selectOfficeUser.type,
   createOfficeUser.fulfilled.type,
   createAdditionalOfficeUser.fulfilled.type,
@@ -299,16 +457,24 @@ const PERSIST_ACTIONS = new Set([
   updateOfficeUser.fulfilled.type,
 ]);
 
+const SESSION_RESET_ACTIONS = new Set([
+  'LOGOUT',
+  'AUTH_ERROR',
+  'ACCOUNT_DELETED',
+  'auth/logout',
+  'INITIAL_OFFICE_USER_SETUP_REQUIRED',
+]);
+
 const wrappedReducer = (state, action) => {
+  const previousOwnerUserId = state?.sessionOwnerUserId || null;
   const nextState = officeUserSlice.reducer(state, action);
 
-  if (PERSIST_ACTIONS.has(action.type)) {
-    try {
-      localStorage.setItem('officeUser', JSON.stringify(nextState.officeUser));
-      localStorage.setItem('officeUsers', JSON.stringify(nextState.officeUsers));
-    } catch (e) {
-      console.error('Erreur localStorage officeUser:', e);
-    }
+  if (SESSION_RESET_ACTIONS.has(action.type)) {
+    clearActiveOfficeUserSession(previousOwnerUserId || nextState.sessionOwnerUserId);
+    clearLegacyOfficeUserStorage();
+  } else if (SESSION_SELECTION_ACTIONS.has(action.type)) {
+    writeActiveOfficeUserId(nextState.sessionOwnerUserId, nextState.officeUser?._id || null);
+    clearLegacyOfficeUserStorage();
   }
 
   return nextState;

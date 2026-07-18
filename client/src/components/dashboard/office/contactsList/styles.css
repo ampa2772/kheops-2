@@ -150,8 +150,31 @@
 }
 
 .contacts-th-sortable {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  margin: -6px -8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
   cursor: pointer;
   user-select: none;
+}
+
+.contacts-th-sortable:hover,
+.contacts-th-sortable:focus-visible {
+  background: var(--k2-gray-100, #f2f4f7);
+}
+
+.contacts-th-sortable:focus-visible {
+  outline: 2px solid var(--k2-primary-500, #0969da);
+  outline-offset: 1px;
 }
 
 .contacts-th-inner {
@@ -173,6 +196,19 @@
 
 .contacts-row {
   cursor: pointer;
+}
+
+.contacts-row:focus-visible {
+  outline: 2px solid var(--k2-primary-500, #0969da);
+  outline-offset: -2px;
+}
+
+.contacts-row.is-selected {
+  background-color: var(--k2-info-50, #eff8ff);
+}
+
+.contacts-row.is-selected td:first-child {
+  box-shadow: inset 3px 0 0 var(--k2-primary-500, #0969da);
 }
 
 .contacts-cell-primary {
@@ -259,7 +295,7 @@
 
 .contacts-modal {
   width: 100%;
-  max-width: 460px;
+  max-width: 620px;
   max-height: 80vh;
   overflow-y: auto;
   background-color: #ffffff;
@@ -294,6 +330,44 @@
   color: var(--k2-error-700, #b42318);
 }
 
+.contacts-modal__error-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--k2-error-200, #fecdca);
+  border-radius: var(--k2-radius-md, 8px);
+  background: var(--k2-error-50, #fef3f2);
+}
+
+.contacts-modal__toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.contacts-modal__search,
+.contacts-modal__sort {
+  min-width: 0;
+}
+
+.contacts-modal__search input,
+.contacts-modal__sort select {
+  width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+}
+
+.contacts-modal__sort select {
+  padding: 8px 32px 8px 10px;
+  border: 1px solid var(--k2-gray-300, #d0d5dd);
+  border-radius: var(--k2-radius-md, 8px);
+  background: #fff;
+  color: var(--k2-gray-700, #344054);
+}
+
 .contacts-modal__dossiers {
   list-style: none;
   margin: 0;
@@ -305,14 +379,59 @@
 
 .contacts-modal__dossier {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 10px 14px;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0;
   border-bottom: 1px solid var(--k2-gray-200, #e5e7eb);
 }
 
 .contacts-modal__dossier:last-child {
   border-bottom: none;
+}
+
+.contacts-modal__dossier-link {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background-color var(--k2-duration-fast, 100ms) ease;
+}
+
+.contacts-modal__dossier-link:hover,
+.contacts-modal__dossier-link:focus-visible {
+  background: var(--k2-info-50, #eff8ff);
+}
+
+.contacts-modal__dossier-link:focus-visible {
+  outline: 2px solid var(--k2-primary-500, #0969da);
+  outline-offset: -2px;
+}
+
+.contacts-modal__new-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  border: 0;
+  border-left: 1px solid var(--k2-gray-200, #e5e7eb);
+  background: transparent;
+  color: var(--k2-primary-600, #1570ef);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.contacts-modal__new-tab:hover,
+.contacts-modal__new-tab:focus-visible {
+  background: var(--k2-info-50, #eff8ff);
+}
+
+.contacts-modal__new-tab:focus-visible {
+  outline: 2px solid var(--k2-primary-500, #0969da);
+  outline-offset: -2px;
 }
 
 .contacts-modal__dossier-ref {
@@ -324,6 +443,41 @@
 .contacts-modal__dossier-nom {
   color: var(--k2-gray-600, #475467);
   font-size: var(--k2-font-size-sm, 13px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contacts-modal__dossier-meta,
+.contacts-modal__dossier-responsibles {
+  color: #52657a;
+  display: block;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  margin-top: 0.15rem;
+  overflow-wrap: anywhere;
+}
+
+.contacts-modal__dossier-responsibles {
+  color: #334155;
+}
+
+.contacts-modal__empty-state {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.contacts-modal__notice {
+  background: #e8f7ee;
+  border: 1px solid #8bd0a5;
+  border-radius: 6px;
+  color: #155b31;
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.8rem;
 }
 
 .contacts-modal__actions {
@@ -524,4 +678,108 @@
   display: flex;
   justify-content: center;
   padding: 12px 0 4px;
+}
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  .contacts-page {
+    padding: var(--k2-space-3, 12px);
+  }
+  /* En-tête : titre + boutons d'ajout empilés, boutons pleine largeur */
+  .contacts-panel__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .contacts-add-actions {
+    width: 100%;
+  }
+  .contacts-btn-add {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  /* Barre de recherche en pleine largeur (le compteur passe dessous) */
+  .contacts-search__input {
+    width: 100%;
+  }
+}
+
+/* Annuaire (tableau large) : scroll horizontal du conteneur pour ne pas
+   déborder de l'écran sur petites tablettes/téléphones. */
+@media (max-width: 900px) {
+  .contacts-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Le tableau garde ses colonnes mais devient scrollable horizontalement */
+  .contacts-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .contacts-table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+    min-width: max-content;
+  }
+  /* Avatars un peu plus compacts pour gagner de la largeur */
+  .contacts-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  /* Modale « Dossiers liés » : bornée à la largeur de l'écran */
+  .contacts-modal {
+    width: min(620px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 18px;
+  }
+  .contacts-modal__actions {
+    flex-wrap: wrap;
+  }
+  .contacts-modal__toolbar {
+    grid-template-columns: 1fr;
+  }
+  .contacts-modal__dossier-link {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .contacts-page {
+    padding: var(--k2-space-2, 8px);
+  }
+  .contacts-panel {
+    padding: var(--k2-space-3, 12px);
+  }
+  /* En-tête : titre + tuile-icône alignés mais empilables si trop étroit */
+  .contacts-panel__heading {
+    gap: 10px;
+  }
+  .contacts-add-actions {
+    flex-direction: column;
+  }
+  .contacts-btn-add {
+    width: 100%;
+  }
+  /* Les trois filtres restent tous visibles : aucun onglet essentiel n'est
+     caché hors écran sur les téléphones très fins. */
+  .contacts-tabs {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .contacts-tabs .k2-tab {
+    flex: 1 1 108px;
+    padding-inline: 8px;
+  }
+  /* Menu d'actions "⋮" : ne déborde pas à droite */
+  .contacts-menu {
+    right: 4px;
+    min-width: 150px;
+  }
 }

@@ -10,6 +10,7 @@ import {
   detectCompanion,
   getPresence,
   getCompanionInstallerUrl,
+  getCompanionInstallerInfo,
   COMPANION_BASE,
   COMPANION_HEADER,
 } from '../companionClient';
@@ -57,16 +58,50 @@ describe('companionClient.detectCompanion', () => {
 });
 
 describe('companionClient.getCompanionInstallerUrl', () => {
-  afterEach(() => { try { delete window.__KHEOPS_CONFIG__; } catch (_e) {} });
+  const setPlatform = (platform) => {
+    Object.defineProperty(window.navigator, 'userAgentData', {
+      configurable: true,
+      value: { platform },
+    });
+  };
+
+  afterEach(() => {
+    try { delete window.__KHEOPS_CONFIG__; } catch (_e) {}
+    try { delete window.navigator.userAgentData; } catch (_e) {}
+  });
 
   test('URL par defaut = installeur du COMPAGNON (et non l ancien installeur complet)', () => {
+    setPlatform('Windows');
     const url = getCompanionInstallerUrl();
     expect(url).toMatch(/KHEOPS2-Companion-Setup\.exe$/);
     expect(url).not.toMatch(/KHEOPS2-Setup\.exe$/);
   });
 
   test('surcouche runtime via window.__KHEOPS_CONFIG__', () => {
+    setPlatform('Windows');
     window.__KHEOPS_CONFIG__ = { companionInstallerUrl: 'https://example.test/Companion.exe' };
     expect(getCompanionInstallerUrl()).toBe('https://example.test/Companion.exe');
+  });
+
+  test('macOS ne reçoit jamais le faux installateur .exe Windows', () => {
+    setPlatform('macOS');
+    window.__KHEOPS_CONFIG__ = { companionInstallerUrl: 'https://example.test/Companion.exe' };
+    const installer = getCompanionInstallerInfo();
+    expect(installer.platform).toBe('macos');
+    expect(installer.available).toBe(false);
+    expect(installer.url).toBeNull();
+    expect(installer.unavailableReason).toMatch(/macOS/i);
+  });
+
+  test('macOS utilise uniquement son artefact explicitement configuré', () => {
+    setPlatform('macOS');
+    window.__KHEOPS_CONFIG__ = {
+      companionInstallerUrl: 'https://example.test/Companion.exe',
+      companionInstallerUrlMacos: 'https://example.test/Companion.dmg',
+    };
+    const installer = getCompanionInstallerInfo();
+    expect(installer.available).toBe(true);
+    expect(installer.url).toBe('https://example.test/Companion.dmg');
+    expect(installer.fileName).toMatch(/\.dmg$/i);
   });
 });

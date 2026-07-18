@@ -10,6 +10,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const multer = require('multer');
+const mongoose = require('mongoose');
 const auth = require('../middlewares/middleware-auth');
 const chatService = require('../services/chatService');
 const OfficeUser = require('../models/App_Users/OfficeUser');
@@ -25,35 +26,89 @@ const router = express.Router();
 // Résout l'OfficeUser actif pour le User connecté.
 // Lit le header `X-Office-User-Id` (l'OfficeUser actif côté client) et vérifie
 // qu'il appartient bien au User authentifié via UserOfficeUser.
-// Si rien n'est fourni ou si la liaison n'existe pas, on fallback sur le
-// mainOfficeUser du User. Renvoie une string (OfficeUser._id) ou null.
+// Un identifiant explicitement fourni mais invalide est toujours refuse : il
+// ne doit jamais provoquer un envoi silencieux au nom du profil principal.
+// Sans header, le fallback historique reste toléré uniquement lorsqu'un seul
+// OfficeUser est disponible. Avec plusieurs profils, le client doit choisir
+// explicitement celui de cette fenêtre.
 // ─────────────────────────────────────────────────────────────────────────────
+function activeOfficeUserError(status, code, message) {
+    const error = new Error(message);
+    error.status = status;
+    error.code = code;
+    return error;
+}
+
+function isActiveOfficeUserError(error) {
+    return error && typeof error.code === 'string'
+        && error.code.startsWith('ACTIVE_OFFICE_USER_');
+}
+
+function sendActiveOfficeUserError(res, error) {
+    if (!isActiveOfficeUserError(error)) return false;
+    res.status(error.status || 400).json({ error: error.code, message: error.message });
+    return true;
+}
+
 async function resolveActiveOfficeUserId(req) {
     const userId = String(req.user || '');
     if (!userId) return null;
-    const fromHeader = req.headers['x-office-user-id'] || req.headers['X-Office-User-Id'];
-    if (fromHeader) {
-        const candidate = String(fromHeader);
+    const fromHeader = req.headers['x-office-user-id'];
+    if (fromHeader != null && String(fromHeader).trim() !== '') {
+        const candidate = String(fromHeader).trim();
+        if (!mongoose.Types.ObjectId.isValid(candidate)) {
+            throw activeOfficeUserError(
+                403,
+                'ACTIVE_OFFICE_USER_INVALID',
+                "Le profil interne demandé n'est pas autorisé pour ce compte.",
+            );
+        }
         // Vérifier que c'est bien un OfficeUser rattaché à ce User
         const link = await UserOfficeUser.findOne({ user: userId, officeUser: candidate }).lean();
         if (link) return candidate;
-        // Le main OfficeUser n'a pas forcément de lien UserOfficeUser, mais
-        // c'est l'OfficeUser principal du User. On le valide en cherchant un
-        // OfficeUser ayant cet _id et mainOfficeUser=true.
-        const main = await OfficeUser.findOne({ _id: candidate, mainOfficeUser: true }).lean();
-        if (main) {
-            // Sécurité : le main doit être lié au User via UserOfficeUser
-            // (créé à l'inscription dans /register, /google/callback, etc.).
-            const linkMain = await UserOfficeUser.findOne({ user: userId, officeUser: candidate }).lean();
-            if (linkMain) return candidate;
-        }
+        throw activeOfficeUserError(
+            403,
+            'ACTIVE_OFFICE_USER_FORBIDDEN',
+            "Le profil interne demandé n'appartient pas à ce compte.",
+        );
     }
-    // Fallback : trouver le main officeUser du User
+
+    // Compatibilité : un compte ne possédant qu'un seul profil n'a pas besoin
+    // de transmettre le header. Avec plusieurs profils, choisir le main serait
+    // ambigu et pourrait attribuer le message au mauvais auteur.
     const links = await UserOfficeUser.find({ user: userId }).populate('officeUser').lean();
-    const main = links.map(l => l.officeUser).filter(Boolean).find(ou => ou.mainOfficeUser === true);
-    if (main) return String(main._id);
-    if (links.length > 0 && links[0].officeUser) return String(links[0].officeUser._id);
+    const officeUsers = links.map(l => l.officeUser).filter(Boolean);
+    if (officeUsers.length > 1) {
+        throw activeOfficeUserError(
+            409,
+            'ACTIVE_OFFICE_USER_REQUIRED',
+            'Sélectionnez le profil interne actif pour cette fenêtre.',
+        );
+    }
+    if (officeUsers.length === 1) return String(officeUsers[0]._id);
     return null;
+}
+
+// Les uploads multipart doivent etre scopes AVANT que multer ne commence a
+// consommer/ecrire le flux. Une verification effectuee dans le handler final
+// serait trop tardive : un profil usurpe pourrait deja avoir laisse un objet
+// orphelin sur disque ou dans le bucket.
+async function requireActiveOfficeUser(req, res, next) {
+    try {
+        const officeUserId = await resolveActiveOfficeUserId(req);
+        if (!officeUserId) {
+            return res.status(400).json({
+                error: 'ACTIVE_OFFICE_USER_REQUIRED',
+                message: 'Selectionnez le profil interne actif pour cette fenetre.',
+            });
+        }
+        req.activeOfficeUserId = String(officeUserId);
+        return next();
+    } catch (error) {
+        if (sendActiveOfficeUserError(res, error)) return undefined;
+        console.error('[chat/upload/profile]', error.message);
+        return res.status(500).json({ error: error.message });
+    }
 }
 
 // ─── Stockage des attachements ───────────────────────────────────────────────
@@ -154,14 +209,12 @@ router.get('/contacts', auth, async (req, res) => {
         const links = await UserOfficeUser.find({ user: userId })
             .populate('officeUser')
             .lean();
-        // On retourne TOUS les OfficeUsers du cabinet, y compris celui qui
-        // est actif (current). Le frontend l'affiche grisé avec mention
-        // "(vous)" pour que l'utilisateur voie clairement la composition
-        // complète du cabinet. Le filtre "ne pas chater avec soi-même"
-        // est appliqué côté UI uniquement.
+        // Une conversation individuelle avec soi-même est interdite : le profil
+        // actif n'est donc jamais proposé, même si le client oublie de filtrer.
         const officeUsers = links
             .map(l => l.officeUser)
             .filter(Boolean)
+            .filter(ou => String(ou._id) !== String(meOfficeUserId || ''))
             .sort((a, b) => {
                 const an = (a.nomOfficeUser || '').toLowerCase();
                 const bn = (b.nomOfficeUser || '').toLowerCase();
@@ -183,6 +236,7 @@ router.get('/contacts', auth, async (req, res) => {
             currentOfficeUserId: meOfficeUserId,
         });
     } catch (err) {
+        if (sendActiveOfficeUserError(res, err)) return;
         console.error('[chat/contacts]', err.message);
         res.status(500).json({ error: err.message });
     }
@@ -190,8 +244,9 @@ router.get('/contacts', auth, async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/chat/conversations  — liste des conversations + non lus + last message
-// Les conversations sont entre OfficeUsers (l'OfficeUser actif côté client est
-// résolu via le header X-Office-User-Id, fallback sur le main du User).
+// Les conversations sont entre OfficeUsers. Le profil actif est résolu via le
+// header X-Office-User-Id ; la compatibilité sans header n'est admise que pour
+// un compte qui ne possède exactement qu'un seul profil interne.
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/conversations', auth, async (req, res) => {
     try {
@@ -228,6 +283,7 @@ router.get('/conversations', auth, async (req, res) => {
             .filter(Boolean);
         res.json({ conversations: result, currentUserId: String(meOfficeUserId) });
     } catch (err) {
+        if (sendActiveOfficeUserError(res, err)) return;
         console.error('[chat/conversations]', err.message);
         res.status(500).json({ error: err.message });
     }
@@ -242,6 +298,10 @@ router.get('/messages', auth, async (req, res) => {
         if (!contactId) return res.status(400).json({ error: 'contactId requis' });
         const meOfficeUserId = await resolveActiveOfficeUserId(req);
         if (!meOfficeUserId) return res.status(400).json({ error: 'OfficeUser actif introuvable' });
+        if (String(contactId) === String(meOfficeUserId)) {
+            return res.status(400).json({ error: 'SELF_CONVERSATION_NOT_ALLOWED' });
+        }
+        if (!(await ensureOfficeUserOwnership(req, res, contactId))) return;
         const messages = await chatService.getConversation({
             userId: meOfficeUserId,
             contactId,
@@ -250,6 +310,7 @@ router.get('/messages', auth, async (req, res) => {
         });
         res.json({ messages, currentUserId: String(meOfficeUserId) });
     } catch (err) {
+        if (sendActiveOfficeUserError(res, err)) return;
         console.error('[chat/messages]', err.message);
         res.status(500).json({ error: err.message });
     }
@@ -268,6 +329,12 @@ router.post('/messages', auth, async (req, res) => {
         if (!recipientId) return res.status(400).json({ error: 'recipientId requis' });
         const meOfficeUserId = await resolveActiveOfficeUserId(req);
         if (!meOfficeUserId) return res.status(400).json({ error: 'OfficeUser actif introuvable' });
+        if (String(recipientId) === String(meOfficeUserId)) {
+            return res.status(400).json({
+                error: 'SELF_CONVERSATION_NOT_ALLOWED',
+                message: 'Une conversation individuelle avec soi-même est interdite.',
+            });
+        }
 
         // SECURITE rc38 (A1) : le destinataire doit être un OfficeUser du même
         // cabinet. Sans ce contrôle, un user pouvait envoyer un message (spam /
@@ -293,9 +360,11 @@ router.post('/messages', auth, async (req, res) => {
 
         res.status(201).json({ message: msg });
     } catch (err) {
+        if (sendActiveOfficeUserError(res, err)) return;
         console.error('[chat/send]', err.message);
-        const status = /vide|required|sender|recipient/i.test(err.message) ? 400 : 500;
-        res.status(status).json({ error: err.message });
+        const isClientError = err.code === 'SELF_CONVERSATION_NOT_ALLOWED'
+            || /vide|required|sender|recipient/i.test(err.message);
+        res.status(isClientError ? 400 : 500).json({ error: err.code || err.message, message: err.message });
     }
 });
 
@@ -306,12 +375,17 @@ router.post('/conversations/:contactId/read', auth, async (req, res) => {
     try {
         const meOfficeUserId = await resolveActiveOfficeUserId(req);
         if (!meOfficeUserId) return res.status(400).json({ error: 'OfficeUser actif introuvable' });
+        if (String(req.params.contactId) === String(meOfficeUserId)) {
+            return res.status(400).json({ error: 'SELF_CONVERSATION_NOT_ALLOWED' });
+        }
+        if (!(await ensureOfficeUserOwnership(req, res, req.params.contactId))) return;
         const updated = await chatService.markConversationAsRead({
             userId: meOfficeUserId,
             contactId: req.params.contactId,
         });
         res.json({ updated });
     } catch (err) {
+        if (sendActiveOfficeUserError(res, err)) return;
         console.error('[chat/read]', err.message);
         res.status(500).json({ error: err.message });
     }
@@ -327,6 +401,7 @@ router.get('/unread-count', auth, async (req, res) => {
         const count = await chatService.getTotalUnreadCount({ userId: meOfficeUserId });
         res.json({ count });
     } catch (err) {
+        if (sendActiveOfficeUserError(res, err)) return;
         res.status(500).json({ error: err.message });
     }
 });
@@ -334,7 +409,7 @@ router.get('/unread-count', auth, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/chat/attachments/upload   — multipart, retourne { storageKey, ... }
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/attachments/upload', auth, chatUpload, async (req, res) => {
+router.post('/attachments/upload', auth, requireActiveOfficeUser, chatUpload, async (req, res) => {
     try {
         // A15 : type refusé par le fileFilter → 415 (le fichier n'a pas été stocké).
         if (req._attachmentRejected) {
@@ -370,6 +445,8 @@ router.get('/attachments/*', auth, async (req, res) => {
     try {
         const requested = req.params[0];
         if (!requested) return res.status(400).json({ error: 'storageKey requis' });
+        const meOfficeUserId = await resolveActiveOfficeUserId(req);
+        if (!meOfficeUserId) return res.status(400).json({ error: 'OfficeUser actif introuvable' });
 
         // Sécurité 1 : interdire toute traversée
         const normalized = path.normalize(requested).replace(/^(\.\.[/\\])+/, '');
@@ -391,10 +468,6 @@ router.get('/attachments/*', auth, async (req, res) => {
         // message dont l'utilisateur est sender ou recipient (via OfficeUser).
         // Sans cela n'importe quel user authentifie pouvait telecharger les
         // attachements (vocaux, fichiers) des conversations d'autres cabinets.
-        const userOfficeUserLinks = await UserOfficeUser.find({ user: req.user })
-            .select('officeUser')
-            .lean();
-        const officeUserIds = userOfficeUserLinks.map((l) => String(l.officeUser));
         const message = await Message.findOne({ 'attachment.storageKey': normalized })
             .select('sender recipient')
             .lean();
@@ -404,8 +477,8 @@ router.get('/attachments/*', auth, async (req, res) => {
             return res.status(404).json({ error: 'Fichier introuvable' });
         }
         const isParticipant =
-            officeUserIds.includes(String(message.sender)) ||
-            officeUserIds.includes(String(message.recipient));
+            String(meOfficeUserId) === String(message.sender) ||
+            String(meOfficeUserId) === String(message.recipient);
         if (!isParticipant) {
             console.warn(`[chat/attachments/get] ACCESS_DENIED storageKey="${normalized}" user=${req.user} sender=${message.sender} recipient=${message.recipient}`);
             secLog(EVT.ACCESS_DENIED, {
@@ -425,6 +498,7 @@ router.get('/attachments/*', auth, async (req, res) => {
         const signedUrl = await chatStorage.getSignedUrl(normalized, { expiresInSec: 3600 });
         return res.redirect(302, signedUrl);
     } catch (err) {
+        if (sendActiveOfficeUserError(res, err)) return;
         console.error('[chat/attachments/get]', err.message);
         res.status(500).json({ error: err.message });
     }

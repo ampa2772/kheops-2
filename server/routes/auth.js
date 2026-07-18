@@ -5,8 +5,18 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 const rateLimit = require("express-rate-limit");
-const { encryptIfNeeded, decryptIfNeeded } = require('../utils/tokenCrypto');
+const { encryptIfNeeded } = require('../utils/tokenCrypto');
+const { createMicrosoftOAuthState, readMicrosoftOAuthState } = require('../utils/microsoftOAuthState');
+const { findUserByEmailCaseInsensitive } = require('../utils/userEmailLookup');
+const {
+    MICROSOFT_LOGIN_SCOPES,
+    MICROSOFT_MAIL_SCOPES,
+    MICROSOFT_ONEDRIVE_SCOPES,
+    MICROSOFT_SHAREPOINT_SCOPES,
+    classifyMicrosoftAccountType,
+} = require('../utils/microsoftOAuthScopes');
 // Passport n'est plus utilisé pour Google ici, mais peut l'être pour d'autres stratégies
 const auth = require("../middlewares/middleware-auth");
 const { sendPasswordResetEmail } = require('../utils/sendEmail');
@@ -47,20 +57,37 @@ const {
 const router = express.Router();
 dotenv.config();
 
-// =====================================================================
-// === SECURITY HELPERS — sanitize email avant requete Mongo ===========
-// =====================================================================
-// `escapeRegExp` evite la regex injection / ReDoS si email contient
-// des metacharacters (ex: ".+", "(.+)+"). `findUserByEmailCI` coerce
-// d'abord en string pour bloquer les operateurs Mongo ($ne, $gt, ...)
-// passes via JSON, puis fait une recherche case-insensitive sure.
-function escapeRegExp(s) {
-  return String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-function findUserByEmailCI(email) {
-  const safe = escapeRegExp(String(email || '').trim());
-  if (!safe) return Promise.resolve(null);
-  return User.findOne({ email: { $regex: `^${safe}$`, $options: 'i' } });
+// Recherche exacte et insensible à la casse, avec neutralisation des
+// métacaractères regex présents dans les adresses e-mail.
+const findUserByEmailCI = (email) => findUserByEmailCaseInsensitive(User, email);
+
+function clientSafeUser(user) {
+    const source = user?.toObject ? user.toObject() : { ...(user || {}) };
+    const connections = {
+        googleMail: Boolean(source.googleRefreshToken),
+        googleDrive: Boolean(source.googleDriveRefreshToken),
+        microsoftMail: Boolean(source.microsoftRefreshToken),
+        oneDrive: Boolean(source.microsoftOneDriveRefreshToken),
+        sharePoint: Boolean(source.microsoftSharePointRefreshToken),
+    };
+
+    delete source.password;
+    delete source.googleRefreshToken;
+    delete source.googleDriveRefreshToken;
+    delete source.microsoftRefreshToken;
+    delete source.microsoftOneDriveRefreshToken;
+    delete source.microsoftSharePointRefreshToken;
+    delete source.resetCodeHash;
+    delete source.resetCodeExpiresAt;
+    delete source.resetCodeAttempts;
+
+    // Compatibilité avec l'interface existante : ces deux propriétés ne sont
+    // plus des secrets, uniquement des indicateurs booléens. Le détail explicite
+    // est également fourni sous oauthConnections pour les nouveaux écrans.
+    source.googleRefreshToken = connections.googleMail;
+    source.microsoftRefreshToken = connections.microsoftMail;
+    source.oauthConnections = connections;
+    return source;
 }
 
 // SECURITE rc37 (H-14) : politique de complexite minimum sur les passwords.
@@ -137,29 +164,88 @@ const registerLimiter = rateLimit({
 
 // --- ROUTES GOOGLE AUTH ---
 
+const GOOGLE_LOGIN_SCOPES = [
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'openid',
+];
+const GOOGLE_MAIL_SCOPES = [
+    ...GOOGLE_LOGIN_SCOPES,
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.send',
+];
+const GOOGLE_DRIVE_SCOPES = [
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'openid',
+    'https://www.googleapis.com/auth/drive.file',
+];
+
+function connectedServiceRedirect(res, provider, errorCode = null) {
+    const base = String(process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const query = errorCode
+        ? `serviceError=${encodeURIComponent(errorCode)}`
+        : `connected=${encodeURIComponent(provider)}`;
+    return res.redirect(`${base}/dashboard/parametres?activeTab=connectedServices&${query}`);
+}
+
+function microsoftStorageRedirect(res, flow, errorCode = null) {
+    if (flow === 'mail') return connectedServiceRedirect(res, 'mail', errorCode);
+    if (flow !== 'sharepoint') return connectedServiceRedirect(res, 'microsoft', errorCode);
+    const base = String(process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const query = errorCode
+        ? `serviceError=${encodeURIComponent(errorCode)}`
+        : 'connected=sharepoint';
+    return res.redirect(`${base}/dashboard/parametres?activeTab=storage&${query}`);
+}
+
+function createGoogleConnectionState(userId, purpose = 'connect_google_drive') {
+    if (!['connect_google_drive', 'connect_google_mail'].includes(purpose)) {
+        throw new Error('Purpose Google OAuth invalide.');
+    }
+    const token = jwt.sign(
+        { sub: String(userId), purpose, nonce: crypto.randomBytes(16).toString('hex') },
+        process.env.JWT_SECRET,
+        { expiresIn: '10m', audience: 'kheops-connected-services', issuer: 'kheops-2' },
+    );
+    return `ksc.${token}`;
+}
+
+function readGoogleConnectionState(value) {
+    if (!String(value || '').startsWith('ksc.')) return null;
+    try {
+        const payload = jwt.verify(String(value).slice(4), process.env.JWT_SECRET, {
+            audience: 'kheops-connected-services',
+            issuer: 'kheops-2',
+        });
+        if (!['connect_google_drive', 'connect_google_mail'].includes(payload.purpose)
+          || !mongoose.Types.ObjectId.isValid(String(payload.sub))) {
+            return { invalid: true };
+        }
+        return {
+            userId: String(payload.sub),
+            flow: payload.purpose === 'connect_google_mail' ? 'mail' : 'drive',
+            invalid: false,
+        };
+    } catch (_) {
+        return { invalid: true };
+    }
+}
+
 // Route pour démarrer l'authentification Google
 router.get('/google', (req, res) => {
     console.log("[AUTH.JS /google] Génération URL d'autorisation Google...");
     try {
-        const scopes = [
-            'https://www.googleapis.com/auth/userinfo.profile',
-            'https://www.googleapis.com/auth/userinfo.email',
-            'openid', // Important pour obtenir l'id_token
-            'https://www.googleapis.com/auth/gmail.readonly',
-            'https://www.googleapis.com/auth/gmail.send',
-            'https://www.googleapis.com/auth/drive.file' // <<<=== AJOUT CRUCIAL DU SCOPE GOOGLE DRIVE
-        ];
-
         const authorizationUrl = oauth2Client.generateAuthUrl({
-            access_type: 'offline', // DEMANDE UN REFRESH TOKEN
+            access_type: 'online',
             // 'select_account' force Google a montrer l'ecran de selection
             // de compte (sinon, si une session Google est deja active dans
             // le navigateur, l'utilisateur est auto-loggue et ne peut pas
-            // changer de compte). 'consent' force l'ecran de consentement
-            // pour garantir le refresh_token. Les deux sont cumulables.
-            prompt: 'select_account consent',
-            scope: scopes,
-            include_granted_scopes: true
+            // changer de compte). Aucun droit mail, fichier ou agenda n'est
+            // demandé ici : ces consentements sont lancés depuis Paramètres.
+            prompt: 'select_account',
+            scope: GOOGLE_LOGIN_SCOPES,
+            include_granted_scopes: false
         });
 
         console.log("[AUTH.JS /google] URL générée. Redirection vers Google.");
@@ -170,14 +256,56 @@ router.get('/google', (req, res) => {
     }
 });
 
+// Connexion documentaire explicite : le JWT Kheops authentifie le compte à
+// lier, puis Google peut être un compte totalement différent. Le callback ne
+// crée jamais de nouvel utilisateur Kheops et n'émet aucun nouveau JWT Kheops.
+router.post('/google/connect-url', auth, (req, res) => {
+    try {
+        const authorizationUrl = oauth2Client.generateAuthUrl({
+            access_type: 'offline',
+            prompt: 'select_account consent',
+            scope: GOOGLE_DRIVE_SCOPES,
+            include_granted_scopes: false,
+            state: createGoogleConnectionState(req.user),
+        });
+        return res.json({ authorizationUrl });
+    } catch (error) {
+        return res.status(500).json({ error: 'GOOGLE_DRIVE_CONNECT_ERROR', message: error.message });
+    }
+});
+
+// Ajout d'une boîte Gmail à l'utilisateur Kheops déjà connecté. Le compte
+// Google sélectionné peut avoir une adresse différente du login Kheops.
+router.post('/google/mail-connect-url', auth, (req, res) => {
+    try {
+        const authorizationUrl = oauth2Client.generateAuthUrl({
+            access_type: 'offline',
+            prompt: 'select_account consent',
+            scope: GOOGLE_MAIL_SCOPES,
+            include_granted_scopes: false,
+            state: createGoogleConnectionState(req.user, 'connect_google_mail'),
+        });
+        return res.json({ authorizationUrl });
+    } catch (error) {
+        return res.status(500).json({ error: 'GOOGLE_MAIL_CONNECT_ERROR', message: error.message });
+    }
+});
+
 // Route de callback Google
 router.get('/google/callback', async (req, res) => {
     const code = req.query.code;
     const error = req.query.error;
+    const connectionState = readGoogleConnectionState(req.query.state);
 
     console.log("[AUTH.JS /google/callback] Callback Google reçu.");
+    if (connectionState?.invalid) {
+        return connectedServiceRedirect(res, 'google', 'google_connection_state_invalid');
+    }
     if (error) {
         console.error("[AUTH.JS /google/callback] Erreur retournée par Google:", error);
+        if (connectionState) {
+            return connectedServiceRedirect(res, connectionState.flow === 'mail' ? 'mail' : 'google', 'google_consent_denied');
+        }
         if (process.env.ELECTRON_MODE === 'true') {
             return res.redirect(`kheops2://auth/error?code=google_consent_denied`);
         }
@@ -185,6 +313,9 @@ router.get('/google/callback', async (req, res) => {
     }
     if (!code) {
         console.error("[AUTH.JS /google/callback] Code d'autorisation manquant dans la requête.");
+        if (connectionState) {
+            return connectedServiceRedirect(res, 'google', 'google_code_missing');
+        }
         if (process.env.ELECTRON_MODE === 'true') {
             return res.redirect(`kheops2://auth/error?code=google_code_missing`);
         }
@@ -234,12 +365,59 @@ router.get('/google/callback', async (req, res) => {
             return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_email_unverified`);
         }
 
+        if (connectionState) {
+            const connectedUser = await User.findById(connectionState.userId);
+            if (!connectedUser) {
+                return connectedServiceRedirect(res, 'google', 'kheops_user_not_found');
+            }
+            if (connectionState.flow === 'mail') {
+                if (!tokens.refresh_token) return connectedServiceRedirect(res, 'mail', 'google_refresh_token_missing');
+                const { resolveTenantId } = require('../services/tenantService');
+                const { upsertOAuthAccount } = require('../services/mail/oauthAccountService');
+                const tenantId = await resolveTenantId(connectedUser._id);
+                await upsertOAuthAccount({
+                    tenantId,
+                    userId: connectedUser._id,
+                    provider: 'google',
+                    email,
+                    displayName: [firstNameGoogle, lastNameGoogle].filter(Boolean).join(' '),
+                    accountType: payload.hd ? 'organization' : 'personal',
+                    refreshToken: tokens.refresh_token,
+                    scopes: String(tokens.scope || '').split(/\s+/).filter(Boolean),
+                });
+                secLog(EVT.AUTH_LOGIN_SUCCESS, { email, userId: connectionState.userId, source: 'google-mail-connection' }, req);
+                return connectedServiceRedirect(res, 'mail');
+            }
+            if (!tokens.refresh_token && !connectedUser.googleDriveRefreshToken) {
+                return connectedServiceRedirect(res, 'google', 'google_refresh_token_missing');
+            }
+            if (tokens.refresh_token) {
+                connectedUser.googleDriveRefreshToken = encryptIfNeeded(tokens.refresh_token);
+            }
+            connectedUser.googleDriveAccount = {
+                email,
+                displayName: [firstNameGoogle, lastNameGoogle].filter(Boolean).join(' '),
+                accountType: payload.hd ? 'organization' : 'personal',
+                connectedAt: new Date(),
+                disconnectedAt: null,
+            };
+            await connectedUser.save();
+            try { require('../services/storage/googleDriveClient').clearTokenCache(connectionState.userId); } catch (_) {}
+            secLog(EVT.AUTH_LOGIN_SUCCESS, {
+                email,
+                userId: connectionState.userId,
+                source: 'google-drive-connection',
+            }, req);
+            return connectedServiceRedirect(res, 'google');
+        }
+
         console.log(`[AUTH.JS /google/callback] Recherche de l'utilisateur Kheops pour l'email: ${email}`);
 
-        // === CORRECTION CRITIQUE : Recherche insensible à la casse (Case Insensitive) ===
-        let user = await User.findOne({
-            email: { $regex: new RegExp(`^${email}$`, 'i') }
-        });
+        // Recherche exacte et insensible à la casse. Les métacaractères d'une
+        // adresse (par exemple « + » ou « . ») sont échappés par l'aide
+        // centralisée afin qu'un compte OAuth ne puisse jamais être rapproché
+        // d'un autre compte Kheops par interprétation regex.
+        let user = await findUserByEmailCI(email);
 
         // === MODIFICATION : Création automatique du compte si l'utilisateur n'existe pas ===
         if (!user) {
@@ -264,7 +442,7 @@ router.get('/google/callback', async (req, res) => {
                 city: "Ville à renseigner",
                 postalCode: "00000",
                 genre: "Masculin", // Valeur par défaut
-                googleRefreshToken: encryptIfNeeded(tokens.refresh_token || null)
+                googleRefreshToken: null,
             });
 
             await user.save();
@@ -292,16 +470,6 @@ router.get('/google/callback', async (req, res) => {
             console.log("[AUTH.JS /google/callback] Liaison User-OfficeUser créée.");
             secLog(EVT.AUTH_USER_CREATED, { email, userId: String(user._id), source: 'google-oauth' }, req);
 
-        } else {
-            // Si l'utilisateur existe déjà, on met à jour le refresh token si Google en a renvoyé un nouveau
-            if (tokens.refresh_token) {
-                console.log(`[AUTH.JS /google/callback] Un nouveau refresh_token a été reçu. Sauvegarde pour l'utilisateur ${user.id}...`);
-                user.googleRefreshToken = encryptIfNeeded(tokens.refresh_token);
-                await user.save();
-                console.log("[AUTH.JS /google/callback] Refresh token sauvegardé avec succès.");
-            } else {
-                console.log("[AUTH.JS /google/callback] Aucun nouveau refresh_token reçu. L'ancien est conservé s'il existe.");
-            }
         }
 
         console.log(`[AUTH.JS /google/callback] Utilisateur Kheops prêt: ${user.id}.`);
@@ -314,6 +482,9 @@ router.get('/google/callback', async (req, res) => {
             { expiresIn: "14d" }
         );
         secLog(EVT.AUTH_LOGIN_SUCCESS, { email, userId: String(user._id), source: 'google-oauth' }, req);
+        // Synchro cloud (fire-and-forget) : recopie vers le cloud perso les
+        // dossiers/documents existants restes sur le stockage interne.
+        try { require('../services/storage/documentMigrator').triggerBackfillUserCloud(user._id, 'login-google'); } catch (_) {}
 
         if (process.env.ELECTRON_MODE === 'true') {
             // Mode Electron : afficher une page HTML avec bouton "Ouvrir Kheops 2"
@@ -406,9 +577,9 @@ router.get('/google/callback', async (req, res) => {
     }
 });
 
-// <<<=== NOUVELLE ROUTE SÉCURISÉE POUR ELECTRON ===>>>
-// Cette route permet à l'application Electron de récupérer le refresh token
-// de l'utilisateur actuellement connecté.
+// Route historique conservée pour compatibilité. Elle ne renvoie plus jamais
+// le refresh token au navigateur/Electron : les appels Google sont effectués
+// exclusivement côté serveur, qui garde le secret chiffré.
 router.get('/google/get-refresh-token', auth, async (req, res) => {
     try {
         // req.user contient l'ID de l'utilisateur grâce au middleware `auth`
@@ -421,10 +592,13 @@ router.get('/google/get-refresh-token', auth, async (req, res) => {
             secLog(EVT.AUTH_REFRESH_TOKEN_GET, { userId: String(user._id), email: user.email, source: 'google', reason: 'no-token-stored' }, req);
             return res.status(401).json({ message: 'Aucune session Google active pour cet utilisateur.' });
         }
-        secLog(EVT.AUTH_REFRESH_TOKEN_GET, { userId: String(user._id), email: user.email, source: 'google' }, req);
-        // SECURITE rc37 (M-06) : decryption transparente avant retour au client.
-        // Les tokens existants en clair (legacy) sont retournes tels quels.
-        res.json({ refreshToken: decryptIfNeeded(user.googleRefreshToken) });
+        secLog(EVT.AUTH_REFRESH_TOKEN_GET, {
+            userId: String(user._id),
+            email: user.email,
+            source: 'google',
+            metadataOnly: true,
+        }, req);
+        res.json({ connected: true, provider: 'google' });
     } catch (error) {
         console.error("[AUTH.JS /google/get-refresh-token] Erreur:", error);
         secLog(EVT.AUTH_REFRESH_TOKEN_GET, { userId: String(req.user), source: 'google', reason: `exception: ${error.message}` }, req);
@@ -457,24 +631,42 @@ router.get('/google/session-status', auth, async (req, res) => {
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || process.env.MSAL_CLIENT_ID;
 const MICROSOFT_AUTHORITY = process.env.MICROSOFT_AUTHORITY || 'https://login.microsoftonline.com/common';
 const MICROSOFT_CALLBACK_URL = process.env.MICROSOFT_CALLBACK_URL || 'http://localhost:5000/api/auth/microsoft/callback';
-// Files.ReadWrite ajouté pour permettre la synchro OneDrive côté client.
-// Calendars.Read + Contacts.Read ajoutés pour l'agenda et les contacts Outlook
-// (lecture seule). ⚠️ Ajouter des scopes impose une NOUVELLE autorisation : un
-// utilisateur déjà connecté à Microsoft avant cet ajout devra se reconnecter
-// une fois pour accorder ces accès.
-const MICROSOFT_SCOPES = ['User.Read', 'Mail.Read', 'Mail.ReadWrite', 'Mail.Send', 'Files.ReadWrite', 'Calendars.Read', 'Contacts.Read', 'offline_access'];
+// La connexion Kheops ne demande que l'identité. Mail, agenda/contacts Outlook,
+// OneDrive et SharePoint ont chacun leur consentement dédié dans les paramètres.
+const MICROSOFT_SCOPES = MICROSOFT_LOGIN_SCOPES;
 
 const microsoftCrypto = new CryptoProvider();
 
-// Map en mémoire : state -> { verifier, createdAt }. Le verifier PKCE doit
-// survivre entre la requête /microsoft et le callback /microsoft/callback.
-const microsoftPkceStore = new Map();
-setInterval(() => {
-    const cutoff = Date.now() - 10 * 60 * 1000;
-    for (const [state, data] of microsoftPkceStore.entries()) {
-        if (data.createdAt < cutoff) microsoftPkceStore.delete(state);
+const MICROSOFT_STATE_COOKIE = 'kheops_ms_oauth_nonce';
+
+function oauthCookieValue(req, name) {
+    const source = String(req.headers?.cookie || '');
+    for (const part of source.split(';')) {
+        const index = part.indexOf('=');
+        if (index < 0) continue;
+        if (part.slice(0, index).trim() === name) return decodeURIComponent(part.slice(index + 1).trim());
     }
-}, 5 * 60 * 1000).unref?.();
+    return '';
+}
+
+function setMicrosoftStateCookie(res, value, clear = false) {
+    const secure = /^https:/i.test(MICROSOFT_CALLBACK_URL) || process.env.NODE_ENV === 'production';
+    const attributes = [
+        `${MICROSOFT_STATE_COOKIE}=${clear ? '' : encodeURIComponent(value)}`,
+        'Path=/api/auth/microsoft/callback',
+        'HttpOnly',
+        'SameSite=Lax',
+        clear ? 'Max-Age=0' : 'Max-Age=600',
+    ];
+    if (secure) attributes.push('Secure');
+    res.append('Set-Cookie', attributes.join('; '));
+}
+
+function stateMatchesBrowser(req, stored) {
+    const expected = Buffer.from(String(stored?.browserNonce || ''));
+    const actual = Buffer.from(oauthCookieValue(req, MICROSOFT_STATE_COOKIE));
+    return expected.length > 0 && expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+}
 
 function renderElectronCallbackPage(deepLink) {
     return `<!DOCTYPE html>
@@ -511,8 +703,11 @@ router.get('/microsoft', async (req, res) => {
             return microsoftErrorRedirect(res, 'microsoft_config_missing');
         }
         const { verifier, challenge } = await microsoftCrypto.generatePkceCodes();
-        const state = microsoftCrypto.createNewGuid();
-        microsoftPkceStore.set(state, { verifier, createdAt: Date.now() });
+        const browserNonce = crypto.randomBytes(32).toString('base64url');
+        // État chiffré et authentifié : le callback peut arriver sur n'importe
+        // quelle instance Cloud Run, même après un redémarrage intermédiaire.
+        const state = createMicrosoftOAuthState({ flow: 'login', verifier, browserNonce });
+        setMicrosoftStateCookie(res, browserNonce);
 
         // Construction manuelle de l'URL d'autorisation (compatible MSAL v1 + v2)
         const authCodeUrl = `${MICROSOFT_AUTHORITY}/oauth2/v2.0/authorize?` + new URLSearchParams({
@@ -524,7 +719,7 @@ router.get('/microsoft', async (req, res) => {
             code_challenge: challenge,
             code_challenge_method: 'S256',
             state,
-            prompt: 'consent',
+            prompt: 'select_account',
         }).toString();
 
         console.log("[AUTH.JS /microsoft] URL générée. Redirection vers Microsoft.");
@@ -535,29 +730,129 @@ router.get('/microsoft', async (req, res) => {
     }
 });
 
+router.post('/microsoft/connect-url', auth, async (req, res) => {
+    try {
+        if (!MICROSOFT_CLIENT_ID) {
+            return res.status(503).json({ error: 'MICROSOFT_CONFIG_MISSING' });
+        }
+        const { verifier, challenge } = await microsoftCrypto.generatePkceCodes();
+        const browserNonce = crypto.randomBytes(32).toString('base64url');
+        const state = createMicrosoftOAuthState({
+            flow: 'onedrive',
+            verifier,
+            browserNonce,
+            connectUserId: String(req.user),
+        });
+        setMicrosoftStateCookie(res, browserNonce);
+        const authorizationUrl = `${MICROSOFT_AUTHORITY}/oauth2/v2.0/authorize?` + new URLSearchParams({
+            client_id: MICROSOFT_CLIENT_ID,
+            response_type: 'code',
+            redirect_uri: MICROSOFT_CALLBACK_URL,
+            scope: MICROSOFT_ONEDRIVE_SCOPES.join(' '),
+            response_mode: 'query',
+            code_challenge: challenge,
+            code_challenge_method: 'S256',
+            state,
+            prompt: 'select_account',
+        }).toString();
+        return res.json({ authorizationUrl });
+    } catch (error) {
+        return res.status(500).json({ error: 'ONEDRIVE_CONNECT_ERROR', message: error.message });
+    }
+});
+
+router.post('/microsoft/mail-connect-url', auth, async (req, res) => {
+    try {
+        if (!MICROSOFT_CLIENT_ID) return res.status(503).json({ error: 'MICROSOFT_CONFIG_MISSING' });
+        const { verifier, challenge } = await microsoftCrypto.generatePkceCodes();
+        const browserNonce = crypto.randomBytes(32).toString('base64url');
+        const state = createMicrosoftOAuthState({
+            flow: 'mail',
+            verifier,
+            browserNonce,
+            connectUserId: String(req.user),
+        });
+        setMicrosoftStateCookie(res, browserNonce);
+        const authorizationUrl = `${MICROSOFT_AUTHORITY}/oauth2/v2.0/authorize?` + new URLSearchParams({
+            client_id: MICROSOFT_CLIENT_ID,
+            response_type: 'code',
+            redirect_uri: MICROSOFT_CALLBACK_URL,
+            scope: MICROSOFT_MAIL_SCOPES.join(' '),
+            response_mode: 'query',
+            code_challenge: challenge,
+            code_challenge_method: 'S256',
+            state,
+            prompt: 'select_account consent',
+        }).toString();
+        return res.json({ authorizationUrl });
+    } catch (error) {
+        return res.status(500).json({ error: 'MICROSOFT_MAIL_CONNECT_ERROR', message: error.message });
+    }
+});
+
+router.post('/microsoft/sharepoint-connect-url', auth, async (req, res) => {
+    try {
+        if (!MICROSOFT_CLIENT_ID) {
+            return res.status(503).json({ error: 'MICROSOFT_CONFIG_MISSING' });
+        }
+        const { verifier, challenge } = await microsoftCrypto.generatePkceCodes();
+        const browserNonce = crypto.randomBytes(32).toString('base64url');
+        const state = createMicrosoftOAuthState({
+            flow: 'sharepoint',
+            verifier,
+            browserNonce,
+            connectUserId: String(req.user),
+        });
+        setMicrosoftStateCookie(res, browserNonce);
+        const authorizationUrl = `${MICROSOFT_AUTHORITY}/oauth2/v2.0/authorize?` + new URLSearchParams({
+            client_id: MICROSOFT_CLIENT_ID,
+            response_type: 'code',
+            redirect_uri: MICROSOFT_CALLBACK_URL,
+            scope: MICROSOFT_SHAREPOINT_SCOPES.join(' '),
+            response_mode: 'query',
+            code_challenge: challenge,
+            code_challenge_method: 'S256',
+            state,
+            prompt: 'select_account',
+        }).toString();
+        return res.json({ authorizationUrl });
+    } catch (error) {
+        return res.status(500).json({ error: 'SHAREPOINT_CONNECT_ERROR', message: error.message });
+    }
+});
+
 // Route de callback Microsoft
 router.get('/microsoft/callback', async (req, res) => {
     const { code, state, error: errorParam, error_description } = req.query;
+    let stored = null;
+    if (state) {
+        try { stored = readMicrosoftOAuthState(state); } catch (_) { stored = null; }
+    }
+    if (stored && !stateMatchesBrowser(req, stored)) stored = null;
+    setMicrosoftStateCookie(res, '', true);
     console.log("[AUTH.JS /microsoft/callback] Callback Microsoft reçu.");
 
     if (errorParam) {
         console.error("[AUTH.JS /microsoft/callback] Erreur Microsoft:", errorParam, error_description);
         secLog(EVT.AUTH_LOGIN_FAILURE, { source: 'microsoft-oauth', reason: `consent-denied: ${errorParam} - ${error_description}` }, req);
+        if (stored?.connectUserId) {
+            return microsoftStorageRedirect(res, stored.flow, 'microsoft_consent_denied');
+        }
         return microsoftErrorRedirect(res, 'microsoft_consent_denied');
     }
     if (!code || !state) {
         console.error("[AUTH.JS /microsoft/callback] code ou state manquant");
         secLog(EVT.AUTH_LOGIN_FAILURE, { source: 'microsoft-oauth', reason: 'code-or-state-missing' }, req);
+        if (stored?.connectUserId) {
+            return microsoftStorageRedirect(res, stored.flow, 'microsoft_code_missing');
+        }
         return microsoftErrorRedirect(res, 'microsoft_code_missing');
     }
-    const stored = microsoftPkceStore.get(state);
     if (!stored) {
         console.error("[AUTH.JS /microsoft/callback] State inconnu ou expiré");
         secLog(EVT.AUTH_LOGIN_FAILURE, { source: 'microsoft-oauth', reason: 'invalid-state' }, req);
         return microsoftErrorRedirect(res, 'microsoft_invalid_state');
     }
-    microsoftPkceStore.delete(state);
-
     try {
         console.log("[AUTH.JS /microsoft/callback] Échange code+verifier contre tokens (HTTP POST direct)...");
         // POST direct sur l'endpoint OAuth2 — donne accès direct à refresh_token (MSAL le cache mais ne l'expose pas)
@@ -565,7 +860,11 @@ router.get('/microsoft/callback', async (req, res) => {
             `${MICROSOFT_AUTHORITY}/oauth2/v2.0/token`,
             new URLSearchParams({
                 client_id: MICROSOFT_CLIENT_ID,
-                scope: MICROSOFT_SCOPES.join(' '),
+                scope: (stored.flow === 'onedrive'
+                    ? MICROSOFT_ONEDRIVE_SCOPES
+                    : (stored.flow === 'sharepoint'
+                        ? MICROSOFT_SHAREPOINT_SCOPES
+                        : (stored.flow === 'mail' ? MICROSOFT_MAIL_SCOPES : MICROSOFT_SCOPES))).join(' '),
                 code,
                 redirect_uri: MICROSOFT_CALLBACK_URL,
                 grant_type: 'authorization_code',
@@ -610,9 +909,82 @@ router.get('/microsoft/callback', async (req, res) => {
         if (!email) {
             console.error("[AUTH.JS /microsoft/callback] Email introuvable");
             secLog(EVT.AUTH_LOGIN_FAILURE, { source: 'microsoft-oauth', reason: 'email-missing-from-claims' }, req);
-            return microsoftErrorRedirect(res, 'microsoft_email_missing');
+            return stored.connectUserId
+                ? microsoftStorageRedirect(res, stored.flow, 'microsoft_email_missing')
+                : microsoftErrorRedirect(res, 'microsoft_email_missing');
         }
         console.log(`[AUTH.JS /microsoft/callback] Email récupéré: ${email}`);
+
+        if (stored.connectUserId) {
+            const connectedUser = await User.findById(stored.connectUserId);
+            if (!connectedUser) {
+                return microsoftStorageRedirect(res, stored.flow, 'kheops_user_not_found');
+            }
+            if (stored.flow === 'mail') {
+                if (!refreshToken) return microsoftStorageRedirect(res, stored.flow, 'microsoft_refresh_token_missing');
+                const { resolveTenantId } = require('../services/tenantService');
+                const { upsertOAuthAccount } = require('../services/mail/oauthAccountService');
+                const tenantId = await resolveTenantId(connectedUser._id);
+                await upsertOAuthAccount({
+                    tenantId,
+                    userId: connectedUser._id,
+                    provider: 'microsoft',
+                    email,
+                    displayName: [firstName, lastName].filter(Boolean).join(' '),
+                    accountType: classifyMicrosoftAccountType(claims),
+                    refreshToken,
+                    scopes: MICROSOFT_MAIL_SCOPES,
+                });
+                secLog(EVT.AUTH_LOGIN_SUCCESS, { email, userId: stored.connectUserId, source: 'microsoft-mail-connection' }, req);
+                return connectedServiceRedirect(res, 'mail');
+            }
+            if (stored.flow === 'sharepoint') {
+                if (!refreshToken && !connectedUser.microsoftSharePointRefreshToken) {
+                    return microsoftStorageRedirect(res, stored.flow, 'microsoft_refresh_token_missing');
+                }
+                if (refreshToken) {
+                    connectedUser.microsoftSharePointRefreshToken = encryptIfNeeded(refreshToken);
+                }
+                connectedUser.sharePoint = {
+                    ...(connectedUser.sharePoint?.toObject
+                        ? connectedUser.sharePoint.toObject()
+                        : (connectedUser.sharePoint || {})),
+                    accountEmail: email,
+                    accountDisplayName: [firstName, lastName].filter(Boolean).join(' '),
+                    accountType: classifyMicrosoftAccountType(claims),
+                    connectedAt: new Date(),
+                };
+                await connectedUser.save();
+                try { require('../services/storage/sharePointClient').clearTokenCache(stored.connectUserId); } catch (_) {}
+                secLog(EVT.AUTH_LOGIN_SUCCESS, {
+                    email,
+                    userId: stored.connectUserId,
+                    source: 'sharepoint-connection',
+                }, req);
+                return microsoftStorageRedirect(res, stored.flow);
+            }
+            if (!refreshToken && !connectedUser.microsoftOneDriveRefreshToken) {
+                return microsoftStorageRedirect(res, stored.flow, 'microsoft_refresh_token_missing');
+            }
+            if (refreshToken) {
+                connectedUser.microsoftOneDriveRefreshToken = encryptIfNeeded(refreshToken);
+            }
+            connectedUser.microsoftOneDriveAccount = {
+                email,
+                displayName: [firstName, lastName].filter(Boolean).join(' '),
+                accountType: classifyMicrosoftAccountType(claims),
+                connectedAt: new Date(),
+                disconnectedAt: null,
+            };
+            await connectedUser.save();
+            try { require('../utils/microsoftGraphMail').clearOneDriveTokenCache(stored.connectUserId); } catch (_) {}
+            secLog(EVT.AUTH_LOGIN_SUCCESS, {
+                email,
+                userId: stored.connectUserId,
+                source: 'onedrive-connection',
+            }, req);
+            return microsoftStorageRedirect(res, stored.flow);
+        }
 
         // Lookup user (case-insensitive — même que Google)
         let user = await findUserByEmailCI(email);
@@ -635,7 +1007,7 @@ router.get('/microsoft/callback', async (req, res) => {
                 city: "Ville à renseigner",
                 postalCode: "00000",
                 genre: "Masculin",
-                microsoftRefreshToken: encryptIfNeeded(refreshToken || null),
+                microsoftRefreshToken: null,
             });
             await user.save();
 
@@ -653,23 +1025,14 @@ router.get('/microsoft/callback', async (req, res) => {
             await newUserOfficeUser.save();
             console.log("[AUTH.JS /microsoft/callback] User + OfficeUser + lien créés.");
             secLog(EVT.AUTH_USER_CREATED, { email, userId: String(user._id), source: 'microsoft-oauth' }, req);
-        } else if (refreshToken) {
-            console.log(`[AUTH.JS /microsoft/callback] Mise à jour du microsoftRefreshToken pour user ${user.id}.`);
-            user.microsoftRefreshToken = encryptIfNeeded(refreshToken);
-            await user.save();
-        } else if (!user.microsoftRefreshToken) {
-            // Microsoft n'a pas renvoye de refresh_token au callback ET le user n'en a pas en DB.
-            // Symptome : login MS reussit mais inbox Outlook indisponible (mails.js retombe sur Google).
-            // Cause habituelle : prompt=select_account skip le consent et ne re-emet pas offline_access.
-            // Depuis rc45 le prompt est passe a 'consent' pour forcer le refresh_token. Si on tombe
-            // encore ici c'est un cas residuel (cookies MS, scope refuse...) a investiguer.
-            console.warn(`[AUTH.JS /microsoft/callback] Microsoft n'a PAS renvoye de refresh_token (user ${user.id}). Inbox Outlook indisponible jusqu'au prochain login MS avec consent.`);
-            secLog(EVT.AUTH_LOGIN_FAILURE, { source: 'microsoft-oauth', userId: String(user._id), email, reason: 'no-refresh-token-returned' }, req);
         }
 
         console.log(`[AUTH.JS /microsoft/callback] Utilisateur Kheops prêt: ${user.id}.`);
         const kheopsToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "14d" });
         secLog(EVT.AUTH_LOGIN_SUCCESS, { email, userId: String(user._id), source: 'microsoft-oauth' }, req);
+        // Synchro cloud (fire-and-forget) : recopie vers le cloud perso les
+        // dossiers/documents existants restes sur le stockage interne.
+        try { require('../services/storage/documentMigrator').triggerBackfillUserCloud(user._id, 'login-microsoft'); } catch (_) {}
 
         if (process.env.ELECTRON_MODE === 'true') {
             // !!! On ajoute &source=microsoft pour que le main process Electron sache quel cloud utiliser
@@ -685,11 +1048,15 @@ router.get('/microsoft/callback', async (req, res) => {
         const detail = error.response?.data || error.message || error;
         console.error("[AUTH.JS /microsoft/callback] ERREUR:", detail);
         secLog(EVT.AUTH_LOGIN_FAILURE, { source: 'microsoft-oauth', reason: `callback-exception: ${error.message}` }, req);
+        if (stored?.connectUserId) {
+            return microsoftStorageRedirect(res, stored.flow, 'microsoft_callback_failed');
+        }
         return microsoftErrorRedirect(res, 'microsoft_callback_failed');
     }
 });
 
-// Route pour récupérer le refresh token Microsoft (mirror Google)
+// Route historique conservée pour compatibilité. Comme pour Google, seul le
+// statut est exposé ; le refresh token reste strictement côté serveur.
 router.get('/microsoft/get-refresh-token', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user).select('microsoftRefreshToken email');
@@ -701,9 +1068,13 @@ router.get('/microsoft/get-refresh-token', auth, async (req, res) => {
             secLog(EVT.AUTH_REFRESH_TOKEN_GET, { userId: String(user._id), email: user.email, source: 'microsoft', reason: 'no-token-stored' }, req);
             return res.status(401).json({ message: 'Aucune session Microsoft active pour cet utilisateur.' });
         }
-        secLog(EVT.AUTH_REFRESH_TOKEN_GET, { userId: String(user._id), email: user.email, source: 'microsoft' }, req);
-        // SECURITE rc37 (M-06) : decryption transparente
-        res.json({ refreshToken: decryptIfNeeded(user.microsoftRefreshToken) });
+        secLog(EVT.AUTH_REFRESH_TOKEN_GET, {
+            userId: String(user._id),
+            email: user.email,
+            source: 'microsoft',
+            metadataOnly: true,
+        }, req);
+        res.json({ connected: true, provider: 'microsoft' });
     } catch (error) {
         console.error("[AUTH.JS /microsoft/get-refresh-token] Erreur:", error);
         secLog(EVT.AUTH_REFRESH_TOKEN_GET, { userId: String(req.user), source: 'microsoft', reason: `exception: ${error.message}` }, req);
@@ -972,6 +1343,9 @@ router.post("/register", registerLimiter, validateBody(registerSchema), async (r
         const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: "14d" }); // Exemple: expire dans 14 jours
         secLog(EVT.AUTH_USER_CREATED, { email, userId: String(newUser._id), source: 'register' }, req);
         secLog(EVT.AUTH_LOGIN_SUCCESS, { email, userId: String(newUser._id), source: 'register-auto-login' }, req);
+        // Synchro cloud (fire-and-forget) : sans effet a l'inscription (aucun
+        // document encore), mais coherent et sans risque (idempotent).
+        try { require('../services/storage/documentMigrator').triggerBackfillUserCloud(newUser._id, 'register'); } catch (_) {}
         res.status(201).json({ token }); // Renvoyer l'OfficeUser nouvellement créé
     } catch (error) {
         console.error("Erreur /register:", error);
@@ -1040,6 +1414,9 @@ router.post("/login", loginLimiter, validateBody(loginSchema), async (req, res) 
         );
 
         secLog(EVT.AUTH_LOGIN_SUCCESS, { email, userId: String(user._id), source: 'local-password' }, req);
+        // Synchro cloud (fire-and-forget) : recopie vers le cloud perso les
+        // dossiers/documents existants restes sur le stockage interne.
+        try { require('../services/storage/documentMigrator').triggerBackfillUserCloud(user._id, 'login-local'); } catch (_) {}
         res.json({ token });
 
     } catch (error) {
@@ -1062,7 +1439,7 @@ router.get("/user", auth, async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "Utilisateur non trouvé" });
         }
-        res.json(user);
+        res.json(clientSafeUser(user));
     } catch (err) {
         console.error("Erreur /user:", err.message);
         res.status(500).send("Erreur du serveur");
@@ -1403,10 +1780,7 @@ router.put('/user/settings', auth, async (req, res) => {
 
         await user.save();
 
-        const userResponse = user.toObject();
-        delete userResponse.password;
-
-        res.json(userResponse);
+        res.json(clientSafeUser(user));
     } catch (error) {
         console.error("Erreur lors de la mise à jour des paramètres utilisateur:", error);
         res.status(500).json({ message: "Erreur interne du serveur." });
@@ -1423,9 +1797,7 @@ router.post('/user/onboarding-done', auth, async (req, res) => {
         }
         user.onboardingDone = true;
         await user.save();
-        const userResponse = user.toObject();
-        delete userResponse.password;
-        res.json(userResponse);
+        res.json(clientSafeUser(user));
     } catch (error) {
         console.error("Erreur lors du marquage onboarding-done:", error);
         res.status(500).json({ message: "Erreur interne du serveur." });
@@ -1512,12 +1884,63 @@ router.put('/user/dossier-colors', auth, async (req, res) => {
         }
 
         await user.save();
-        const userResponse = user.toObject();
-        delete userResponse.password;
-        res.json(userResponse);
+        res.json(clientSafeUser(user));
     } catch (error) {
         console.error("Erreur lors de la mise à jour des couleurs de dossiers:", error);
         res.status(500).json({ message: "Erreur interne du serveur." });
+    }
+});
+
+// Préférences de couleurs par type de document et règle d'héritage.
+const ALLOWED_DOCUMENT_COLOR_KEYS = new Set([
+    'courrier', 'conclusions', 'assignation', 'convention', 'facture',
+    'note', 'piece', 'modele', 'autre'
+]);
+const ALLOWED_DOCUMENT_COLOR_MODES = new Set(['type', 'dossier', 'none', 'custom']);
+
+router.put('/user/document-colors', auth, async (req, res) => {
+    try {
+        const { preferences, reset } = req.body || {};
+        const user = await User.findById(req.user);
+        if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+
+        const current = user.documentColorPreferences && typeof user.documentColorPreferences === 'object'
+            ? { ...user.documentColorPreferences }
+            : {};
+
+        if (reset === true) {
+            user.documentColorPreferences = {};
+        } else if (preferences && typeof preferences === 'object' && !Array.isArray(preferences)) {
+            for (const [key, value] of Object.entries(preferences)) {
+                if (!ALLOWED_DOCUMENT_COLOR_KEYS.has(key)) continue;
+                if (value === null) {
+                    delete current[key];
+                    continue;
+                }
+                if (!value || typeof value !== 'object' || !ALLOWED_DOCUMENT_COLOR_MODES.has(value.mode)) {
+                    continue;
+                }
+                if (value.mode === 'custom' && !HEX_COLOR_REGEX.test(String(value.color || ''))) {
+                    continue;
+                }
+                current[key] = {
+                    mode: value.mode,
+                    color: HEX_COLOR_REGEX.test(String(value.color || ''))
+                        ? String(value.color).toLowerCase()
+                        : null,
+                };
+            }
+            user.documentColorPreferences = current;
+        } else {
+            return res.status(400).json({ message: 'Body invalide : { preferences } ou { reset: true } attendu.' });
+        }
+
+        user.markModified('documentColorPreferences');
+        await user.save();
+        res.json(clientSafeUser(user));
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour des couleurs de documents:', error);
+        res.status(500).json({ message: 'Erreur interne du serveur.' });
     }
 });
 

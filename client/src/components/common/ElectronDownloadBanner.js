@@ -13,9 +13,8 @@
 // La banniere a ete retiree du Dashboard. Le lien vers l'installeur complet et la
 // constante ELECTRON_INSTALLER_URL ont ete supprimes pour eliminer le vecteur.
 //
-// Le remplacement (detection silencieuse + installation non-intrusive du
-// COMPAGNON MINCE au login) vit dans client/src/services/companion/* et n'affiche
-// AUCUNE banniere persistante.
+// Le remplacement détecte silencieusement le COMPAGNON MINCE. Son installation
+// n'est proposée qu'après une action explicite de l'utilisateur.
 //
 // Ce stub est conserve uniquement pour ne pas casser un eventuel import residuel ;
 // il ne rend rien. A supprimer definitivement une fois le compagnon livre.

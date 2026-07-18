@@ -21,6 +21,70 @@ const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
 const { injectHeaderAndFooter } = require('./docxHeaderFooterInjector');
 
+const RECIPIENT_ADDRESS_VARIABLES = new Set([
+  'titre', 'civilite', 'prenom', 'nom', 'adresse', 'cp', 'ville',
+]);
+
+function decodeXmlText(value) {
+  return String(value || '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
+function paragraphTemplateVariables(paragraphXml) {
+  const visible = decodeXmlText(String(paragraphXml || '').replace(/<[^>]+>/g, ''));
+  return [...visible.matchAll(/\{\s*([^{}]+?)\s*\}/g)]
+    .map((match) => String(match[1] || '').trim());
+}
+
+function paragraphWithRightAlignment(paragraphXml) {
+  if (/<w:pPr\b[^>]*\/>/i.test(paragraphXml)) {
+    return paragraphXml.replace(/<w:pPr\b[^>]*\/>/i, '<w:pPr><w:jc w:val="right"/></w:pPr>');
+  }
+  if (/<w:pPr\b[^>]*>/i.test(paragraphXml)) {
+    if (/<w:jc\b[^>]*(?:\/>|>[\s\S]*?<\/w:jc>)/i.test(paragraphXml)) {
+      return paragraphXml.replace(
+        /<w:jc\b[^>]*(?:\/>|>[\s\S]*?<\/w:jc>)/i,
+        '<w:jc w:val="right"/>',
+      );
+    }
+    return paragraphXml.replace(/<\/w:pPr>/i, '<w:jc w:val="right"/></w:pPr>');
+  }
+  return paragraphXml.replace(/^(<w:p\b[^>]*>)/i, '$1<w:pPr><w:jc w:val="right"/></w:pPr>');
+}
+
+/**
+ * Aligne uniquement les paragraphes du modèle qui portent les variables du
+ * bloc d'adresse destinataire. Les autres paragraphes et leurs styles restent
+ * strictement inchangés. Sans destinataire renseigné, le modèle est retourné
+ * tel quel : aucune adresse ni aucun alignement n'est inventé.
+ */
+function alignRecipientAddressBlock(templateBuffer, variables = {}) {
+  if (!Buffer.isBuffer(templateBuffer)) return templateBuffer;
+  const available = new Set(
+    Object.entries(variables || {})
+      .filter(([name, value]) => RECIPIENT_ADDRESS_VARIABLES.has(name) && String(value ?? '').trim())
+      .map(([name]) => name),
+  );
+  if (!available.size) return templateBuffer;
+
+  const zip = new PizZip(templateBuffer);
+  const documentFile = zip.file('word/document.xml');
+  if (!documentFile) return templateBuffer;
+  const xml = documentFile.asText();
+  const updated = xml.replace(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/gi, (paragraph) => {
+    const carriesRecipientData = paragraphTemplateVariables(paragraph)
+      .some((name) => available.has(name));
+    return carriesRecipientData ? paragraphWithRightAlignment(paragraph) : paragraph;
+  });
+  if (updated === xml) return templateBuffer;
+  zip.file('word/document.xml', updated);
+  return zip.generate({ type: 'nodebuffer' });
+}
+
 /**
  * Rendu pur : template .docx + variables → buffer .docx rempli.
  * Options docxtemplater identiques à l'app Electron (delimiters {…}, paragraphLoop,
@@ -49,7 +113,8 @@ function renderDocxBuffer(templateBuffer, variables = {}) {
 }
 
 /**
- * Génération complète : rendu + gras (best-effort) + en-tête/signature (best-effort).
+ * Génération complète : rendu + gras (best-effort) + en-tête/signature stricte
+ * lorsqu'un contenu de profil a été fourni.
  * @param {object} opts
  * @param {Buffer} opts.templateBuffer
  * @param {object} [opts.variables]
@@ -69,7 +134,8 @@ async function generateDocx({
   fontOptions = {},
   applyBold = true,
 } = {}) {
-  let buffer = renderDocxBuffer(templateBuffer, variables);
+  const preparedTemplate = alignRecipientAddressBlock(templateBuffer, variables);
+  let buffer = renderDocxBuffer(preparedTemplate, variables);
 
   // Les injecteurs travaillent sur un FICHIER → on passe par un dossier temporaire.
   const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'kheops-docx-'));
@@ -87,21 +153,20 @@ async function generateDocx({
       }
     }
 
-    // 2) En-tête + signature (best-effort). N'agit que si du contenu est fourni.
+    // 2) En-tête + signature. N'agit que si du contenu est réellement fourni.
+    // Quand le profil en contient, une erreur doit interrompre la génération :
+    // retourner silencieusement un courrier amputé ne respecterait pas les
+    // paramètres documentaires choisis par l'utilisateur.
     if ((header && header.trim()) || (signatureText && signatureText.trim()) || signatureImageBase64) {
-      try {
-        injectHeaderAndFooter(tmpFile, {
-          headerText: header || '',
-          headerFontFamily: fontOptions.fontFamily,
-          headerFontSize: fontOptions.fontSize,
-          headerFontWeight: fontOptions.fontWeight,
-          headerTextAlign: fontOptions.textAlign,
-          signatureText: signatureText || '',
-          signatureImageBase64: signatureImageBase64 || '',
-        });
-      } catch (e) {
-        console.warn('[docxGenerator] Injection en-tête/signature ignorée :', e.message);
-      }
+      injectHeaderAndFooter(tmpFile, {
+        headerText: header || '',
+        headerFontFamily: fontOptions.fontFamily,
+        headerFontSize: fontOptions.fontSize,
+        headerFontWeight: fontOptions.fontWeight,
+        headerTextAlign: fontOptions.textAlign,
+        signatureText: signatureText || '',
+        signatureImageBase64: signatureImageBase64 || '',
+      });
     }
 
     buffer = await fs.promises.readFile(tmpFile);
@@ -142,4 +207,9 @@ function buildBlankDocxBuffer() {
   return zip.generate({ type: 'nodebuffer' });
 }
 
-module.exports = { renderDocxBuffer, generateDocx, buildBlankDocxBuffer };
+module.exports = {
+  alignRecipientAddressBlock,
+  renderDocxBuffer,
+  generateDocx,
+  buildBlankDocxBuffer,
+};

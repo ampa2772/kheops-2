@@ -1,6 +1,7 @@
 // client/src/components/dashboard/office/dossier/index.js
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './styles.css';
 import DocumentsStockesDossier from './DocumentsStockesDossier';
 import AgendaDossier from './AgendaDossier';
@@ -18,7 +19,14 @@ import { fetchEventsForDossier } from '../../../../redux/slices/agendaSlice';
 import { fetchLast25Dossiers } from '../../../../redux/slices/dossierInfoSlice';
 import { fetchOperationsForDossier } from '../../../../redux/slices/carpaSlice';
 import { fetchDivorceByDossier } from '../../../../redux/slices/divorceCMSlice';
-import { fetchCurrentDossier } from '../../../../redux/slices/currentDossierSlice';
+import { fetchCurrentDossier, setCurrentDossier } from '../../../../redux/slices/currentDossierSlice';
+import { syncDossierDocuments } from '../../../../services/storageClient';
+import { triggerMirrorSync } from '../../../../services/companion/companionClient';
+import {
+  clearDossierContactFocus,
+  findFocusedDossierEntity,
+  readDossierContactFocus,
+} from './contactEditNavigation';
 
 
 // Icones SVG inline des onglets — convention identique a l'icone CARPA de
@@ -87,9 +95,21 @@ const TAB_ICONS = {
 };
 
 const Dossier = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const requestedDossierId = useMemo(
+    () => new URLSearchParams(location.search).get('dossierId') || '',
+    [location.search],
+  );
+  const contactFocus = useMemo(
+    () => readDossierContactFocus(location.search),
+    [location.search],
+  );
   const dispatch = useDispatch();
 
   const currentDossierFromStore = useSelector((state) => state.currentDossier.dossier);
+  const currentDossierLoading = useSelector((state) => state.currentDossier.loading);
+  const currentDossierError = useSelector((state) => state.currentDossier.error);
   const { lastDossiers, fetchAttempted } = useSelector((state) => state.last25Dossiers);
   const dossierEvents = useSelector((state) => state.agenda?.dossierEvents || []);
 
@@ -101,6 +121,7 @@ const Dossier = () => {
 
   // Hook lifte ici pour piloter la vue parties/entites depuis la colonne gauche
   const dossierInfo = useDossierInfo(currentDossierFromStore);
+  const handleSelectDossierEntity = dossierInfo.handleSelectEntity;
 
   // Helper utilise par DocumentsStockesDossier pour formater l'entite selectionnee
   const buildEntityForSelection = (block, isContre) => {
@@ -136,7 +157,14 @@ const Dossier = () => {
   // l'ID persisté dans localStorage. Évite l'écran "Aucun dossier sélectionné"
   // alors que l'utilisateur en avait un actif il y a 30 secondes.
   useEffect(() => {
+    if (!requestedDossierId || String(currentDossierFromStore?._id || '') === requestedDossierId) return;
+    try { localStorage.setItem('kheopsLastOpenedDossierId', requestedDossierId); } catch (_) {}
+    dispatch(fetchCurrentDossier(requestedDossierId));
+  }, [dispatch, requestedDossierId, currentDossierFromStore?._id]);
+
+  useEffect(() => {
     if (currentDossierFromStore?._id) return;
+    if (requestedDossierId) return;
     let lastId = null;
     try { lastId = localStorage.getItem('kheopsLastOpenedDossierId'); } catch (_) {}
     if (lastId) {
@@ -145,13 +173,41 @@ const Dossier = () => {
     // dépendance : currentDossierFromStore?._id seulement, pour ne pas reboucler
     // après que le fetch a abouti.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch]);
+  }, [dispatch, requestedDossierId, currentDossierFromStore?._id]);
+
+  // Filet de sécurité « jamais d'écran vide » : si aucun dossier courant et que
+  // la restauration par id mémorisé n'est pas possible (pas d'id) ou a échoué
+  // (dossier supprimé, id d'un autre compte → 403/404), on ouvre le dossier le
+  // PLUS RÉCENT dès que la liste est disponible. Ainsi la page Dossier affiche
+  // toujours au moins un dossier (sauf si le cabinet n'en a aucun).
+  useEffect(() => {
+    if (currentDossierFromStore?._id) return; // un dossier est affiché
+    if (requestedDossierId && !currentDossierError) return;
+    if (currentDossierLoading) return;        // restauration en cours : on attend
+    if (!hasDossiers) return;                 // liste pas encore chargée (ou vide)
+    let lastId = null;
+    try { lastId = localStorage.getItem('kheopsLastOpenedDossierId'); } catch (_) {}
+    if (lastId && !currentDossierError) return; // restauration pas encore tentée/terminée
+    const mostRecent = lastDossiers[0];
+    if (mostRecent?._id) {
+      dispatch(setCurrentDossier(mostRecent));
+    }
+  }, [currentDossierFromStore?._id, currentDossierLoading, currentDossierError, hasDossiers, lastDossiers, dispatch, requestedDossierId]);
 
   useEffect(() => {
     if (currentDossierFromStore?._id) {
       dispatch(fetchEventsForDossier(currentDossierFromStore._id));
       dispatch(fetchOperationsForDossier(currentDossierFromStore._id));
       dispatch(fetchDivorceByDossier(currentDossierFromStore._id));
+      // Synchro cloud (fire-and-forget, non bloquant) : recopie vers le cloud
+      // personnel de l'utilisateur les documents de ce dossier restes sur le
+      // stockage interne, afin qu'ils apparaissent dans OneDrive/SharePoint/Drive.
+      // Idempotent cote serveur (ignore ceux deja sur cloud perso).
+      syncDossierDocuments(currentDossierFromStore._id);
+      // Miroir local (comptes sans cloud perso) : rafraichit C:\Files_Clients
+      // via le compagnon. No-op silencieux pour les autres comptes (manifeste)
+      // et si le compagnon est absent/ancien ; anti-rafale cote compagnon.
+      triggerMirrorSync();
     }
   }, [dispatch, currentDossierFromStore?._id]);
 
@@ -169,6 +225,41 @@ const Dossier = () => {
       setDossierName('Dossier');
     }
   }, [currentDossierFromStore]);
+
+  // Au retour du formulaire complet, recharge la meme fiche rapide dans le
+  // meme dossier. Les parametres de focus sont aussitot consommes afin qu'une
+  // fermeture manuelle de la fiche ne la rouvre pas au prochain rendu.
+  useEffect(() => {
+    if (!contactFocus.contactId || !currentDossierFromStore?._id) return;
+    if (requestedDossierId && String(currentDossierFromStore._id) !== requestedDossierId) return;
+    if (currentDossierLoading) return;
+
+    const entity = findFocusedDossierEntity(currentDossierFromStore, {
+      contactId: contactFocus.contactId,
+      entityType: contactFocus.entityType,
+      side: contactFocus.side,
+    });
+    if (entity) {
+      setSelectedOption('DocumentsStockes');
+      handleSelectDossierEntity(entity);
+    }
+
+    navigate({
+      pathname: location.pathname,
+      search: clearDossierContactFocus(location.search),
+    }, { replace: true });
+  }, [
+    contactFocus.contactId,
+    contactFocus.entityType,
+    contactFocus.side,
+    currentDossierFromStore,
+    currentDossierLoading,
+    requestedDossierId,
+    handleSelectDossierEntity,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
 
   useEffect(() => {
     if (!hasDossiers && fetchAttempted) {

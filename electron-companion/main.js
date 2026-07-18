@@ -51,6 +51,7 @@ if (!gotLock) {
 
   app.on('before-quit', () => {
     try { wordSession.stopAll(); } catch (_) {}
+    try { require('./lib/mirror').stopAll(); } catch (_) {}
     try { localServer.stop(); } catch (_) {}
   });
 }

@@ -55,6 +55,14 @@ yarn-error.log*
 task*_fix*.txt
 *.lnk
 .kheops2-tmp/
+# Configuration locale gcloud : jetons OAuth, bases de credentials et journaux.
+.gcloud-kheops2/
+
+# Rapports et preuves générés localement (non nécessaires pour exécuter l'app).
+/test-results/
+/playwright-report/data/
+/Livrables/
+/docs/qa/
 
 # --- Notes internes de développement (non destinées au public) ---------------
 HOSTING.md

@@ -5,7 +5,16 @@
 // de retour, formes de payload, validation des entrées. La logique est testée
 // dans chatService.test.js.
 
-let mockCurrentUserId = 'userA';
+const mockIds = {
+    principal: '507f1f77bcf86cd799439001',
+    officeA: '507f1f77bcf86cd7994390a1',
+    officeB: '507f1f77bcf86cd7994390b2',
+    officeC: '507f1f77bcf86cd7994390c3',
+    foreignOffice: '507f1f77bcf86cd7994390f4',
+};
+
+let mockCurrentUserId = mockIds.principal;
+let mockPrincipalOfficeUsers = null;
 
 jest.mock('../../middlewares/middleware-auth', () => (req, res, next) => {
     req.user = mockCurrentUserId;
@@ -46,35 +55,50 @@ jest.mock('../../models/App_Users/User', () => ({
 // rc38 : les routes résolvent un OfficeUser actif (resolveActiveOfficeUserId →
 // UserOfficeUser/OfficeUser) et vérifient l'appartenance du destinataire
 // (ensureOfficeUserOwnership, A14). Le modèle User n'est plus utilisé par la route.
-// On mocke l'OfficeUser principal avec le MÊME _id que l'utilisateur courant :
-// ainsi le service reçoit userId = 'userA' et les assertions existantes tiennent.
 jest.mock('../../models/App_Users/modelsLiaisons/UserOfficeUser', () => ({
     find: (query) => {
-        const uid = query && query.user;
-        const links = [
-            { officeUser: { _id: uid, mainOfficeUser: true, prenomOfficeUser: 'Alice', nomOfficeUser: 'Avocate', roleOfficeUser: 'avocat', isAvocat: true } },
-            { officeUser: { _id: 'userB', mainOfficeUser: false, prenomOfficeUser: 'Bob', nomOfficeUser: 'Bobson', roleOfficeUser: 'secretaire', isAvocat: false } },
-        ];
+        const links = String(query && query.user) === mockIds.principal
+            ? mockPrincipalOfficeUsers
+            : [];
         return { populate: () => ({ lean: async () => links }) };
     },
-    findOne: () => ({ lean: async () => null }),
+    findOne: (query) => ({
+        lean: async () => {
+            if (String(query && query.user) !== mockIds.principal) return null;
+            const candidate = String(query && query.officeUser);
+            return mockPrincipalOfficeUsers.find(
+                link => String(link.officeUser && link.officeUser._id) === candidate,
+            ) || null;
+        },
+    }),
 }));
 jest.mock('../../models/App_Users/OfficeUser', () => ({
     find: () => ({ select: () => Promise.resolve([
-        { _id: 'userB', prenomOfficeUser: 'Bob', nomOfficeUser: 'Bobson', roleOfficeUser: 'secretaire', isAvocat: false, mainOfficeUser: false },
-        { _id: 'userC', prenomOfficeUser: 'Carol', nomOfficeUser: 'Carolson', roleOfficeUser: 'avocat', isAvocat: true, mainOfficeUser: false },
+        { _id: mockIds.officeA, prenomOfficeUser: 'Alice', nomOfficeUser: 'Avocate', roleOfficeUser: 'avocat', isAvocat: true, mainOfficeUser: true },
+        { _id: mockIds.officeB, prenomOfficeUser: 'Bob', nomOfficeUser: 'Bobson', roleOfficeUser: 'secretaire', isAvocat: false, mainOfficeUser: false },
+        { _id: mockIds.officeC, prenomOfficeUser: 'Carol', nomOfficeUser: 'Carolson', roleOfficeUser: 'avocat', isAvocat: true, mainOfficeUser: false },
     ]) }),
     findOne: () => ({ lean: async () => null }),
 }));
+
+const mockEnsureOfficeUserOwnership = jest.fn();
 jest.mock('../../utils/ownershipHelpers', () => ({
-    ensureOfficeUserOwnership: jest.fn().mockResolvedValue(true),
+    ensureOfficeUserOwnership: (...args) => mockEnsureOfficeUserOwnership(...args),
     ensureDossierOwnership: jest.fn().mockResolvedValue(true),
     ensureContactOwnership: jest.fn().mockResolvedValue(true),
     ensureDocOwnership: jest.fn().mockResolvedValue({ ok: true }),
 }));
 
+const mockMessageFindOne = jest.fn();
+jest.mock('../../models/Chat/Message', () => ({
+    findOne: (...args) => mockMessageFindOne(...args),
+}));
+
 const express = require('express');
 const http = require('http');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const router = require('../chat');
 
 const app = express();
@@ -102,10 +126,17 @@ beforeEach(() => {
     mockGetInbox.mockReset();
     mockMarkConversationAsRead.mockReset();
     mockGetTotalUnreadCount.mockReset();
-    mockCurrentUserId = 'userA';
+    mockEnsureOfficeUserOwnership.mockReset();
+    mockEnsureOfficeUserOwnership.mockResolvedValue(true);
+    mockMessageFindOne.mockReset();
+    mockCurrentUserId = mockIds.principal;
+    mockPrincipalOfficeUsers = [
+        { officeUser: { _id: mockIds.officeA, mainOfficeUser: true, prenomOfficeUser: 'Alice', nomOfficeUser: 'Avocate', roleOfficeUser: 'avocat', isAvocat: true } },
+        { officeUser: { _id: mockIds.officeB, mainOfficeUser: false, prenomOfficeUser: 'Bob', nomOfficeUser: 'Bobson', roleOfficeUser: 'secretaire', isAvocat: false } },
+    ];
 });
 
-function request(method, urlPath, body = null) {
+function request(method, urlPath, body = null, options = {}) {
     return new Promise((resolve, reject) => {
         const url = new URL(urlPath, baseUrl);
         const opts = {
@@ -115,6 +146,10 @@ function request(method, urlPath, body = null) {
             path: url.pathname + url.search,
             headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test' },
         };
+        const officeUserId = Object.prototype.hasOwnProperty.call(options, 'officeUserId')
+            ? options.officeUserId
+            : mockIds.officeA;
+        if (officeUserId) opts.headers['X-Office-User-Id'] = officeUserId;
         const req = http.request(opts, (res) => {
             let data = '';
             res.on('data', (c) => { data += c; });
@@ -134,23 +169,54 @@ describe('GET /api/chat/contacts', () => {
         const r = await request('GET', '/api/chat/contacts');
         expect(r.status).toBe(200);
         expect(Array.isArray(r.body.contacts)).toBe(true);
-        expect(r.body.contacts).toHaveLength(2);
+        expect(r.body.contacts).toHaveLength(1);
+        expect(r.body.contacts[0]._id).toBe(mockIds.officeB);
         expect(r.body.contacts[0]).toHaveProperty('email');
+    });
+
+    it('refuse un profil explicite non lié au compte sans fallback', async () => {
+        const r = await request('GET', '/api/chat/contacts', null, {
+            officeUserId: mockIds.foreignOffice,
+        });
+        expect(r.status).toBe(403);
+        expect(r.body.error).toBe('ACTIVE_OFFICE_USER_FORBIDDEN');
+    });
+
+    it('refuse un identifiant de profil actif explicite mal formé', async () => {
+        const r = await request('GET', '/api/chat/contacts', null, {
+            officeUserId: 'profil-invalide',
+        });
+        expect(r.status).toBe(403);
+        expect(r.body.error).toBe('ACTIVE_OFFICE_USER_INVALID');
+    });
+
+    it('exige le header quand le compte possède plusieurs profils', async () => {
+        const r = await request('GET', '/api/chat/contacts', null, { officeUserId: null });
+        expect(r.status).toBe(409);
+        expect(r.body.error).toBe('ACTIVE_OFFICE_USER_REQUIRED');
+    });
+
+    it("tolère l'absence de header pour un compte mono-profil", async () => {
+        mockPrincipalOfficeUsers = [mockPrincipalOfficeUsers[0]];
+        const r = await request('GET', '/api/chat/contacts', null, { officeUserId: null });
+        expect(r.status).toBe(200);
+        expect(r.body.currentOfficeUserId).toBe(mockIds.officeA);
+        expect(r.body.contacts).toEqual([]);
     });
 });
 
 describe('GET /api/chat/conversations', () => {
     it('renvoie la liste hydratée avec contact + lastMessage + unreadCount', async () => {
         mockGetInbox.mockResolvedValue([
-            { _id: 'userB', lastMessage: { text: 'hi', createdAt: new Date() }, unreadCount: 2 },
-            { _id: 'userC', lastMessage: { text: 'yo', createdAt: new Date() }, unreadCount: 0 },
+            { _id: mockIds.officeB, lastMessage: { text: 'hi', createdAt: new Date() }, unreadCount: 2 },
+            { _id: mockIds.officeC, lastMessage: { text: 'yo', createdAt: new Date() }, unreadCount: 0 },
         ]);
         const r = await request('GET', '/api/chat/conversations');
         expect(r.status).toBe(200);
         expect(r.body.conversations).toHaveLength(2);
         expect(r.body.conversations[0].contact.firstName).toBe('Bob');
         expect(r.body.conversations[0].unreadCount).toBe(2);
-        expect(r.body.currentUserId).toBe('userA');
+        expect(r.body.currentUserId).toBe(mockIds.officeA);
     });
 
     it('renvoie 500 si le service explose', async () => {
@@ -168,20 +234,31 @@ describe('GET /api/chat/messages', () => {
 
     it('renvoie les messages renvoyés par le service', async () => {
         mockGetConversation.mockResolvedValue([{ _id: 'm1', text: 'salut' }]);
-        const r = await request('GET', '/api/chat/messages?contactId=userB');
+        const r = await request('GET', `/api/chat/messages?contactId=${mockIds.officeB}`);
         expect(r.status).toBe(200);
         expect(r.body.messages).toHaveLength(1);
         expect(mockGetConversation).toHaveBeenCalledWith({
-            userId: 'userA', contactId: 'userB', before: undefined, limit: undefined,
+            userId: mockIds.officeA, contactId: mockIds.officeB, before: undefined, limit: undefined,
         });
+        expect(mockEnsureOfficeUserOwnership).toHaveBeenCalled();
     });
 
     it('passe le cursor before et le limit au service', async () => {
         mockGetConversation.mockResolvedValue([]);
-        await request('GET', '/api/chat/messages?contactId=userB&before=2026-01-01&limit=50');
+        await request('GET', `/api/chat/messages?contactId=${mockIds.officeB}&before=2026-01-01&limit=50`);
         expect(mockGetConversation).toHaveBeenCalledWith(expect.objectContaining({
             before: '2026-01-01', limit: '50',
         }));
+    });
+
+    it("refuse la lecture d'un interlocuteur hors cabinet", async () => {
+        mockEnsureOfficeUserOwnership.mockImplementationOnce(async (_req, res) => {
+            res.status(403).json({ error: 'FORBIDDEN' });
+            return false;
+        });
+        const r = await request('GET', `/api/chat/messages?contactId=${mockIds.foreignOffice}`);
+        expect(r.status).toBe(403);
+        expect(mockGetConversation).not.toHaveBeenCalled();
     });
 });
 
@@ -194,18 +271,40 @@ describe('POST /api/chat/messages', () => {
     it('crée un message texte et renvoie 201', async () => {
         mockSendMessage.mockResolvedValue({ _id: 'm99', text: 'hello' });
         const r = await request('POST', '/api/chat/messages', {
-            recipientId: 'userB', text: 'hello',
+            recipientId: mockIds.officeB, text: 'hello',
         });
         expect(r.status).toBe(201);
         expect(r.body.message._id).toBe('m99');
         expect(mockSendMessage).toHaveBeenCalledWith({
-            senderId: 'userA', recipientId: 'userB', text: 'hello', attachment: undefined, encryptedPayload: undefined,
+            senderId: mockIds.officeA, recipientId: mockIds.officeB, text: 'hello', attachment: undefined, encryptedPayload: undefined,
         });
+    });
+
+    it('attribue séparément deux envois concurrents du même compte aux profils TT et JP', async () => {
+        mockSendMessage.mockImplementation(async payload => ({ _id: payload.senderId, ...payload }));
+        const [fromA, fromB] = await Promise.all([
+            request('POST', '/api/chat/messages', { recipientId: mockIds.officeB, text: 'A vers B' }, { officeUserId: mockIds.officeA }),
+            request('POST', '/api/chat/messages', { recipientId: mockIds.officeA, text: 'B vers A' }, { officeUserId: mockIds.officeB }),
+        ]);
+        expect(fromA.status).toBe(201);
+        expect(fromB.status).toBe(201);
+        expect(mockSendMessage).toHaveBeenCalledWith(expect.objectContaining({ senderId: mockIds.officeA }));
+        expect(mockSendMessage).toHaveBeenCalledWith(expect.objectContaining({ senderId: mockIds.officeB }));
+    });
+
+    it('refuse une conversation avec le profil actif lui-même', async () => {
+        const r = await request('POST', '/api/chat/messages', {
+            recipientId: mockIds.officeA,
+            text: 'self',
+        });
+        expect(r.status).toBe(400);
+        expect(r.body.error).toBe('SELF_CONVERSATION_NOT_ALLOWED');
+        expect(mockSendMessage).not.toHaveBeenCalled();
     });
 
     it('400 si le service signale un message vide', async () => {
         mockSendMessage.mockRejectedValue(new Error('Message vide : texte ou attachement requis.'));
-        const r = await request('POST', '/api/chat/messages', { recipientId: 'userB' });
+        const r = await request('POST', '/api/chat/messages', { recipientId: mockIds.officeB });
         expect(r.status).toBe(400);
     });
 
@@ -213,7 +312,7 @@ describe('POST /api/chat/messages', () => {
         const broadcast = jest.fn();
         router.setOnMessageCreated(broadcast);
         mockSendMessage.mockResolvedValue({ _id: 'm-broadcast', text: 'hi' });
-        await request('POST', '/api/chat/messages', { recipientId: 'userB', text: 'hi' });
+        await request('POST', '/api/chat/messages', { recipientId: mockIds.officeB, text: 'hi' });
         expect(broadcast).toHaveBeenCalledWith(expect.objectContaining({ _id: 'm-broadcast' }));
         router.setOnMessageCreated(null);
     });
@@ -222,9 +321,20 @@ describe('POST /api/chat/messages', () => {
 describe('POST /api/chat/conversations/:contactId/read', () => {
     it('marque comme lu et renvoie le nombre', async () => {
         mockMarkConversationAsRead.mockResolvedValue(3);
-        const r = await request('POST', '/api/chat/conversations/userB/read');
+        const r = await request('POST', `/api/chat/conversations/${mockIds.officeB}/read`);
         expect(r.status).toBe(200);
         expect(r.body).toEqual({ updated: 3 });
+        expect(mockEnsureOfficeUserOwnership).toHaveBeenCalled();
+    });
+
+    it("refuse de marquer comme lu un interlocuteur hors cabinet", async () => {
+        mockEnsureOfficeUserOwnership.mockImplementationOnce(async (_req, res) => {
+            res.status(403).json({ error: 'FORBIDDEN' });
+            return false;
+        });
+        const r = await request('POST', `/api/chat/conversations/${mockIds.foreignOffice}/read`);
+        expect(r.status).toBe(403);
+        expect(mockMarkConversationAsRead).not.toHaveBeenCalled();
     });
 });
 
@@ -246,5 +356,45 @@ describe('GET /api/chat/attachments/*', () => {
     it('404 si fichier inexistant', async () => {
         const r = await request('GET', '/api/chat/attachments/fake/path/nope.bin');
         expect(r.status).toBe(404);
+    });
+
+    it("borne le téléchargement au profil interne actif réellement participant", async () => {
+        const userDataDir = process.env.APPDATA
+            || (process.env.HOME ? path.join(process.env.HOME, '.kheops2') : null)
+            || path.join(os.homedir(), 'Kheops2');
+        const uploadsRoot = process.env.APPDATA
+            ? path.join(userDataDir, 'Kheops2', 'chat-attachments')
+            : path.join(userDataDir, 'chat-attachments');
+        const storageKey = `identity-tests/${Date.now()}-attachment.txt`;
+        const absolutePath = path.join(uploadsRoot, ...storageKey.split('/'));
+        fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+        fs.writeFileSync(absolutePath, 'profil A uniquement');
+
+        mockMessageFindOne.mockReturnValue({
+            select: () => ({
+                lean: async () => ({ sender: mockIds.officeA, recipient: mockIds.officeC }),
+            }),
+        });
+
+        try {
+            const denied = await request(
+                'GET',
+                `/api/chat/attachments/${storageKey}`,
+                null,
+                { officeUserId: mockIds.officeB },
+            );
+            expect(denied.status).toBe(403);
+
+            const allowed = await request(
+                'GET',
+                `/api/chat/attachments/${storageKey}`,
+                null,
+                { officeUserId: mockIds.officeA },
+            );
+            expect(allowed.status).toBe(200);
+            expect(allowed.body).toBe('profil A uniquement');
+        } finally {
+            fs.rmSync(absolutePath, { force: true });
+        }
     });
 });

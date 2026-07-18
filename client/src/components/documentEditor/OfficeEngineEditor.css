@@ -1,0 +1,168 @@
+.kheops-office-overlay {
+  --office-shell: #071f36;
+  --office-header: linear-gradient(105deg, #173f75 0%, #15586b 100%);
+  --office-text: #f5fbff;
+  --office-muted: #b9cee1;
+  --office-border: rgba(123, 211, 255, .38);
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  background: var(--office-shell);
+  color: var(--office-text);
+  overflow: hidden;
+}
+
+.kheops-office-overlay.theme-light,
+.kheops-office-overlay.theme-system.resolved-light {
+  --office-shell: #edf3f9;
+  --office-header: linear-gradient(105deg, #285996 0%, #28788a 100%);
+}
+
+.kheops-office-overlay.resolved-dark { color-scheme: dark; }
+
+.kheops-office-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.kheops-office-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 8px clamp(10px, 1.6vw, 24px);
+  background: var(--office-header);
+  border-bottom: 1px solid var(--office-border);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .2);
+}
+
+.kheops-office-brand {
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: #e2b349;
+  color: #08213a;
+  font: 700 26px Georgia, serif;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.4);
+}
+
+.kheops-office-heading {
+  display: flex;
+  flex: 1 1 320px;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+.kheops-office-heading strong { font-size: 16px; }
+.kheops-office-heading span {
+  max-width: min(48vw, 720px);
+  overflow: hidden;
+  color: var(--office-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kheops-office-status {
+  flex: 0 1 auto;
+  min-width: 0;
+  color: #d2f7ea;
+  font-size: 12px;
+  text-align: right;
+}
+
+.kheops-office-theme {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--office-muted);
+  font-size: 12px;
+}
+
+.kheops-office-theme select,
+.kheops-office-fallback,
+.kheops-office-close {
+  min-height: 38px;
+  border: 1px solid var(--office-border);
+  border-radius: 8px;
+  background: rgba(5, 33, 55, .5);
+  color: var(--office-text);
+}
+.kheops-office-theme select { padding: 0 9px; }
+.kheops-office-fallback { padding: 0 13px; cursor: pointer; }
+.kheops-office-close { flex: 0 0 40px; width: 40px; font-size: 24px; cursor: pointer; }
+
+.kheops-office-frame-wrap {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #d7dee7;
+}
+.kheops-office-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  background: #fff;
+}
+.kheops-office-post-form { display: none; }
+
+.kheops-office-error {
+  position: absolute;
+  z-index: 2;
+  inset: 80px auto auto 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(520px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid #e5aa49;
+  border-radius: 12px;
+  background: #fff7e5;
+  color: #392506;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, .25);
+}
+.kheops-office-error button {
+  align-self: flex-start;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #155e75;
+  color: #fff;
+  cursor: pointer;
+}
+
+@media (max-width: 840px) {
+  .kheops-office-header { flex-wrap: wrap; gap: 6px 8px; min-height: 88px; }
+  .kheops-office-brand { flex-basis: 36px; width: 36px; height: 36px; font-size: 22px; }
+  .kheops-office-heading { flex-basis: calc(100% - 92px); }
+  .kheops-office-heading span { max-width: 100%; }
+  .kheops-office-status { order: 5; flex: 1 1 100%; text-align: left; }
+  .kheops-office-theme span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .kheops-office-fallback { padding-inline: 10px; }
+}
+
+@media (max-width: 520px) {
+  .kheops-office-header { padding: 7px 8px; }
+  .kheops-office-theme select { max-width: 104px; }
+  .kheops-office-fallback { max-width: 116px; font-size: 12px; line-height: 1.1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kheops-office-overlay * { scroll-behavior: auto !important; }
+}

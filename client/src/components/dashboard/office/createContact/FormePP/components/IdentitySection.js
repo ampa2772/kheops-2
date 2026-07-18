@@ -10,11 +10,19 @@ const IdentitySection = ({ contact, errors, submitAttempted, shouldHideSelectTyp
         dispatch(setContactField(event.target.name, event.target.value));
     };
 
+    const linkContext = fromCreatePartie?.fromCreatePartiesForLink || {};
+    const linkedPersonContext = !!(
+        linkContext.isLinkedToSinglePartie || linkContext.isLinkedToPartiesGroup
+    ) && !fromCreatePartie?.modificationInfo?.isModification;
+
     return (
         <fieldset className={`identity ${submitAttempted && (errors.type || errors.nom || errors.prenoms) ? 'redFieldset' : ''}`}>
             <legend>Identit&eacute;</legend>
             {!shouldHideSelectTypeContact && (
-                <ContactTypeSwitch submitAttempted={submitAttempted} />
+                <ContactTypeSwitch
+                    submitAttempted={submitAttempted}
+                    linkedPersonContext={linkedPersonContext}
+                />
             )}
 
             <div className="nom_prenom_contact">

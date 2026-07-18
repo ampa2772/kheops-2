@@ -189,6 +189,22 @@ export const updateDossierColorPreferences = createAsyncThunk(
 );
 
 /**
+ * updateDocumentColorPreferences — Définit couleur et héritage par type de
+ * document. Body : { preferences: { courrier: {mode, color}, ... } } ou reset.
+ */
+export const updateDocumentColorPreferences = createAsyncThunk(
+  'auth/updateDocumentColorPreferences',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.put('/api/auth/user/document-colors', payload);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || err.message);
+    }
+  }
+);
+
+/**
  * verifyEmailToken — Verifie la validite du token email.
  * Retourne true/false sans dispatcher d'action Redux.
  */
@@ -461,9 +477,10 @@ export const loadUserFromLocalStorage = () => (dispatch) => {
  *      l'utilisateur suivant pourrait acceder aux donnees du precedent.
  *      C'est la separation stricte auth/chiffrement (la session se ferme,
  *      la cle disparait). Sans effet tant que le chiffrement est desactive.
- *   2. Deconnecte la session cloud Electron (Microsoft ou Google), best-effort.
- *   3. Vide le JWT + le localStorage et repasse isAuthenticated=false (logout()).
- *   4. Redirige vers l'ecran de login si un navigate est fourni.
+ *   2. Revoque toutes les sessions compagnon de l'utilisateur, best-effort.
+ *   3. Deconnecte la session cloud Electron (Microsoft ou Google), best-effort.
+ *   4. Vide le JWT + le localStorage et repasse isAuthenticated=false (logout()).
+ *   5. Redirige vers l'ecran de login si un navigate est fourni.
  *
  * Tous les appels Electron/crypto sont gardes : ils ne peuvent JAMAIS empecher
  * la deconnexion (regle UX absolue — ne jamais pieger l'utilisateur).
@@ -472,7 +489,9 @@ export const loadUserFromLocalStorage = () => (dispatch) => {
  * @param {function} [opts.navigate]  react-router navigate, pour revenir a '/'
  */
 export const performLogout = ({ navigate } = {}) => async (dispatch, getState) => {
-  const user = getState().login && getState().login.user;
+  const loginState = getState().login || {};
+  const user = loginState.user;
+  const kheopsToken = loginState.token;
   const isMicrosoftUser = !!(user && user.microsoftRefreshToken);
 
   // 1. Verrouiller le cabinet (best-effort, ne bloque jamais la deconnexion).
@@ -480,7 +499,19 @@ export const performLogout = ({ navigate } = {}) => async (dispatch, getState) =
     await dispatch(lockCabinetEncryption({ removeDisk: true }));
   } catch (_e) { /* best-effort */ }
 
-  // 2. Deconnexion cloud Electron (best-effort, gardee).
+  // 2. Revoquer les sessions du compagnon AVANT d'effacer le JWT Kheops.
+  // L'appel ne contient aucun jeton Google/Microsoft et ne peut jamais bloquer
+  // la deconnexion locale si le serveur est indisponible.
+  if (kheopsToken) {
+    try {
+      await apiClient.post('/api/word/companion/revoke-all', {}, {
+        headers: { Authorization: `Bearer ${kheopsToken}` },
+        timeout: 3000,
+      });
+    } catch (_e) { /* best-effort */ }
+  }
+
+  // 3. Deconnexion cloud Electron (best-effort, gardee).
   try {
     if (isMicrosoftUser) {
       if (window.electronAPI && window.electronAPI.logoutMicrosoft) {
@@ -491,10 +522,10 @@ export const performLogout = ({ navigate } = {}) => async (dispatch, getState) =
     }
   } catch (_e) { /* best-effort */ }
 
-  // 3. Deconnexion Kheops (JWT + localStorage).
+  // 4. Deconnexion Kheops (JWT + localStorage).
   dispatch(logout());
 
-  // 4. Retour a l'ecran de login.
+  // 5. Retour a l'ecran de login.
   if (navigate) navigate('/');
 };
 
@@ -671,6 +702,15 @@ const authSlice = createSlice({
     });
     builder.addCase(markOnboardingDone.rejected, (state, action) => {
       console.error('[markOnboardingDone] Erreur:', action.payload);
+      // Même si le serveur n'a pas confirmé, l'utilisateur A terminé/sauté le tour
+      // (OnboardingTour se ferme localement). On flippe donc le flag local, comme
+      // le cas fulfilled, sinon les modales gatées sur onboardingDone (ex.
+      // SharePointLoginPrompt) resteraient bloquées toute la session. Le serveur
+      // n'ayant pas enregistré, le tour se re-déclenchera au prochain login réussi.
+      if (state.user) {
+        state.user = { ...state.user, onboardingDone: true };
+        localStorage.setItem('user', JSON.stringify(state.user));
+      }
     });
 
     // --- updateDossierColorPreferences ---
@@ -682,6 +722,17 @@ const authSlice = createSlice({
     });
     builder.addCase(updateDossierColorPreferences.rejected, (state, action) => {
       console.error('[updateDossierColorPreferences] Erreur:', action.payload);
+    });
+
+    // --- updateDocumentColorPreferences ---
+    builder.addCase(updateDocumentColorPreferences.fulfilled, (state, action) => {
+      if (action.payload) {
+        state.user = action.payload;
+        localStorage.setItem('user', JSON.stringify(action.payload));
+      }
+    });
+    builder.addCase(updateDocumentColorPreferences.rejected, (state, action) => {
+      console.error('[updateDocumentColorPreferences] Erreur:', action.payload);
     });
 
     builder.addCase('LOGOUT', (state) => {

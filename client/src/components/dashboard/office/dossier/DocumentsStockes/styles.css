@@ -1329,3 +1329,73 @@
   transition: filter 0.15s ease;
 }
 .send-email-modal .sem-picker-footer .sem-picker-validate:hover { filter: brightness(1.08); }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+/* Ce fichier n'avait aucune media query : le desktop (>=1024px) reste
+   mathematiquement inchange. La modale SendEmailModal est deja fluide
+   (min(680px,95vw) + max-height 90vh) ; on ne fait qu'affiner l'interieur
+   pour eviter tout debordement horizontal et rendre les lignes utilisables
+   au doigt sur telephone/tablette. */
+@media (max-width: 768px) {
+  /* Corps du mail : lignes label/champ empilees (label 84px + champ etaient
+     cote a cote), plus lisibles en une colonne sur ecran etroit. */
+  .send-email-modal .sem-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .send-email-modal .sem-label {
+    flex: 0 0 auto;
+    width: auto;
+    padding-top: 0;
+  }
+  /* La ligne "message" garde son champ en colonne (deja display:flex). */
+  .send-email-modal .sem-row--msg .sem-field {
+    flex-direction: column;
+  }
+  /* Header/body/footer : padding horizontal reduit pour gagner de la place. */
+  .send-email-modal .sem-header,
+  .send-email-modal .sem-body,
+  .send-email-modal .sem-footer,
+  .send-email-modal .sem-picker-header,
+  .send-email-modal .sem-picker-footer {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  /* Chips destinataires : ne pas depasser la largeur dispo. */
+  .send-email-modal .email-recipient-tag-gmail-style,
+  .email-recipient-tag-gmail-style {
+    max-width: 100%;
+  }
+  .send-email-modal .email-attachment-tag,
+  .email-attachment-tag {
+    max-width: 100%;
+  }
+  /* Pied : la meta + boutons peuvent manquer de place -> autoriser le wrap. */
+  .send-email-modal .sem-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .send-email-modal .sem-footer-actions {
+    flex-wrap: wrap;
+  }
+}
+
+/* Tres petits telephones : masquer l'indice clavier (raccourci non
+   pertinent au tactile) et laisser le bouton Envoyer prendre la place. */
+@media (max-width: 480px) {
+  .send-email-modal .sem-kbd-hint {
+    display: none;
+  }
+  .send-email-modal .sem-footer-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  /* Selecteur de destinataires : compter + valider sur toute la largeur. */
+  .send-email-modal .sem-picker-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .send-email-modal .sem-picker-footer .sem-picker-validate {
+    flex: 1 1 auto;
+  }
+}

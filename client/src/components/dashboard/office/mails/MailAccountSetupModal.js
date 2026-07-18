@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import BaseModal from '../../../common/BaseModal';
 import mailAccountService from '../../../../services/mailAccountService';
+// ⚠️ Les styles de CETTE modale vivent dans la feuille de l'écran Boîte mail.
+// L'import ici garantit qu'ils sont chargés PARTOUT où la modale s'ouvre
+// (notamment depuis la cloche/notifications, hors de la route lazy /mails) —
+// sinon elle s'affichait brute : blanche, sans z-index, champs illisibles.
+// Feuille entièrement préfixée `mail-*` : aucun effet de bord global.
+import './styles.css';
 
 const blankEndpoint = { host: '', port: 993, security: 'ssl_tls' };
 

@@ -110,10 +110,10 @@ Sans ces variables, le build reste **non signé mais fonctionnel** (avertissemen
 ### Publication (mise en ligne)
 Déposer l'installeur là où le frontend le télécharge (cf.
 `getCompanionInstallerUrl()` côté web — par défaut
-`gs://kheops-2-app-download/KHEOPS2-Companion-Setup.exe`) :
+`gs://kheops-2-companion-download-16107185088/KHEOPS2-Companion-Setup.exe`) :
 
 ```bash
-gsutil cp dist-companion/KHEOPS2-Companion-Setup.exe gs://kheops-2-app-download/KHEOPS2-Companion-Setup.exe
+gcloud storage cp dist-companion/KHEOPS2-Companion-Setup.exe gs://kheops-2-companion-download-16107185088/KHEOPS2-Companion-Setup.exe
 ```
 
 ⚠️ Ne PAS y remettre l'ancien `KHEOPS2-Setup.exe` complet (retiré pour fuite de secrets, cf.

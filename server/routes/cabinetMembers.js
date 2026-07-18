@@ -14,6 +14,8 @@ const auth = require('../middlewares/middleware-auth');
 const User = require('../models/App_Users/User');
 const Membership = require('../models/Cabinet/Membership');
 const { resolveTenantId, getTenant } = require('../services/tenantService');
+const { emitToUser } = require('../services/chatSocketHandler');
+const { sendCabinetInviteEmail } = require('../utils/sendEmail');
 
 const ROLES = ['avocat', 'collaborateur', 'secretaire', 'admin'];
 
@@ -48,6 +50,35 @@ async function requireOwner(req) {
   return { tenantId, tenant, isOwner };
 }
 
+// Notifie la personne invitee : push temps reel (socket -> toast + rafraichissement
+// live du bouton "Accepter") ET e-mail. Best-effort : une erreur ici ne doit
+// JAMAIS faire echouer l'invitation deja enregistree en base.
+async function notifyInvitee({ target, tenant, inviterId }) {
+  const cabinetName = (tenant && tenant.name) || 'votre cabinet';
+  let inviterName = '';
+  try {
+    const inviter = await User.findById(inviterId).select('firstName lastName email').lean();
+    if (inviter) inviterName = `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.email || '';
+  } catch (_) { /* nom d'invitant non critique */ }
+
+  // 1) Temps reel : atteint la personne si elle est connectee (room user:<id>).
+  //    Le role N'est PAS envoye dans le payload (l'invite le decouvre via
+  //    GET /invitations apres coup). emitToUser renvoie false si le socket n'est
+  //    pas attache ou si l'utilisateur est hors ligne — l'e-mail prend le relais.
+  const delivered = emitToUser(String(target._id), 'cabinet:invitation', { cabinet: cabinetName, invitedByName: inviterName });
+  if (!delivered) {
+    console.log('[cabinet-members/invite] push temps reel non delivre (utilisateur hors ligne) — e-mail pris en charge');
+  }
+
+  // 2) E-mail (best-effort) : couvre le cas ou la personne est hors ligne.
+  try {
+    if (target.email) {
+      await sendCabinetInviteEmail(target.email, { inviterName, cabinetName });
+      console.log(`[cabinet-members/invite] ✓ E-mail d'invitation envoye a ${target.email}`);
+    }
+  } catch (e) { console.warn('[cabinet-members/invite] e-mail invitation echoue:', e.message); }
+}
+
 // GET /api/cabinet-members — membres de mon cabinet (propriétaire + invités).
 router.get('/', auth, async (req, res) => {
   try {
@@ -74,7 +105,7 @@ router.post('/invite', auth, async (req, res) => {
     const { email, role } = req.body || {};
     if (!email) return res.status(400).json({ error: 'Adresse e-mail requise.' });
 
-    const { tenantId, isOwner } = await requireOwner(req);
+    const { tenantId, tenant, isOwner } = await requireOwner(req);
     if (!isOwner) return res.status(403).json({ error: 'Seul le propriétaire du cabinet peut inviter des membres.' });
 
     const target = await findUserByEmailCI(email);
@@ -88,18 +119,31 @@ router.post('/invite', auth, async (req, res) => {
     }
 
     const validRole = ROLES.includes(role) ? role : 'collaborateur';
+    let membership;
     const existing = await Membership.findOne({ tenantId, userId: target._id });
+    const prevStatus = existing ? existing.status : null;
     if (existing) {
       existing.role = validRole;
       existing.invitedBy = req.user;
       if (existing.status === 'revoked') existing.status = 'pending';
       await existing.save();
-      return res.json({ membership: sanitizeMembership(existing, target) });
+      membership = existing;
+    } else {
+      membership = await Membership.create({
+        tenantId, userId: target._id, role: validRole, status: 'pending', invitedBy: req.user,
+      });
     }
-    const created = await Membership.create({
-      tenantId, userId: target._id, role: validRole, status: 'pending', invitedBy: req.user,
-    });
-    return res.status(201).json({ membership: sanitizeMembership(created, target) });
+
+    // Anti-spam : on ne (re)notifie QUE pour une invitation reellement nouvelle
+    // (creation, ou re-invitation d'un membre precedemment retire). Re-cliquer
+    // « Inviter » sur une invitation deja en attente ne renvoie ni e-mail ni push.
+    const isNewInvitation = !existing || prevStatus === 'revoked';
+    if (isNewInvitation) {
+      // Notifie l'invite (temps reel + e-mail) sans bloquer ni faire echouer la reponse.
+      notifyInvitee({ target, tenant, inviterId: req.user }).catch(() => {});
+    }
+
+    return res.status(existing ? 200 : 201).json({ membership: sanitizeMembership(membership, target) });
   } catch (err) {
     if (err && err.code === 11000) {
       return res.status(409).json({ error: 'Cette personne est déjà invitée dans ce cabinet.' });

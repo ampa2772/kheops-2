@@ -105,10 +105,17 @@ Le tour s'affiche uniquement si votre profil n'a pas encore ete marque comme onb
         </ul>
         <h3>Les 3 colonnes</h3>
         <ul>
-          <li><strong>Dossiers recents</strong> : les 25 derniers dossiers que vous avez ouverts ou modifies. Cliquez sur une carte pour ouvrir le dossier. Le badge colore (CASS, CPH, DCM, etc.) indique la juridiction ou le type de dossier.</li>
+          <li><strong>Dossiers recents</strong> : les derniers dossiers que vous avez ouverts ou modifies. Le sélecteur de l'en-tête permet d'en afficher 25, 50 ou davantage. Cliquez sur une carte pour ouvrir le dossier.</li>
           <li><strong>Agenda</strong> : les prochains rendez-vous et evenements toutes affaires confondues.</li>
           <li><strong>Taches</strong> : les taches a effectuer en priorite (echeance proche).</li>
         </ul>
+        <h3>Grand ecran, tablette et mobile</h3>
+        <p>
+          Sur un grand ecran, les trois colonnes utilisent toute la hauteur disponible et
+          defilent chacune si leur contenu depasse. Sur tablette, <strong>Taches reste visible</strong>
+          sous les deux premieres colonnes. Sur mobile, Dossiers, Agenda et Taches s'empilent et
+          la page utilise un defilement vertical naturel.
+        </p>
         <h3>Le bandeau violet "Nouveau divorce par consentement mutuel"</h3>
         <p>
           Ce bandeau ouvre directement le wizard de creation d'un dossier de divorce CM
@@ -127,7 +134,8 @@ Le tour s'affiche uniquement si votre profil n'a pas encore ete marque comme onb
 Le bandeau Mode pilotage en haut du Bureau affiche 4 cartes statistiques qui resument votre journee : audiences et rendez-vous de la semaine, factures en retard, taches dues aujourd'hui, evenements urgents dans les 48 heures. Chaque carte est cliquable et vous mene directement a la section concernee. Les cartes a zero sont attenuees. Les cartes colorees signalent un point d'attention.
 Les 3 colonnes : Dossiers recents, Agenda, Taches. La colonne Dossiers recents affiche les 25 derniers dossiers ouverts ou modifies. Cliquez sur une carte pour ouvrir le dossier. Le badge colore indique la juridiction. La colonne Agenda affiche les prochains rendez-vous. La colonne Taches affiche les taches a effectuer en priorite.
 Le bandeau violet Nouveau divorce par consentement mutuel ouvre directement le wizard de creation. C'est un raccourci pour les cabinets qui traitent frequemment ce type de dossier.
-Astuces : Le code couleur des cartes reflete la juridiction. Cliquez sur les trois points a droite d'une carte pour modifier ou supprimer le dossier. L'icone loupe en haut ouvre la recherche globale.`,
+Astuces : Le code couleur des cartes reflete la juridiction. Cliquez sur les trois points a droite d'une carte pour modifier ou supprimer le dossier. L'icone loupe en haut ouvre la recherche globale.
+Affichage responsive : Sur grand ecran, les trois colonnes utilisent toute la hauteur disponible. Sur tablette, la colonne Taches reste visible sous Dossiers et Agenda. Sur mobile, les trois colonnes s'empilent avec un defilement vertical naturel.`,
   },
   {
     id: 'dossiers',
@@ -212,13 +220,45 @@ Pour modifier ou supprimer un dossier, utilisez les boutons en haut du dossier :
           Utilisez la <strong>loupe en haut</strong> pour rechercher dans toute la base : tapez le nom
           ou le prenom et les correspondances apparaissent en temps reel.
         </p>
+        <h3>Ouvrir les dossiers lies</h3>
+        <ol>
+          <li>Ouvrez le menu a trois points du contact puis choisissez <strong>Dossiers lies</strong>.</li>
+          <li>Recherchez ou triez la liste si le contact intervient dans plusieurs affaires.</li>
+          <li>Cliquez sur toute la ligne du dossier, ou utilisez <kbd>Entree</kbd> / <kbd>Espace</kbd>.</li>
+          <li>Le bouton <strong>↗</strong> ouvre le dossier dans un nouvel onglet.</li>
+        </ol>
+        <p>
+          Si le chargement echoue, le bouton <strong>Reessayer</strong> relance la demande sans
+          fermer la fenetre. Le bouton Fermer et la touche Echap rendent le focus au contact.
+        </p>
+        <h3>Retour a la liste</h3>
+        <p>
+          Le bouton de la fiche indique <strong>Retour aux contacts</strong> lorsque vous venez de
+          l'annuaire. Kheops restaure l'onglet, la recherche, le tri, le contact selectionne et la
+          position de defilement. Si vous avez modifie la fiche sans enregistrer, une confirmation
+          est demandee avant de quitter.
+        </p>
+        <h3>Créer un courrier ou un e-mail</h3>
+        <ol>
+          <li>Ouvrez le menu du contact puis choisissez <strong>Créer un courrier</strong> ou <strong>Envoyer un e-mail</strong>.</li>
+          <li>Choisissez explicitement le dossier concerné lorsque le contact en possède plusieurs.</li>
+          <li>Vérifiez le destinataire, l'objet et le contenu proposés. Les champs absents restent signalés : Kheops n'invente jamais une adresse ou une qualité.</li>
+          <li>Le courrier crée un véritable brouillon versionné dans les documents du dossier. L'e-mail reste modifiable avant validation.</li>
+        </ol>
+        <p>
+          Les modèles et signatures viennent des paramètres personnels ou du cabinet. Sur téléphone,
+          la fenêtre occupe la largeur disponible et les boutons restent accessibles sans défilement horizontal.
+        </p>
       </>
     ),
     plainText: `Gestion des contacts. La base de contacts est partagee entre tous les dossiers du cabinet : un meme client peut etre lie a plusieurs dossiers sans etre saisi deux fois.
 Trois types de contacts : Personne Physique pour un client particulier, Personne Morale Privee pour une entreprise, Personne Morale Publique pour un tribunal ou une mairie.
 Un contact peut avoir des personnes a charge : enfants ou adultes dependants. Cette information est partagee avec les dossiers ou ce contact est partie. Si vous ajoutez un enfant dans la fiche contact, il apparait automatiquement dans les dossiers concernes.
 Synchronisation avec le module Divorce CM : Si vous selectionnez un contact comme epoux dans le wizard, les enfants et adultes a charge sont importes automatiquement. Toute modification ulterieure se repercute en temps reel dans la fiche divorce. Inversement, modifier l'epoux dans le wizard met a jour le contact d'origine.
-Pour trouver un contact, utilisez la loupe en haut. Tapez le nom ou le prenom et les correspondances apparaissent en temps reel.`,
+  Pour trouver un contact, utilisez la loupe en haut. Tapez le nom ou le prenom et les correspondances apparaissent en temps reel.
+  Dossiers lies : Ouvrez le menu a trois points puis Dossiers lies. Recherchez ou triez, puis cliquez sur toute la ligne du dossier, ou utilisez Entree ou Espace. Le bouton fleche ouvre dans un nouvel onglet. En cas d'erreur, Reessayer relance le chargement sans fermer la fenetre.
+  Retour a la liste : Retour aux contacts restaure l'onglet, la recherche, le tri, le contact selectionne et la position de defilement. Une confirmation protege les modifications non enregistrees.
+  Creer un courrier ou un e-mail : ouvrez le menu du contact, choisissez l'action puis le dossier. Verifiez le destinataire et le contenu. Kheops ne remplit jamais une information absente avec une valeur inventee. Le courrier devient un vrai brouillon versionne du dossier et l'e-mail reste modifiable avant envoi.`,
   },
   {
     id: 'agenda',
@@ -716,9 +756,10 @@ Le bouton Personnaliser mes modeles permet de modifier les paragraphes types uti
         </p>
         <h3>Connexion au compte</h3>
         <p>
-          La premiere ouverture du module demande une <strong>connexion OAuth</strong> avec
-          votre compte Google ou Microsoft (validation dans le navigateur). La connexion
-          reste active tant que le token n'expire pas.
+          La premiere ouverture du module demande une <strong>connexion OAuth dediee</strong> avec
+          votre compte Google ou Microsoft. Cette autorisation est distincte de la connexion a
+          Kheops et des droits Drive, OneDrive ou SharePoint. Plusieurs boites peuvent etre
+          reliees et une boite d'envoi par defaut peut etre choisie.
         </p>
         <h3>Lire un mail</h3>
         <ul>
@@ -753,6 +794,27 @@ Le bouton Personnaliser mes modeles permet de modifier les paragraphes types uti
           modale d'envoi : destinataires pre-remplis depuis les contacts du dossier, possibilite
           de joindre un document du dossier.
         </p>
+        <h3>Envoi fiable et pièces exactes</h3>
+        <ul>
+          <li>Relisez toujours À, Cc, Cci, objet, corps, compte expéditeur et pièces jointes avant de valider.</li>
+          <li>Depuis l'Éditeur Kheops, choisissez DOCX, PDF ou les deux. La version affichée est figée avant l'envoi.</li>
+          <li>Un double clic ou une réponse réseau perdue ne crée pas un second envoi : Kheops suit une opération idempotente et vérifie les messages envoyés du fournisseur.</li>
+          <li>Le message envoyé est archivé puis lié au dossier et aux contacts sélectionnés.</li>
+        </ul>
+        <h3>Synchronisation et santé</h3>
+        <p>
+          Google et Microsoft notifient Kheops des changements. Un rattrapage incrémental reprend
+          depuis le dernier curseur ; si celui-ci expire, une synchronisation complète sûre est relancée.
+          Dans <strong>Paramètres &gt; Comptes</strong>, consultez le dernier succès, le renouvellement,
+          l'erreur récente, puis testez, synchronisez, reconnectez ou déconnectez le compte.
+        </p>
+        <h3>En cas de problème</h3>
+        <ul>
+          <li><strong>Reconnexion requise</strong> : ouvrez Paramètres et accordez de nouveau le consentement de cette boîte uniquement.</li>
+          <li><strong>Synchronisation en attente</strong> : l'opération est enregistrée ; utilisez Actualiser sans recréer l'action.</li>
+          <li><strong>Pièce indisponible</strong> : réessayez le téléchargement ou vérifiez que le message existe encore chez le fournisseur.</li>
+          <li><strong>Boîte robuste indisponible</strong> : la boîte historique reste accessible par un bouton explicite, sans bascule silencieuse.</li>
+        </ul>
       </>
     ),
     plainText: `Module Mails. Kheops 2 integre la lecture de votre boite mail Gmail ou Outlook directement dans l'application, et permet de lier des emails a des dossiers.
@@ -761,7 +823,50 @@ Pour lire un mail : Liste des mails recents en colonne de gauche. Clic sur un ma
 Pour lier un mail a un dossier : Ouvrez le mail. Cliquez sur Lier a un dossier. Recherchez le dossier. Cochez les pieces jointes a importer. Validez. Le mail et ses pieces jointes sont copies dans l'onglet Documents stockes du dossier.
 La cloche en haut affiche le nombre de mails non lus.
 Quand un mail est lie a un seul dossier connu, un bouton vert Aller au dossier apparait dans le pied de la notification. Un clic sur ce bouton marque le mail comme lu, ouvre le dossier concerne, et ferme la liste des notifications. Quand plusieurs dossiers sont lies, un texte gris N dossiers lies indique qu'il faut ouvrir le mail pour choisir explicitement.
-Le bouton Envoyer un e-mail sur la barre d'un dossier ouvre une modale d'envoi avec destinataires pre-remplis.`,
+Le bouton Envoyer un e-mail ouvre une modale avec destinataires pre-remplis. Relisez les champs avant validation. Depuis l'Editeur, choisissez DOCX, PDF ou les deux : la version exacte est figee. L'envoi est idempotent, archive puis lie au dossier et aux contacts. Google et Microsoft notifient les changements ; Kheops reprend avec un curseur ou relance une synchronisation complete si necessaire. Parametres puis Comptes affiche la sante, la derniere synchronisation et permet de tester, synchroniser, reconnecter ou deconnecter. En cas d'erreur, utilisez Reessayer ou la boite historique explicite sans recreer l'envoi.`,
+  },
+  {
+    id: 'intelligence-artificielle',
+    emoji: '✨',
+    label: 'Intelligence artificielle',
+    Content: () => (
+      <>
+        <h2>Assistant d'intelligence artificielle</h2>
+        <p>
+          L'IA est facultative : les dossiers, contacts, courriers, e-mails, modèles,
+          références et l'Éditeur Kheops fonctionnent sans fournisseur IA.
+        </p>
+        <h3>Connecter une clé en quatre étapes</h3>
+        <ol>
+          <li>Dans <strong>Paramètres &gt; IA</strong>, collez une clé API dédiée. Ce n'est pas un abonnement ChatGPT, Claude ou Gemini grand public.</li>
+          <li>Kheops examine prudemment le format sans envoyer la clé à plusieurs fournisseurs. Confirmez manuellement si le format est ambigu.</li>
+          <li>Les modèles accessibles sont demandés à l'API, filtrés par capacité et mis en cache temporairement. Vous pouvez les actualiser.</li>
+          <li>Choisissez le modèle, le budget et confirmez la notice de coûts. La version et la date de votre confirmation sont conservées.</li>
+        </ol>
+        <h3>Budget et coûts</h3>
+        <p>
+          L'utilisateur voit son plafond, sa période, sa consommation, le montant réservé et le reste.
+          Kheops conserve les compteurs disponibles : entrée, sortie, cache, raisonnement, images,
+          audio, outils et autres dimensions numériques. Un coût peut être <strong>officiel</strong>,
+          <strong>calculé</strong> ou <strong>estimé</strong>. La facture du fournisseur reste la référence.
+        </p>
+        <h3>Utiliser l'assistant</h3>
+        <ol>
+          <li>Choisissez une tâche et un dossier.</li>
+          <li>Sélectionnez explicitement les documents, versions, passages ou données autorisés.</li>
+          <li>Vérifiez le coût maximal raisonnable et le budget restant.</li>
+          <li>Relisez le brouillon, ses sources et avertissements. Une production IA n'est jamais validée ou envoyée automatiquement.</li>
+        </ol>
+        <h3>Erreurs fréquentes</h3>
+        <ul>
+          <li>Clé invalide ou révoquée : créez une clé dédiée puis reconnectez-la.</li>
+          <li>Modèle indisponible : actualisez la liste et choisissez un modèle autorisé.</li>
+          <li>Budget atteint ou tarif inconnu : l'appel est bloqué avant envoi en mode strict.</li>
+          <li>Contexte trop volumineux ou document illisible : réduisez les sources et réessayez.</li>
+        </ul>
+      </>
+    ),
+    plainText: `Assistant d'intelligence artificielle. L'IA est facultative : les fonctions principales de Kheops restent utilisables sans fournisseur. Dans Parametres puis IA, collez une cle API dediee. Kheops detecte prudemment le fournisseur, demande les modeles accessibles et vous laisse confirmer le modele et le budget. La notice de transparence est versionnee et la date de confirmation est conservee. Kheops suit les compteurs d'entree, sortie, cache, raisonnement, images, audio, outils et autres dimensions numeriques. Le cout est marque officiel, calcule ou estime ; la facture du fournisseur reste la reference. Pour une tache, choisissez explicitement le dossier et les sources, verifiez le cout puis relisez le brouillon et ses citations. Aucune production IA n'est validee ou envoyee automatiquement. En cas de cle invalide, modele indisponible, budget atteint, tarif inconnu ou contexte trop volumineux, suivez le message affiche puis reessayez sans contourner les droits.`,
   },
   {
     id: 'recherche',
@@ -890,6 +995,97 @@ Onglet Accessibilite : 3 niveaux. Niveau 0 par defaut interface standard. Niveau
 Onglet Facturation : Tarif horaire par defaut. Taux de TVA par defaut a 20 pour cent en general. Ces valeurs sont reutilisees dans le calcul automatique des factures.
 Onglet Systeme : Version de l'application, identifiant de build, date de la derniere mise a jour.
 Membres du cabinet : Le menu utilisateur en haut a droite permet de basculer entre plusieurs membres du cabinet. Chaque membre a ses propres notifications, son agenda, ses taches. La base de dossiers et contacts est commune.`,
+  },
+  {
+    id: 'couleurs',
+    emoji: '🎨',
+    label: 'Couleurs des dossiers et documents',
+    Content: () => (
+      <>
+        <h2>Couleurs des dossiers et documents</h2>
+        <p>
+          Ouvrez <strong>Parametres &gt; Couleurs</strong>. La page est centree et reste utilisable
+          sur ordinateur, tablette et telephone, jusqu'a 320 pixels de large.
+        </p>
+        <h3>Couleurs des dossiers</h3>
+        <p>
+          Chaque juridiction ou type de dossier conserve sa couleur. Cliquez sur une pastille pour
+          choisir une teinte. Vous pouvez reinitialiser une ligne ou toutes les couleurs de dossiers.
+        </p>
+        <h3>Couleurs des documents</h3>
+        <p>Pour chaque type de document, choisissez une regle :</p>
+        <ul>
+          <li><strong>Couleur du type</strong> : utilise la teinte Kheops du courrier, des conclusions, de la facture, etc.</li>
+          <li><strong>Heriter du dossier</strong> : reprend la couleur de la juridiction du dossier courant.</li>
+          <li><strong>Aucune couleur</strong> : conserve le fond neutre.</li>
+          <li><strong>Personnalisee</strong> : ouvre la pastille pour choisir une teinte precise.</li>
+        </ul>
+        <p>
+          Une couleur appliquee directement a un document depuis son menu reste prioritaire sur la
+          regle du type. Les libelles et badges restent visibles : la couleur n'est jamais le seul indicateur.
+        </p>
+        <h3>Resultat attendu</h3>
+        <p>Les changements sont enregistres immediatement et visibles dans la liste des documents.</p>
+      </>
+    ),
+    plainText: `Couleurs des dossiers et documents. Ouvrez Parametres puis Couleurs. La page est centree et reste utilisable jusqu'a 320 pixels de large.
+Couleurs des dossiers : Chaque juridiction ou type conserve sa couleur. Cliquez sur une pastille pour choisir une teinte. Une ligne ou toutes les couleurs peuvent etre reinitialisees.
+Couleurs des documents : Pour chaque type, choisissez Couleur du type, Heriter du dossier, Aucune couleur ou Personnalisee. Une couleur appliquee directement au document reste prioritaire. Les libelles et badges restent visibles, la couleur n'est jamais le seul indicateur.
+Les changements sont enregistres immediatement et visibles dans la liste des documents.`,
+  },
+  {
+    id: 'editeur-kheops',
+    emoji: '📝',
+    label: 'Éditeur Kheops',
+    Content: () => (
+      <>
+        <h2>Éditeur Kheops</h2>
+        <p>
+          L'Éditeur Kheops ouvre un document juridique dans une page structurée et versionnée.
+          Le ruban s'adapte à l'ordinateur, la tablette, le téléphone et au zoom 200 % : les
+          commandes repliées restent disponibles dans <strong>Plus</strong> ou la palette.
+        </p>
+        <h3>Ruban et commandes</h3>
+        <ul>
+          <li><strong>Fichier</strong> : importer/exporter, créer une version, préparer et envoyer une version exacte.</li>
+          <li><strong>Accueil</strong> : styles, police, paragraphes, listes, alignements, annuler et rétablir.</li>
+          <li><strong>Insertion</strong> : liens, tableaux, images, sauts de page/section, références et signatures.</li>
+          <li><strong>Mise en page</strong> : A4 portrait/paysage, marges, en-tête, pied, numérotation et filigrane.</li>
+          <li><strong>Références</strong> : choisissez manuellement une pièce du dossier et figez sa version, sans IA.</li>
+          <li><strong>Révision</strong> : commentaires, statuts, contrôle de cohérence et rapport de compatibilité.</li>
+          <li><strong>Affichage</strong> : zoom, largeur, concentration, guides et ruban réduit.</li>
+          <li><strong>IA</strong> : seulement si une connexion, des droits et un budget valides existent.</li>
+        </ul>
+        <h3>Modèles, en-têtes, pieds et signatures</h3>
+        <p>
+          Les paramètres du cabinet forment la source de vérité versionnée. Un document peut déclarer
+          une exception locale explicite. Les modèles partagés sont administrés par le propriétaire ou
+          un administrateur ; les signatures peuvent être personnelles ou de cabinet avec règles d'affectation.
+        </p>
+        <h3>Versions et restauration</h3>
+        <p>
+          L'autosauvegarde contrôle la révision de base et signale les conflits. Restaurer ne déplace
+          jamais un ancien pointeur : Kheops crée une nouvelle version en brouillon, conserve la provenance
+          et laisse intactes les versions validées, envoyées, signées ou archivées. Une version protégée
+          exige un responsable du dossier, le propriétaire ou un administrateur.
+        </p>
+        <h3>Envoyer le document</h3>
+        <ol>
+          <li>Enregistrez la dernière révision.</li>
+          <li>Choisissez DOCX, PDF ou les deux.</li>
+          <li>Kheops fige des artefacts immuables avec empreinte SHA-256.</li>
+          <li>Relisez destinataires, objet, corps, compte et pièces dans le compositeur.</li>
+          <li>L'envoi idempotent archive le message et le rattache au dossier.</li>
+        </ol>
+        <h3>Synchronisation externe</h3>
+        <p>
+          Word bureau, Word web ou Google Docs nécessitent leur consentement dédié. Kheops vérifie la
+          version de base au retour ; un contenu concurrent devient une version de conflit au lieu d'écraser
+          silencieusement le document. Les copies distantes et leur état sont visibles dans le détail de synchronisation.
+        </p>
+      </>
+    ),
+    plainText: `Editeur Kheops. Le document juridique est structure et versionne. Le ruban s'adapte a toutes les largeurs et au zoom 200 pour cent ; les commandes restent dans Plus ou la palette. Fichier gere les versions et l'envoi. Accueil gere le texte. Insertion ajoute liens, tableaux, images, sauts, references et signatures. Mise en page gere A4, marges, entete, pied, pagination et filigrane. Les references vers les pieces sont choisies manuellement et peuvent figer une version. Les parametres du cabinet sont la source versionnee des modeles, entetes, pieds et signatures ; les exceptions locales sont explicites. Restaurer cree toujours une nouvelle version en brouillon et conserve les versions protegees. Pour envoyer, choisissez DOCX, PDF ou les deux, puis relisez le compositeur. Kheops fige les artefacts avec une empreinte et evite les doubles envois. Word ou Google Docs utilisent un consentement separe ; une modification concurrente devient un conflit sans ecrasement silencieux.`,
   },
   {
     id: 'editeur-texte',

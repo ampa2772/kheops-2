@@ -14,21 +14,44 @@ const PartiesBoard = ({
     openAllPourModal,        // Pour le bouton "..." de la colonne Pour
     openAllContreModal,      // Pour le bouton "..." de la colonne Contre
     handleModifyPartie,      // Pour DraggablePartie -> modifier la partie elle-même
-    onAddPersonForSide,      // rc64 : callback pour bouton "+ Ajouter une personne liée"
+    onAddPartieForSide,
 }) => {
 
     const pourPartiesLength = pourParties.length;
     const contrePartiesLength = contreParties.length;
 
-    const renderFooter = (side) => onAddPersonForSide ? (
+    const renderFooter = (side) => onAddPartieForSide ? (
         <button
             type="button"
             className={`k-party-add-person k-party-add-person-${side.toLowerCase()}`}
-            onClick={() => onAddPersonForSide(side)}
+            onClick={() => onAddPartieForSide(side)}
+            aria-label={`Ajouter une partie ${side.toUpperCase()}`}
+            title={`Ajouter une partie ${side.toUpperCase()}`}
         >
-            <span aria-hidden="true">+</span> Ajouter une personne liée
+            <span aria-hidden="true">+</span> Ajouter une partie {side.toUpperCase()}
         </button>
     ) : null;
+
+    const renderGroupAction = (side, onClick, icon) => {
+        const label = `Gérer les personnes liées à toutes les parties ${side}`;
+        return (
+            <HoverToSpeak textToSpeak={label}>
+                <button
+                    type="button"
+                    className="customAllParties"
+                    onClick={onClick}
+                    aria-label={label}
+                    title={label}
+                >
+                    <img src={icon} alt="" aria-hidden="true" className="k-icon-sm" />
+                </button>
+            </HoverToSpeak>
+        );
+    };
+
+    if (pourPartiesLength === 0 && contrePartiesLength === 0) {
+        return null;
+    }
 
     // Props communs passés à chaque DraggablePartie à l'intérieur de PartyColumn
     // setIsDraggingOutside est spécifique à la logique de drag/drop de DraggablePartie
@@ -38,53 +61,39 @@ const PartiesBoard = ({
         <div className="selected_partie"> {/* Conteneur global */}
             <div className="liste_selected_parties"> {/* Conteneur des deux colonnes */}
                 {/* Colonne POUR */}
-                {pourParties.length > 0 && (
-                    <PartyColumn
-                        side="Pour"
-                        parties={pourParties}
-                        movePartie={movePartie}
-                        handleDeletePartie={handleDeletePartie}
-                        pourPartiesLength={pourPartiesLength}
-                        contrePartiesLength={contrePartiesLength}
-                        onOpenSinglePartieModal={onOpenSinglePartieModal}
-                        handleModifyPartie={handleModifyPartie}
-                        headerExtra={
-                            <HoverToSpeak textToSpeak="Bouton options des parties Pour">
-                                <div className="customAllParties" onClick={openAllPourModal}>
-                                    <img src={TroisPointsPour} alt="..." className="k-icon-sm" />
-                                </div>
-                            </HoverToSpeak>
-                        }
-                        footerExtra={renderFooter('Pour')}
-                    />
-                )}
+                <PartyColumn
+                    side="Pour"
+                    parties={pourParties}
+                    movePartie={movePartie}
+                    handleDeletePartie={handleDeletePartie}
+                    pourPartiesLength={pourPartiesLength}
+                    contrePartiesLength={contrePartiesLength}
+                    onOpenSinglePartieModal={onOpenSinglePartieModal}
+                    handleModifyPartie={handleModifyPartie}
+                    headerExtra={pourPartiesLength > 0
+                        ? renderGroupAction('Pour', openAllPourModal, TroisPointsPour)
+                        : null}
+                    footerExtra={renderFooter('Pour')}
+                />
 
                 {/* Separateur central c/ */}
-                {(pourParties.length > 0 && contreParties.length > 0) && (
-                    <div className="k-parties-vs" aria-hidden="true">c/</div>
-                )}
+                <div className="k-parties-vs" aria-hidden="true">c/</div>
 
                 {/* Colonne CONTRE */}
-                {contreParties.length > 0 && (
-                     <PartyColumn
-                        side="Contre"
-                        parties={contreParties}
-                        movePartie={movePartie}
-                        handleDeletePartie={handleDeletePartie}
-                        pourPartiesLength={pourPartiesLength}
-                        contrePartiesLength={contrePartiesLength}
-                        onOpenSinglePartieModal={onOpenSinglePartieModal}
-                        handleModifyPartie={handleModifyPartie}
-                        headerExtra={
-                            <HoverToSpeak textToSpeak="Bouton options des parties Contre">
-                                <div className="customAllParties" onClick={openAllContreModal}>
-                                    <img src={TroisPointsContre} alt="..." className="k-icon-sm" />
-                                </div>
-                            </HoverToSpeak>
-                        }
-                        footerExtra={renderFooter('Contre')}
-                    />
-                )}
+                <PartyColumn
+                    side="Contre"
+                    parties={contreParties}
+                    movePartie={movePartie}
+                    handleDeletePartie={handleDeletePartie}
+                    pourPartiesLength={pourPartiesLength}
+                    contrePartiesLength={contrePartiesLength}
+                    onOpenSinglePartieModal={onOpenSinglePartieModal}
+                    handleModifyPartie={handleModifyPartie}
+                    headerExtra={contrePartiesLength > 0
+                        ? renderGroupAction('Contre', openAllContreModal, TroisPointsContre)
+                        : null}
+                    footerExtra={renderFooter('Contre')}
+                />
             </div>
         </div>
     );

@@ -35,10 +35,15 @@ function applyCors(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', `Content-Type, ${COMPANION_HEADER}, x-kheops-companion-token`);
   res.setHeader('Access-Control-Max-Age', '600');
-  // Private Network Access : autorise une page publique (https) a joindre 127.0.0.1.
-  if (req.headers['access-control-request-private-network'] === 'true') {
-    res.setHeader('Access-Control-Allow-Private-Network', 'true');
-  }
+  // Private Network Access / Local Network Access : autorise une page publique
+  // (https) a joindre 127.0.0.1. On pose le header de facon INCONDITIONNELLE — sur
+  // le prevol OPTIONS ET sur la reponse reelle (GET/POST) — car Chrome verifie ce
+  // header tantot sur le prevol, tantot sur la reponse reelle selon la version.
+  // L'ancienne pose conditionnelle (uniquement si le header de requete etait
+  // present, ce qui n'arrive QUE sur le prevol) laissait le fetch reel bloque ->
+  // l'app croyait le compagnon absent alors qu'il tourne. Reste gate par
+  // originAllowed() ci-dessus : seules les origines Kheops recoivent ce header.
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
   return true;
 }
 

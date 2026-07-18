@@ -10,21 +10,57 @@ client/src/
 client/public/
 client/coverage/
 
-# Electron, OCR, sites, gros binaires
+# Electron, compagnon local, OCR, sites et gros binaires. Aucun de ces fichiers
+# n'entre dans l'image Cloud Run (qui ne copie que server/ et client/build/).
 electron-app/
+electron-companion/
+dist-companion/
+electron-builder*.json
+/build/
 site/
 *.traineddata
 Barreaux/
+*.exe
+*.blockmap
 
 # Artefacts de build / packaging
 dist/
 dist-rollback*/
 playwright-report/
+test-results/
 e2e/
+server/coverage/
+server/**/__tests__/
+server/**/*.test.js
+
+# Outils et sorties locales d'administration/diagnostic. Ils ne sont jamais
+# requis par le serveur Cloud Run et peuvent contenir des donnees de test ou
+# des jetons temporaires.
+server/scripts/
+server/*.txt
+server/user.json
+server/debug_*.js
+server/jest.config.js
+
+# Documentation et rapports locaux non necessaires au conteneur.
+docs/
+*.md
+PASSATION-*.md
+TEST-FONC-RAPPORT-*.md
+
+# Collaboration locale et preuves de recette. Ces fichiers peuvent contenir
+# des captures nominatives ou des notes de travail et ne doivent jamais être
+# téléversés vers Cloud Build.
+.claude/
+Livrables/
+task*.txt
+_create_shortcut.ps1
+.deps-install-marker
 
 # Secrets et logs : NE JAMAIS envoyer (les secrets passent par Secret Manager)
-.env
-**/.env
+.env*
+**/.env*
+.gcloud-kheops2/
 *.log
 _build_*.log
 debug_log.txt

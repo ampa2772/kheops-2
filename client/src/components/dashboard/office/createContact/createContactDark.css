@@ -1,0 +1,378 @@
+/* ==========================================================================
+   THÈME SOMBRE UNIFIÉ — Formulaires de contact (PP / PM privée / PM publique)
+   Création ET modification, page autonome ET modale (la classe racine
+   `k-contact-dark` est posée par getContainerClasses dans index.js).
+
+   Principe : surcharger les PRIMITIVES réelles (fieldset/legend/input/select/
+   textarea + les « faux champs » cliquables) plutôt que les dizaines de
+   classes historiques de styles.css — mêmes teintes que le wizard de dossier
+   (createDossierDark.css) pour une application cohérente.
+
+   ⚠️ Les !important sont nécessaires : la feuille historique (2200 lignes)
+   pose des fonds blancs/turquoise avec des spécificités variées.
+   Rendu VALIDÉ par prototype live sur les 3 variantes avant intégration.
+   ========================================================================== */
+
+/* Conteneur racine : on retire le dégradé turquoise hérité → le formulaire
+   repose sur le dégradé navy global du dashboard (cohérence immédiate). */
+.k-contact-dark {
+  background: transparent !important;
+  background-image: none !important;
+  /* Contrôles natifs (datepickers, scrollbars) en variante sombre. */
+  color-scheme: dark;
+
+  /* Palette du formulaire PP professionnel. Les surfaces sont opaques pour
+     qu'elles ne se recomposent jamais en gris sur l'ancien fond blanc de
+     .containerPro. Les valeurs reprennent le thème navy partagé Kheops. */
+  --k-contact-pro-surface: #0a1828;
+  --k-contact-pro-surface-elevated: #142a48;
+  --k-contact-pro-field: #08162a;
+  --k-contact-pro-border: rgba(120, 180, 240, 0.24);
+  --k-contact-pro-text: #e8f1ff;
+  --k-contact-pro-text-secondary: #c3d7f0;
+  --k-contact-pro-placeholder: #a5bfdc;
+  --k-contact-pro-accent: #4dc9ff;
+}
+
+/* ─── Personne physique · Professionnel ────────────────────────────────
+   styles.css conserve volontairement les anciens styles des autres modes.
+   Le double scope formPro/containerPro limite donc cette harmonisation au
+   formulaire professionnel demandé, sans recolorer Client / Partie ni PM. */
+.k-contact-dark .formAddContact.formPro .containerPro {
+  background-color: var(--k-contact-pro-surface) !important;
+  background-image: linear-gradient(160deg, #0a1828 0%, #102640 58%, #0a1c34 100%) !important;
+  color: var(--k-contact-pro-text) !important;
+  border: 1px solid var(--k-contact-pro-border) !important;
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+.k-contact-dark .formAddContact.formPro .containerPro fieldset {
+  background: var(--k-contact-pro-surface-elevated) !important;
+  border-color: var(--k-contact-pro-border) !important;
+  color: var(--k-contact-pro-text) !important;
+}
+
+.k-contact-dark .formAddContact.formPro .containerPro fieldset label,
+.k-contact-dark .formAddContact.formPro .containerPro fieldset p,
+.k-contact-dark .formAddContact.formPro .containerPro .cts-label--pro {
+  color: var(--k-contact-pro-text-secondary) !important;
+  text-shadow: none !important;
+}
+
+.k-contact-dark .formAddContact.formPro .containerPro fieldset input:not(.error),
+.k-contact-dark .formAddContact.formPro .containerPro fieldset select:not(.error),
+.k-contact-dark .formAddContact.formPro .containerPro fieldset textarea:not(.error),
+.k-contact-dark .formAddContact.formPro .containerPro .inputAddContact:not(.error),
+.k-contact-dark .formAddContact.formPro .containerPro .show_select_option:not(.error),
+.k-contact-dark .formAddContact.formPro .containerPro .show_select_option_matrimonial:not(.error) {
+  background: var(--k-contact-pro-field) !important;
+  border-color: var(--k-contact-pro-border) !important;
+  color: var(--k-contact-pro-text) !important;
+  caret-color: var(--k-contact-pro-accent);
+}
+
+.k-contact-dark .formAddContact.formPro .containerPro fieldset input::placeholder,
+.k-contact-dark .formAddContact.formPro .containerPro fieldset textarea::placeholder {
+  color: var(--k-contact-pro-placeholder) !important;
+  opacity: 1;
+}
+
+.k-contact-dark .formAddContact.formPro .containerPro fieldset input:hover:not(.error),
+.k-contact-dark .formAddContact.formPro .containerPro fieldset select:hover:not(.error),
+.k-contact-dark .formAddContact.formPro .containerPro .inputAddContact:hover:not(.error) {
+  border-color: rgba(77, 201, 255, 0.48) !important;
+}
+
+.k-contact-dark .formAddContact.formPro .containerPro fieldset input:focus,
+.k-contact-dark .formAddContact.formPro .containerPro fieldset input:focus-visible,
+.k-contact-dark .formAddContact.formPro .containerPro fieldset select:focus,
+.k-contact-dark .formAddContact.formPro .containerPro fieldset select:focus-visible,
+.k-contact-dark .formAddContact.formPro .containerPro fieldset textarea:focus,
+.k-contact-dark .formAddContact.formPro .containerPro fieldset textarea:focus-visible,
+.k-contact-dark .formAddContact.formPro .containerPro .inputAddContact:focus,
+.k-contact-dark .formAddContact.formPro .containerPro .inputAddContact:focus-visible {
+  outline: 2px solid var(--k-contact-pro-accent) !important;
+  outline-offset: 1px;
+  border-color: var(--k-contact-pro-accent) !important;
+  box-shadow: 0 0 0 4px rgba(77, 201, 255, 0.18) !important;
+}
+
+/* Les erreurs restent immédiatement repérables après les surcharges navy. */
+.k-contact-dark .formAddContact.formPro .containerPro .redFieldset {
+  background: rgba(92, 24, 35, 0.66) !important;
+  border-color: #f87171 !important;
+  border-left-color: #ef4444 !important;
+}
+
+.k-contact-dark .formAddContact.formPro .containerPro input.error,
+.k-contact-dark .formAddContact.formPro .containerPro select.error,
+.k-contact-dark .formAddContact.formPro .containerPro textarea.error,
+.k-contact-dark .formAddContact.formPro .containerPro .inputAddContact.error {
+  background: #3a1622 !important;
+  border-color: #f87171 !important;
+  color: #fff1f2 !important;
+}
+
+/* ─── Sections : cartes navy translucides ─────────────────────────────── */
+.k-contact-dark fieldset {
+  background: rgba(13, 33, 56, 0.55) !important;
+  border: 1px solid rgba(120, 180, 240, 0.14) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+  padding: 1.05rem 1.2rem 1.2rem !important;
+}
+
+/* Badges de section (légendes) : pilule cyan uppercase. */
+.k-contact-dark legend {
+  background: rgba(10, 24, 42, 0.92) !important;
+  color: #7dd3fc !important;
+  border: 1px solid rgba(125, 211, 252, 0.35) !important;
+  border-radius: 999px !important;
+  padding: 4px 14px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+}
+
+/* ─── Champs de saisie : sombres, hauteur régulière (symétrie) ────────── */
+.k-contact-dark fieldset input,
+.k-contact-dark fieldset select,
+.k-contact-dark fieldset textarea {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  border-radius: 8px !important;
+  min-height: 38px;
+  box-sizing: border-box;
+}
+
+.k-contact-dark fieldset input::placeholder,
+.k-contact-dark fieldset textarea::placeholder {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.k-contact-dark fieldset input:focus,
+.k-contact-dark fieldset select:focus,
+.k-contact-dark fieldset textarea:focus {
+  outline: none !important;
+  border-color: #4dc9ff !important;
+  box-shadow: 0 0 0 3px rgba(77, 201, 255, 0.15) !important;
+}
+
+/* Options des menus natifs (leçon apprise sur la modale boîte mail :
+   sans cette règle, popup système blanc + texte clair = illisible). */
+.k-contact-dark select option {
+  background: #0f1b2d !important;
+  color: #fff !important;
+}
+
+/* Libellés et textes des sections. */
+.k-contact-dark fieldset label,
+.k-contact-dark fieldset p {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ─── « Faux champs » cliquables (ouvrent une modale/liste) ───────────────
+   .personnes-charge (personnes à charge), .inputAddContact (profession,
+   villes…), .show_select_option* (sélecteurs type/état matrimonial) avaient
+   un fond BLANC en dur — les deux derniers îlots clairs du prototype. */
+.k-contact-dark .inputAddContact,
+.k-contact-dark .personnes-charge,
+.k-contact-dark .show_select_option,
+.k-contact-dark .show_select_option_matrimonial {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  border-radius: 8px !important;
+}
+
+.k-contact-dark .inputAddContact span,
+.k-contact-dark .personnes-charge span {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* ─── Bouton de soumission (Créer / Mettre à jour un contact) ─────────── */
+.k-contact-dark .addcontact {
+  background: linear-gradient(135deg, #4dc9ff, #2563eb) !important;
+  color: #0a1828 !important;
+  border: 1px solid rgba(77, 201, 255, 0.6) !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35) !important;
+  text-shadow: none !important;
+}
+
+/* ─── Bascules d'en-tête (PP/PM, Privée/Publique) ─────────────────────── */
+.k-contact-dark .choix_contact {
+  background: rgba(10, 24, 42, 0.65) !important;
+  border: 1px solid rgba(120, 180, 240, 0.18) !important;
+}
+
+.k-contact-dark .choix_contact_option {
+  color: rgba(255, 255, 255, 0.6) !important;
+  background: transparent !important;
+}
+
+.k-contact-dark .choix_contact_option--active {
+  background: linear-gradient(135deg, #4dc9ff, #2563eb) !important;
+  color: #0a1828 !important;
+}
+
+/* ─── Pastilles de genre (ContactTypeSwitch + personne à charge) ──────────
+   Fond blanc legacy → pastille translucide sombre. L'état .selected (vert)
+   est volontairement exclu : le !important écraserait sinon son dégradé. */
+.k-contact-dark .cts-gender-option:not(.selected) {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(138, 180, 248, 0.30) !important;
+}
+
+.k-contact-dark .cts-gender-option:not(.selected) img {
+  filter: brightness(0) invert(1);
+  opacity: .75;
+}
+
+.k-contact-dark .genre_PersonneCharge {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.k-contact-dark .label_genre_PersonneCharge {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* ─── Harmonisation sombre des modales internes (rendues inline, donc
+   sous le scope k-contact-dark) : personne à charge, mariage, confirmation. */
+
+/* Modale personne à charge : conteneur navy (remplace le turquoise legacy) */
+.k-contact-dark .modal-content.pos.pch {
+  background: linear-gradient(170deg, #13294a 0%, #0d2138 55%, #0a1828 100%) !important;
+  border-color: rgba(120, 180, 240, 0.20) !important;
+}
+
+.k-contact-dark .contenair-formulaires input,
+.k-contact-dark .contenair-formulaires select {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.k-contact-dark .contenair-formulaires input::placeholder {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.k-contact-dark .myInfiniteScrollClass {
+  background: #0f1b2d !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.k-contact-dark .itemCommune {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* .is-active = surbrillance clavier (mêmes teintes que le survol). */
+.k-contact-dark .itemCommune:hover,
+.k-contact-dark .itemCommune.is-active {
+  background: rgba(77, 201, 255, 0.15) !important;
+}
+
+/* Modale mariage + confirmation : fond navy au lieu du blanc générique */
+.k-contact-dark .modal-content.modal_mariage,
+.k-contact-dark .modal-content_confAjout {
+  background: rgba(13, 33, 56, 0.97) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(125, 211, 252, 0.30) !important;
+}
+
+.k-contact-dark .itemNotaire {
+  background: #0f1b2d !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* Boutons de la modale mariage (.boutons / .boutonsContainer) : blanc sur
+   blanc legacy → pilules sombres. .redBNT (bouton danger) garde son fond. */
+.k-contact-dark .boutons button:not(.redBNT),
+.k-contact-dark .boutonsContainer button:not(.redBNT) {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(125, 211, 252, 0.45) !important;
+}
+
+.k-contact-dark .boutons button,
+.k-contact-dark .boutonsContainer button {
+  color: #e8f1fb !important;
+}
+
+/* Titre "Ajouter un notaire" : #0977a5 illisible sur navy. */
+.k-contact-dark .titleAjoutNotaire {
+  color: #7dd3fc !important;
+}
+
+/* Dropdown custom du statut marital (contact + personne à charge) :
+   .k-contact-dark fieldset p passait le texte en blanc pendant que
+   .options_status gardait son fond blanc historique → blanc sur blanc. */
+.k-contact-dark .options_status {
+  background: #0f1b2d !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
+.k-contact-dark .options_status p {
+  background-color: transparent !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.k-contact-dark .options_status p:hover {
+  background-color: rgba(77, 201, 255, 0.22) !important;
+  color: #fff !important;
+}
+
+/* ─── Contraste renforcé ────────────────────────────────────────────────
+   Placé après les règles navy pour que le mode d'accessibilité conserve
+   sa priorité malgré les !important nécessaires à la feuille historique. */
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro,
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro fieldset {
+  background: #000 !important;
+  color: yellow !important;
+  border: 2px solid yellow !important;
+  box-shadow: none !important;
+}
+
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro legend {
+  background: yellow !important;
+  color: #000 !important;
+  border-color: yellow !important;
+}
+
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro fieldset label,
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro fieldset p,
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro .cts-label--pro {
+  color: yellow !important;
+}
+
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro fieldset input,
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro fieldset select,
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro fieldset textarea,
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro .inputAddContact {
+  background: #000 !important;
+  color: yellow !important;
+  border: 2px solid yellow !important;
+  box-shadow: none !important;
+}
+
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro fieldset input::placeholder,
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro fieldset textarea::placeholder {
+  color: #fff !important;
+  opacity: 1;
+}
+
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro fieldset input:focus-visible,
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro fieldset select:focus-visible,
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro fieldset textarea:focus-visible,
+body.high-contrast-mode .k-contact-dark .formAddContact.formPro .containerPro .inputAddContact:focus-visible {
+  outline: 3px solid #fff !important;
+  outline-offset: 2px;
+}

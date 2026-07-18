@@ -853,18 +853,32 @@ body.high-contrast-mode .parametres-container h2 {
   color: yellow;
 }
 
-body.high-contrast-mode .parametres-tabs {
+/* Onglets en contraste élevé — cadre complet avec respiration intérieure.
+   ⚠️ L'ancien rendu « hachuré » venait du margin-bottom:-1px des boutons
+   (fond noir forcé par App.css) qui chevauchaient la ligne basse du cadre
+   collé aux boutons (padding 0), + soulignement bleu du mode normal non
+   surchargé. Correctif : cadre 1px jaune + PADDING 5px (demande Adrien) →
+   la ligne basse du cadre passe NETTEMENT SOUS les soulignements des onglets
+   actifs, sans jamais être chevauchée. Sélecteurs préfixés
+   .parametres-container pour battre en spécificité les règles du layout
+   normal (déclarées plus bas). Validé en prototype live avant intégration. */
+body.high-contrast-mode .parametres-container .parametres-tabs {
   background: transparent;
   border: 1px solid yellow;
+  border-radius: 8px;
+  padding: 5px;
 }
 
-body.high-contrast-mode .parametres-tabs button {
+body.high-contrast-mode .parametres-container .parametres-tabs button {
   color: #ccc;
+  margin-bottom: 0;    /* ne déborde plus sur la ligne de base */
+  border-bottom: none; /* tue aussi le soulignement bleu hérité du mode normal */
 }
 
-body.high-contrast-mode .parametres-tabs button.tab-active {
+body.high-contrast-mode .parametres-container .parametres-tabs button.tab-active {
   color: yellow;
   background: rgba(255, 255, 0, 0.15);
+  box-shadow: inset 0 -3px 0 yellow; /* indicateur d'onglet actif, dans le flux */
 }
 
 body.high-contrast-mode .profile-card {

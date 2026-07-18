@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const STORAGE_PROVIDERS = ['google_drive', 'onedrive', 'managed_gcs'];
+const STORAGE_PROVIDERS = ['google_drive', 'onedrive', 'sharepoint', 'managed_gcs'];
 const DEFAULT_QUOTA_BYTES = 10 * 1024 * 1024 * 1024;
 
 const StorageProviderConfigSchema = new mongoose.Schema({

@@ -117,10 +117,13 @@ function request(method, path, body = null) {
 }
 
 describe('POST /api/document-locks/:docId/acquire', () => {
-    it('renvoie 200 + granted:true si pas de verrou', async () => {
+    it('renvoie 200 + granted:true si pas de verrou (+ proprietaire pour le marquage optimiste client)', async () => {
         const r = await request('POST', '/api/document-locks/doc1/acquire');
         expect(r.status).toBe(200);
-        expect(r.body).toEqual({ granted: true });
+        // userId/displayName renvoyes pour que le client marque SON verrou avec
+        // son proprietaire (sinon la liste affichait « verrouille par un autre
+        // utilisateur » a son propre detenteur pendant ~5s).
+        expect(r.body).toEqual({ granted: true, userId: 'userA', displayName: expect.stringMatching(/Alice/) });
     });
 
     it('renvoie 409 + lockedBy si déjà verrouillé par un autre user', async () => {
@@ -137,7 +140,7 @@ describe('POST /api/document-locks/:docId/acquire', () => {
         await request('POST', '/api/document-locks/doc1/acquire');
         const r = await request('POST', '/api/document-locks/doc1/acquire');
         expect(r.status).toBe(200);
-        expect(r.body).toEqual({ granted: true });
+        expect(r.body).toEqual({ granted: true, userId: 'userA', displayName: expect.stringMatching(/Alice/) });
     });
 });
 

@@ -4,12 +4,17 @@ import { useLocation } from 'react-router-dom';
 import { setAccessibilityMode, updateBillingSettings } from '../../../../redux/slices/authSlice';
 import ProfileSection from './ProfileSection';
 import BuildInfoSection from './BuildInfoSection';
+import CompanionUpdateSection from './CompanionUpdateSection';
 import DossierColorsSection from './DossierColorsSection';
 import StorageProviderSection from './StorageProviderSection';
+import DocumentOpeningSettingsSection from './DocumentOpeningSettingsSection';
+import ConnectedServicesSection from './ConnectedServicesSection';
 import CabinetMembersSection from './CabinetMembersSection';
+import AIProviderSettingsSection from './AIProviderSettingsSection';
 import SecuritySection from '../../../encryption/SecuritySection';
 import HoverToSpeak from '../../../common/HoverToSpeak';
 import { speak, stopSpeaking } from '../../../../services/speechService';
+import { isFeatureEnabled } from '../../../../utils/featureFlags';
 import './styles.css';
 
 /**
@@ -81,8 +86,14 @@ const Parametres = () => {
 
   const user = useSelector(state => state.login.user);
   const isSpeechEnabled = user?.isSpeechEnabled || false;
+  const aiEnabled = isFeatureEnabled('aiAssistant');
 
-  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'profile');
+  const requestedTab = location.state?.activeTab
+    || new URLSearchParams(location.search).get('activeTab')
+    || 'profile';
+  const [activeTab, setActiveTab] = useState(requestedTab);
+
+  useEffect(() => { setActiveTab(requestedTab); }, [requestedTab]);
 
   // État local pour le niveau d'accessibilité (0, 1, 2)
   const [accessibilityLevel, setAccessibilityLevel] = useState(() => getAccessibilityLevel(user));
@@ -206,6 +217,22 @@ const Parametres = () => {
             Rangement
           </button>
         </HoverToSpeak>
+        <HoverToSpeak textToSpeak="Onglet Ouverture des documents">
+          <button
+            className={activeTab === 'documentOpening' ? 'tab-active' : ''}
+            onClick={() => setActiveTab('documentOpening')}
+          >
+            Ouverture
+          </button>
+        </HoverToSpeak>
+        <HoverToSpeak textToSpeak="Onglet Comptes et services connectes">
+          <button
+            className={activeTab === 'connectedServices' ? 'tab-active' : ''}
+            onClick={() => setActiveTab('connectedServices')}
+          >
+            Comptes
+          </button>
+        </HoverToSpeak>
         <HoverToSpeak textToSpeak="Onglet Membres du cabinet">
           <button
             className={activeTab === 'members' ? 'tab-active' : ''}
@@ -214,12 +241,30 @@ const Parametres = () => {
             Cabinet
           </button>
         </HoverToSpeak>
+        {aiEnabled && (
+          <HoverToSpeak textToSpeak="Onglet Intelligence artificielle">
+            <button
+              className={activeTab === 'ai' ? 'tab-active' : ''}
+              onClick={() => setActiveTab('ai')}
+            >
+              IA
+            </button>
+          </HoverToSpeak>
+        )}
         <HoverToSpeak textToSpeak="Onglet Securite et phrase secrete">
           <button
             className={activeTab === 'security' ? 'tab-active' : ''}
             onClick={() => setActiveTab('security')}
           >
             S&eacute;curit&eacute;
+          </button>
+        </HoverToSpeak>
+        <HoverToSpeak textToSpeak="Onglet Mise a jour du compagnon">
+          <button
+            className={activeTab === 'update' ? 'tab-active' : ''}
+            onClick={() => setActiveTab('update')}
+          >
+            Mise &agrave; jour
           </button>
         </HoverToSpeak>
         <HoverToSpeak textToSpeak="Onglet Systeme">
@@ -467,12 +512,28 @@ const Parametres = () => {
         <StorageProviderSection />
       )}
 
+      {activeTab === 'documentOpening' && (
+        <DocumentOpeningSettingsSection />
+      )}
+
+      {activeTab === 'connectedServices' && (
+        <ConnectedServicesSection />
+      )}
+
       {activeTab === 'members' && (
         <CabinetMembersSection />
       )}
 
+      {aiEnabled && activeTab === 'ai' && (
+        <AIProviderSettingsSection />
+      )}
+
       {activeTab === 'security' && (
         <SecuritySection />
+      )}
+
+      {activeTab === 'update' && (
+        <CompanionUpdateSection />
       )}
 
       {activeTab === 'system' && (

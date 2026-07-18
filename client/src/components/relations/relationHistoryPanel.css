@@ -1,0 +1,92 @@
+.relation-history {
+  background: #fff;
+  border: 1px solid #dbe3ec;
+  border-radius: 10px;
+  margin: 0.9rem;
+  padding: 0.9rem;
+}
+
+.relation-history > header,
+.relation-history__summary,
+.relation-history__meta,
+.relation-history__actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: space-between;
+}
+
+.relation-history h3 {
+  color: #17365d;
+  margin: 0;
+}
+
+.relation-history header p,
+.relation-history > p,
+.relation-history__summary span,
+.relation-history__meta {
+  color: #64748b;
+  font-size: 0.78rem;
+  margin: 0.2rem 0 0;
+}
+
+.relation-history > header > span,
+.relation-history__status {
+  align-self: flex-start;
+  background: #eef4fa;
+  border-radius: 999px;
+  color: #31577f;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.28rem 0.52rem;
+}
+
+.relation-history__status.is-active { background: #dcfce7; color: #166534; }
+.relation-history__status.is-disputed { background: #fff7ed; color: #9a3412; }
+.relation-history__status.is-archived { background: #f1f5f9; color: #475569; }
+
+.relation-history__list {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.8rem;
+}
+
+.relation-history__list article {
+  border-top: 1px solid #e2e8f0;
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.75rem;
+}
+
+.relation-history__summary > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.relation-history__meta {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.relation-history__actions {
+  justify-content: flex-start;
+}
+
+.relation-history button {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #294662;
+  cursor: pointer;
+  min-height: 36px;
+  padding: 0.4rem 0.6rem;
+}
+
+.relation-history button:focus-visible { outline: 3px solid #22a6b3; outline-offset: 2px; }
+.relation-history__error { color: #b42318 !important; }
+.relation-history__revisions { display: grid; gap: 0.3rem; margin: 0; padding-left: 1.4rem; }
+.relation-history__revisions li span { color: #64748b; display: block; font-size: 0.75rem; }
+
+@media (max-width: 520px) {
+  .relation-history__summary { align-items: flex-start; }
+  .relation-history__actions { flex-direction: column; }
+}

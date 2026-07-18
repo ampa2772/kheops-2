@@ -331,6 +331,46 @@ async function propagateDivorceToContacts(divorceData) {
 }
 
 // ============================================================
+// Assainissement des ObjectId du payload divorce (fix 2026-07-04)
+// ============================================================
+// Le wizard client envoie systematiquement les champs de liaison meme quand
+// ils sont vides : epoux*.avocat.contactId = '' (cas « mon cabinet est aussi
+// l'avocat » et avocat adverse saisi a la main), notaire.contactId = '', etc.
+// Mongoose caste '' vers ObjectId => CastError => 400 « Validation des
+// données échouée » alors que le Dossier + UserDossier etaient DEJA crees
+// (dossiers fantomes constates en prod le 2026-07-04).
+// On normalise recursivement : cle de type ObjectId ('' | valeur non-hex24 |
+// nombre type Date.now()) -> null (ou suppression pour _id, afin de laisser
+// Mongoose generer l'_id du sous-document).
+const OBJECTID_KEY_RE = /(^_id$)|(^id$)|(Id$)|(^enfantIdLocal$)|(^realisePar$)/;
+const HEX24_RE = /^[0-9a-fA-F]{24}$/;
+function sanitizeObjectIdFields(node) {
+  if (Array.isArray(node)) {
+    node.forEach(sanitizeObjectIdFields);
+    return node;
+  }
+  if (!node || typeof node !== 'object' || node instanceof Date) return node;
+  for (const key of Object.keys(node)) {
+    const val = node[key];
+    if (OBJECTID_KEY_RE.test(key) && !(val && typeof val === 'object')) {
+      const invalide =
+        val === '' ||
+        typeof val === 'number' ||
+        (typeof val === 'string' && !HEX24_RE.test(val));
+      if (invalide) {
+        // _id/id : supprimer pour laisser Mongoose generer l'_id du sous-doc
+        // (Mongoose mappe `id` -> `_id`, cf. bug PCH du 2026-07-04).
+        if (key === '_id' || key === 'id') delete node[key];
+        else node[key] = null;
+      }
+    } else if (val && typeof val === 'object') {
+      sanitizeObjectIdFields(val);
+    }
+  }
+  return node;
+}
+
+// ============================================================
 // GET /api/divorce-cm/constants
 // ============================================================
 router.get('/constants', auth, (req, res) => {
@@ -360,13 +400,38 @@ router.post('/', auth, asyncHandler(async (req, res) => {
   const ownerUserId = getOwnerUserId(req);
   if (!ownerUserId) return res.status(401).json({ message: 'Non authentifie.' });
 
-  const incoming = (req.body && req.body.divorceData) || req.body || {};
+  // Fix 2026-07-04 : normaliser les ObjectId vides/invalides du payload
+  // ('' -> null) AVANT toute construction Mongoose (CastError sinon).
+  const incoming = sanitizeObjectIdFields((req.body && req.body.divorceData) || req.body || {});
 
   // 1) Determiner la voie (judiciaire si un mineur souhaite etre entendu)
   const voie = constants.voieRecommandee(incoming);
   const etapes = constants.etapesInitiales(voie);
 
-  // 2) Creer le Dossier minimal (nom calcule, type_dossier discriminant)
+  // 2) Construire et VALIDER la fiche divorce AVANT de creer le Dossier.
+  // Fix 2026-07-04 : l'ancien ordre (Dossier + UserDossier sauves d'abord)
+  // laissait un dossier fantome en base a chaque echec de divorce.save().
+  const divorce = new DivorceCMData({
+    dossierId: new mongoose.Types.ObjectId(), // provisoire, remplace apres creation du Dossier
+    ownerUserId,
+    voie,
+    epoux1: incoming.epoux1 || { estClientCabinet: true },
+    epoux2: incoming.epoux2 || { estClientCabinet: false },
+    mariage: incoming.mariage || {},
+    enfants: incoming.enfants || [],
+    adultesCharge: incoming.adultesCharge || [],
+    prestationCompensatoire: incoming.prestationCompensatoire || {},
+    pensionsAlimentaires: incoming.pensionsAlimentaires || [],
+    logementFamilial: incoming.logementFamilial || {},
+    nomUsage: incoming.nomUsage || {},
+    notaire: incoming.notaire || {},
+    etapes,
+    dates: incoming.dates || {},
+    notes: incoming.notes || '',
+  });
+  await divorce.validate();
+
+  // 3) Creer le Dossier minimal (nom calcule, type_dossier discriminant)
   const dossierName = buildDossierName(incoming.epoux1, incoming.epoux2);
 
   const dossier = new Dossier({
@@ -388,7 +453,7 @@ router.post('/', auth, asyncHandler(async (req, res) => {
 
   await dossier.save();
 
-  // 2bis) Lier le dossier au user (sans cela, le dossier n'apparait
+  // 3bis) Lier le dossier au user (sans cela, le dossier n'apparait
   // pas dans /last-25-dossiers ni dans la recherche par UserDossier).
   try {
     await new UserDossier({ user: ownerUserId, dossier: dossier._id }).save();
@@ -398,27 +463,17 @@ router.post('/', auth, asyncHandler(async (req, res) => {
     // le Dossier existe deja, mais il sera orphelin de la liste user.
   }
 
-  // 3) Creer la fiche divorce associee
-  const divorce = new DivorceCMData({
-    dossierId: dossier._id,
-    ownerUserId,
-    voie,
-    epoux1: incoming.epoux1 || { estClientCabinet: true },
-    epoux2: incoming.epoux2 || { estClientCabinet: false },
-    mariage: incoming.mariage || {},
-    enfants: incoming.enfants || [],
-    adultesCharge: incoming.adultesCharge || [],
-    prestationCompensatoire: incoming.prestationCompensatoire || {},
-    pensionsAlimentaires: incoming.pensionsAlimentaires || [],
-    logementFamilial: incoming.logementFamilial || {},
-    nomUsage: incoming.nomUsage || {},
-    notaire: incoming.notaire || {},
-    etapes,
-    dates: incoming.dates || {},
-    notes: incoming.notes || '',
-  });
-
-  await divorce.save();
+  // 4) Associer la fiche divorce (deja validee) au Dossier reel et sauver.
+  // Filet anti-fantome : si le save echoue malgre la validation (ex. index
+  // unique dossierId), on supprime le Dossier/UserDossier tout juste crees.
+  divorce.dossierId = dossier._id;
+  try {
+    await divorce.save();
+  } catch (saveErr) {
+    try { await Dossier.deleteOne({ _id: dossier._id }); } catch (_) { /* best effort */ }
+    try { await UserDossier.deleteOne({ dossier: dossier._id, user: ownerUserId }); } catch (_) { /* best effort */ }
+    throw saveErr;
+  }
 
   // Synchronisation reverse : si epoux1/2 vient d'un contact existant, on
   // met a jour le contact + ses PersonneCharge depuis les donnees saisies
@@ -445,6 +500,17 @@ router.post('/', auth, asyncHandler(async (req, res) => {
       divorce.epoux2?.nom,
     ].filter(Boolean),
   });
+
+  // MATERIALISATION CLOUD (fire-and-forget, jamais bloquant) : dossier au vrai
+  // nom sur le cloud de l'utilisateur (meme logique que /createDossier).
+  try {
+    const { materializeMatterFolder } = require('../services/storage/matterFolderMaterializer');
+    materializeMatterFolder(ownerUserId, dossier)
+      .then((r) => {
+        if (r.ok) console.log(`[divorce-cm POST] ☁️ Dossier cloud materialise (${r.provider}) : ${r.label}`);
+      })
+      .catch(() => {});
+  } catch (_) { /* best effort */ }
 
   res.status(201).json({
     dossier: dossier.toObject(),
@@ -524,7 +590,8 @@ router.patch('/:id([0-9a-fA-F]{24})', auth, asyncHandler(async (req, res) => {
   const data = await DivorceCMData.findOne({ _id: req.params.id, ownerUserId });
   if (!data) return res.status(404).json({ message: 'Fiche divorce introuvable.' });
 
-  const body = req.body || {};
+  // Fix 2026-07-04 : meme normalisation qu'au POST (contactId/pchId '' -> null).
+  const body = sanitizeObjectIdFields(req.body || {});
   const sections = [
     'voie', 'epoux1', 'epoux2', 'mariage', 'enfants', 'adultesCharge',
     'prestationCompensatoire', 'pensionsAlimentaires',
@@ -937,3 +1004,5 @@ router.put('/templates/:key', auth, asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+// Exporte pour les tests unitaires (fix ObjectId vides du 2026-07-04).
+module.exports.sanitizeObjectIdFields = sanitizeObjectIdFields;

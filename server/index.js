@@ -3,7 +3,6 @@ const http = require('http');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -14,6 +13,8 @@ const auth = require('./middlewares/middleware-auth');
 const app = express();
 const PORT = process.env.PORT || 5000;
 const insertDefaultData = require('./utils/insertDefaultData');
+const applicationReadiness = require('./services/applicationReadiness');
+const { computeRuntimeSourceHash } = require('./utils/runtimeSourceManifest');
 
 // =====================================================================
 // === Verification de build — hash des fichiers serveur ================
@@ -24,27 +25,16 @@ const insertDefaultData = require('./utils/insertDefaultData');
  * Ce hash est compare au manifeste genere lors du build pour verifier la coherence.
  */
 function computeRuntimeHash() {
-    const serverDir = __dirname;
-    function getAllFiles(dir, fileList = []) {
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        for (const entry of entries) {
-            const fullPath = path.join(dir, entry.name);
-            if (entry.name === 'node_modules' || entry.name === 'build-manifest.json') continue;
-            if (entry.isDirectory()) {
-                getAllFiles(fullPath, fileList);
-            } else if (entry.name.endsWith('.js') || entry.name.endsWith('.json')) {
-                fileList.push(fullPath);
-            }
-        }
-        return fileList;
-    }
-    const files = getAllFiles(serverDir).sort();
-    const hash = crypto.createHash('sha256');
-    for (const file of files) {
-        hash.update(path.relative(serverDir, file).replace(/\\/g, '/'));
-        hash.update(fs.readFileSync(file));
-    }
-    return { hash: hash.digest('hex').slice(0, 16), fileCount: files.length };
+    return computeRuntimeSourceHash(__dirname);
+}
+
+function verifyRuntimeBuild() {
+    const manifest = loadBuildManifest();
+    const runtime = computeRuntimeHash();
+    const required = process.env.NODE_ENV === 'production';
+    const match = manifest ? manifest.serverHash === runtime.hash && manifest.fileCount === runtime.fileCount : !required;
+    global.__buildVerification = { manifest, runtime, required, match };
+    return global.__buildVerification;
 }
 
 /**
@@ -219,6 +209,12 @@ app.use(cors({
 const CSP_MODE = process.env.CSP_MODE
     || (process.env.KHEOPS_HOSTED === 'true' ? 'report-only' : 'off');
 if (CSP_MODE !== 'off') {
+    let officeEngineOrigin = null;
+    try {
+        officeEngineOrigin = process.env.OFFICE_ENGINE_PUBLIC_URL
+            ? new URL(process.env.OFFICE_ENGINE_PUBLIC_URL).origin
+            : null;
+    } catch (_) {}
     app.use(helmet.contentSecurityPolicy({
         useDefaults: true,
         directives: {
@@ -226,7 +222,8 @@ if (CSP_MODE !== 'off') {
             // (à remplacer par un nonce/hash lors du passage en enforce).
             scriptSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-            connectSrc: ["'self'", ...WEB_ORIGINS],
+            connectSrc: ["'self'", ...WEB_ORIGINS, ...(officeEngineOrigin ? [officeEngineOrigin] : [])],
+            frameSrc: ["'self'", ...(officeEngineOrigin ? [officeEngineOrigin] : [])],
         },
         reportOnly: CSP_MODE !== 'enforce',
     }));
@@ -288,10 +285,37 @@ app.use('/api', apiLimiter);
 const routes = require('./router');
 app.use('/api', routes);
 
-// Endpoint de liveness PUBLIC (sans auth) — utilise par Cloud Run et les
-// sondes de disponibilite. Ne revele aucune information sensible.
+// Endpoint de readiness PUBLIC (sans auth) — utilise par Cloud Run et les
+// sondes de disponibilite. Ne revele que des booleens, sans nom de ressource,
+// URL signee, identifiant de worker ni detail d'erreur fournisseur.
 app.get('/api/health/ping', (req, res) => {
-    res.json({ ok: true, ts: Date.now() });
+    const { enabled } = require('./config/featureFlags');
+    const aiWorkerRequired = process.env.AI_TASK_WORKER_ENABLED === 'true' && enabled('aiAssistant');
+    const syncWorkerRequired = process.env.DOCUMENT_SYNC_WORKER_ENABLED === 'true' && enabled('documentSyncV2');
+    const mailWorkerRequired = process.env.MAIL_WORKER_ENABLED === 'true';
+    let aiWorkerRunning = false;
+    let syncWorkerRunning = false;
+    let mailWorkerRunning = false;
+    try {
+      aiWorkerRunning = require('./services/ai/taskService').workerStatus().running === true;
+    } catch (_) {}
+    try {
+      syncWorkerRunning = require('./services/sync/documentSyncWorkerLoop').status().running === true;
+    } catch (_) {}
+    try {
+      mailWorkerRunning = require('./services/mail/mailWorkerLoop').status().running === true;
+    } catch (_) {}
+    const health = applicationReadiness.snapshot({
+      buildRequired: process.env.NODE_ENV === 'production',
+      buildReady: global.__buildVerification?.match === true,
+      aiWorkerRequired,
+      aiWorkerRunning,
+      syncWorkerRequired,
+      syncWorkerRunning,
+      mailWorkerRequired,
+      mailWorkerRunning,
+    });
+    res.status(health.ok ? 200 : 503).json({ ...health, ts: Date.now() });
 });
 
 // Endpoint de diagnostic de la config email
@@ -319,9 +343,8 @@ app.get('/api/health/email', auth, (req, res) => {
 // SECURITE rc37 (H-04) : `auth` ajoute — la verification du build (hash,
 // fileCount, manifest, buildId, buildTimestamp) etait expose publiquement.
 app.get('/api/build-info', auth, (req, res) => {
-    const manifest = loadBuildManifest();
-    const runtime = computeRuntimeHash();
-    const match = manifest ? (manifest.serverHash === runtime.hash) : null;
+    const verification = global.__buildVerification || verifyRuntimeBuild();
+    const { manifest, runtime, match } = verification;
 
     res.json({
         manifest: manifest || { error: 'Pas de manifeste (mode developpement ?)' },
@@ -340,6 +363,31 @@ app.get('/api/build-info', auth, (req, res) => {
 
 // Servir les fichiers React build en production (Electron packagé)
 if (process.env.NODE_ENV === 'production') {
+  // Configuration frontend générée au démarrage. Les drapeaux peuvent ainsi
+  // être désactivés dans Cloud Run sans reconstruire le bundle, ce qui rend le
+  // retour arrière fonctionnel aussi bien côté API que côté interface.
+  app.get('/config.js', (req, res) => {
+    const features = require('./config/featureFlags').all();
+    const publicConfig = {
+      features,
+      companionInstallerUrlWindows: process.env.COMPANION_INSTALLER_URL_WINDOWS || undefined,
+      companionInstallerUrlMacos: process.env.COMPANION_INSTALLER_URL_MACOS || undefined,
+    };
+    const serialized = JSON.stringify(publicConfig).replace(/</g, '\\u003c');
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    res.type('application/javascript').send(`
+window.__KHEOPS_CONFIG__ = Object.assign(window.__KHEOPS_CONFIG__ || {}, ${serialized});
+(function () {
+  try {
+    var loc = window.location || {};
+    var isHttp = /^https?:$/.test(loc.protocol || '');
+    var isLocal = /^(localhost|127\\.0\\.0\\.1|\\[::1\\])$/.test(loc.hostname || '');
+    if (isHttp && !isLocal && !window.__KHEOPS_CONFIG__.apiUrl) window.__KHEOPS_CONFIG__.apiUrl = loc.origin;
+  } catch (_) {}
+})();
+`);
+  });
+
   // En Electron packagé : CLIENT_BUILD_PATH est défini par main.js (pointe dans l'asar)
   // En mode normal : chemin relatif classique ../client/build
   const clientBuildPath = process.env.CLIENT_BUILD_PATH || path.join(__dirname, '..', 'client', 'build');
@@ -357,8 +405,11 @@ app.use((err, req, res, next) => {
   if (err.name === 'ValidationError') {
     return res.status(400).json({ message: "Validation des données échouée.", errors: err.errors });
   }
-  const status = err.status || 500;
-  res.status(status).json({ message: err.message || "Erreur interne du serveur" });
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    message: err.message || "Erreur interne du serveur",
+    ...(err.code ? { error: err.code } : {}),
+  });
 });
 
 // Intercepteur d'erreurs non gérées
@@ -369,7 +420,81 @@ process.on('uncaughtException', (err) => {
 // =====================================================================
 // === Fonction startServer() — exportable pour Electron main.js =======
 // =====================================================================
+let backgroundWorkersStarted = false;
+let activeHttpServer = null;
+let shutdownStarted = false;
+
+function startBackgroundWorkers() {
+  if (backgroundWorkersStarted) return;
+  const { enabled } = require('./config/featureFlags');
+  if (process.env.AI_TASK_WORKER_ENABLED === 'true' && enabled('aiAssistant')) {
+    require('./services/ai/taskService').startWorkerLoop();
+    console.log('[AI] Worker durable démarré.');
+  }
+  if (process.env.DOCUMENT_SYNC_WORKER_ENABLED === 'true' && enabled('documentSyncV2')) {
+    require('./services/sync/documentSyncWorkerLoop').start();
+    console.log('[DocumentSync] Worker durable démarré.');
+  }
+  if (process.env.MAIL_WORKER_ENABLED === 'true') {
+    require('./services/mail/mailWorkerLoop').start();
+    console.log('[Mail] Worker durable démarré.');
+  }
+  backgroundWorkersStarted = true;
+}
+
+async function stopBackgroundWorkers({ drainMs = 7000 } = {}) {
+  require('./services/ai/taskService').stopWorkerLoop();
+  await Promise.all([
+    require('./services/sync/documentSyncWorkerLoop').stop({ drainMs }),
+    require('./services/mail/mailWorkerLoop').stop({ drainMs }),
+  ]);
+  backgroundWorkersStarted = false;
+}
+
+async function gracefulShutdown(signal) {
+  if (shutdownStarted) return;
+  shutdownStarted = true;
+  console.log(`[Server] Arrêt gracieux demandé (${signal}).`);
+  const hardStop = setTimeout(() => {
+    console.error('[Server] Délai d’arrêt gracieux dépassé.');
+    process.exit(1);
+  }, 9000);
+  hardStop.unref?.();
+  let forceConnections = null;
+  try {
+    require('./services/documentLockService').stopCleanup();
+    // Socket.io et son change stream gardent sinon des connexions actives qui
+    // empêchent `httpServer.close()` de rendre la main sur Cloud Run.
+    try { require('./services/chatSocketHandler').detach(); } catch (_) {}
+    const closeServer = activeHttpServer
+      ? new Promise((resolve) => {
+        activeHttpServer.close(() => resolve());
+        activeHttpServer.closeIdleConnections?.();
+        forceConnections = setTimeout(() => activeHttpServer?.closeAllConnections?.(), 5000);
+        forceConnections.unref?.();
+      })
+      : Promise.resolve();
+    await Promise.all([stopBackgroundWorkers({ drainMs: 7000 }), closeServer]);
+    if (forceConnections) clearTimeout(forceConnections);
+    activeHttpServer = null;
+    await mongoose.disconnect();
+    clearTimeout(hardStop);
+    process.exit(0);
+  } catch (error) {
+    console.error('[Server] Arrêt gracieux incomplet:', error?.message || error);
+    if (forceConnections) clearTimeout(forceConnections);
+    clearTimeout(hardStop);
+    process.exit(1);
+  }
+}
+
 async function startServer() {
+  applicationReadiness.beginStartup(process.env);
+
+  // Calcule une seule fois l'empreinte réellement déployée. En production,
+  // une image incomplète ou différente du manifeste restera en readiness 503.
+  verifyRuntimeBuild();
+
   // Verification du JWT_SECRET avant tout (blocant en prod si faible)
   checkJwtSecret();
 
@@ -382,11 +507,24 @@ async function startServer() {
   await insertDefaultData();
   console.log('Données par défaut insérées.');
 
+  // En hebergement, le service n'est pret que si le bucket existe, si ses
+  // metadonnees sont accessibles et si le compte de service peut signer une
+  // URL V4. Le controle ne lit et n'ecrit aucun document. Une erreur n'empeche
+  // pas le serveur d'ecouter : /api/health/ping reste alors a 503, ce qui permet
+  // a Cloud Run et au deploiement candidat de refuser proprement le trafic.
+  await applicationReadiness.checkHostedGcs({ env: process.env });
+
   // Démarre le balayage des verrous de documents expirés (heartbeat > 90s)
   require('./services/documentLockService').startCleanup();
 
+  // Workers désactivés par défaut en local/Electron et explicitement activés
+  // sur Cloud Run. Les files Mongo assurent la reprise après un redémarrage.
+  startBackgroundWorkers();
+  applicationReadiness.markStartupReady();
+
   // Wrap Express avec un http.Server pour pouvoir y attacher Socket.io.
   const httpServer = http.createServer(app);
+  activeHttpServer = httpServer;
 
   // Branche Socket.io pour le chat collaboratif (livraison temps réel des
   // messages). La REST API reste la source de vérité ; le socket sert juste
@@ -422,8 +560,8 @@ async function startServer() {
 
       // Banner de verification du build
       global.__serverStartedAt = new Date().toISOString();
-      const manifest = loadBuildManifest();
-      const runtime = computeRuntimeHash();
+      const verification = global.__buildVerification || verifyRuntimeBuild();
+      const { manifest, runtime, match: isMatch } = verification;
       console.log('[Server] ============================================');
       console.log('[Server] VERIFICATION DU BUILD');
       console.log(`[Server] Hash runtime:   ${runtime.hash} (${runtime.fileCount} fichiers)`);
@@ -431,7 +569,6 @@ async function startServer() {
           console.log(`[Server] Hash manifeste: ${manifest.serverHash} (${manifest.fileCount} fichiers)`);
           console.log(`[Server] Build ID:       ${manifest.buildId}`);
           console.log(`[Server] Build date:     ${manifest.buildTimestamp}`);
-          const isMatch = manifest.serverHash === runtime.hash;
           console.log(`[Server] Correspondance: ${isMatch ? 'OUI — Serveur a jour' : 'NON — ATTENTION, code modifie depuis le build !'}`);
       } else {
           console.log('[Server] Pas de manifeste (mode developpement)');
@@ -454,10 +591,12 @@ async function startServer() {
 
 // Si exécuté directement (cd server && npm start), démarrer normalement
 if (require.main === module) {
+  process.once('SIGTERM', () => { gracefulShutdown('SIGTERM'); });
+  process.once('SIGINT', () => { gracefulShutdown('SIGINT'); });
   startServer().catch(err => {
     console.error('Erreur fatale lors de l\'initialisation du serveur:', err);
     process.exit(1);
   });
 }
 
-module.exports = { app, startServer };
+module.exports = { app, startServer, startBackgroundWorkers, stopBackgroundWorkers, gracefulShutdown };

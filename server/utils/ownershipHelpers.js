@@ -26,8 +26,59 @@ const Dossier = require('../models/Folder/Dossier');
 const { log: secLog, EVT } = require('./securityLogger');
 // R5b : partage intra-cabinet. Renvoie [self] par défaut (aucune régression solo).
 const { getAccessibleUserIds } = require('../services/cabinetAccess');
+const { resolveTenantId } = require('../services/tenantService');
 
 const TAG = '[OwnershipHelpers]';
+
+const relationId = (value) => {
+  const id = value && typeof value === 'object' ? (value._id || value.id) : value;
+  return id == null ? '' : String(id);
+};
+
+/**
+ * Resout en une seule passe les identifiants de contacts et d'OfficeUser
+ * accessibles au cabinet courant. Cette variante sans ecriture HTTP sert aux
+ * frontieres qui doivent filtrer/hydrater plusieurs relations embarquees sans
+ * declencher une reponse 403 au premier type essaye (un avocat historique peut
+ * etre soit un Contact, soit un OfficeUser).
+ */
+async function getAccessibleRelationEntityIds(userId, entityIds = []) {
+  const ids = Array.from(new Set(
+    (Array.isArray(entityIds) ? entityIds : [])
+      .map(relationId)
+      .filter((id) => id && mongoose.Types.ObjectId.isValid(id)),
+  ));
+  if (!userId || ids.length === 0) {
+    return { contactIds: [], officeUserIds: [] };
+  }
+
+  const accessibleIds = await getAccessibleUserIds(userId);
+  const [physicalLinks, privateLinks, publicLinks, officeLinks] = await Promise.all([
+    UserContact.find({ user: { $in: accessibleIds }, contact: { $in: ids } })
+      .select('contact')
+      .lean(),
+    UserContactPM.find({ user: { $in: accessibleIds }, contactPM: { $in: ids } })
+      .select('contactPM')
+      .lean(),
+    UserContactPMPublique.find({ user: { $in: accessibleIds }, contactPMPublique: { $in: ids } })
+      .select('contactPMPublique')
+      .lean(),
+    UserOfficeUser.find({ user: { $in: accessibleIds }, officeUser: { $in: ids } })
+      .select('officeUser')
+      .lean(),
+  ]);
+
+  return {
+    contactIds: Array.from(new Set([
+      ...physicalLinks.map((link) => relationId(link.contact)),
+      ...privateLinks.map((link) => relationId(link.contactPM)),
+      ...publicLinks.map((link) => relationId(link.contactPMPublique)),
+    ].filter(Boolean))),
+    officeUserIds: Array.from(new Set(
+      officeLinks.map((link) => relationId(link.officeUser)).filter(Boolean),
+    )),
+  };
+}
 
 /**
  * Verifie que l'utilisateur courant est lie au dossier (UserDossier).
@@ -145,7 +196,7 @@ async function ensureDocOwnership(req, res, docId) {
     return { ok: false };
   }
   const accessibleIds = await getAccessibleUserIds(userId);
-  const userDossierLinks = await UserDossier.find({ user: { $in: accessibleIds } }).select('dossier').lean();
+  const userDossierLinks = await UserDossier.find({ user: { $in: accessibleIds } }).select('dossier user').lean();
   const dossierIds = userDossierLinks.map((l) => l.dossier);
   if (dossierIds.length === 0) {
     console.warn(`${TAG} ACCESS_DENIED doc ${docId} : user ${userId} n'a aucun dossier`);
@@ -161,7 +212,7 @@ async function ensureDocOwnership(req, res, docId) {
   const dossier = await Dossier.findOne({
     _id: { $in: dossierIds },
     'dossier.documents._id': new mongoose.Types.ObjectId(String(docId)),
-  }).select('_id').lean();
+  }).select('_id tenantId').lean();
   if (!dossier) {
     console.warn(`${TAG} ACCESS_DENIED doc ${docId} : pas dans les dossiers de user ${userId}`);
     secLog(EVT.ACCESS_DENIED, {
@@ -173,10 +224,34 @@ async function ensureDocOwnership(req, res, docId) {
     res.status(403).json({ message: 'Acces refuse : ce document n\'appartient pas a votre cabinet.' });
     return { ok: false };
   }
-  return { ok: true, dossierId: String(dossier._id) };
+  let tenantId = dossier.tenantId || null;
+  if (!tenantId) {
+    const owningLink = userDossierLinks.find((link) => String(link.dossier) === String(dossier._id));
+    if (owningLink?.user) {
+      tenantId = await resolveTenantId(owningLink.user);
+      // Migration paresseuse des dossiers historiques. Le filtre empêche un
+      // autre processus d'écraser une valeur déjà renseignée entre-temps.
+      try {
+        await Dossier.updateOne(
+          { _id: dossier._id, $or: [{ tenantId: null }, { tenantId: { $exists: false } }] },
+          { $set: { tenantId } },
+        );
+      } catch (_) {}
+    }
+  }
+  if (!tenantId) {
+    res.status(500).json({ message: 'Cabinet du dossier introuvable.' });
+    return { ok: false };
+  }
+  return {
+    ok: true,
+    dossierId: String(dossier._id),
+    tenantId: String(tenantId),
+  };
 }
 
 module.exports = {
+  getAccessibleRelationEntityIds,
   ensureDossierOwnership,
   ensureContactOwnership,
   ensureOfficeUserOwnership,

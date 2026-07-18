@@ -1,0 +1,21 @@
+.external-edit-overlay { z-index: 10040; }
+.external-edit-session { width: min(650px, calc(100vw - 32px)); padding: 0; overflow: hidden; }
+.external-edit-session__header { display:flex; align-items:flex-start; justify-content:space-between; padding:24px 26px 18px; border-bottom:1px solid rgba(148,163,184,.25); }
+.external-edit-session__header span { color:#64748b; font-size:.72rem; font-weight:800; letter-spacing:.13em; }
+.external-edit-session__header h2 { margin:6px 0 0; font-size:1.35rem; color:#0f172a; }
+.external-edit-session__header button { border:0; background:transparent; font-size:1.7rem; cursor:pointer; color:#64748b; }
+.external-edit-session__body { padding:22px 26px; color:#334155; }
+.external-edit-session__body p { margin-top:0; line-height:1.55; }
+.external-edit-session__reopen { display:inline-flex; margin:4px 0 18px; padding:9px 13px; border-radius:9px; background:#eff6ff; color:#1d4ed8; font-weight:700; text-decoration:none; }
+.external-edit-session dl { display:grid; gap:8px; margin:0; }
+.external-edit-session dl div { display:flex; justify-content:space-between; gap:16px; padding:9px 0; border-bottom:1px solid #eef2f7; }
+.external-edit-session dt { color:#64748b; }.external-edit-session dd { margin:0; text-align:right; font-weight:650; color:#1e293b; }
+.external-edit-session__message { margin-top:18px; padding:11px 13px; border-radius:9px; background:#eff6ff; color:#1e40af; }
+.external-edit-session__message.is-success { background:#ecfdf5; color:#047857; }
+.external-edit-session__message.is-warning { background:#fffbeb; color:#a16207; }
+.external-edit-session__message.is-error { background:#fef2f2; color:#b91c1c; }
+.external-edit-session__footer { display:flex; justify-content:flex-end; gap:10px; padding:16px 26px 22px; flex-wrap:wrap; }
+.external-edit-session__footer button { border-radius:9px; padding:10px 14px; font-weight:750; cursor:pointer; }
+.external-edit-session__footer .secondary { border:1px solid #cbd5e1; background:#fff; color:#334155; }
+.external-edit-session__footer .primary { border:1px solid #1d4ed8; background:#1d4ed8; color:#fff; }
+.external-edit-session__footer button:disabled { opacity:.55; cursor:not-allowed; }

@@ -132,6 +132,22 @@ export function subscribeToTyping(handler) {
 }
 
 /**
+ * S'abonne aux invitations de cabinet reçues en temps réel
+ * ('cabinet:invitation', émis par le serveur au room user:<id>).
+ * Retourne une fonction de désabonnement à appeler au unmount.
+ */
+export function subscribeToCabinetInvitation(handler) {
+    if (!socket) return () => {};
+    // Capture l'instance courante : si le socket est recree (changement de
+    // token), le cleanup se detache bien de l'instance a laquelle il s'est
+    // attache, sans laisser de listener orphelin.
+    const currentSocket = socket;
+    const wrapped = (payload) => handler(payload);
+    currentSocket.on('cabinet:invitation', wrapped);
+    return () => currentSocket.off('cabinet:invitation', wrapped);
+}
+
+/**
  * Émet un événement de saisie en cours (best-effort).
  */
 export function emitTyping(recipientId, isTyping) {
@@ -145,8 +161,36 @@ export function emitTyping(recipientId, isTyping) {
  * la modale "Utilisateurs connectés" du header. Si officeUserId est falsy,
  * efface la présence pour ce socket.
  */
-export function emitPresence(officeUserId) {
-    if (socket && socket.connected) {
-        socket.emit('presence:set-office-user', { officeUserId: officeUserId || null });
+export function emitPresence(officeUserId, { timeoutMs = 5000 } = {}) {
+    if (!socket || !socket.connected) {
+        return Promise.reject(new Error('CHAT_SOCKET_NOT_CONNECTED'));
     }
+
+    // L'ack serveur signifie que le socket a effectivement quitté l'ancienne
+    // room OfficeUser et rejoint la nouvelle. Le caller peut alors lancer un
+    // rattrapage REST sans laisser de fenêtre entre le snapshot et le temps réel.
+    const currentSocket = socket;
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        const timer = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            reject(new Error('CHAT_PRESENCE_ACK_TIMEOUT'));
+        }, timeoutMs);
+
+        currentSocket.emit(
+            'presence:set-office-user',
+            { officeUserId: officeUserId || null },
+            (ack = {}) => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                if (ack.ok === false) {
+                    reject(new Error(ack.error || ack.outcome || 'CHAT_PRESENCE_REJECTED'));
+                    return;
+                }
+                resolve(ack);
+            }
+        );
+    });
 }

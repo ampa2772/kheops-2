@@ -163,3 +163,27 @@ body.high-contrast-mode .k-pilotage-bandeau__title,
 body.high-contrast-mode .k-pilotage-bandeau__subtitle {
   color: yellow;
 }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+/* Breakpoint principal 768 : les 4 cartes indicateurs passent en 1 colonne
+   empilee (au lieu des 2 colonnes heritees du 1100px), lisibles sur mobile.
+   ≤480 on resserre les paddings/gaps. Le desktop (≥1024px) reste intact :
+   ces regles sont sous @media. */
+@media (max-width: 768px) {
+  .k-pilotage-bandeau__cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .k-pilotage-bandeau {
+    padding: 8px;
+  }
+  .k-pilotage-bandeau__cards {
+    gap: 8px;
+  }
+  .k-pilotage-card {
+    padding: 12px;
+    column-gap: 10px;
+  }
+}

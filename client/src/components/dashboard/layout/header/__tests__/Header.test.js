@@ -82,8 +82,30 @@ jest.mock('../title', () => {
   return Mock;
 });
 
+// Sous-composants de la messagerie, pour verifier le branchement header -> panneau
+// sans lancer de socket ni charger de conversations distantes.
+jest.mock('../../../../chat/ConversationList', () => {
+  const Mock = () => <div data-testid="mock-conversation-list">Conversations</div>;
+  Mock.displayName = 'MockConversationList';
+  return Mock;
+});
+jest.mock('../../../../chat/MessageList', () => {
+  const Mock = () => <div data-testid="mock-message-list">Messages</div>;
+  Mock.displayName = 'MockMessageList';
+  return Mock;
+});
+jest.mock('../../../../chat/MessageInput', () => {
+  const Mock = () => <div data-testid="mock-message-input">Saisie</div>;
+  Mock.displayName = 'MockMessageInput';
+  return Mock;
+});
+jest.mock('../../../../../hooks/useChatSocket', () => ({
+  useChatSocket: jest.fn(),
+}));
+
 import { renderWithProviders } from '../../../../../test-utils';
 import Header from '../index';
+import ChatPanel from '../../../../chat/ChatPanel';
 
 describe('Header', () => {
   const defaultState = {
@@ -101,14 +123,14 @@ describe('Header', () => {
     },
   };
 
-  const renderHeader = (overrides = {}) => {
+  const renderHeader = (overrides = {}, props = {}) => {
     const state = {
       ...defaultState,
       ...overrides,
       login: { ...defaultState.login, ...(overrides.login || {}) },
       layout: { ...defaultState.layout, ...(overrides.layout || {}) },
     };
-    return renderWithProviders(<Header />, { preloadedState: state });
+    return renderWithProviders(<Header {...props} />, { preloadedState: state });
   };
 
   it('rend le toolbar avec role="toolbar"', () => {
@@ -134,12 +156,13 @@ describe('Header', () => {
     expect(screen.getByTestId('mock-title')).toBeInTheDocument();
   });
 
-  it('affiche les 6 sous-composants icones quand authentifie', () => {
+  it('affiche les actions du header, dont la messagerie, quand authentifie', () => {
     renderHeader();
     expect(screen.getByTestId('mock-all-search')).toBeInTheDocument();
     expect(screen.getByTestId('mock-currents-users')).toBeInTheDocument();
     expect(screen.getByTestId('mock-current-user')).toBeInTheDocument();
     expect(screen.getByTestId('mock-create-form')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Messagerie' })).toBeInTheDocument();
     expect(screen.getByTestId('mock-notifications')).toBeInTheDocument();
     expect(screen.getByTestId('mock-main-user')).toBeInTheDocument();
   });
@@ -239,5 +262,56 @@ describe('Header', () => {
   it('a aria-label="Actions principales" sur le toolbar', () => {
     renderHeader();
     expect(screen.getByRole('toolbar')).toHaveAttribute('aria-label', 'Actions principales');
+  });
+
+  it('rend un seul bouton Messagerie accessible entre Ajouter et Notifications', () => {
+    renderHeader();
+
+    const createAction = screen.getByTestId('mock-create-form');
+    const chatAction = screen.getByRole('button', { name: 'Messagerie' });
+    const notificationsAction = screen.getByTestId('mock-notifications');
+
+    expect(screen.getAllByRole('button', { name: 'Messagerie' })).toHaveLength(1);
+    expect(createAction.compareDocumentPosition(chatAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(chatAction.compareDocumentPosition(notificationsAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(chatAction).toHaveAttribute('aria-controls', 'kheops-chat-panel');
+    expect(chatAction).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('conserve le badge des messages non lus dans le header', () => {
+    renderHeader({ chat: { totalUnread: 4 } });
+    expect(screen.getByLabelText('4 messages non lus')).toHaveTextContent('4');
+  });
+
+  it('ne rend plus aucun ancien bouton flottant de messagerie', () => {
+    const { container } = renderHeader();
+    expect(container.querySelector('.chat-fab')).not.toBeInTheDocument();
+  });
+
+  it('ouvre et ferme le meme panneau de messagerie depuis le bouton du header', () => {
+    const ChatHarness = () => {
+      const [open, setOpen] = React.useState(false);
+      return (
+        <>
+          <Header
+            isChatOpen={open}
+            onToggleChat={() => setOpen(current => !current)}
+          />
+          <ChatPanel open={open} onOpenChange={setOpen} />
+        </>
+      );
+    };
+
+    renderWithProviders(<ChatHarness />, { preloadedState: defaultState });
+
+    const trigger = screen.getByRole('button', { name: 'Messagerie' });
+    expect(screen.queryByRole('dialog', { name: 'Chat' })).not.toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('dialog', { name: 'Chat' })).toHaveTextContent('Messagerie du cabinet');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+    expect(screen.queryByRole('dialog', { name: 'Chat' })).not.toBeInTheDocument();
   });
 });

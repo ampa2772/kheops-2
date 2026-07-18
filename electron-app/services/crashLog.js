@@ -11,6 +11,7 @@
 const { app } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const { redactSecrets } = require('./logRedaction');
 
 const CRASH_LOG_PATH = app.isPackaged
     ? path.join(app.getPath('userData'), 'crash-log.txt')
@@ -19,8 +20,8 @@ const CRASH_LOG_PATH = app.isPackaged
 function logToFile(message) {
     try {
         const timestamp = new Date().toISOString();
-        fs.appendFileSync(CRASH_LOG_PATH, `[${timestamp}] ${message}\n`);
+        fs.appendFileSync(CRASH_LOG_PATH, `[${timestamp}] ${redactSecrets(message)}\n`);
     } catch (e) { /* ignore */ }
 }
 
-module.exports = { logToFile, CRASH_LOG_PATH };
+module.exports = { logToFile, CRASH_LOG_PATH, redactSecrets };

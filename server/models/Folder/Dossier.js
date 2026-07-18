@@ -22,6 +22,7 @@ const FactureSchema = new mongoose.Schema({
   payments: [{
     amount: { type: Number, required: true },
     date: { type: Date, default: Date.now },
+    note: { type: String, default: '' }, // libellé libre du paiement (ex. « acompte », « chèque »)
   }],
   status: {
     type: String,
@@ -87,6 +88,13 @@ const DocumentSchema = new mongoose.Schema({
   categorie: String,
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   color: { type: String, default: null },
+  // Choix d'ouverture propre a ce document. Il est prioritaire sur la
+  // preference generale de l'utilisateur, sauf politique forcee du cabinet.
+  openingMode: {
+    type: String,
+    enum: ['automatic', 'ask', 'kheops', 'word_desktop', 'word_web', 'google_docs', null],
+    default: null,
+  },
   // --- LE CHAMP CLÉ POUR LE LIEN AVEC LES SOUS-DOSSIERS ---
   subfolderId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -292,6 +300,7 @@ const AideJuridictionnelleSchema = new mongoose.Schema({
 // ========================================================================
 const DossierSchema = mongoose.Schema({
   reference: { type: String, required: true },
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', index: true, default: null },
   
   // --- MODIFICATION MAJEURE ICI ---
   // On remplace l'ancien `dossier: { type: Object }` par notre nouveau schéma structuré.

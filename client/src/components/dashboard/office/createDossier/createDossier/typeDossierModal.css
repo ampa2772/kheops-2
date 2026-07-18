@@ -601,3 +601,59 @@
     justify-content: flex-end;
   }
 }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Overlay : réduire le padding pour gagner de la place */
+  .k-tdm-overlay {
+    padding: 0.5rem;
+  }
+
+  /* Modale : borner à l'écran */
+  .k-tdm-modal {
+    width: min(660px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    max-height: 90vh;
+  }
+
+  /* Liste : réduire les hauteurs fixes pour laisser voir le footer */
+  .k-tdm-list-wrap {
+    min-height: 140px;
+  }
+  .k-tdm-list {
+    max-height: 45vh;
+  }
+
+  /* Header : passage à la ligne si le titre est long */
+  .k-tdm-header {
+    flex-wrap: wrap;
+  }
+
+  /* Footer empilé : indice au-dessus, actions pleine largeur en dessous */
+  .k-tdm-footer {
+    flex-wrap: wrap;
+  }
+  .k-tdm-footer-hint {
+    flex-basis: 100%;
+  }
+  .k-tdm-footer-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .k-tdm-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .k-tdm-modal {
+    max-height: 94vh;
+  }
+  .k-tdm-header,
+  .k-tdm-body,
+  .k-tdm-footer {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+}

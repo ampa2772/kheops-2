@@ -2,6 +2,8 @@
 .edit-modal__overlay {
   background-color: rgba(0, 0, 0, 0.7);
   z-index: 10000; /* Très élevé pour être au-dessus de tout */
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* --- Contenu de la modale (la boîte) --- */
@@ -9,10 +11,70 @@
   background-color: #5cbad9; /* Couleur de fond de la modale vue dans la capture */
   border-radius: 10px;
   width: min(1200px, 95vw);
-  height: auto;
+  /* Une hauteur réellement définie est indispensable : les descendants flex
+     utilisent height: 100 %, et un simple max-height avec height: auto les
+     laissait grandir avant que l'overflow du parent ne coupe le formulaire. */
+  height: min(800px, 90vh);
   max-height: min(800px, 90vh);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden; /* Empêche le contenu de déborder de la modale */
   box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  box-sizing: border-box;
+}
+
+/* Les unités dynamiques suivent aussi le redimensionnement du viewport par le
+   clavier virtuel. Les déclarations vh ci-dessus restent le fallback. */
+@supports (height: 1dvh) {
+  .edit-modal__content {
+    height: min(800px, 90dvh);
+    max-height: min(800px, 90dvh);
+  }
+}
+
+/* Chaîne flex bornée : .formDossier devient l'unique zone principale qui se
+   contracte et défile, tandis que le bandeau, les onglets et le pied d'action
+   restent visibles. Ces règles sont volontairement limitées à cette modale. */
+.edit-modal__content > .createDosMain,
+.edit-modal__content .create_DossierMainForm {
+  min-height: 0;
+}
+
+.edit-modal__content > .createDosMain {
+  flex: 1 1 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.edit-modal__content .formDossier {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #4dc9ff rgba(8, 22, 42, 0.55);
+}
+
+.edit-modal__content .formDossier::-webkit-scrollbar {
+  width: 10px;
+}
+
+.edit-modal__content .formDossier::-webkit-scrollbar-track {
+  background: rgba(8, 22, 42, 0.55);
+  border-radius: 999px;
+}
+
+.edit-modal__content .formDossier::-webkit-scrollbar-thumb {
+  background: #4dc9ff;
+  border: 2px solid rgba(8, 22, 42, 0.55);
+  border-radius: 999px;
+}
+
+.edit-modal__content .create_DossierMainForm > .formDossier + div {
+  flex: 0 0 auto;
+}
+
+body.edit-dossier-modal-open {
+  overflow: hidden;
 }

@@ -27,6 +27,10 @@ function load({ providerExists, findOneDoc } = {}) {
   });
   jest.doMock('../../services/storage', () => ({
     getStorageProvider: jest.fn().mockResolvedValue(provider),
+    // Volet B : la route upload resout le provider PAR UTILISATEUR via
+    // getUploadProvider (et non plus getStorageProvider seul).
+    getUploadProvider: jest.fn().mockResolvedValue(provider),
+    getProviderForStorageKey: jest.fn().mockResolvedValue(provider),
     resolveTenantId: jest.fn(() => 'TENANT1'),
     selectStorageProvider: jest.fn(),
     toTenantObjectId: jest.fn((x) => x),

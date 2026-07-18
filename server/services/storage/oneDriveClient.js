@@ -13,7 +13,7 @@
 // document ↔ propriétaire est portée par le storageKey (voir providers/onedrive.js).
 
 const axios = require('axios');
-const { getAccessTokenForUser } = require('../../utils/microsoftGraphMail');
+const microsoftGraphAuth = require('../../utils/microsoftGraphMail');
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
@@ -31,7 +31,11 @@ function notConnectedError(cause) {
 
 async function tokenFor(userId) {
   try {
-    return await getAccessTokenForUser(userId);
+    // Le helper dédié utilise microsoftOneDriveRefreshToken. Le repli garde les
+    // anciens tests et installations compatibles pendant la migration.
+    const resolver = microsoftGraphAuth.getAccessTokenForOneDriveUser
+      || microsoftGraphAuth.getAccessTokenForUser;
+    return await resolver(userId);
   } catch (err) {
     // getAccessTokenForUser lève 'AUTH_REQUIRED' (pas de refresh token) ou
     // 'AUTH_REFRESH_FAILED' (token révoqué/expiré). Dans les deux cas, l'action
@@ -66,9 +70,15 @@ async function uploadFile(userId, { path, buffer, mime }) {
     throw err;
   }
   const token = await tokenFor(userId);
+  // conflictBehavior=rename (et NON replace) : deux documents DISTINCTS de meme
+  // nom deposes dans le meme dossier produisent le meme chemin ; « replace »
+  // ecraserait silencieusement le premier (perte de donnees). « rename » fait
+  // ajouter un suffixe « (1) » par Graph et renvoie un itemId DISTINCT (capture
+  // dans le storageKey), donc rien n'est ecrase. Les vraies nouvelles versions
+  // d'un meme document ne collisionnent pas (suffixe « (vN) » deja applique).
   const url =
     `${GRAPH_BASE}/me/drive/root:/${encodePath(path)}:/content` +
-    '?%40microsoft.graph.conflictBehavior=replace';
+    '?%40microsoft.graph.conflictBehavior=rename';
   const resp = await axios.put(url, buffer, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -78,12 +88,64 @@ async function uploadFile(userId, { path, buffer, mime }) {
     maxBodyLength: Infinity,
     maxContentLength: Infinity,
   });
-  return {
+  const result = {
     itemId: resp.data.id,
     size: resp.data.size,
     webUrl: resp.data.webUrl,
     name: resp.data.name,
   };
+  if (resp.data.lastModifiedDateTime) result.modifiedTime = resp.data.lastModifiedDateTime;
+  if (resp.data.eTag) result.etag = resp.data.eTag;
+  return result;
+}
+
+/**
+ * Cree (ou retrouve) une HIERARCHIE de dossiers dans le OneDrive de l'utilisateur
+ * (ex. ['Kheops2','Dossiers','Durand c- Petit — 202601']) et renvoie l'item du
+ * dossier feuille. IDEMPOTENT : si un segment existe deja, il est reutilise.
+ * Sert a MATERIALISER un dossier (vide) des sa creation dans l'appli, pour qu'il
+ * soit visible dans OneDrive / l'explorateur Windows meme sans document.
+ * @returns {Promise<{itemId:string, webUrl:string}>}
+ */
+async function ensureFolderPath(userId, segments) {
+  const token = await tokenFor(userId);
+  const headers = { Authorization: `Bearer ${token}` };
+  let path = '';
+  let item = null;
+  for (const seg of segments) {
+    const next = path ? `${path}/${seg}` : String(seg);
+    // L'item existe-t-il deja a ce chemin ?
+    let resp = await axios.get(`${GRAPH_BASE}/me/drive/root:/${encodePath(next)}`, {
+      headers,
+      params: { $select: 'id,webUrl' },
+      timeout: 20000,
+      validateStatus: (s) => (s >= 200 && s < 300) || s === 404,
+    });
+    if (resp.status === 404) {
+      // Creation sous le parent. conflictBehavior=fail + relecture en cas de 409 :
+      // idempotent meme en concurrence (deux creations simultanees du meme dossier).
+      const parentUrl = path
+        ? `${GRAPH_BASE}/me/drive/root:/${encodePath(path)}:/children`
+        : `${GRAPH_BASE}/me/drive/root/children`;
+      const createResp = await axios.post(
+        parentUrl,
+        { name: String(seg), folder: {}, '@microsoft.graph.conflictBehavior': 'fail' },
+        { headers, timeout: 20000, validateStatus: (s) => (s >= 200 && s < 300) || s === 409 },
+      );
+      if (createResp.status === 409) {
+        resp = await axios.get(`${GRAPH_BASE}/me/drive/root:/${encodePath(next)}`, {
+          headers, params: { $select: 'id,webUrl' }, timeout: 20000,
+        });
+        item = resp.data;
+      } else {
+        item = createResp.data;
+      }
+    } else {
+      item = resp.data;
+    }
+    path = next;
+  }
+  return { itemId: item.id, webUrl: item.webUrl };
 }
 
 /** Télécharge le contenu d'un item → Buffer. */
@@ -124,6 +186,28 @@ async function getDownloadUrl(userId, itemId) {
     throw err;
   }
   return url;
+}
+
+/** Métadonnées utiles à une session Word pour le web (sans URL de téléchargement). */
+async function getItemMetadata(userId, itemId) {
+  const token = await tokenFor(userId);
+  const resp = await axios.get(
+    `${GRAPH_BASE}/me/drive/items/${encodeURIComponent(itemId)}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { $select: 'id,name,size,webUrl,lastModifiedDateTime,eTag,file' },
+      timeout: 30000,
+    },
+  );
+  return {
+    itemId: resp.data.id,
+    name: resp.data.name,
+    size: Number(resp.data.size) || 0,
+    webUrl: resp.data.webUrl,
+    modifiedTime: resp.data.lastModifiedDateTime || null,
+    etag: resp.data.eTag || null,
+    mime: resp.data.file?.mimeType || null,
+  };
 }
 
 /** Supprime définitivement un item (corbeille OneDrive de l'utilisateur). */
@@ -176,9 +260,11 @@ module.exports = {
   uploadFile,
   downloadFile,
   getDownloadUrl,
+  getItemMetadata,
   deleteItem,
   itemExists,
   isConnected,
+  ensureFolderPath,
   notConnectedError,
   _encodePath: encodePath,
 };

@@ -245,6 +245,151 @@
   font-size: 1.25em;
 }
 
+/* ── Historique des paiements intermédiaires (éditable) ─────────────────── */
+.payments-history {
+  margin-top: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.payments-history__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5ab5d6;
+  margin-bottom: 10px;
+}
+
+.payments-history__saving {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: #8fa6bb;
+}
+
+.payments-history__empty {
+  margin: 0;
+  color: #8fa6bb;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.payments-history__list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.payment-row {
+  display: grid;
+  grid-template-columns: 118px 130px 1fr 28px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.payment-row__note,
+.payment-add-row__note,
+.payment-add-row__date,
+.payment-add-row__amount {
+  font: inherit;
+  color: #eef3f8;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  padding: 5px 8px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.payment-row__note::placeholder,
+.payment-add-row__note::placeholder,
+.payment-add-row__amount::placeholder {
+  color: #6f8499;
+}
+
+.payment-add-row__date { color-scheme: dark; }
+
+.payment-row__delete {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #d47a7a;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.payment-row__delete:hover {
+  background: rgba(220, 90, 90, 0.18);
+  color: #ff9b9b;
+}
+
+.payment-add-row {
+  display: grid;
+  grid-template-columns: 128px 1fr 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.payment-add-row__btn {
+  border: 1px solid rgba(90, 181, 214, 0.6);
+  background: linear-gradient(135deg, #0977a5, #0a8abf);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: filter 120ms ease;
+}
+
+.payment-add-row__btn:hover:not(:disabled) { filter: brightness(1.1); }
+.payment-add-row__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+  .payment-row,
+  .payment-add-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .payment-row__note,
+  .payment-add-row__note { grid-column: 1 / -1; }
+}
+
+body.high-contrast-mode .payments-history {
+  border-color: yellow;
+  background: #000;
+}
+body.high-contrast-mode .payments-history__head { color: yellow; }
+body.high-contrast-mode .payment-row__note,
+body.high-contrast-mode .payment-add-row__note,
+body.high-contrast-mode .payment-add-row__date,
+body.high-contrast-mode .payment-add-row__amount {
+  background: #000;
+  color: yellow;
+  border-color: yellow;
+}
+body.high-contrast-mode .payment-add-row__btn {
+  background: #000;
+  color: yellow;
+  border: 2px solid yellow;
+}
+
 .payment-input-container {
   display: flex;
   gap: 12px;
@@ -613,3 +758,58 @@ body.high-contrast-mode .back-to-list-btn {
 }
 body.high-contrast-mode .back-to-list-btn:hover { background: yellow; }
 body.high-contrast-mode .back-to-list-btn:hover img { filter: none; }
+
+/* === RESPONSIVE MOBILE (2026-07-04) — additif, sous @media uniquement === */
+@media (max-width: 768px) {
+  /* Les deux volets (liste + détails) passent en colonne empilée. Le
+     wrapper cesse de masquer le débordement pour laisser la page défiler. */
+  .facture-content-wrapper {
+    flex-direction: column;
+    overflow: visible;
+    gap: 10px;
+    padding: 4px 2px;
+  }
+  .invoice-list-pane,
+  .invoice-detail-pane {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .invoice-detail-pane {
+    padding: 14px;
+  }
+  /* La liste garde une hauteur bornée pour rester scrollable sans manger
+     tout l'écran quand elle est empilée au-dessus du détail. */
+  .invoice-list {
+    max-height: 50vh;
+  }
+  /* Champ de saisie de paiement + bouton valider : empilés verticalement. */
+  .payment-input-container {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .payment-input,
+  .validate-payment-btn,
+  .payment-input-container > .hover-to-speak-container,
+  .payment-input-container > div {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  /* Modale d'archives bornée à la fenêtre. */
+  .archive-modal-content {
+    width: min(800px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .invoice-detail-content h3 { font-size: 1.05rem; }
+  .invoice-card-name { font-size: 0.95rem; }
+  /* En-tête de carte : le montant repasse sous le nom si trop serré. */
+  .invoice-card-header { flex-wrap: wrap; gap: 4px; }
+  .invoice-card-amount { margin-left: 0; }
+  .payment-summary { padding: 12px; }
+  .payments-history { padding: 12px; }
+}

@@ -15,7 +15,7 @@
 //   AUTH_TOKEN_VERIFY_OK    JWT vérifié avec succès dans le middleware
 //   AUTH_TOKEN_VERIFY_FAIL  JWT invalide / expiré / absent
 //   AUTH_BYPASS_USED        Mode dev : un user-de-bypass a été injecté
-//   AUTH_REFRESH_TOKEN_GET  Récupération d'un refresh_token Google/MS depuis MongoDB
+//   AUTH_REFRESH_TOKEN_GET  Vérification serveur de la présence d'une connexion OAuth
 //   ACCESS_DENIED           Refus d'accès à une ressource (dossier d'un autre user, etc.)
 //   ACCESS_GRANTED          (Optionnel) accès à une ressource sensible accordé
 //   PASSWORD_RESET_REQUEST  Demande de code de reset password
