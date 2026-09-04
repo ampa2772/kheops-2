@@ -314,6 +314,12 @@ const DossierSchema = mongoose.Schema({
   aideJuridictionnelle: AideJuridictionnelleSchema
 });
 
+// Index NON unique sur la référence : l'attribution d'une référence lit les
+// références de l'année (préfixe ancré) puis revérifie le candidat juste avant
+// l'enregistrement (utils/dossierReference). Aucune unicité imposée ici : des
+// doublons historiques peuvent exister, à vérifier avant tout index unique.
+DossierSchema.index({ reference: 1 });
+
 // ========================================================================
 // === SECTION INCHANGÉE : Middleware et Export ===========================
 // ========================================================================

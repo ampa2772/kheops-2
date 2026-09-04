@@ -198,7 +198,6 @@ const Dossier = () => {
     if (currentDossierFromStore?._id) {
       dispatch(fetchEventsForDossier(currentDossierFromStore._id));
       dispatch(fetchOperationsForDossier(currentDossierFromStore._id));
-      dispatch(fetchDivorceByDossier(currentDossierFromStore._id));
       // Synchro cloud (fire-and-forget, non bloquant) : recopie vers le cloud
       // personnel de l'utilisateur les documents de ce dossier restes sur le
       // stockage interne, afin qu'ils apparaissent dans OneDrive/SharePoint/Drive.
@@ -320,6 +319,17 @@ const Dossier = () => {
     currentDossierFromStore?.dossier?.dossier?.type_dossier === 'divorce_cm'
     || currentDossierFromStore?.dossier?.type_dossier === 'divorce_cm'
   );
+
+  // Fiche divorce : chargee uniquement pour les dossiers de ce type (meme
+  // discriminateur que l'onglet). Pour un dossier ordinaire le serveur repond
+  // 404 (aucune fiche) ; le thunk absorbe ce 404, mais le navigateur trace
+  // l'echec reseau dans sa console a chaque ouverture de dossier : on evite
+  // donc l'appel inutile plutot que d'en masquer le resultat.
+  useEffect(() => {
+    if (!isDivorceCM || !currentDossierFromStore?._id) return;
+    dispatch(fetchDivorceByDossier(currentDossierFromStore._id));
+  }, [dispatch, currentDossierFromStore?._id, isDivorceCM]);
+
   const divorceData = useSelector((state) => {
     const id = currentDossierFromStore?._id;
     if (!id) return null;

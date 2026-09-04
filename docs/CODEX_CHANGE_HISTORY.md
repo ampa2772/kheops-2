@@ -5360,3 +5360,271 @@ recette restent présents, isolés dans leurs propres cabinets. Ils sont
 identifiables au préfixe `ZZTEST` ; aucune suppression globale n'a été
 effectuée. Les dossiers peuvent être retirés un par un via
 `DELETE /api/folder/dossier/:id` avec le jeton du compte de test.
+
+---
+
+## CODEX-CHANGE-059 — Version 2.0.18-rc4 : refus CORS explicite, référence de dossier numérique, fiche divorce non sollicitée, nom de dossier conservé ; traçabilité Git de la 2.0.18-rc3
+
+**Date :** 2026-09-04  
+**Nature :** enregistrement Git de la livraison précédente, correction des quatre
+réserves laissées par `CODEX-CHANGE-058`, déploiement et recette de la version
+suivante.  
+**Statut :** déployé et promu à 100 % (`kheops-2-backend-00166-san`), recette
+en ligne effectuée, enregistré dans Git (tag `v2.0.18-rc4`).  
+**Version :** `2.0.18-rc4` (`package.json`, `client/src/buildInfo.js`).
+
+### Traçabilité de la 2.0.18-rc3
+
+- L'état exact du code construit (`BUILD-MTN6CZQA`, bundle
+  `main.4af6bbcb.js`) et servi par `kheops-2-backend-00163-sub` a été
+  enregistré tel quel : commit `3ef236f` « release: finaliser et tracer Kheops
+  2.0.18-rc3 » (28 fichiers, 2 133 insertions, 258 suppressions), tag annoté
+  `v2.0.18-rc3`, poussés sur `origin` (`master` : `5116041..3ef236f`).
+- Exclus volontairement du commit et laissés en place : les documents de
+  passation non suivis `PASSATION-2026-07-03.md`, `PASSATION-2026-07-04.md` et
+  `TEST-FONC-RAPPORT-2026-07-04.md` (rapports historiques de juillet 2026).
+- Contrôle préalable de la version en ligne (lecture seule) : révision
+  `kheops-2-backend-00163-sub` à 100 % du trafic, bundle `main.4af6bbcb.js`
+  de 3 609 044 octets, SHA-256
+  `9bbd98a55fc76737fa8522cd7b59570698043c828564234c2be8e70060b9c405`
+  identique au build local, marqueurs `2.0.18-rc3`, « Avocats »,
+  « Autres personnes liées », « Plaidant », « Postulant », « Sélectionnez au
+  moins un rôle », `SYNC_PARTIE_RELATIONS`, `SESSION_USER_CHANGED` et
+  `k-cdd-save-error` présents ; `KHEOPS_BYPASS_AUTH=false`,
+  `KHEOPS_HOSTED=true`, `NODE_ENV=production`, 52 variables dont 9 références
+  Secret Manager, `GOOGLE_CALLBACK_URL` et `MICROSOFT_CALLBACK_URL` inchangées ;
+  pré-vol CORS d'une origine inconnue → 500 (anomalie confirmée).
+
+### Anomalies corrigées
+
+1. **Refus CORS en 500.** Reproduit par test automatisé
+   (`server/__tests__/corsOriginRefusal.test.js`, HTTP natif contre
+   `app.listen(0)`) : `OPTIONS` et `GET` avec `Origin: https://evil.example.com`
+   → 500 `{"message":"Erreur interne du serveur"}` et journal
+   `console.error`. Cause : le rappel d'origine de `cors()` dans
+   `server/index.js` faisait `cb(new Error('CORS origin not allowed'))` sans
+   statut, et `cors` transmet cette erreur à `next(err)` ; le gestionnaire
+   global la traitait en 5xx. Correction : l'erreur de refus porte `status =
+   403` et `code = CORS_ORIGIN_FORBIDDEN`, et le gestionnaire global la
+   reconnaît avant tout `console.error` pour répondre `403 {"message":"Origine
+   non autorisee.","error":"CORS_ORIGIN_FORBIDDEN"}` (convention
+   `{ message, error }` du gestionnaire). Aucune modification de
+   `ALLOWED_ORIGINS` ni des trois branches d'acceptation (sans `Origin`, liste
+   autorisée, schémas Electron hors hébergement). Les parcours Google et
+   Microsoft ne sont pas concernés : les navigations vers
+   `/api/auth/google`, `/api/auth/microsoft` et leurs `callback` ne portent pas
+   d'en-tête `Origin` (acceptées comme avant), et les appels de la SPA viennent
+   d'une origine autorisée. Tests : 8 cas hors hébergement (403 sur `OPTIONS`
+   et `GET`, corps court, `console.warn` seul, 204 avec en-têtes pour une
+   origine autorisée, sans `Origin` accepté, schémas Electron en 204) et 3 cas
+   en mode hébergé (`server/__tests__/corsOriginRefusalHosted.test.js` :
+   schémas Electron et origine inconnue refusés en 403 sans `console.error`,
+   sans `Origin` accepté).
+2. **Référence de dossier.** Constats prouvés par tests
+   (`server/routes/__tests__/dossierReferenceGeneration.test.js`, faux modèle
+   évaluant filtre, tri binaire et limite comme MongoDB) : la séquence est
+   globale (aucun filtre `tenantId`, deux cabinets se suivent : 202644 pour le
+   cabinet A puis 202645 et 202646 pour le cabinet B en ligne) ; le tri était
+   lexicographique (`sort({ reference: -1 })` sur une chaîne : après « 202699 »
+   puis « 2026100 », l'ancien calcul repartait de 99 + 1 = 100 et attribuait
+   une référence déjà prise) ; aucune contrainte d'unicité n'existe (schéma
+   `reference: { type: String, required: true }`, aucun index) ; deux
+   créations simultanées pouvaient produire un doublon. Rien dans le code ne
+   repose sur l'unicité globale : stockage cloud par cabinet et par identifiant
+   (`matterFolderName.js` compose « <nom> — <référence> » dans l'espace du
+   cabinet), recherche cloisonnée, aucune résolution de dossier par référence.
+   Correction limitée et sûre : nouveau module `server/utils/dossierReference.js`
+   (rang maximal calculé numériquement sur toutes les références de l'année,
+   lues par lots de 500 paginés sur `_id` ; format inchangé « <année><rang> »
+   avec `padStart(2)` ; revérification du candidat par
+   `find({ reference }).limit(1)` juste avant l'attribution, trois tentatives,
+   puis erreur sans dossier écrit), utilisé par `POST /createDossier` ; index
+   **non unique** `{ reference: 1 }` déclaré sur le schéma. Le générateur des
+   divorces (`DCM-…`, espace distinct) est inchangé. Aucune migration, aucune
+   renumérotation. Tests : 9 cas de route (premier rang, 99 → 100, calcul
+   numérique après 2026100, rang maximal, autres années et espace `DCM-`
+   ignorés, revérification anti-doublon, séquence globale constatée, échec
+   après trois tentatives sans écriture, changement d'année) et 9 cas
+   unitaires (`server/utils/__tests__/dossierReference.test.js`).
+3. **Fiche divorce sollicitée pour tout dossier.** La page d'un dossier
+   (`client/src/components/dashboard/office/dossier/index.js`) dispatchait
+   `fetchDivorceByDossier` pour tout dossier ; le serveur répond 404 « Fiche
+   divorce introuvable » pour un dossier ordinaire (contrat attendu, conservé),
+   et le navigateur trace cet échec réseau à chaque ouverture. L'interface
+   connaît le type avant l'appel (`type_dossier === 'divorce_cm'`, même
+   discriminateur que l'onglet « Divorce CM ») : l'appel n'est plus émis que
+   pour un dossier divorce ; l'absorption du 404 par le thunk est conservée
+   en filet ; 401, 403, 5xx et erreurs réseau restent signalés comme avant.
+   Tests : service (`divorceCMService.test.js`), thunk
+   (`divorceCMSlice.fetchByDossier.test.js`) et composant
+   (`DossierDivorceFetch.test.js`, 8 cas : dossier ordinaire ou d'un autre type
+   → aucun appel, dossier divorce → un appel, passage ordinaire → divorce,
+   divorce A → divorce B, divorce → ordinaire, re-rendu sans nouvel appel).
+4. **Nom du dossier remplacé.** Le nom saisi à l'étape 1 était remplacé par
+   le nom construit depuis les parties dès qu'une partie était ajoutée : le
+   drapeau « nom saisi » était un état React local remis à `false` au montage
+   (`createDossier/index.js`), et le nom automatique était dispatché par la
+   même action que la saisie. Correction : indicateur `nomDossierPersonnalise`
+   dans le slice `dossierInfos` (persisté avec le brouillon), posé par la
+   saisie d'un nom non vide (`SET_NOM_DOSSIER`, `SET_NOM_DOSSIER_FOR_EDIT`) ;
+   nouvelle action `SET_NOM_DOSSIER_AUTO` réservée au nom généré, ignorée
+   lorsque l'indicateur est posé ; helpers partagés `buildNomDossierAuto`,
+   `buildNomDossierAutoFromParties`, `buildNomDossierEnTete` et
+   `estNomDossierAuto` (format historique inchangé) ; à l'ouverture en
+   modification (`INITIALIZE_DOSSIER_INFOS_FOR_EDIT`) un dossier existant, sans
+   indicateur en base, est réputé personnalisé si son nom diffère du nom que la
+   génération produirait (format du formulaire ou de l'en-tête), sinon
+   régénérable ; l'en-tête du dossier (`currentDossierSlice`,
+   `SET_SELECTED_ENTITY`) ne réécrit plus un nom personnalisé ; à
+   l'enregistrement, le nom saisi fait foi, un champ vidé reprend le nom
+   automatique. Règle appliquée en création comme en modification : un nom
+   explicitement saisi n'est jamais écrasé ; un nom vide ou encore égal au nom
+   généré suit les parties ; un champ vidé pendant la saisie reste vide
+   (aucun nom automatique ne s'insère sous la frappe). Tests :
+   `dossierInfoSlice.nomDossier.test.js` (26 cas),
+   `currentDossierSlice.nomDossier.test.js` (6 cas),
+   `CreateDossierNomDossier.test.js` (9 cas : montage, proposition sur champ
+   vide, soumission du nom saisi ou du nom automatique, champ vidé, dossier
+   personnalisé non renommé, dossier automatique renommé ou non selon les
+   parties), `CreateDossierScrollBehavior.test.js` adapté.
+
+### Fichiers applicatifs modifiés
+
+- Serveur : `server/index.js`, `server/utils/dossierReference.js` (nouveau),
+  `server/routes/folder/folderDossierCreation.js`, `server/models/Folder/Dossier.js`.
+- Client : `client/src/components/dashboard/office/dossier/index.js`,
+  `client/src/components/dashboard/office/createDossier/index.js`,
+  `client/src/components/dashboard/office/createDossier/createDossier/index.js`,
+  `client/src/redux/slices/dossierInfoSlice.js`,
+  `client/src/redux/slices/currentDossierSlice.js`, `client/src/buildInfo.js`.
+- Racine : `package.json` (version).
+
+### Tests et vérifications
+
+- Suite serveur complète (`jest --runInBand`) : **165 fichiers, 1 054 tests,
+  0 échec, 0 ignoré** (161 / 1 025 avant cette entrée). Suite client complète :
+  **162 fichiers, 1 884 tests, 0 échec, 0 ignoré** (156 / 1 824 avant).
+- Recette locale en mode strict (`KHEOPS_BYPASS_AUTH=false`,
+  `REACT_APP_KHEOPS_BYPASS_AUTH=false`, Chrome piloté par Playwright,
+  connexion par le formulaire réel) : contrat CORS (origine autorisée 204 avec
+  en-têtes, origine inconnue 403 sans message interne, sans `Origin` 200) ;
+  création d'un dossier avec quatre parties, avocat adverse, contacts multiples,
+  rôles, doublon empêché, avocat sans rôle refusé → 201 (référence 202647), et
+  **nom saisi « ZZTEST Dossier Recette mtnhfksj » conservé en base** ;
+  modification (rôles du responsable interne et d'un avocat externe, retraits,
+  ajout de contact, changement de camp au clavier, ajout et suppression de
+  parties, « Mettre à jour » → 200), rechargement complet et réouverture :
+  état identique, **nom personnalisé toujours conservé**, **aucun appel à
+  `/api/divorce-cm/by-dossier`** ; sécurité API 32/32 (compte B réutilisé) ;
+  cinq formats d'écran sans défaut ; en console, uniquement l'avertissement
+  React `defaultProps` préexistant.
+- Relecture adversariale de chaque diff par un second agent (points repris :
+  convention `{ message, error }` du corps 403, test en mode hébergé,
+  vérification d'existence de référence allégée, cas de route « trois
+  tentatives » et « changement d'année », règle du champ vidé, reconnaissance
+  du format d'en-tête, cas de test discriminants).
+
+### Déploiement
+
+Script officiel `powershell -File scripts/gcp/deploy.ps1` (→ `scripts/gcp/deploy.sh`),
+projet `kheops-2` sélectionné explicitement au préalable, cible verrouillée par le
+script (compte `adja060672@gmail.com`, projet `kheops-2` / `16107185088`, région
+`europe-west1`, service `kheops-2-backend`), aucun garde-fou contourné.
+
+1. Précontrôle des sources et des secrets (valeurs jamais affichées).
+2. Suite serveur complète : 165 fichiers, 1 054 tests, 0 échec, 0 ignoré.
+3. Suite frontend complète : 162 fichiers, 1 884 tests, 0 échec, 0 ignoré.
+4. Build CRA et manifeste : **`BUILD-MTNHTQ0G`**, empreinte des sources serveur
+   `c74457d7ce44ffdf` (278 fichiers), bundle `static/js/main.9c1b6f30.js`.
+5. Révision candidate **sans trafic** : `kheops-2-backend-00166-san`, jointe par
+   un tag temporaire ; smoke-tests sur la candidate isolée (santé API,
+   configuration frontend, page React et bundle, CORS pour les deux URL Cloud
+   Run).
+6. Promotion atomique à 100 %, vérification de production sur l'adresse
+   canonique et sur l'adresse historique, suppression du tag temporaire.
+
+Résultat : révision précédente `kheops-2-backend-00163-sub` (2026-09-04
+16:40 UTC) → nouvelle révision **`kheops-2-backend-00166-san`**
+(2026-09-04 22:00 UTC), 100 % du trafic, seule révision servante. La
+révision conserve 52 variables dont les 9 références Secret Manager,
+`NODE_ENV=production`, `KHEOPS_HOSTED=true`, `KHEOPS_BYPASS_AUTH=false`,
+`FRONTEND_URL`, `CORS_ORIGINS`, `GOOGLE_CALLBACK_URL` et
+`MICROSOFT_CALLBACK_URL` inchangés, compte de service
+`kheops-runtime@kheops-2.iam.gserviceaccount.com`. Limites rappelées par le
+script : rôle Editor historique du compte Compute par défaut non retiré,
+recette authentifiée GCS / OAuth / workers encore nécessaire,
+`AI_ALLOW_FALLBACK_PRICING=false`.
+
+Retour arrière :
+`gcloud run services update-traffic kheops-2-backend --project kheops-2 --region europe-west1 --to-revisions kheops-2-backend-00163-sub=100 --quiet`.
+
+### Recette sur le service en ligne
+
+Sur la révision servante `kheops-2-backend-00166-san`, depuis l'extérieur et
+avec le compte de test `zztest.recette.mtn6m7f1@example.com` (connexion par le
+formulaire réel, jeton de bypass rejeté) :
+
+- Santé `/api/health/ping` → 200 (build, startup, gcs, workers prêts) ;
+  `/config.js` → 200 ; page React → 200 ; `GET /api/auth/user` sans jeton →
+  401 ; jeton de développement → 401.
+- Bundle servi `static/js/main.9c1b6f30.js`, 3 609 054 octets, SHA-256
+  `e3d3109b6db913396dd3d6286771399104790625b06a630881094193c4c8ad64`,
+  **identique** au fichier du build local ; marqueurs `2.0.18-rc4`,
+  « Avocats », « Autres personnes liées », « Plaidant », « Postulant »,
+  « Sélectionnez au moins un rôle », `SYNC_PARTIE_RELATIONS`,
+  `SESSION_USER_CHANGED`, `k-cdd-save-error` présents.
+- Contrat CORS : origine autorisée → 204 avec `Access-Control-Allow-Origin`
+  reflétée et `credentials: true` ; origine inconnue → **403**
+  `{"message":"Origine non autorisee.","error":"CORS_ORIGIN_FORBIDDEN"}` sur
+  `OPTIONS` comme sur `GET`, sans message interne ; sans `Origin` → 200. Les
+  journaux Cloud Run montrent ces refus en sévérité WARNING avec un 403, et
+  **aucune entrée ERROR ni réponse 5xx** depuis le déploiement.
+- Création d'un dossier : 201, référence `202649`, quatre parties, avocat
+  adverse plaidant et postulant, contacts multiples, liaison groupée, doublon
+  empêché, nouvel avocat sans rôle refusé ; **nom saisi « ZZTEST Dossier
+  Recette mtni1jqc » conservé** ; aucune requête en échec (plus d'appel
+  `by-dossier`).
+- Modification : rôles du responsable interne et d'un avocat externe avec
+  message d'ajustement, retraits, ajout de contact, changement de camp au
+  clavier, ajout et suppression de parties, « Mettre à jour » → 200 ;
+  rechargement complet et réouverture : état identique, **nom personnalisé
+  conservé**, **zéro appel** à `/api/divorce-cm/by-dossier`.
+- Sécurité API : 32/32 contrôles (401 sans jeton, 403 inter-cabinets sur les
+  cinq routes, identifiants invalides, auto-liaison, règles de rôles, six
+  ajouts simultanés → une occurrence, deux avocats en parallèle sans perte).
+- Cinq formats d'écran sans défilement horizontal ni débordement.
+- Bruit console résiduel inchangé et attendu : CSP `upgrade-insecure-requests`
+  en report-only et appels bloqués vers le compagnon local `127.0.0.1:8080`.
+
+### Données de test (préfixe `ZZTEST`, aucune suppression effectuée)
+
+Inventaire en lecture seule après la recette. Chaque cabinet de test ne
+contient que des données au préfixe `ZZTEST`, aucune donnée hors préfixe.
+
+- En ligne, cabinet `zztest.recette.mtn6m7f1@example.com` : dossiers `202644`
+  (recette rc3) et `202649` (recette rc4), 38 fiches de contact ; cabinet
+  `zztest.cabinet.b.mtn6qupq@example.com` : dossiers `202645`, `202646` et
+  `202650` (contrôles inter-cabinets), aucune fiche.
+- Base de test locale, cabinet `verif.compte.local.20260904@example.com` :
+  5 dossiers (`202636` à `202647`) et 179 fiches ; cabinet
+  `zztest.cabinet.b.mtn4e1cd@example.com` : 4 dossiers.
+
+Décision : conservation. Les dossiers pourraient être retirés un à un par
+`DELETE /api/folder/dossier/:id`, mais aucune route ne supprime les fiches de
+contact et la suppression d'un dossier déclenche des traitements de stockage ;
+le nettoyage ne serait donc que partiel. Les données restent isolées dans
+leurs cabinets de test et identifiables au préfixe.
+
+### Décisions en attente (non prises ici)
+
+- **Isoler la séquence de référence par cabinet** : techniquement un filtre
+  `tenantId` dans la lecture des références ; prérequis, les dossiers
+  historiques dont `tenantId` est absent, l'affichage de références identiques
+  dans deux cabinets et la convention de nommage des dossiers cloud
+  « <nom> — <référence> » (unicité requise seulement au sein du cabinet).
+- **Index unique sur `reference`** : fermerait la fenêtre de course résiduelle
+  entre deux créations strictement simultanées ; exige au préalable un
+  inventaire des doublons existants en base (aucune migration automatique).
+- Identifiants en français des nouveaux helpers de nommage (`estNomDossierAuto`,
+  `buildNomDossierEnTete`) alors que les helpers voisins sont en anglais :
+  laissé tel quel, sans blocage.

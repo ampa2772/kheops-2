@@ -39,6 +39,7 @@ const {
 const { materializeMatterFolder } = require("../../services/storage/matterFolderMaterializer");
 const { resolveTenantId } = require("../../services/tenantService");
 const { normalizeDossierParties } = require("../../services/dossierPartyRelations");
+const { generateDossierReference } = require("../../utils/dossierReference");
 
 const isValidObjectId = (value) => Boolean(
   value && mongoose.Types.ObjectId.isValid(String(value)),
@@ -218,23 +219,9 @@ router.post(
 // Création d'un dossier avec une référence auto-incrémentée
 // ========================================================================
 
-// Fonction pour générer la référence d'un dossier
-const generateReference = async () => {
-  const currentYear = new Date().getFullYear();
-  const regex = new RegExp(`^${currentYear}`);
-
-  const lastDossier = await Dossier.find({ reference: regex })
-    .sort({ reference: -1 })
-    .limit(1);
-
-  let nextRank = 1;
-  if (lastDossier.length > 0) {
-    const lastReference = lastDossier[0].reference;
-    nextRank = parseInt(lastReference.slice(4)) + 1;
-  }
-
-  return `${currentYear}${String(nextRank).padStart(2, "0")}`;
-};
+// Référence « <année><rang> » : rang calculé numériquement sur les références
+// de l'année, puis revérifié juste avant l'attribution (utils/dossierReference).
+// La séquence reste globale et sans contrainte d'unicité (décision en attente).
 
 // ------------------------------------------------------------------------
 // POST /createDossier
@@ -254,7 +241,7 @@ router.post(
     console.log(`[createDossier] ▶ DEBUT | userId (req.user): ${userId}`);
     console.log(`[createDossier] dossierData.dossier?.nom: ${dossierData?.dossier?.nom}`);
     console.log(`[createDossier] Parties pour: ${dossierData?.parties?.pour?.length || 0} | contre: ${dossierData?.parties?.contre?.length || 0}`);
-    const reference = await generateReference();
+    const reference = await generateDossierReference();
 
     // Frontiere canonique : les avocats/contacts et leurs roles restent
     // embarques dans le snapshot, mais sans doublon ni classement ambigu.

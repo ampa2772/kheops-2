@@ -51,6 +51,8 @@ jest.mock('../../../../../redux/slices/dossierInfoSlice', () => ({
   initializeDossierInfosForEdit: (...payload) => ({ type: 'dossier/initializeEdit', payload }),
   setNomDossier: (...payload) => ({ type: 'dossier/setName', payload }),
   setNomDossierForEdit: (...payload) => ({ type: 'dossier/setEditName', payload }),
+  setNomDossierAuto: (...payload) => ({ type: 'dossier/setAutoName', payload }),
+  buildNomDossierAutoFromParties: () => '',
 }));
 
 jest.mock('../../../../../redux/slices/layoutSlice', () => ({

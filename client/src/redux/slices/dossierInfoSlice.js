@@ -32,6 +32,106 @@ const mergeMainUserProperties = (responsables, mainUser) => {
 };
 
 // ========================================================================
+// Nom automatique du dossier
+// ========================================================================
+
+// Retire la mention de naissance (« né », « née », « né(e) ») et ce qui la
+// suit : « Martin Jeanne née Dupont » → « Martin Jeanne ».
+const nettoyerNomPartie = (fullName) => {
+  if (!fullName) return '';
+  const regex = /\sné(\(e\))?/i;
+  const match = fullName.match(regex);
+  if (match && match.index !== undefined) {
+    return fullName.substring(0, match.index).trim();
+  }
+  return fullName.trim();
+};
+
+const normaliserNomDossier = (nom) =>
+  (typeof nom === 'string' ? nom.replace(/\s+/g, ' ').trim() : '');
+
+/**
+ * Nom automatique d'un dossier à partir de ses parties :
+ * « Premier POUR [et autres…] c/ Premier CONTRE [et autres…] ».
+ * Chaîne vide s'il manque un camp ou un nom. Format historique du formulaire
+ * de création, à ne pas modifier (les listes et la facturation le découpent).
+ */
+export const buildNomDossierAuto = (pourParties, contreParties) => {
+  const pour = Array.isArray(pourParties) ? pourParties : [];
+  const contre = Array.isArray(contreParties) ? contreParties : [];
+  if (pour.length === 0 || contre.length === 0) return '';
+  const firstPourName = nettoyerNomPartie(pour[0]?.nomPartie);
+  const firstContreName = nettoyerNomPartie(contre[0]?.nomPartie);
+  if (!firstPourName || !firstContreName) return '';
+
+  let pourSegment = firstPourName;
+  let contreSegment = firstContreName;
+
+  if (pour.length > 1) pourSegment += ' et autres…';
+  if (contre.length > 1) contreSegment += ' et autres…';
+
+  return `${pourSegment} c/ ${contreSegment}`;
+};
+
+// Variante pour la liste à plat des slices partieData / partieEditData
+// (chaque partie porte typePartie « Pour » ou « Contre »).
+export const buildNomDossierAutoFromParties = (parties) => {
+  if (!Array.isArray(parties)) return '';
+  return buildNomDossierAuto(
+    parties.filter((p) => p && p.typePartie === 'Pour'),
+    parties.filter((p) => p && p.typePartie === 'Contre'),
+  );
+};
+
+/**
+ * Nom automatique au format de l'en-tête du dossier (currentDossierSlice,
+ * SET_SELECTED_ENTITY) : tous les noms d'un camp joints par « et », mention
+ * « et autres… » et espace final historiques. Format inchangé, seulement
+ * partagé pour que la qualification ci-dessous le reconnaisse.
+ */
+export const buildNomDossierEnTete = (parties) => {
+  if (!parties || (!parties.pour && !parties.contre)) return 'Dossier sans nom';
+  const pourParties = Array.isArray(parties.pour) ? parties.pour : [];
+  const contreParties = Array.isArray(parties.contre) ? parties.contre : [];
+  const nomPartie = (p) => p.nomPartie || p.partieData?.nom || p.partieData?.raisonSociale || p.partieData?.denomination || '?';
+  const pourNames = pourParties.length > 0 ? pourParties.map(nomPartie).join(' et ') : '';
+  const contreNames = contreParties.length > 0 ? contreParties.map(nomPartie).join(' et ') : '';
+  if (pourNames && contreNames) {
+    return `${pourNames} ${pourParties.length > 1 ? 'et autres… ' : ''}c/ ${contreNames} ${contreParties.length > 1 ? 'et autres…' : ''}`;
+  }
+  if (pourNames) return `${pourNames} ${pourParties.length > 1 ? 'et autres… ' : ''}`;
+  if (contreNames) return `c/ ${contreNames} ${contreParties.length > 1 ? 'et autres…' : ''}`;
+  return 'Dossier sans parties';
+};
+
+/**
+ * Vrai si le nom peut être régénéré : vide, repli « Dossier sans nom » ou
+ * égal au nom automatique des parties fournies, au format du formulaire
+ * (« A c/ B ») comme au format de l'en-tête (« A et B et autres… c/ C »),
+ * les deux camps étant présents. Tout autre nom est considéré comme saisi
+ * par l'utilisateur. Sert à qualifier un dossier existant, qui ne porte aucun
+ * indicateur en base.
+ */
+export const estNomDossierAuto = (nom, pourParties, contreParties) => {
+  const nomNormalise = normaliserNomDossier(nom);
+  if (!nomNormalise || nomNormalise === 'Dossier sans nom') return true;
+  const nomAuto = normaliserNomDossier(buildNomDossierAuto(pourParties, contreParties));
+  if (!nomAuto) return false;
+  if (nomNormalise === nomAuto) return true;
+  return nomNormalise === normaliserNomDossier(buildNomDossierEnTete({ pour: pourParties, contre: contreParties }));
+};
+
+// Parties d'un dossier existant, quelle que soit la profondeur du preset
+// (même détection que l'hydratation des parties dans CreateDossier).
+const extrairePartiesPreset = (preset) => {
+  const candidats = [preset?.dossier?.parties, preset?.parties, preset];
+  const trouve = candidats.find(
+    (c) => c && (Array.isArray(c.pour) || Array.isArray(c.contre)),
+  );
+  return { pour: trouve?.pour || [], contre: trouve?.contre || [] };
+};
+
+// ========================================================================
 // Initial state (hydratation depuis localStorage)
 // ========================================================================
 
@@ -46,6 +146,9 @@ const initialDossierData = {
 
 const defaultInitialState = {
   dossierData: initialDossierData,
+  // Vrai dès que l'utilisateur a saisi un nom non vide : le nom automatique
+  // construit depuis les parties ne doit alors jamais l'écraser.
+  nomDossierPersonnalise: false,
   mainUser: null,
   errors: {},
   searchContactsDossier: {
@@ -73,6 +176,12 @@ const initialState = {
     ...defaultInitialState.dossierData,
     ...parsedState.dossierData,
   },
+  // Un brouillon au nom vide reprend la génération automatique ; un brouillon
+  // persisté avant l'introduction de l'indicateur est réputé saisi par
+  // l'utilisateur dès qu'un nom est présent.
+  nomDossierPersonnalise:
+    parsedState.nomDossierPersonnalise !== false
+    && !!normaliserNomDossier(parsedState.dossierData?.nom_dossier),
   mainUser: parsedState.mainUser || defaultInitialState.mainUser,
   errors: parsedState.errors || defaultInitialState.errors,
   searchContactsDossier:
@@ -100,8 +209,13 @@ const dossierInfoSlice = createSlice({
     });
 
     // === Champs dossierData simples ===
+    // Nom saisi par l'utilisateur (création ou modification) : personnalisé
+    // dès qu'un nom non vide a été tapé. Un champ vidé pendant la saisie
+    // reste vide (aucun nom automatique ne vient s'insérer sous la frappe) ;
+    // le repli sur le nom automatique se fait à l'enregistrement.
     builder.addCase('SET_NOM_DOSSIER', (state, action) => {
       state.dossierData.nom_dossier = action.payload;
+      if (normaliserNomDossier(action.payload)) state.nomDossierPersonnalise = true;
     });
 
     builder.addCase('SET_TYPE_DOSSIER', (state, action) => {
@@ -110,6 +224,13 @@ const dossierInfoSlice = createSlice({
 
     builder.addCase('SET_NOM_DOSSIER_FOR_EDIT', (state, action) => {
       state.dossierData.nom_dossier = action.payload;
+      if (normaliserNomDossier(action.payload)) state.nomDossierPersonnalise = true;
+    });
+
+    // Nom construit depuis les parties : n'écrase jamais un nom personnalisé.
+    builder.addCase('SET_NOM_DOSSIER_AUTO', (state, action) => {
+      if (state.nomDossierPersonnalise) return;
+      state.dossierData.nom_dossier = action.payload || '';
     });
 
     builder.addCase('SET_DESCRIPTION_DOSSIER', (state, action) => {
@@ -193,6 +314,15 @@ const dossierInfoSlice = createSlice({
         dossierNiveau1.contactsDuDossier ||
         preset.contactsDuDossier ||
         [];
+
+      // Aucun indicateur en base : le nom d'un dossier existant est réputé
+      // personnalisé s'il diffère de celui que la génération produirait.
+      const partiesPreset = extrairePartiesPreset(preset);
+      state.nomDossierPersonnalise = !estNomDossierAuto(
+        nomDossier,
+        partiesPreset.pour,
+        partiesPreset.contre,
+      );
 
       state.dossierData = {
         ...initialDossierData,
@@ -419,6 +549,7 @@ export const setDateCreationDossier = (date) => ({ type: 'SET_DATE_CREATION_DOSS
 export const setResponsables = (responsables) => ({ type: 'SET_RESPONSABLES', payload: responsables });
 export const setErrors = (errors) => ({ type: 'SET_ERRORS', payload: errors });
 export const setNomDossierForEdit = (nom) => ({ type: 'SET_NOM_DOSSIER_FOR_EDIT', payload: nom });
+export const setNomDossierAuto = (nom) => ({ type: 'SET_NOM_DOSSIER_AUTO', payload: nom });
 export const resetDossier = () => ({ type: 'RESET_DOSSIER' });
 export const addSelectedContact = (contact) => ({ type: 'ADD_SELECTED_CONTACT', payload: contact });
 export const initializeResponsablesForEdit = (responsables) => ({ type: 'INITIALIZE_RESPONSABLES_FOR_EDIT', payload: responsables });

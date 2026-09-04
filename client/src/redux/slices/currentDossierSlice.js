@@ -4,6 +4,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import apiClient from '../../services/apiClient';
 import { initSocket } from '../../services/socketService';
 import { showToast } from './notificationsSlice';
+import { estNomDossierAuto, buildNomDossierEnTete } from './dossierInfoSlice';
 // Compagnon Word (mode web) : génération serveur + ouverture dans Microsoft Word.
 
 // ========================================================================
@@ -41,27 +42,14 @@ export const DOC_GEN_UPDATE = 'DOC_GEN_UPDATE';
 export const DOC_GEN_END = 'DOC_GEN_END';
 
 // --- Fonction Utilitaire ---
-const updateDossierName = (parties) => {
-  if (!parties || (!parties.pour && !parties.contre)) return "Dossier sans nom";
-  const pourParties = Array.isArray(parties.pour) ? parties.pour : [];
-  const contreParties = Array.isArray(parties.contre) ? parties.contre : [];
-  const pourNames = pourParties.length > 0
-    ? pourParties.map(p => p.nomPartie || p.partieData?.nom || p.partieData?.raisonSociale || p.partieData?.denomination || '?').join(' et ')
-    : '';
-  const contreNames = contreParties.length > 0
-    ? contreParties.map(p => p.nomPartie || p.partieData?.nom || p.partieData?.raisonSociale || p.partieData?.denomination || '?').join(' et ')
-    : '';
-  let newName = '';
-  if (pourNames && contreNames) {
-    newName = `${pourNames} ${pourParties.length > 1 ? 'et autres… ' : ''}c/ ${contreNames} ${contreParties.length > 1 ? 'et autres…' : ''}`;
-  } else if (pourNames) {
-    newName = `${pourNames} ${pourParties.length > 1 ? 'et autres… ' : ''}`;
-  } else if (contreNames) {
-    newName = `c/ ${contreNames} ${contreParties.length > 1 ? 'et autres…' : ''}`;
-  } else {
-    newName = "Dossier sans parties";
-  }
-  return newName;
+// Nom de l'en-tête construit par le helper partagé du slice dossierInfos
+// (format inchangé). Un nom vide ou encore généré suit les parties ; un nom
+// personnalisé n'est jamais remplacé.
+const updateDossierName = buildNomDossierEnTete;
+const nomDossierRegenerable = (nom, parties) => {
+  const normaliser = (s) => (typeof s === 'string' ? s.replace(/\s+/g, ' ').trim() : '');
+  if (normaliser(nom) === normaliser(updateDossierName(parties))) return true;
+  return estNomDossierAuto(nom, parties?.pour, parties?.contre);
 };
 
 // --- État Initial ---
@@ -342,7 +330,11 @@ const currentDossierSlice = createSlice({
         };
 
         if (state.dossier?.dossier) {
-          state.dossier.dossier.nom = updateDossierName(updatedParties);
+          // Fix nom-dossier : le nom affiché dans l'en-tête ne suit les
+          // parties que s'il était vide ou généré ; un nom personnalisé reste.
+          if (nomDossierRegenerable(state.dossier.dossier.nom, safeParties)) {
+            state.dossier.dossier.nom = updateDossierName(updatedParties);
+          }
           state.dossier.dossier.parties = updatedParties;
         }
       })

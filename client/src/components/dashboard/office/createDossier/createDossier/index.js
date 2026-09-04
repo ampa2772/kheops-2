@@ -36,8 +36,6 @@ const CreateDossierform = ({
   mode = "create",
   presetDossier = null,
   onClose = () => { },
-  onNomDossierManuallyEdited, // Pour le mode "create"
-  onNomDossierManuallyEditedInEditMode, // NOUVELLE PROP pour le mode "edit"
   handleNav, // ACCEPTER LA NOUVELLE PROP
 }) => {
   // Nouveau code
@@ -147,9 +145,6 @@ const CreateDossierform = ({
   const officeUsers = useSelector((state) => state.officeUser.officeUsers);
 
   const isToggleSupprRespMode = useSelector((state) => state.layout.isToggleSupprRespMode);
-  const partiesPourCreate = useSelector((state) => state.partieData.parties);
-  const partiesPourEdit = useSelector((state) => state.partieEditData.parties);
-  const parties = mode === "edit" ? partiesPourEdit : partiesPourCreate;
 
   const [showDescriptionModal, setShowDescriptionModal] = useState(false);
   const [showTypeDossierModal, setShowTypeDossierModal] = useState(false);
@@ -272,38 +267,9 @@ const CreateDossierform = ({
     displayTypeDossierText = `${tribunalName} - ${finalAffaireDisplay}`;
   }
 
-  const pourParties = parties.filter((p) => p.typePartie === 'Pour');
-  const contreParties = parties.filter((p) => p.typePartie === 'Contre');
-
-  const cleanName = useCallback((fullName) => {
-    if (!fullName) return '';
-    const regex = /\sné(\(e\))?/i;
-    const match = fullName.match(regex);
-    if (match && match.index !== undefined) {
-      return fullName.substring(0, match.index).trim();
-    }
-    return fullName.trim();
-  }, []);
-
-  // Nouveau code
-  const buildNomDossier = useCallback(() => {
-    if (pourParties.length === 0 || contreParties.length === 0) return '';
-    const firstPourName = cleanName(pourParties[0]?.nomPartie);
-    const firstContreName = cleanName(contreParties[0]?.nomPartie);
-    if (!firstPourName || !firstContreName) return '';
-
-    let pourSegment = firstPourName;
-    let contreSegment = firstContreName;
-
-    if (pourParties.length > 1) pourSegment += ' et autres…';
-    if (contreParties.length > 1) contreSegment += ' et autres…';
-
-    return `${pourSegment} c/ ${contreSegment}`;
-  }, [pourParties, contreParties, cleanName]);
-
-  // Nouveau code
-  // Sélectionner nom_dossier directement depuis Redux pour la comparaison
-  const nomDossierFromRedux = useSelector((state) => state.dossierInfos.dossierData?.nom_dossier);
+  // Le nom automatique du dossier (« Pour c/ Contre ») est construit et
+  // appliqué par le parent (CreateDossier/index.js) via le helper partagé du
+  // slice dossierInfos ; ce formulaire ne fait que refléter et saisir le nom.
 
   // Aperçu texte brut de la description (le contenu est du HTML riche) :
   // sert au libellé du bouton "Description du dossier" quand une description existe.
@@ -328,16 +294,12 @@ const CreateDossierform = ({
           value={dossierDataForDisplay.nom_dossier} // Lecture depuis Redux via dossierDataForDisplay
           onChange={(e) => {
             const newValue = e.target.value;
+            // Le reducer marque le nom comme personnalisé (non vide) : le nom
+            // automatique ne l'écrasera plus ; un champ vidé le réactive.
             if (mode === "edit") {
               dispatch(setNomDossierForEdit(newValue));
-              if (onNomDossierManuallyEditedInEditMode) {
-                onNomDossierManuallyEditedInEditMode();
-              }
             } else { // mode === "create"
               dispatch(setNomDossier(newValue));
-              if (onNomDossierManuallyEdited) {
-                onNomDossierManuallyEdited();
-              }
             }
             // La mise à jour du formState local n'est plus critique si Redux est la source de vérité pour la soumission
           }}

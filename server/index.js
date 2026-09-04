@@ -184,6 +184,9 @@ const ALLOWED_ORIGINS = new Set([
 // explicitement whitelistees. Le bypass des schemes Electron (app://, kheops2://,
 // file://) ne s'applique qu'en local/Electron — inutile et trop large sur le web.
 const HOSTED = process.env.KHEOPS_HOSTED === 'true';
+// Code porte par l'erreur de refus CORS : le gestionnaire d'erreurs global le
+// reconnait pour repondre 403 (refus nominal) au lieu de la branche 5xx.
+const CORS_ORIGIN_FORBIDDEN = 'CORS_ORIGIN_FORBIDDEN';
 app.use(cors({
     origin: (origin, cb) => {
         if (!origin) return cb(null, true); // requete sans Origin (Electron file://, curl, S2S)
@@ -191,7 +194,13 @@ app.use(cors({
         // Schemes Electron : autorises UNIQUEMENT hors hebergement web.
         if (!HOSTED && /^(app|kheops2|file):\/\//.test(origin)) return cb(null, true);
         console.warn(`[CORS] Origin refusee : ${origin}`);
-        return cb(new Error('CORS origin not allowed'));
+        // Refus explicite : l'erreur porte un statut 403 et un code, sinon
+        // `cors` la transmet a next(err) sans statut et elle tombait dans la
+        // branche 5xx du gestionnaire global (500 + journal ERROR).
+        const refusal = new Error('Origine non autorisee.');
+        refusal.status = 403;
+        refusal.code = CORS_ORIGIN_FORBIDDEN;
+        return cb(refusal);
     },
     credentials: true,
 }));
@@ -401,6 +410,12 @@ window.__KHEOPS_CONFIG__ = Object.assign(window.__KHEOPS_CONFIG__ || {}, ${seria
 
 // Error handler global Express — capture les erreurs passées via next(err) ou asyncHandler
 app.use((err, req, res, next) => {
+  // Origine CORS refusee : cas nominal deja journalise en warn par le rappel
+  // d'origine. Reponse 403 courte (aucun en-tete CORS n'a ete pose), sans
+  // journal ERROR ni passage par la branche 5xx.
+  if (err && err.code === CORS_ORIGIN_FORBIDDEN) {
+    return res.status(403).json({ message: err.message, error: err.code });
+  }
   console.error(`[ERROR HANDLER] ${req.method} ${req.originalUrl} →`, err.message || err);
   if (err.name === 'ValidationError') {
     // Seuls les messages par champ sont renvoyes (pas les valeurs saisies ni

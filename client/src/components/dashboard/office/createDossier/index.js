@@ -1,6 +1,6 @@
 // client\src/components/dashboard/office/createDossier/index.js
 // PAS DE DOUBLE IMPORT DE REACT ICI
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'; // UN SEUL IMPORT DE REACT
+import React, { useEffect, useMemo, useRef, useState } from 'react'; // UN SEUL IMPORT DE REACT
 import { useSelector, useDispatch } from 'react-redux';
 import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import './styles.css';
@@ -16,7 +16,7 @@ import { updateLinkedAvocatsForPourParties as updateLinkedAvocatsForPourPartiesE
 
 // Nouveau code
 import { updateDossier } from '../../../../redux/slices/currentDossierSlice';
-import { setDateCreationDossier, createDossierServer, fetchLast25Dossiers, setSelectedContactsFromPreset, initializeDossierInfosForEdit, setNomDossier, setNomDossierForEdit } from '../../../../redux/slices/dossierInfoSlice';
+import { setDateCreationDossier, createDossierServer, fetchLast25Dossiers, setSelectedContactsFromPreset, initializeDossierInfosForEdit, setNomDossierAuto, buildNomDossierAutoFromParties } from '../../../../redux/slices/dossierInfoSlice';
 
 // Correction du chemin d'importation pour partieEditActions
 import { hydratePartiesFromDossier as hydrateEditPartiesFromDossier, resetParties as resetPartiesEdit } from '../../../../redux/slices/partieEditSlice';
@@ -96,11 +96,15 @@ const CreateDossier = React.forwardRef(({
   const isEditMode = mode === 'edit';
 
   const [localStep, setLocalStep] = useState('step1');
-  const [userHasManuallyEditedNomDossier, setUserHasManuallyEditedNomDossier] = useState(false); // Pour le mode create
-  const [userHasManuallyEditedNomInEditMode, setUserHasManuallyEditedNomInEditMode] = useState(false); // Pour le mode edit
 
   const token = useSelector(s => s.login.token);
   const dossierDataFromStore = useSelector(s => s.dossierInfos.dossierData);
+  // Fix nom-dossier : l'indicateur « nom saisi par l'utilisateur » vit dans
+  // le store (persisté avec le brouillon, posé par la saisie ou par
+  // INITIALIZE_DOSSIER_INFOS_FOR_EDIT). L'ancien drapeau local était perdu à
+  // chaque remontage (retour à l'accueil, rechargement), et le nom saisi
+  // était alors remplacé par le nom construit depuis les parties.
+  const nomDossierPersonnalise = useSelector(s => !!s.dossierInfos?.nomDossierPersonnalise);
   const mainUser = useSelector(s => s.dossierInfos.mainUser);
   const selectedContactsDossier = useSelector(s => s.dossierInfos.selectedContacts);
 
@@ -148,10 +152,8 @@ const CreateDossier = React.forwardRef(({
         dispatch(resetPartiesEdit()); // Nettoyer l'état précédent
         dispatch(hydrateEditPartiesFromDossier(partiesPourHydration.pour, partiesPourHydration.contre));
 
-        // 3. Mettre à jour la ref et réinitialiser les flags
+        // 3. Mettre à jour la ref
         hydratedEditDossierIdRef.current = presetDossier._id;
-        setUserHasManuallyEditedNomInEditMode(false); // Important pour la génération auto du nom
-        setUserHasManuallyEditedNomDossier(false); // Bien que pour le mode création, par cohérence
       }
     } else if (!isEditMode) {
       // Si on passe en mode création (ou si on quitte le mode édition sans nouveau preset)
@@ -160,60 +162,34 @@ const CreateDossier = React.forwardRef(({
         // (resetDossier, resetPartiesEdit) sont gérés par EditDossierModal.onClose
       }
       hydratedEditDossierIdRef.current = null;
-      setUserHasManuallyEditedNomDossier(false); // Pour le mode création
-      setUserHasManuallyEditedNomInEditMode(false); // Pour le mode édition
     }
     // Les dépendances : isEditMode et presetDossier (sa référence ou son ID)
   }, [isEditMode, presetDossier, dispatch]); // presetDossier entier pour réagir à un changement de dossier
 
   const currentUpdateLinkedAvocatsAction = isEditMode ? updateLinkedAvocatsForPourPartiesEdit : updateLinkedAvocatsForPourParties;
 
-  const cleanNameForDossierNom = useCallback((fullName) => {
-    if (!fullName) return '';
-    const regex = /\sné(\(e\))?/i;
-    const match = fullName.match(regex);
-    if (match && match.index !== undefined) {
-      return fullName.substring(0, match.index).trim();
-    }
-    return fullName.trim();
-  }, []);
-
-  const buildNomDossierFromParties = useCallback((currentParties) => {
-    if (!Array.isArray(currentParties)) return '';
-    const pour = currentParties.filter((p) => p.typePartie === 'Pour');
-    const contre = currentParties.filter((p) => p.typePartie === 'Contre');
-
-    if (pour.length === 0 || contre.length === 0) return '';
-    const firstPourName = cleanNameForDossierNom(pour[0]?.nomPartie);
-    const firstContreName = cleanNameForDossierNom(contre[0]?.nomPartie);
-    if (!firstPourName || !firstContreName) return '';
-
-    let pourSegment = firstPourName;
-    let contreSegment = firstContreName;
-
-    if (pour.length > 1) pourSegment += ' et autres…';
-    if (contre.length > 1) contreSegment += ' et autres…';
-
-    return `${pourSegment} c/ ${contreSegment}`;
-  }, [cleanNameForDossierNom]);
+  // Le nom automatique (« Pour c/ Contre ») est construit par le helper partagé
+  // du slice dossierInfos (buildNomDossierAutoFromParties), qui sert aussi à
+  // qualifier le nom d'un dossier existant.
 
   // Nouveau code
   useEffect(() => {
-    // Uniquement pour le mode création
-    if (mode === "create" && !userHasManuallyEditedNomDossier && partiesFromCreateMode.length > 0) {
-      const newNom = buildNomDossierFromParties(partiesFromCreateMode);
+    // Uniquement pour le mode création : le nom automatique n'est proposé que
+    // tant que l'utilisateur n'a pas saisi de nom (le reducer refuse de toute
+    // façon d'écraser un nom personnalisé).
+    if (mode === "create" && !nomDossierPersonnalise && partiesFromCreateMode.length > 0) {
+      const newNom = buildNomDossierAutoFromParties(partiesFromCreateMode);
       // On vérifie si le nom généré est différent de celui déjà dans le store pour éviter des dispatchs inutiles
       if (newNom && newNom !== dossierDataFromStore.nom_dossier) {
-        dispatch(setNomDossier(newNom));
+        dispatch(setNomDossierAuto(newNom));
       }
     }
   }, [ // Dépendances pour la génération en mode création
     partiesFromCreateMode,
-    userHasManuallyEditedNomDossier,
+    nomDossierPersonnalise,
     mode,
     dispatch,
-    dossierDataFromStore.nom_dossier,
-    buildNomDossierFromParties
+    dossierDataFromStore.nom_dossier
   ]);
 
   // Responsables du dossier : le store dossierInfos est hydraté au bon niveau
@@ -279,30 +255,30 @@ const CreateDossier = React.forwardRef(({
   // L'ancien `useEffect` qui populait `nom_dossier`, `description_dossier` etc. directement
   // depuis `presetDossier` à chaque changement de `presetDossier` est donc remplacé par
   // le `useEffect` avec `initializedPresetIdRef` qui ne le fait qu'une fois par ID de dossier.
-  // Et le `useEffect` pour `userHasManuallyEditedNomInEditMode` et `buildNomDossierFromParties`
-  // gère la mise à jour du nom en mode édition.
+  // Et le `useEffect` de génération automatique ci-dessous (indicateur
+  // `nomDossierPersonnalise`) gère la mise à jour du nom en mode édition.
   // L'ancien code ici est donc supprimé.
 
   // Nouveau code
   // useEffect pour la génération automatique du nom en mode ÉDITION
   useEffect(() => {
-    // Fix 2026-07-04 : en édition, ne JAMAIS écraser un nom déjà présent
-    // (le nom sauvegardé est hydraté par INITIALIZE_DOSSIER_INFOS_FOR_EDIT).
-    // L'auto-génération ne joue que si le champ nom est vide.
-    if (mode === "edit" && !userHasManuallyEditedNomInEditMode && !dossierDataFromStore.nom_dossier && partiesFromEditMode.length > 0) {
-      const newNom = buildNomDossierFromParties(partiesFromEditMode);
+    // Fix 2026-07-04 puis nom-dossier : en édition, un nom personnalisé
+    // (indicateur posé par INITIALIZE_DOSSIER_INFOS_FOR_EDIT — nom différent
+    // du nom généré — ou par la saisie) n'est JAMAIS renommé. Un nom vide ou
+    // encore égal au nom généré suit les modifications des parties.
+    if (mode === "edit" && !nomDossierPersonnalise && partiesFromEditMode.length > 0) {
+      const newNom = buildNomDossierAutoFromParties(partiesFromEditMode);
       // On compare avec le nom actuel dans dossierDataFromStore.nom_dossier (qui est alimenté par INITIALIZE_DOSSIER_INFOS_FOR_EDIT ou modifié par l'utilisateur)
       if (newNom && newNom !== dossierDataFromStore.nom_dossier) {
-        dispatch(setNomDossierForEdit(newNom)); // Cette action mettra à jour dossierInfos.dossierData.nom_dossier
+        dispatch(setNomDossierAuto(newNom)); // Cette action mettra à jour dossierInfos.dossierData.nom_dossier
       }
     }
   }, [ // Dépendances pour la génération en mode édition
     partiesFromEditMode,
-    userHasManuallyEditedNomInEditMode,
+    nomDossierPersonnalise,
     mode,
     dispatch,
-    dossierDataFromStore.nom_dossier,
-    buildNomDossierFromParties
+    dossierDataFromStore.nom_dossier
   ]);
 
   // Nouveau code
@@ -335,14 +311,18 @@ const CreateDossier = React.forwardRef(({
         }, initialAccumulator);
     }
     
-    // Fix 2026-07-04 : en édition, le store fait TOUJOURS foi (il est initialisé
-    // au nom sauvegardé et suit la saisie) — l'ancien recalcul systématique
-    // écrasait le nom manuel en base à chaque « Mettre à jour ».
-    const finalNomDossier = isEditMode
-      ? (dossierDataFromStore.nom_dossier || buildNomDossierFromParties(parties))
-      : (userHasManuallyEditedNomDossier
-        ? dossierDataFromStore.nom_dossier
-        : buildNomDossierFromParties(parties));
+    // Fix 2026-07-04 puis nom-dossier : le nom saisi par l'utilisateur
+    // (indicateur du store) fait TOUJOURS foi, en création comme en édition —
+    // l'ancien recalcul écrasait le nom manuel dès que le drapeau local était
+    // perdu. Sinon le nom est construit depuis les parties, avec en édition
+    // repli sur le nom déjà présent (ancien nom automatique, un seul camp).
+    // Un champ vidé par l'utilisateur (indicateur posé, nom vide) reprend le
+    // nom automatique à l'enregistrement.
+    const nomAuto = buildNomDossierAutoFromParties(parties);
+    const nomSaisi = (dossierDataFromStore.nom_dossier || '').trim();
+    const finalNomDossier = (nomDossierPersonnalise && nomSaisi)
+      ? dossierDataFromStore.nom_dossier
+      : (nomAuto || (isEditMode ? dossierDataFromStore.nom_dossier : ''));
 
     const dossierObj = {
       dossier: {
@@ -475,8 +455,6 @@ const CreateDossier = React.forwardRef(({
         <CreateDossierform
           mode={mode} // Passer le mode au formulaire de dossier
           presetDossier={presetDossier}
-          onNomDossierManuallyEdited={() => setUserHasManuallyEditedNomDossier(true)}
-          onNomDossierManuallyEditedInEditMode={() => setUserHasManuallyEditedNomInEditMode(true)}
           handleNav={handleNav}
         />
       );
@@ -506,8 +484,6 @@ const CreateDossier = React.forwardRef(({
       <CreateDossierform
         mode={mode} // Passer le mode
         presetDossier={presetDossier}
-        onNomDossierManuallyEdited={() => setUserHasManuallyEditedNomDossier(true)}
-        onNomDossierManuallyEditedInEditMode={() => setUserHasManuallyEditedNomInEditMode(true)}
         handleNav={handleNav}
       />
     );
