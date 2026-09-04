@@ -5380,6 +5380,10 @@ en ligne effectuée, enregistré dans Git (tag `v2.0.18-rc4`).
   enregistré tel quel : commit `3ef236f` « release: finaliser et tracer Kheops
   2.0.18-rc3 » (28 fichiers, 2 133 insertions, 258 suppressions), tag annoté
   `v2.0.18-rc3`, poussés sur `origin` (`master` : `5116041..3ef236f`).
+  L'empreinte des sources serveur recalculée sur ce commit
+  (`51959c186aaae1f9`, 277 fichiers) est celle journalisée par la révision
+  `00163-sub` à son démarrage ; les entrées `CODEX-CHANGE-057` et `058`
+  incluses dans le commit ont été rédigées après le build, sans effet sur lui.
 - Exclus volontairement du commit et laissés en place : les documents de
   passation non suivis `PASSATION-2026-07-03.md`, `PASSATION-2026-07-04.md` et
   `TEST-FONC-RAPPORT-2026-07-04.md` (rapports historiques de juillet 2026).
@@ -5505,19 +5509,28 @@ en ligne effectuée, enregistré dans Git (tag `v2.0.18-rc4`).
   0 échec, 0 ignoré** (161 / 1 025 avant cette entrée). Suite client complète :
   **162 fichiers, 1 884 tests, 0 échec, 0 ignoré** (156 / 1 824 avant).
 - Recette locale en mode strict (`KHEOPS_BYPASS_AUTH=false`,
-  `REACT_APP_KHEOPS_BYPASS_AUTH=false`, Chrome piloté par Playwright,
-  connexion par le formulaire réel) : contrat CORS (origine autorisée 204 avec
-  en-têtes, origine inconnue 403 sans message interne, sans `Origin` 200) ;
-  création d'un dossier avec quatre parties, avocat adverse, contacts multiples,
-  rôles, doublon empêché, avocat sans rôle refusé → 201 (référence 202647), et
-  **nom saisi « ZZTEST Dossier Recette mtnhfksj » conservé en base** ;
-  modification (rôles du responsable interne et d'un avocat externe, retraits,
-  ajout de contact, changement de camp au clavier, ajout et suppression de
-  parties, « Mettre à jour » → 200), rechargement complet et réouverture :
-  état identique, **nom personnalisé toujours conservé**, **aucun appel à
-  `/api/divorce-cm/by-dossier`** ; sécurité API 32/32 (compte B réutilisé) ;
-  cinq formats d'écran sans défaut ; en console, uniquement l'avertissement
-  React `defaultProps` préexistant.
+  `REACT_APP_KHEOPS_BYPASS_AUTH=false`, Chrome piloté par Playwright ;
+  connexion par le formulaire réel avec `POST /api/auth/login` → 200, et
+  refus 401 sans jeton sur les cinq routes, ce qui exclut tout bypass
+  serveur) : contrat CORS contre l'API locale (origine autorisée 204 avec
+  en-têtes, origine inconnue 403 sans message interne sur `OPTIONS` et
+  `GET`, sans `Origin` 200 ; résultat archivé) ; création d'un dossier avec
+  quatre parties, avocat adverse, contacts multiples, rôles, doublon empêché,
+  avocat sans rôle refusé → 201 (référence 202647), **nom saisi « ZZTEST
+  Dossier Recette mtnhfksj » retrouvé en base** ; modification (rôles du
+  responsable interne et d'un avocat externe, retraits, ajout de contact,
+  changement de camp au clavier, ajout et suppression de parties, « Mettre à
+  jour » → 200), rechargement complet et réouverture : plateau identique,
+  **dossier réouvert sous son nom personnalisé** (relecture API identique,
+  en-tête correspondant dans les cinq contextes du contrôle des formats),
+  **aucun appel à `/api/divorce-cm/by-dossier`** ; sécurité API 32/32
+  (compte B réutilisé) ; cinq formats d'écran sans débordement ni erreur de
+  page. Une première passe de l'édition et des formats a échoué sur un
+  sélecteur de scénario devenu obsolète (le dossier porte désormais le nom
+  saisi et non plus le nom des parties) ; les scénarios ont été adaptés puis
+  rejoués avec succès. En console : une seule erreur, l'avertissement React
+  `defaultProps` préexistant, plus les avertissements habituels en local
+  (WebSocket socket.io, sélecteurs reselect, DocumentsStockesDossier).
 - Relecture adversariale de chaque diff par un second agent (points repris :
   convention `{ message, error }` du corps 403, test en mode hébergé,
   vérification d'existence de référence allégée, cas de route « trois
@@ -5555,6 +5568,17 @@ script : rôle Editor historique du compte Compute par défaut non retiré,
 recette authentifiée GCS / OAuth / workers encore nécessaire,
 `AI_ALLOW_FALLBACK_PRICING=false`.
 
+Cohérence Git / build / Cloud Run : le commit `4030b8c` a été créé après le
+build (22:06 UTC contre 21:56 UTC) sans qu'aucune source n'ait changé entre
+les deux ; les 278 fichiers serveur du commit sont identiques, octet pour
+octet après normalisation des fins de ligne, aux sources envoyées à Cloud
+Build, et l'empreinte `c74457d7ce44ffdf` recalculée sur l'arbre de travail
+est celle du manifeste et du journal de démarrage de `00166-san`. Cette
+empreinte hache les octets bruts : elle dépend des fins de ligne de l'arbre
+de travail Windows et n'est pas reproductible telle quelle depuis un clone
+frais (`git archive` donne `fd67ebfea877df83`) ; c'est une limite de
+l'outil de manifeste, pas un écart de contenu.
+
 Retour arrière :
 `gcloud run services update-traffic kheops-2-backend --project kheops-2 --region europe-west1 --to-revisions kheops-2-backend-00163-sub=100 --quiet`.
 
@@ -5572,17 +5596,22 @@ formulaire réel, jeton de bypass rejeté) :
   **identique** au fichier du build local ; marqueurs `2.0.18-rc4`,
   « Avocats », « Autres personnes liées », « Plaidant », « Postulant »,
   « Sélectionnez au moins un rôle », `SYNC_PARTIE_RELATIONS`,
-  `SESSION_USER_CHANGED`, `k-cdd-save-error` présents.
+  `SESSION_USER_CHANGED`, `k-cdd-save-error` présents (les libellés
+  accentués sont recherchés par fragments sans accent, le bundle minifié
+  encodant les accents).
 - Contrat CORS : origine autorisée → 204 avec `Access-Control-Allow-Origin`
   reflétée et `credentials: true` ; origine inconnue → **403**
   `{"message":"Origine non autorisee.","error":"CORS_ORIGIN_FORBIDDEN"}` sur
-  `OPTIONS` comme sur `GET`, sans message interne ; sans `Origin` → 200. Les
-  journaux Cloud Run montrent ces refus en sévérité WARNING avec un 403, et
-  **aucune entrée ERROR ni réponse 5xx** depuis le déploiement.
+  `OPTIONS` comme sur `GET`, sans message interne ; sans `Origin` → 200. Dans
+  les journaux Cloud Run, les requêtes refusées apparaissent en sévérité
+  WARNING avec le statut 403 (la ligne `[CORS] Origin refusee` issue de
+  `console.warn` est en sévérité par défaut), et **aucune entrée ERROR ni
+  réponse 5xx** n'a été produite depuis le déploiement.
 - Création d'un dossier : 201, référence `202649`, quatre parties, avocat
   adverse plaidant et postulant, contacts multiples, liaison groupée, doublon
   empêché, nouvel avocat sans rôle refusé ; **nom saisi « ZZTEST Dossier
-  Recette mtni1jqc » conservé** ; aucune requête en échec (plus d'appel
+  Recette mtni1jqc » conservé** (retrouvé par relecture API du dossier et
+  dans l'en-tête à sa réouverture) ; aucune requête en échec (plus d'appel
   `by-dossier`).
 - Modification : rôles du responsable interne et d'un avocat externe avec
   message d'ajustement, retraits, ajout de contact, changement de camp au
@@ -5598,18 +5627,26 @@ formulaire réel, jeton de bypass rejeté) :
 
 ### Données de test (préfixe `ZZTEST`, aucune suppression effectuée)
 
-Inventaire en lecture seule après la recette. Chaque cabinet de test ne
-contient que des données au préfixe `ZZTEST`, aucune donnée hors préfixe.
+L'API locale et le service en ligne utilisent la **même base MongoDB** : le
+script de déploiement exige que les valeurs de secrets locales égalent les
+versions actives, et le compte de recette interrogé depuis l'API locale
+renvoie exactement les dossiers créés en ligne. Il n'y a donc qu'un seul
+inventaire (lecture seule, après la recette), sur quatre cabinets de test qui
+ne contiennent que des données au préfixe `ZZTEST` :
 
-- En ligne, cabinet `zztest.recette.mtn6m7f1@example.com` : dossiers `202644`
-  (recette rc3) et `202649` (recette rc4), 38 fiches de contact ; cabinet
-  `zztest.cabinet.b.mtn6qupq@example.com` : dossiers `202645`, `202646` et
-  `202650` (contrôles inter-cabinets), aucune fiche.
-- Base de test locale, cabinet `verif.compte.local.20260904@example.com` :
-  5 dossiers (`202636` à `202647`) et 179 fiches ; cabinet
-  `zztest.cabinet.b.mtn4e1cd@example.com` : 4 dossiers.
+- `zztest.recette.mtn6m7f1@example.com` : dossiers `202644` (recette rc3) et
+  `202649` (recette rc4), 38 fiches de contact ;
+- `zztest.cabinet.b.mtn6qupq@example.com` : dossiers `202645`, `202646` et
+  `202650` (contrôles inter-cabinets), aucune fiche ;
+- `verif.compte.local.20260904@example.com` : dossiers `202636`, `202638`,
+  `202641`, `202642` et `202647`, 179 fiches ;
+- `zztest.cabinet.b.mtn4e1cd@example.com` : dossiers `202639`, `202640`,
+  `202643` et `202648`, aucune fiche.
 
-Décision : conservation. Les dossiers pourraient être retirés un à un par
+Les références de dossier étant globales, celles de la recette locale et de
+la recette en ligne se suivent dans la même séquence. Décision :
+conservation, aucune suppression demandée ni effectuée (aucun scénario
+n'appelle de suppression). Les dossiers pourraient être retirés un à un par
 `DELETE /api/folder/dossier/:id`, mais aucune route ne supprime les fiches de
 contact et la suppression d'un dossier déclenche des traitements de stockage ;
 le nettoyage ne serait donc que partiel. Les données restent isolées dans
