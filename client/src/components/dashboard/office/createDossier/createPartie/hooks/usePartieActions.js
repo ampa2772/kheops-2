@@ -7,6 +7,8 @@ import {
   deletePartie as deletePartieCreate,
   setPartieLink as setPartieLinkCreate,
   deleteLinkedAvocat as deleteLinkedAvocatCreate,
+  deleteLinkedContact as deleteLinkedContactCreate,
+  syncPartieRelations as syncPartieRelationsCreate,
   deleteLinkedAvocatAllPour as deleteLinkedAvocatAllPourCreate,
   deleteLinkedContactAllPour as deleteLinkedContactAllPourCreate,
   setPartiesLinkAllPour as setPartiesLinkAllPourCreate,
@@ -22,6 +24,8 @@ import {
   deletePartie as deletePartieEdit,
   setPartieLink as setPartieLinkEdit,
   deleteLinkedAvocat as deleteLinkedAvocatEdit,
+  deleteLinkedContact as deleteLinkedContactEdit,
+  syncPartieRelations as syncPartieRelationsEdit,
   deleteLinkedAvocatAllPour as deleteLinkedAvocatAllPourEdit,
   deleteLinkedContactAllPour as deleteLinkedContactAllPourEdit,
   setPartiesLinkAllPour as setPartiesLinkAllPourEdit,
@@ -46,6 +50,11 @@ export const usePartieActions = (mode) => {
     deletePartie: isEdit ? deletePartieEdit : deletePartieCreate,
     setPartieLink: isEdit ? setPartieLinkEdit : setPartieLinkCreate,
     deleteLinkedAvocat: isEdit ? deleteLinkedAvocatEdit : deleteLinkedAvocatCreate,
+    // Retrait d'une personne liée générique en mode partie unique : l'action
+    // manquait, le retrait levait un TypeError et rien n'était retiré.
+    deleteLinkedContact: isEdit ? deleteLinkedContactEdit : deleteLinkedContactCreate,
+    // Resynchronisation depuis la réponse serveur après une autosauvegarde.
+    syncPartieRelations: isEdit ? syncPartieRelationsEdit : syncPartieRelationsCreate,
     deleteLinkedAvocatAllPour: isEdit ? deleteLinkedAvocatAllPourEdit : deleteLinkedAvocatAllPourCreate,
     deleteLinkedAvocatAllContre: isEdit ? deleteLinkedAvocatAllContreEdit : deleteLinkedAvocatAllContreCreate,
     deleteLinkedContactAllPour: isEdit ? deleteLinkedContactAllPourEdit : deleteLinkedContactAllPourCreate,

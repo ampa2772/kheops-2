@@ -81,7 +81,7 @@ import { usePartieModal } from './hooks/usePartieModal';
 import { usePartieSearch } from './hooks/usePartieSearch';
 import { usePartieActions } from './hooks/usePartieActions';
 import { useWindowDimensions, calculateDynamicBottom, useOutsideClick } from './fonctions';
-import { buildPartieMovePayload } from './utils/partiesHelpers';
+import { buildPartieMovePayload, extractPartyRelationsFromResponse } from './utils/partiesHelpers';
 import {
   getEntityId,
   isLawyerContact,
@@ -306,26 +306,37 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
 
   }, [dispatch, setIsAddingPartie, setFromCreatePartieProps, mode, presetDossier, isEdit]);
 
+  // Après chaque autosauvegarde (mode édition), Redux est réaligné sur les
+  // relations réellement persistées renvoyées par le serveur (déduplication,
+  // rôles réconciliés des responsables internes…).
+  const syncPartyFromServer = (partyId, responseData) => {
+    const relations = extractPartyRelationsFromResponse(responseData, partyId);
+    if (relations) dispatch(partieActions.syncPartieRelations(partyId, relations));
+  };
+
   const handleSupprAvocatLinked = async (avocatId) => {
     setLinkActionFeedback({ state: isEdit ? 'saving' : 'loading', message: isEdit ? 'Suppression et sauvegarde en cours…' : 'Suppression en cours…' });
     try {
       if (modalType === 'single' && modalData?.idPartie) {
         dispatch(partieActions.deleteLinkedAvocat(modalData.idPartie, avocatId));
         if (isEdit && presetDossier?._id) {
-          await dispatch(removeLinkedContactFromParty(presetDossier._id, modalData.idPartie, avocatId, true));
+          const data = await dispatch(removeLinkedContactFromParty(presetDossier._id, modalData.idPartie, avocatId, true));
+          syncPartyFromServer(modalData.idPartie, data);
         }
       } else if (modalType === 'allPour') {
         dispatch(partieActions.deleteLinkedAvocatAllPour(avocatId));
         if (isEdit && presetDossier?._id) {
           for (const partie of pourParties) {
-            await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, avocatId, true));
+            const data = await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, avocatId, true));
+            syncPartyFromServer(partie.idPartie, data);
           }
         }
       } else if (modalType === 'allContre') {
         dispatch(partieActions.deleteLinkedAvocatAllContre(avocatId));
         if (isEdit && presetDossier?._id) {
           for (const partie of contreParties) {
-            await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, avocatId, true));
+            const data = await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, avocatId, true));
+            syncPartyFromServer(partie.idPartie, data);
           }
         }
       }
@@ -345,20 +356,23 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
       if (modalType === 'single' && modalData?.idPartie) {
         dispatch(partieActions.deleteLinkedContact(modalData.idPartie, contactId));
         if (isEdit && presetDossier?._id) {
-          await dispatch(removeLinkedContactFromParty(presetDossier._id, modalData.idPartie, contactId, false));
+          const data = await dispatch(removeLinkedContactFromParty(presetDossier._id, modalData.idPartie, contactId, false));
+          syncPartyFromServer(modalData.idPartie, data);
         }
       } else if (modalType === 'allPour') {
         dispatch(partieActions.deleteLinkedContactAllPour(contactId));
         if (isEdit && presetDossier?._id) {
           for (const partie of pourParties) {
-            await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, contactId, false));
+            const data = await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, contactId, false));
+            syncPartyFromServer(partie.idPartie, data);
           }
         }
       } else if (modalType === 'allContre') {
         dispatch(partieActions.deleteLinkedContactAllContre(contactId));
         if (isEdit && presetDossier?._id) {
           for (const partie of contreParties) {
-            await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, contactId, false));
+            const data = await dispatch(removeLinkedContactFromParty(presetDossier._id, partie.idPartie, contactId, false));
+            syncPartyFromServer(partie.idPartie, data);
           }
         }
       }
@@ -407,22 +421,36 @@ const CreatePartie = ({ mode = 'create', presetDossier = null }) => {
         dispatch(partieActions.setPartieLink(modalData.idPartie, contact));
         // Auto-save en base en mode edit
         if (isEdit && presetDossier?._id && contactId) {
-          await dispatch(addLinkedContactToParty(presetDossier._id, modalData.idPartie, linkedContactData));
+          const data = await dispatch(addLinkedContactToParty(presetDossier._id, modalData.idPartie, linkedContactData));
+          syncPartyFromServer(modalData.idPartie, data);
         }
-      } else if (modalType === 'allPour') {
-        dispatch(partieActions.setPartiesLinkAllPour(contact));
-        // Auto-save en base pour chaque partie Pour
+      } else if (modalType === 'allPour' || modalType === 'allContre') {
+        const isPour = modalType === 'allPour';
+        dispatch(isPour ? partieActions.setPartiesLinkAllPour(contact) : partieActions.setPartiesLinkAllContre(contact));
+        // Auto-save en base pour chaque partie du camp. Un échec sur une
+        // partie ne doit ni interrompre les autres, ni laisser Redux afficher
+        // une liaison non persistée (sinon « déjà liée » empêchait de réessayer).
         if (isEdit && presetDossier?._id && contactId) {
-          for (const partie of pourParties) {
-            await dispatch(addLinkedContactToParty(presetDossier._id, partie.idPartie, linkedContactData));
+          const failures = [];
+          for (const partie of (isPour ? pourParties : contreParties)) {
+            try {
+              const data = await dispatch(addLinkedContactToParty(presetDossier._id, partie.idPartie, linkedContactData));
+              syncPartyFromServer(partie.idPartie, data);
+            } catch (error) {
+              failures.push({ partie, error });
+              dispatch(isLawyerContact(contact)
+                ? partieActions.deleteLinkedAvocat(partie.idPartie, contactId)
+                : partieActions.deleteLinkedContact(partie.idPartie, contactId));
+            }
           }
-        }
-      } else if (modalType === 'allContre') {
-        dispatch(partieActions.setPartiesLinkAllContre(contact));
-        // Auto-save en base pour chaque partie Contre
-        if (isEdit && presetDossier?._id && contactId) {
-          for (const partie of contreParties) {
-            await dispatch(addLinkedContactToParty(presetDossier._id, partie.idPartie, linkedContactData));
+          if (failures.length > 0) {
+            const names = failures.map(({ partie }) => partie.nomPartie || partie.idPartie).join(', ');
+            const detail = failures[0].error?.response?.data?.message;
+            setLinkActionFeedback({
+              state: 'error',
+              message: `La liaison a échoué pour : ${names}${detail ? ` (${detail})` : ''}. Les autres parties sont enregistrées ; réessayez pour celles-ci.`,
+            });
+            return false;
           }
         }
       }

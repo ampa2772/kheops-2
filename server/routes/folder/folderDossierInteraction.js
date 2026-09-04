@@ -42,6 +42,7 @@ const ContactContactDirect = require('../../models/Folder/modelsLiaisons/Contact
 
 
 const OfficeUser = require("../../models/App_Users/OfficeUser");
+const User = require("../../models/App_Users/User");
 const snapshotService = require("../../services/snapshotService");
 const propagateEntityToDossiers = require("../../services/propagateEntityToDossiers");
 const { getAccessibleUserIds } = require('../../services/cabinetAccess');
@@ -59,6 +60,161 @@ const embeddedEntityId = (entity) => {
     : entity;
   return value == null ? '' : String(value);
 };
+
+const isValidRelationId = (value) => Boolean(
+  value && mongoose.Types.ObjectId.isValid(String(value)),
+);
+
+const locateParty = (parties, partyId) => {
+  const matchesParty = (party) => String(
+    party?.idPartie || party?.partieData?._id || '',
+  ) === String(partyId);
+  for (const side of ['pour', 'contre']) {
+    const index = Array.isArray(parties?.[side]) ? parties[side].findIndex(matchesParty) : -1;
+    if (index !== -1) return { side, partyIndex: index };
+  }
+  return null;
+};
+
+/**
+ * Applique une mutation des parties sous verrou optimiste (__v). Deux
+ * autosauvegardes simultanees (deux onglets, deux utilisateurs du cabinet)
+ * pouvaient s'ecraser silencieusement : la seconde relisait un snapshot
+ * perime et perdait la relation ajoutee par la premiere (constate en recette).
+ * `mutate` recoit le document fraichement relu et renvoie soit
+ * { parties, payload }, soit { error: { status, body } }.
+ */
+async function updateDossierPartiesAtomically(dossierId, mutate, attempts = 5) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const dossier = await Dossier.findById(dossierId);
+    if (!dossier) return { notFound: true };
+    const outcome = await mutate(dossier);
+    if (!outcome || outcome.error) {
+      return outcome || { error: { status: 500, body: { message: 'Mutation invalide.' } } };
+    }
+    const version = dossier.__v;
+    const filter = typeof version === 'number'
+      ? { _id: dossierId, __v: version }
+      : { _id: dossierId, __v: { $exists: false } };
+    const updated = await Dossier.findOneAndUpdate(
+      filter,
+      { $set: { 'dossier.parties': outcome.parties, _lastUpdated: new Date() }, $inc: { __v: 1 } },
+      { new: true },
+    );
+    if (updated) return { dossier: updated, payload: outcome.payload };
+  }
+  return { conflict: true };
+}
+
+/**
+ * Relations d'une partie telles que le client doit les afficher apres une
+ * autosauvegarde : memes regles de filtrage que GET /dossier/:id (une relation
+ * hors cabinet presente dans un ancien snapshot n'est jamais renvoyee, sinon
+ * le client la reinjectait et la sauvegarde complete etait refusee).
+ */
+async function accessiblePartyRelations(userId, dossierDoc, partyId) {
+  const parties = dossierDoc?.dossier?.parties || {};
+  const located = locateParty(parties, partyId);
+  if (!located) return null;
+  const party = parties[located.side][located.partyIndex] || {};
+  const avocats = Array.isArray(party.avocats) ? party.avocats : [];
+  const contacts = Array.isArray(party.contacts) ? party.contacts : [];
+  const ids = [...avocats, ...contacts].map(embeddedEntityId).filter(Boolean);
+  const access = await getAccessibleRelationEntityIds(userId, ids);
+  const allowedContacts = new Set(access.contactIds.map(String));
+  const allowedLawyers = new Set([...access.contactIds, ...access.officeUserIds].map(String));
+  const plain = (entity) => (entity && typeof entity.toObject === 'function' ? entity.toObject() : entity);
+  return {
+    avocats: avocats.filter((a) => allowedLawyers.has(embeddedEntityId(a))).map(plain),
+    contacts: contacts.filter((c) => allowedContacts.has(embeddedEntityId(c))).map(plain),
+  };
+}
+
+/**
+ * Charge en trois requetes groupees les fiches fraiches de toutes les
+ * personnes liees accessibles du dossier (au lieu de trois findById par
+ * relation : ~4 s de lecture pour une partie de 40 contacts).
+ */
+async function loadFreshRelationDocs(parties, accessibleContactIds) {
+  const ids = new Set();
+  ['pour', 'contre'].forEach((side) => {
+    (Array.isArray(parties?.[side]) ? parties[side] : []).forEach((party) => {
+      [
+        ...(Array.isArray(party?.contacts) ? party.contacts : []),
+        ...(Array.isArray(party?.avocats) ? party.avocats : []),
+      ].forEach((entity) => {
+        const id = embeddedEntityId(entity);
+        if (id && accessibleContactIds.has(id)) ids.add(id);
+      });
+    });
+  });
+  const byId = new Map();
+  const list = Array.from(ids);
+  if (list.length === 0) return byId;
+  const [physical, privateEntities, publicEntities] = await Promise.all([
+    Contact.find({ _id: { $in: list } }).lean(),
+    ContactPM.find({ _id: { $in: list } }).lean(),
+    ContactPMPublique.find({ _id: { $in: list } }).lean(),
+  ]);
+  // Meme priorite que l'ancienne chaine findById : Contact, puis PM, puis PM publique.
+  [...physical, ...privateEntities, ...publicEntities].forEach((doc) => {
+    const id = String(doc._id);
+    if (!byId.has(id)) byId.set(id, doc);
+  });
+  return byId;
+}
+
+/**
+ * Source d'un avocat INTERNE (responsable du cabinet) a lier ou a re-roler :
+ *   1. la relation deja embarquee sur la partie (conserve nom, e-mail, etc.) ;
+ *   2. a defaut la fiche OfficeUser du cabinet ;
+ *   3. a defaut l'utilisateur lui-meme (responsable de repli cree par le client).
+ * Retourne null si aucune source n'existe.
+ */
+async function resolveInternalLawyerEntity(party, lawyerId) {
+  const embedded = [
+    ...(Array.isArray(party?.avocats) ? party.avocats : []),
+    ...(Array.isArray(party?.linkedAvocats) ? party.linkedAvocats : []),
+  ].find((lawyer) => embeddedEntityId(lawyer) === String(lawyerId));
+  if (embedded) {
+    const plain = typeof embedded.toObject === 'function' ? embedded.toObject() : { ...embedded };
+    return { ...plain, isAvocat: true };
+  }
+  const officeUser = await OfficeUser.findById(lawyerId).lean();
+  if (officeUser) {
+    // Seul un membre declare avocat peut devenir avocat responsable d'une partie.
+    if (officeUser.isAvocat !== true) return { notLawyer: true };
+    return {
+      _id: officeUser._id,
+      prenomOfficeUser: officeUser.prenomOfficeUser,
+      nomOfficeUser: officeUser.nomOfficeUser,
+      genre: officeUser.genre,
+      roleOfficeUser: officeUser.roleOfficeUser || 'Avocat',
+      isAvocat: true,
+      fromResponsable: true,
+    };
+  }
+  const user = await User.findById(lawyerId)
+    .select('firstName lastName genre email address city postalCode role')
+    .lean();
+  if (user) {
+    if (user.role === 'secretaire') return { notLawyer: true };
+    return {
+      _id: user._id,
+      prenomOfficeUser: user.firstName,
+      nomOfficeUser: user.lastName,
+      genre: user.genre,
+      roleOfficeUser: 'Avocat',
+      isAvocat: true,
+      fromResponsable: true,
+      email: user.email,
+      address: user.address,
+      city: user.city,
+      postalCode: user.postalCode,
+    };
+  }
+  return null;
+}
 
 const collectDossierRelationIds = (snapshot = {}) => {
   const contactOnlyIds = [];
@@ -654,81 +810,118 @@ router.post(
         });
     }
 
-    // Un identifiant de contact devine ne doit jamais permettre de rattacher au
-    // dossier une fiche appartenant a un autre cabinet.
-    if (!(await ensureContactOwnership(req, res, linkedContactData.existingContactId))) return;
+    // Identifiants malformes : reponse 400 propre plutot qu'un CastError 500.
+    const existingContactId = String(linkedContactData.existingContactId);
+    if (!isValidRelationId(partyId) || !isValidRelationId(existingContactId)) {
+      return res.status(400).json({
+        message: "Identifiant de partie ou de personne liee invalide.",
+        code: 'INVALID_RELATION_ID',
+      });
+    }
+    if (String(partyId) === existingContactId) {
+      return res.status(400).json({
+        message: "Une partie ne peut pas etre sa propre personne liee.",
+        code: 'SELF_LINK_FORBIDDEN',
+      });
+    }
 
-    // Essayer de trouver le contact dans toutes les collections possibles
-    let contactToLink = await Contact.findById(linkedContactData.existingContactId)
-      || await ContactPM.findById(linkedContactData.existingContactId)
-      || await ContactPMPublique.findById(linkedContactData.existingContactId);
-
-    if (!contactToLink) {
-      return res
-        .status(404)
-        .json({ message: "Le contact existant est introuvable." });
+    // Un identifiant devine ne doit jamais permettre de rattacher au dossier
+    // une fiche d'un autre cabinet. Une personne liee est soit une fiche du
+    // carnet (Contact / PM / PM publique), soit un avocat INTERNE du cabinet
+    // (OfficeUser ou utilisateur connecte, cas du responsable de repli) dont
+    // les roles sont modifies en edition.
+    const relationAccess = await getAccessibleRelationEntityIds(req.user, [existingContactId]);
+    const isCabinetContact = relationAccess.contactIds.map(String).includes(existingContactId);
+    const isInternalLawyer = !isCabinetContact
+      && relationAccess.officeUserIds.map(String).includes(existingContactId);
+    if (!isCabinetContact && !isInternalLawyer) {
+      secLog(EVT.ACCESS_DENIED, {
+        userId: String(req.user),
+        resourceType: 'contact',
+        resourceId: existingContactId,
+        reason: 'no-userContact-link',
+      }, req);
+      return res.status(403).json({ message: "Acces refuse : ce contact n'appartient pas a votre cabinet." });
     }
     // *** FIN MODIFICATION ***
 
 
-    const dossier = await Dossier.findById(dossierId);
-    if (!dossier) {
+    // Fiche du carnet : lue une seule fois, hors de la boucle de verrou.
+    let cabinetContact = null;
+    if (isCabinetContact) {
+      cabinetContact = await Contact.findById(existingContactId)
+        || await ContactPM.findById(existingContactId)
+        || await ContactPMPublique.findById(existingContactId);
+      if (!cabinetContact) {
+        return res
+          .status(404)
+          .json({ message: "Le contact existant est introuvable." });
+      }
+    }
+
+    const roleOptions = {
+      ...(Object.prototype.hasOwnProperty.call(linkedContactData, 'isPlaidant')
+        ? { isPlaidant: linkedContactData.isPlaidant }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(linkedContactData, 'isPostulant')
+        ? { isPostulant: linkedContactData.isPostulant }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(linkedContactData, 'forceRoleUpdate')
+        ? { forceRoleUpdate: linkedContactData.forceRoleUpdate }
+        : {}),
+    };
+
+    const result = await updateDossierPartiesAtomically(dossierId, async (dossier) => {
+      const parties = dossier.dossier?.parties || {};
+      const located = locateParty(parties, partyId);
+      if (!located) {
+        return { error: { status: 404, body: { message: "Partie non trouvée dans le dossier." } } };
+      }
+      const { side, partyIndex } = located;
+
+      // Pour un avocat interne, la relation deja embarquee (ou la fiche
+      // OfficeUser / utilisateur) sert de source.
+      let contactToLink = cabinetContact;
+      if (!contactToLink) {
+        const internal = await resolveInternalLawyerEntity(parties[side][partyIndex], existingContactId);
+        if (internal && internal.notLawyer) {
+          return { error: { status: 400, body: { message: "Ce membre du cabinet n'est pas un avocat.", code: 'INTERNAL_MEMBER_NOT_LAWYER' } } };
+        }
+        if (!internal) {
+          return { error: { status: 404, body: { message: "Le contact existant est introuvable." } } };
+        }
+        contactToLink = internal;
+      }
+
+      let relationResult;
+      try {
+        relationResult = upsertLinkedEntity(parties[side][partyIndex], contactToLink, roleOptions);
+      } catch (error) {
+        if (error instanceof PartyRelationError) {
+          return { error: { status: error.statusCode, body: { message: error.message, code: error.code } } };
+        }
+        throw error;
+      }
+
+      const nextParties = { ...parties, [side]: [...parties[side]] };
+      nextParties[side][partyIndex] = relationResult.party;
+      return { parties: normalizeDossierParties(nextParties), payload: relationResult };
+    });
+
+    if (result.notFound) {
       return res.status(404).json({ message: "Dossier non trouvé." });
     }
-
-    const parties = dossier.dossier?.parties || {};
-    const matchesParty = (party) => String(
-      party?.idPartie || party?.partieData?._id || '',
-    ) === String(partyId);
-    let side = 'pour';
-    let partyIndex = Array.isArray(parties.pour)
-      ? parties.pour.findIndex(matchesParty)
-      : -1;
-    if (partyIndex === -1) {
-      side = 'contre';
-      partyIndex = Array.isArray(parties.contre)
-        ? parties.contre.findIndex(matchesParty)
-        : -1;
+    if (result.error) {
+      return res.status(result.error.status).json(result.error.body);
     }
-    if (partyIndex === -1) {
-      return res
-        .status(404)
-        .json({ message: "Partie non trouvée dans le dossier." });
+    if (result.conflict) {
+      return res.status(409).json({
+        message: "Le dossier a été modifié simultanément. Réessayez.",
+        code: 'CONCURRENT_UPDATE',
+      });
     }
 
-    let relationResult;
-    try {
-      relationResult = upsertLinkedEntity(
-        parties[side][partyIndex],
-        contactToLink,
-        {
-          ...(Object.prototype.hasOwnProperty.call(linkedContactData, 'isPlaidant')
-            ? { isPlaidant: linkedContactData.isPlaidant }
-            : {}),
-          ...(Object.prototype.hasOwnProperty.call(linkedContactData, 'isPostulant')
-            ? { isPostulant: linkedContactData.isPostulant }
-            : {}),
-          ...(Object.prototype.hasOwnProperty.call(linkedContactData, 'forceRoleUpdate')
-            ? { forceRoleUpdate: linkedContactData.forceRoleUpdate }
-            : {}),
-        },
-      );
-    } catch (error) {
-      if (error instanceof PartyRelationError) {
-        return res.status(error.statusCode).json({
-          message: error.message,
-          code: error.code,
-        });
-      }
-      throw error;
-    }
-
-    parties[side][partyIndex] = relationResult.party;
-    dossier.dossier.parties = normalizeDossierParties(parties);
-
-    dossier.markModified("dossier");
-    await dossier.save();
-
+    const relationResult = result.payload;
     res.json({
       message: relationResult.created
         ? "Contact lié ajouté avec succès à la partie."
@@ -736,7 +929,8 @@ router.post(
       contactLier: relationResult.linkedEntity,
       relationType: relationResult.relationType,
       rolesUpdated: relationResult.rolesUpdated,
-      dossier,
+      partyRelations: await accessiblePartyRelations(req.user, result.dossier, partyId),
+      dossier: result.dossier,
     });
   })
 );
@@ -754,57 +948,55 @@ router.post(
         .status(400)
         .json({ message: "dossierId, partyId et contactId sont requis." });
     }
+    if (!isValidRelationId(partyId) || !isValidRelationId(contactId)) {
+      return res.status(400).json({
+        message: "Identifiant de partie ou de personne liee invalide.",
+        code: 'INVALID_RELATION_ID',
+      });
+    }
 
     // SECURITE rc37 : check UserDossier
     if (!(await ensureDossierOwnership(req, res, dossierId))) return;
-
-    const dossier = await Dossier.findById(dossierId);
-    if (!dossier) {
-      return res.status(404).json({ message: "Dossier non trouvé." });
-    }
-
-    const parties = dossier.dossier?.parties || {};
-    const matchesParty = (party) => String(
-      party?.idPartie || party?.partieData?._id || '',
-    ) === String(partyId);
-    let side = 'pour';
-    let partyIndex = Array.isArray(parties.pour)
-      ? parties.pour.findIndex(matchesParty)
-      : -1;
-    if (partyIndex === -1) {
-      side = 'contre';
-      partyIndex = Array.isArray(parties.contre)
-        ? parties.contre.findIndex(matchesParty)
-        : -1;
-    }
-    if (partyIndex === -1) {
-      return res
-        .status(404)
-        .json({ message: "Partie non trouvée dans le dossier." });
-    }
 
     // Le type envoye par les anciens clients reste accepte, mais la frontiere
     // serveur supprime l'identite des deux collections afin de corriger aussi
     // les snapshots historiques mal classes ou dedupliques.
     void isAvocat;
-    const removal = removeLinkedEntity(parties[side][partyIndex], contactId);
-    if (!removal.removed) {
-      return res.status(404).json({
-        message: "Cette personne n'est pas liee a la partie.",
-        code: 'LINKED_ENTITY_NOT_FOUND',
+    const result = await updateDossierPartiesAtomically(dossierId, async (dossier) => {
+      const parties = dossier.dossier?.parties || {};
+      const located = locateParty(parties, partyId);
+      if (!located) {
+        return { error: { status: 404, body: { message: "Partie non trouvée dans le dossier." } } };
+      }
+      const { side, partyIndex } = located;
+      const removal = removeLinkedEntity(parties[side][partyIndex], contactId);
+      if (!removal.removed) {
+        return { error: { status: 404, body: { message: "Cette personne n'est pas liee a la partie.", code: 'LINKED_ENTITY_NOT_FOUND' } } };
+      }
+      const nextParties = { ...parties, [side]: [...parties[side]] };
+      nextParties[side][partyIndex] = removal.party;
+      return { parties: normalizeDossierParties(nextParties), payload: removal };
+    });
+
+    if (result.notFound) {
+      return res.status(404).json({ message: "Dossier non trouvé." });
+    }
+    if (result.error) {
+      return res.status(result.error.status).json(result.error.body);
+    }
+    if (result.conflict) {
+      return res.status(409).json({
+        message: "Le dossier a été modifié simultanément. Réessayez.",
+        code: 'CONCURRENT_UPDATE',
       });
     }
-    parties[side][partyIndex] = removal.party;
-    dossier.dossier.parties = normalizeDossierParties(parties);
-
-    dossier.markModified("dossier");
-    await dossier.save();
 
     res.json({
       message: "Contact lié supprimé avec succès de la partie.",
-      removed: removal.removed,
-      relationType: removal.relationType,
-      dossier,
+      removed: result.payload.removed,
+      relationType: result.payload.relationType,
+      partyRelations: await accessiblePartyRelations(req.user, result.dossier, partyId),
+      dossier: result.dossier,
     });
   })
 );
@@ -840,6 +1032,10 @@ router.get(
     // cabinet. La resolution est faite en lot avant le premier findById.
     dossierDoc.dossier.parties = normalizeDossierParties(dossierDoc.dossier.parties);
     const relationAccess = await getDossierRelationAccess(req.user, dossierDoc.dossier);
+    const freshRelationDocs = await loadFreshRelationDocs(
+      dossierDoc.dossier.parties,
+      relationAccess.accessibleContactIds,
+    );
 
     // === GARANTIE CRUCIALE : Initialisation du tableau documents ===
     if (!dossierDoc.dossier.documents) {
@@ -909,9 +1105,7 @@ router.get(
           const contactId = embeddedEntityId(c);
           if (!contactId) return c;
           if (!relationAccess.accessibleContactIds.has(contactId)) return null;
-          const fresh = await Contact.findById(contactId).lean()
-            || await ContactPM.findById(contactId).lean()
-            || await ContactPMPublique.findById(contactId).lean();
+          const fresh = freshRelationDocs.get(contactId);
           return fresh || c; // fallback sur la copie embarquée si introuvable
         }));
         partie.contacts = refreshedContacts.filter(Boolean);
@@ -928,9 +1122,7 @@ router.get(
           // Les responsables OfficeUser restent leur copie relationnelle. Les
           // avocats issus du carnet sont seuls rafraichis dans Contact/PM/Pub.
           if (!isContact) return a;
-          const fresh = await Contact.findById(lawyerId).lean()
-            || await ContactPM.findById(lawyerId).lean()
-            || await ContactPMPublique.findById(lawyerId).lean();
+          const fresh = freshRelationDocs.get(lawyerId);
           if (fresh) {
             const mapped = {
               ...a,

@@ -235,6 +235,7 @@ const ContactTypeSwitch = ({ submitAttempted, linkedPersonContext = false }) => 
         <div className="cts-pro-details">
           <select
             className="cts-pro-select"
+            aria-label="Type de professionnel"
             value={selected}
             onChange={handleProTypeChange}
           >

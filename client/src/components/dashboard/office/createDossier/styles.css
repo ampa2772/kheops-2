@@ -328,6 +328,24 @@
   animation: none;
 }
 
+/* Erreur de mise à jour refusée par le serveur : visible juste au-dessus du
+   bouton, lisible en contraste renforcé (rôle alert pour les lecteurs d'écran). */
+.create_DossierMainForm .k-cdd-save-error {
+  width: 65%;
+  margin: 0 auto 12px;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  border-radius: var(--k-form-radius-cta, 12px);
+  border: 1px solid rgba(220, 38, 38, 0.55);
+  background: rgba(220, 38, 38, 0.12);
+  color: #fecaca;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+  flex-shrink: 0;
+}
+
 /* -------------------------------------------------------
    5. MODALES (overlay contact)
    ------------------------------------------------------- */

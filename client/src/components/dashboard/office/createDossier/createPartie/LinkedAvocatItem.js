@@ -6,12 +6,15 @@ import { useDispatch } from 'react-redux';
 /* ---------- actions "CREATE" (workflow création) ---------- */
 import {
   toggleAvocatProperty as toggleAvocatPropertyCreate,
+  syncPartieRelations as syncPartieRelationsCreate,
 } from '../../../../../redux/slices/partieSlice';
 
 /* ---------- actions "EDIT" (workflow modification) --------- */
 import {
   toggleAvocatProperty as toggleAvocatPropertyEdit,
+  syncPartieRelations as syncPartieRelationsEdit,
 } from '../../../../../redux/slices/partieEditSlice';
+import { extractPartyRelationsFromResponse } from './utils/partiesHelpers';
 
 import supprimerLogoPath       from '../../../../../assets/supprimer_responsable.svg';
 import supprimerLogoPathNavy   from '../../../../../assets/supprimer_responsable_navy.svg';
@@ -43,6 +46,9 @@ const LinkedAvocatItem = ({ avocat, modalData, handleSupprAvocatLinked, mode = '
   const toggleAvocatProperty = mode === 'edit'
     ? toggleAvocatPropertyEdit
     : toggleAvocatPropertyCreate;
+  const syncPartieRelations = mode === 'edit'
+    ? syncPartieRelationsEdit
+    : syncPartieRelationsCreate;
 
   /* Hook partagé pour le toggle initiales / options + modal modif */
   const {
@@ -74,20 +80,38 @@ const LinkedAvocatItem = ({ avocat, modalData, handleSupprAvocatLinked, mode = '
     }
     setRoleError('');
     setRoleStatus(mode === 'edit' ? 'Enregistrement du rôle en cours…' : 'Mise à jour du rôle…');
+    // Instantané des rôles AVANT la bascule optimiste : en cas de refus
+    // serveur, on restaure exactement cet état (un second toggle ne serait
+    // pas l'inverse une fois la réconciliation des responsables appliquée).
+    const previousAvocats = Array.isArray(modalData?.linkedAvocats)
+      ? modalData.linkedAvocats.map((item) => ({ ...item }))
+      : null;
     dispatch(toggleAvocatProperty(modalData.idPartie, avocat._id, property));
     if (mode === 'edit' && dossierIdFromStore) {
       setIsSavingRole(true);
       try {
-        await dispatch(addLinkedContactToParty(dossierIdFromStore, modalData.idPartie, {
+        const data = await dispatch(addLinkedContactToParty(dossierIdFromStore, modalData.idPartie, {
           existingContactId: avocat._id,
           ...next,
           forceRoleUpdate: true,
         }));
-        setRoleStatus('Rôle enregistré.');
+        // Le serveur réconcilie les rôles (un seul responsable interne
+        // postulant, retrait du postulant interne si un externe l'est…) :
+        // l'affichage repart de ce qui est réellement persisté.
+        const relations = extractPartyRelationsFromResponse(data, modalData.idPartie);
+        if (relations) dispatch(syncPartieRelations(modalData.idPartie, relations));
+        const saved = relations?.avocats.find((item) => String(item?._id) === String(avocat._id));
+        const savedRoles = saved ? normalizeLawyerRoles(saved) : null;
+        const adjusted = savedRoles
+          && (savedRoles.isPlaidant !== next.isPlaidant || savedRoles.isPostulant !== next.isPostulant);
+        setRoleStatus(adjusted
+          ? 'Rôle enregistré puis ajusté : les responsables du cabinet restent plaidants et un seul est postulant (sauf postulant externe).'
+          : 'Rôle enregistré.');
       } catch (error) {
         // Le reducer est optimiste : remettre l'état précédent si la sauvegarde
         // serveur échoue afin de ne jamais afficher un rôle non persisté.
-        dispatch(toggleAvocatProperty(modalData.idPartie, avocat._id, property));
+        if (previousAvocats) dispatch(syncPartieRelations(modalData.idPartie, { avocats: previousAvocats }));
+        else dispatch(toggleAvocatProperty(modalData.idPartie, avocat._id, property));
         setRoleStatus('');
         setRoleError(error?.response?.data?.message || 'Le rôle n’a pas pu être enregistré. Réessayez.');
       } finally {

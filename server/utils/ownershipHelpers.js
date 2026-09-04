@@ -68,15 +68,24 @@ async function getAccessibleRelationEntityIds(userId, entityIds = []) {
       .lean(),
   ]);
 
+  // Un avocat responsable "de repli" est embarque par le client avec l'_id du
+  // User connecte (aucun OfficeUser selectionne). Ce User fait partie du
+  // cabinet : sa relation est legitime et doit etre acceptee comme celle d'un
+  // OfficeUser, sinon le dossier devient impossible a sauvegarder (PUT 403) et
+  // le responsable disparait de la lecture.
+  const cabinetUserIds = new Set(accessibleIds.map(String));
+  const internalUserIds = ids.filter((id) => cabinetUserIds.has(id));
+
   return {
     contactIds: Array.from(new Set([
       ...physicalLinks.map((link) => relationId(link.contact)),
       ...privateLinks.map((link) => relationId(link.contactPM)),
       ...publicLinks.map((link) => relationId(link.contactPMPublique)),
     ].filter(Boolean))),
-    officeUserIds: Array.from(new Set(
-      officeLinks.map((link) => relationId(link.officeUser)).filter(Boolean),
-    )),
+    officeUserIds: Array.from(new Set([
+      ...officeLinks.map((link) => relationId(link.officeUser)).filter(Boolean),
+      ...internalUserIds,
+    ])),
   };
 }
 

@@ -367,10 +367,15 @@ export const loadUser = ({ token: newToken, rememberMe, navigate }) => async (di
         if (oldUser && oldUser._id !== userData._id) {
           localStorage.clear();
           localStorage.setItem('token', token);
+          // Les slices qui persistent un brouillon (parties d'un dossier) le
+          // purgent aussi en mémoire : sans cette action, ils le ré-écrivaient
+          // dans le localStorage du nouveau compte à la première action.
+          dispatch({ type: 'SESSION_USER_CHANGED', payload: { previousUserId: oldUser._id, userId: userData._id } });
         }
       } catch (e) {
         localStorage.clear();
         localStorage.setItem('token', token);
+        dispatch({ type: 'SESSION_USER_CHANGED', payload: { previousUserId: null, userId: userData._id } });
       }
     }
 

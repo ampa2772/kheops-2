@@ -5009,3 +5009,354 @@ gcloud run services update-traffic kheops-2-backend --project kheops-2 --region 
   exactement sur le commit applicatif ci-dessus après le premier envoi.
 - Aucun test applicatif n’a été relancé, puisqu’aucun code fonctionnel n’a été
   modifié dans cette opération de sauvegarde Git.
+
+---
+
+## CODEX-CHANGE-057 — Fiabilisation des parties, personnes liées et avocats (édition, sécurité, concurrence)
+
+**Date :** 2026-09-04  
+**Nature :** corrections fonctionnelles, sécurité, robustesse et accessibilité
+du parcours « parties / contacts liés / avocats liés » (création et modification
+de dossier).  
+**Statut :** implémenté, vérifié localement (tests + recette navigateur réelle
+en mode strict), publié dans l'entrée suivante.  
+**Version visible :** `2.0.18-rc3` (`client/src/buildInfo.js`, `package.json`).
+
+### Entrées d'historique relues avant intervention
+
+`CODEX-CHANGE-030` (parties, personnes liées et rôles des avocats),
+`CODEX-CHANGE-031` (déploiement des relations de parties), `CODEX-CHANGE-032`
+et `CODEX-CHANGE-033` (fenêtre responsive des personnes liées). Invariants
+conservés : snapshot `parties.pour` / `parties.contre` comme source persistée,
+collections canoniques `avocats` / `contacts`, alias `linkedAvocats` /
+`linkedContacts` normalisés sans migration, rôles `isPlaidant` / `isPostulant`
+booléens sur la relation, absence historique de rôle jamais inventée, aucune
+hydratation d'une fiche hors cabinet.
+
+### Méthode
+
+- Cartographie du code par sept lectures indépendantes (affichage, fenêtre de
+  liaison, Redux/sauvegarde, normalisation serveur, sécurité, tests/historique,
+  consommateurs documentaires), puis revue adversariale des correctifs
+  (six relectures, réfutations croisées).
+- Recette réelle dans Chrome piloté par Playwright, API et client lancés
+  **sans bypass d'authentification** (`KHEOPS_BYPASS_AUTH=false`,
+  `REACT_APP_KHEOPS_BYPASS_AUTH=false`), compte de test local dédié, base de
+  test Atlas, données marquées `ZZTEST` (contacts, avocats, dossiers), lecture
+  brute des documents persistés via Mongoose.
+
+### Anomalies corrigées
+
+1. **« Mettre à jour » impossible (PUT 403 `DOSSIER_RELATION_ACCESS_DENIED`)**
+   dès qu'un dossier embarquait l'avocat responsable « de repli » (l'utilisateur
+   connecté, `_id` de `User`, ni contact du carnet ni `OfficeUser`). La modale
+   restait ouverte sans message ; parties ajoutées, supprimées ou déplacées
+   étaient perdues ; le même responsable disparaissait de `GET /dossier/:id` et
+   sa bascule de rôle répondait 403.  
+   Cause : `getAccessibleRelationEntityIds` ne reconnaissait que les liaisons
+   `UserContact*` / `UserOfficeUser`.  
+   Correction : les utilisateurs du cabinet (`getAccessibleUserIds`) sont
+   acceptés comme avocats internes (`server/utils/ownershipHelpers.js`) ;
+   `POST /addLinkedContactToParty` résout l'appartenance via cette fonction et
+   accepte un avocat interne (relation embarquée, fiche `OfficeUser` déclarée
+   `isAvocat`, ou utilisateur non secrétaire) ; message d'erreur visible
+   (`role="alert"` + toast) et toast de succès sur « Mettre à jour ».
+2. **Retrait d'une personne liée générique impossible en mode partie unique**
+   (`TypeError` : `usePartieActions` n'exposait pas `deleteLinkedContact`).
+3. **Changement de camp Pour → Contre** : les avocats responsables du cabinet
+   restaient liés à la partie adverse (flag `fromResponsable` simplement
+   retiré) et perdaient leur rôle postulant au retour. Ils sont désormais
+   retirés côté Contre et réinjectés au retour côté Pour.
+4. **Règle « un seul responsable interne postulant »** : le client rendait
+   tous les responsables postulants, le serveur n'en gardait qu'un, et le
+   serveur annulait le transfert du rôle vers le responsable choisi (réponse
+   « succès », choix perdu). Réconciliation identique des deux côtés
+   (`reconcileResponsablesForPour` côté client, `preferredResponsibleId` et
+   ordre stable côté serveur), message explicite lorsque le serveur ajuste un
+   rôle, retour arrière exact si le serveur refuse.
+5. **Sécurité `POST /createDossier`** : le garde anti-écrasement lisait un
+   champ `userId` inexistant sur le schéma `Contact` (inopérant). L'appartenance
+   est maintenant vérifiée par les tables de liaison **avant toute écriture** ;
+   un `_id` inconnu fourni par le client est refusé (400
+   `UNKNOWN_DOSSIER_RELATION`, plus de fiche « plantée ») ; les fiches créées
+   depuis un dossier reçoivent leur lien `UserContact*` ; ids malformés → 400.
+6. **Ajouts simultanés** : lecture-modification-écriture sans verrou faisait
+   perdre une relation (constaté avec deux ajouts d'avocats en parallèle).
+   Les routes d'autosauvegarde utilisent un verrou optimiste (`__v`, jusqu'à
+   cinq reprises, 409 `CONCURRENT_UPDATE` sinon).
+7. **Règles serveur complétées** : auto-liaison d'une partie refusée (400
+   `SELF_LINK_FORBIDDEN`, auparavant « ajouté » sans persistance) ; retrait des
+   deux rôles via `forceRoleUpdate` refusé ; un contact générique promu avocat
+   doit recevoir un rôle ; ids invalides sur add/remove → 400 sans détail
+   interne ; gestionnaire d'erreurs global : `CastError` → 400 générique, 5xx
+   → message générique, erreurs de validation réduites aux messages par champ.
+8. **Brouillon de parties transmis au compte suivant** : les slices persistants
+   ré-écrivaient `partieData` / `partieEditData` après la déconnexion ; purge
+   sur `LOGOUT`, `AUTH_ERROR`, `ACCOUNT_DELETED`, `auth/logout` et
+   `SESSION_USER_CHANGED` (émis par `loadUser` lors d'un changement de compte
+   sans déconnexion, retour OAuth).
+9. **Édition : responsables lus au mauvais niveau** (`presetDossier.dossier
+   .responsables` au lieu de `dossierInfos.dossierData.responsables` hydraté),
+   d'où un repli systématique sur l'utilisateur connecté à chaque modification.
+10. **Anciens snapshots** : l'hydratation en édition fusionne désormais
+    `avocats` ∪ `linkedAvocats` et `contacts` ∪ `linkedContacts` (sans doublon)
+    au lieu d'ignorer les alias ; brouillon localStorage illisible ignoré et
+    supprimé au lieu de faire échouer le chargement du module.
+11. **Cohérence Redux ↔ persisté** : après chaque autosauvegarde (ajout,
+    retrait, rôle), la partie est resynchronisée à partir des relations
+    renvoyées par le serveur, filtrées par l'accès cabinet (`partyRelations`).
+    Échec partiel d'une liaison « à toutes les parties » : les parties en échec
+    sont annulées côté Redux et nommées dans le message, les autres restent
+    enregistrées.
+12. **Performance de lecture** : `GET /dossier/:id` rafraîchissait chaque
+    personne liée par trois `findById` (≈ 4 s pour 45 relations). Lecture
+    groupée en trois requêtes (≈ 2 s mesurées, dominées par la population des
+    parties).
+13. **Accessibilité** : le sélecteur du type de professionnel du formulaire de
+    contact n'avait pas de nom accessible (`aria-label="Type de professionnel"`).
+
+### Fichiers applicatifs modifiés
+
+- `server/utils/ownershipHelpers.js`
+- `server/services/dossierPartyRelations.js`
+- `server/routes/folder/folderDossierInteraction.js`
+- `server/routes/folder/folderDossierCreation.js`
+- `server/index.js`
+- `client/src/redux/slices/createPartieSlice.js`
+- `client/src/redux/slices/partieSlice.js`, `client/src/redux/slices/partieEditSlice.js`
+- `client/src/redux/slices/authSlice.js`
+- `client/src/components/dashboard/office/createDossier/index.js`, `styles.css`
+- `client/src/components/dashboard/office/createDossier/createPartie/index.js`
+- `client/src/components/dashboard/office/createDossier/createPartie/LinkedAvocatItem.js`
+- `client/src/components/dashboard/office/createDossier/createPartie/hooks/usePartieActions.js`
+- `client/src/components/dashboard/office/createDossier/createPartie/utils/partiesHelpers.js`
+- `client/src/components/dashboard/office/createContact/FormePP/ContactTypeSwitch/index.js`
+- `client/src/buildInfo.js`, `package.json` (version `2.0.18-rc3`)
+
+### Tests ajoutés ou modifiés
+
+- `server/routes/__tests__/addLinkedContactToPartyRoute.test.js` (réécrit :
+  ObjectId valides, avocat interne, ids malformés, auto-liaison, retrait des
+  deux rôles, transfert du postulant, membre non avocat, verrou optimiste,
+  conflit persistant 409, relations renvoyées filtrées).
+- `server/routes/__tests__/folderDossierCreationCrossCabinet.test.js` (nouveau).
+- `server/routes/__tests__/dossierRelationSecurity.test.js` (verrou optimiste,
+  lecture groupée, délai).
+- `server/services/__tests__/dossierPartyRelations.test.js`,
+  `server/utils/__tests__/ownershipHelpersRelations.test.js`.
+- `client/src/redux/slices/__tests__/createPartieSlice.rules.test.js` (nouveau),
+  `createPartieSlice.hydration.test.js` (nouveau),
+  `client/src/components/dashboard/office/createDossier/createPartie/utils/__tests__/partiesHelpers.sync.test.js`
+  (nouveau), `hooks/__tests__/usePartieActions.test.js`.
+
+### Validations exécutées
+
+- Serveur ciblé : 7 suites, 68 tests réussis. Client ciblé : 21 suites,
+  379 tests réussis.
+- Serveur complet : **161 suites, 1 025 tests réussis**. Client complet :
+  **156 suites, 1 824 tests réussis**. Aucun test ignoré.
+- Recette navigateur locale (mode strict) : connexion réelle, création de
+  contacts et d'avocats dans l'interface (2 standards, 3 avocats dont une
+  avocate, 1 notaire), création d'un dossier à quatre parties, liaisons
+  multiples, avocat adverse, rôles plaidant/postulant, doublons filtrés, avocat
+  sans rôle refusé, enregistrement, réouverture en modification, bascule de
+  rôles (y compris responsable interne), retraits, changement de camp au
+  clavier, ajout et suppression de parties, « Mettre à jour » → 200,
+  rechargement complet, réouverture : état identique en interface et en base.
+- Recette API : 33/33 contrôles (401 sans jeton ; 403 cross-cabinet sur GET,
+  PUT, add, remove, createDossier ; fiche du cabinet intacte ; ids invalides
+  → 400 propres ; auto-liaison ; rôles ; 6 ajouts simultanés du même contact →
+  1 occurrence ; 2 avocats ajoutés en parallèle → aucune perte ; 40 contacts +
+  5 avocats sur une partie, réponse 21 Ko, lecture ≈ 2 s).
+- Formats d'écran : 1920×1080, 1366×768, 768×1024, 390×844 et zoom 200 % —
+  aucun défilement horizontal, dialogue contenu dans la fenêtre, nom long
+  lisible, aucun élément hors écran.
+
+### Limites et points signalés (non corrigés)
+
+- La référence de dossier (`generateReference`) reste un compteur global non
+  cloisonné par cabinet, à tri lexicographique (`202699` > `2026100`).
+- Un avocat interne placé en position de « contact seul » d'une partie n'est
+  ni reconnu par `PUT` ni conservé par `GET` (cas non produit par l'interface).
+- La page d'un dossier ordinaire appelle `GET /api/divorce-cm/by-dossier/:id`
+  (404 attendu, bruit en console).
+- Le nom saisi à l'étape 1 est remplacé par le nom automatique dès qu'une
+  partie est ajoutée en création.
+- Les rôles plaidant/postulant ne sont pas encore consommés par la génération
+  documentaire (constat de lecture, hors périmètre).
+
+---
+
+## CODEX-CHANGE-058 — Déploiement Cloud Run de la version 2.0.18-rc3 et recette en ligne des parties, personnes liées et avocats
+
+**Date :** 2026-09-04  
+**Nature :** déploiement du correctif décrit en `CODEX-CHANGE-057`, puis recette
+de la version réellement servie (API et interface, sans bypass
+d'authentification).  
+**Statut :** déployé, promu à 100 % du trafic, recette en ligne effectuée.  
+**Version servie :** `2.0.18-rc3`.
+
+### Cadre gcloud
+
+- Compte `adja060672@gmail.com`, projet `kheops-2` (numéro `16107185088`),
+  région `europe-west1`, service `kheops-2-backend`.
+- La configuration gcloud active pointait sur un autre projet : `gcloud config
+  set project kheops-2` avant toute opération, conformément au garde-fou du
+  script (qui refuse de s'exécuter autrement).
+- Aucun secret, aucune variable d'environnement et aucune URL de redirection
+  OAuth Google ou Microsoft n'ont été modifiés ; les références Secret Manager
+  existantes sont conservées telles quelles. Aucun garde-fou n'a été désactivé
+  ni contourné, aucun script signalé comme périmé n'a été utilisé.
+
+### Procédure exécutée
+
+Script officiel `powershell -File scripts/gcp/deploy.ps1` (qui lance
+`scripts/gcp/deploy.sh`), sans option de contournement :
+
+1. Précontrôle des sources et des secrets, sans affichage des valeurs.
+2. Suite serveur complète (`--runInBand`) : **161 suites, 1025 tests, 0 échec,
+   0 test ignoré**.
+3. Suite frontend complète : **156 suites, 1824 tests, 0 échec, 0 test ignoré**.
+4. Build CRA et manifeste : **Build ID `BUILD-MTN6CZQA`**, bundle
+   `static/js/main.4af6bbcb.js`, feuille `static/css/main.b207819d.css`.
+5. Révision candidate déployée **sans trafic utilisateur** :
+   `kheops-2-backend-00163-sub`, jointe par une URL de tag temporaire.
+6. Smoke-tests sur la candidate isolée : santé de l'API, configuration
+   frontend, page React et bundle JavaScript, CORS autorisant les deux URL
+   Cloud Run (`…-16107185088.europe-west1.run.app` et `…-d356fe2u4a-ew.a.run.app`).
+7. Promotion atomique de la candidate, puis suppression du tag temporaire.
+
+### Résultat du déploiement
+
+- Révision précédente : `kheops-2-backend-00160-yaq` (2026-07-17).
+- Nouvelle révision : `kheops-2-backend-00163-sub`
+  (2026-09-04T16:40:17Z), **100 % du trafic**, seule révision servante.
+- Version servie vérifiée depuis l'extérieur : `/api/health/ping` → 200
+  (`build`, `startup`, `gcs`, `aiWorker`, `documentSyncWorker`, `mailWorker`
+  prêts), `/config.js` → 200 et fixe `apiUrl` sur l'origine servie,
+  `GET /api/auth/user` sans jeton → 401, jeton de bypass développeur → 401,
+  pré-vol CORS → 204.
+- Empreinte du bundle servi : `main.4af6bbcb.js`, 3 609 044 octets,
+  SHA-256 `9bbd98a55fc76737fa8522cd7b59570698043c828564234c2be8e70060b9c405`,
+  **identique** au fichier produit par le build local.
+- Marqueurs des correctifs présents dans le bundle servi : `2.0.18-rc3`,
+  « Autres personnes liées », `Plaidant` / `Postulant`, « Sélectionnez au moins
+  un rôle », « … mise à jour impossible : », « Type de professionnel »,
+  « … puis ajusté », `SYNC_PARTIE_RELATIONS`, `SESSION_USER_CHANGED`,
+  « Les autres parties sont enregistrées », `k-cdd-save-error`. Le code
+  `CONCURRENT_UPDATE` n'apparaît pas dans le bundle : il est produit par le
+  serveur et restitué à l'utilisateur par le message d'erreur générique.
+- Journaux Cloud Run de la révision `kheops-2-backend-00163-sub` après la
+  recette : **aucune entrée de sévérité ERROR, aucune réponse HTTP 5xx**.
+- Retour arrière disponible :
+  `gcloud run services update-traffic kheops-2-backend --project kheops-2 --region europe-west1 --to-revisions kheops-2-backend-00160-yaq=100`.
+
+### Recette sur l'environnement en ligne
+
+Compte de test dédié `zztest.recette.mtn6m7f1@example.com` (cabinet
+« ZZTEST-Cabinet-Test »), créé par inscription classique — ni Google ni
+Microsoft — et jeu de fiches préfixées `ZZTEST` (parties physiques et morale,
+avocats, notaire, témoin, nom volontairement très long). Aucune donnée
+existante n'a été modifiée ni supprimée.
+
+- **Création** (formulaire de connexion réel, sans bypass) : dossier
+  `202644` créé (`201`), deux parties Pour et deux parties Contre, avocat
+  adverse avec les deux rôles, deux contacts sur la partie morale, avocate
+  postulante et avocat plaidant sur une partie Pour, liaison groupée
+  « toutes les parties Contre », doublon refusé (l'option disparaît de la
+  recherche), avocat sans rôle refusé (bouton inactif et message
+  « Sélectionnez au moins un rôle. »), relecture `GET` → 200 conforme.
+  Pendant l'assistant de création le dossier n'existe pas encore : les liaisons
+  sont tenues côté client et persistées par l'unique `POST /createDossier`,
+  aucune route de liaison n'est appelée à ce stade. Le doublon n'est pas
+  « refusé » par le serveur : la personne déjà liée n'est plus proposée à la
+  recherche. Le refus d'un avocat sans rôle est appliqué des deux côtés :
+  bouton inactif dans l'interface, et `400 LAWYER_ROLE_REQUIRED` côté API
+  lorsqu'il s'agit d'un avocat non encore lié — ré-ajouter un avocat déjà lié
+  avec un rôle est une mise à jour légitime (200).
+- **Modification** (connexion tracée dans le journal du scénario :
+  `mode: formulaire`, `POST /api/auth/login` → 200, jeton présent dans le
+  navigateur ; l'état de départ du dossier est d'abord remis en place par API,
+  les autres scénarios modifiant le même dossier) : bascule du rôle postulant
+  sur le responsable interne, puis
+  sur un avocat externe → message « Rôle enregistré puis ajusté : les
+  responsables du cabinet restent plaidants et un seul est postulant (sauf
+  postulant externe). » ; retrait d'un avocat ; ajout d'un contact ; retrait
+  d'un contact sur la partie morale ; changement de camp au clavier
+  (`Alt+ArrowLeft`) ; ajout d'une partie ; suppression d'une partie ;
+  « Mettre à jour » → `PUT` 200 ; rechargement complet de la page et
+  réouverture : état identique en interface et en base.
+- **Sécurité API en ligne** : 33 contrôles, tous conformes au terme de deux
+  passages (le second réutilise le compte du second cabinet déjà inscrit, d’où
+  32 contrôles rejoués). Au premier passage, un contrôle avait échoué pour une
+  raison propre au scénario et non au produit : l’avocat de test était déjà lié
+  avec un rôle par un scénario antérieur, si bien qu’un nouvel ajout est une
+  mise à jour légitime (200) et non la création d’un avocat sans rôle attendue
+  (400). Le scénario délie désormais l’avocat avant ce contrôle, qui passe.
+  Détail des contrôles — 401 sans jeton sur les cinq routes, 403 inter-cabinets sur `GET`,
+  `PUT`, `addLinkedContactToParty`, `removeLinkedContactFromParty` et
+  `createDossier`, fiche du cabinet légitime intacte après tentative, ids
+  invalides → 400 sans détail interne, auto-liaison refusée, règles de rôles,
+  six ajouts simultanés du même contact → une seule occurrence, deux avocats
+  ajoutés en parallèle → aucune perte ni doublon. Le contrôle de volumétrie a
+  été volontairement ignoré en ligne (déjà validé localement) pour ne pas créer
+  de données superflues.
+- **Formats d'écran en ligne** : 1920×1080, 1366×768, 768×1024, 390×844 et
+  zoom 200 % — aucun défilement horizontal, fenêtre de liaison contenue dans le
+  cadre, nom long lisible, aucune erreur de page.
+- Bruit console résiduel en ligne, sans incidence : avertissement CSP
+  `upgrade-insecure-requests` en mode report-only, appels bloqués vers le
+  compagnon local `http://127.0.0.1:8080` (absent en mode web) et
+  `GET /api/divorce-cm/by-dossier/:id` → 404 sur un dossier non divorce, déjà
+  signalé en `CODEX-CHANGE-057`.
+
+### Configuration de la révision servante (vérifiée, sans lire aucun secret)
+
+`NODE_ENV=production`, `KHEOPS_HOSTED=true`, `KHEOPS_BYPASS_AUTH=false`,
+`AI_ALLOW_FALLBACK_PRICING=false`. Neuf variables restent alimentées par des
+références Secret Manager (valeurs jamais affichées ni remplacées), et les
+variables `GOOGLE_CALLBACK_URL` et `MICROSOFT_CALLBACK_URL` sont conservées
+telles quelles.
+
+### Anomalie observée hors périmètre : pré-vol CORS refusé en 500
+
+Un pré-vol `OPTIONS` portant une origine non autorisée reçoit **500**
+(`{"message":"Erreur interne du serveur"}`) au lieu d'un 403, et produit une
+entrée de journal de sévérité ERROR. Constaté deux fois le 2026-09-04 après la
+recette (17:36:14 UTC lors d'un contrôle de relecture, puis lors d'une
+reproduction volontaire) ; une origine autorisée répond bien 204. Cause : le
+rappel d'origine de `cors` appelle `cb(new Error(...))` sans statut
+(`server/index.js`), l'erreur tombe donc dans la branche 5xx du gestionnaire
+global. Ce comportement **précède cette livraison** — seul le corps de la
+réponse est devenu générique — et il est **hors du périmètre parties /
+personnes liées**, donc non corrigé ici. Correction suggérée pour une
+prochaine intervention : rejeter l'origine avec un statut 403 explicite.
+
+Hors cette anomalie, les journaux de la révision `kheops-2-backend-00163-sub`
+ne contiennent **aucune entrée ERROR ni aucune réponse 5xx pendant toute la
+recette** (16:40 à 17:33 UTC).
+
+### Points laissés ouverts par le déploiement
+
+- Le script signale que le rôle Editor historique du compte de service Compute
+  par défaut n'a pas été retiré, qu'une recette authentifiée GCS / OAuth /
+  workers reste nécessaire, et que `AI_ALLOW_FALLBACK_PRICING=false` impose un
+  catalogue tarifaire vérifié avant le premier appel IA.
+- Les smoke-tests du script sont des contrôles HTTP **non authentifiés** ; la
+  vérification authentifiée est apportée par la recette décrite ci-dessus.
+- La commande de retour arrière demande une confirmation interactive ; ajouter
+  `--quiet` pour l'exécuter sans invite.
+- Le code livré n'est **pas commité** : l'image a été construite depuis l'arbre
+  de travail. Aucun identifiant de commit ne relie donc l'image au dépôt.
+- Le rapport Playwright `playwright-report/index.html`, régénéré par une
+  exécution de recette, a été **restauré à sa version commitée** : aucun
+  artefact de test étranger au correctif ne subsiste dans l'arbre de travail.
+
+### Données de test laissées en ligne
+
+Le compte `zztest.recette.mtn6m7f1@example.com`, le second cabinet de contrôle
+`zztest.cabinet.b.*@example.com`, leurs fiches `ZZTEST-*` et les dossiers de
+recette restent présents, isolés dans leurs propres cabinets. Ils sont
+identifiables au préfixe `ZZTEST` ; aucune suppression globale n'a été
+effectuée. Les dossiers peuvent être retirés un par un via
+`DELETE /api/folder/dossier/:id` avec le jeton du compte de test.

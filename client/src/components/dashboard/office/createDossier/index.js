@@ -27,6 +27,7 @@ import { setCreatePartieModal } from '../../../../redux/slices/layoutSlice';
 // Accessibilite - voix synthetique
 import HoverToSpeak from '../../../common/HoverToSpeak';
 import { speak, stopSpeaking } from '../../../../services/speechService';
+import { showToast } from '../../../../redux/slices/notificationsSlice';
 
 ///
 // Nouveau code
@@ -52,6 +53,11 @@ const CreateDossier = React.forwardRef(({
 
   // Nouvel état pour gérer le survol des onglets
   const [isHoveringAnyTab, setIsHoveringAnyTab] = useState(false);
+
+  // Message d'erreur visible lorsque « Mettre à jour » est refusé par le
+  // serveur (403, 500, réseau…). Avant, l'échec n'apparaissait qu'en console
+  // et la modale restait ouverte sans explication.
+  const [saveError, setSaveError] = useState('');
 
   // Fonction pour configurer et ouvrir la modale depuis l'onglet Contacts du dossier
   const openDossierContactModal = (config) => {
@@ -210,8 +216,20 @@ const CreateDossier = React.forwardRef(({
     buildNomDossierFromParties
   ]);
 
+  // Responsables du dossier : le store dossierInfos est hydraté au bon niveau
+  // (« dossier.dossier.responsables ») en édition par INITIALIZE_DOSSIER_INFOS_FOR_EDIT
+  // et suit les modifications de l'onglet Dossier. Lire « presetDossier.dossier
+  // .responsables » (niveau erroné) forçait le repli sur l'utilisateur connecté
+  // et remplaçait les vrais responsables des parties POUR à chaque édition.
+  const responsablesSource = useMemo(() => {
+    if (Array.isArray(dossierDataFromStore?.responsables)) return dossierDataFromStore.responsables;
+    return currentDossierDataForDisplay?.dossier?.responsables
+      || currentDossierDataForDisplay?.responsables
+      || [];
+  }, [dossierDataFromStore?.responsables, currentDossierDataForDisplay]);
+
   const avocatsResponsables = useMemo(() => {
-    let avocats = currentDossierDataForDisplay.responsables?.filter(r => r.isAvocat) || [];
+    let avocats = responsablesSource.filter(r => r.isAvocat) || [];
     avocats = avocats.map(a => {
       const u = officeUsers.find(ou => ou._id === a._id) || {};
       return {
@@ -242,7 +260,7 @@ const CreateDossier = React.forwardRef(({
       });
     }
     return avocats;
-  }, [currentDossierDataForDisplay.responsables, officeUsers, user]);
+  }, [responsablesSource, officeUsers, user]);
 
   const prevAvocats = useRef();
   useEffect(() => {
@@ -372,14 +390,21 @@ const CreateDossier = React.forwardRef(({
 
     if (isEditMode && presetDossier?._id) {
       if (user && user._id && presetDossier?._id) {
+        setSaveError('');
         dispatch(updateDossier(presetDossier._id, dossierObj, token))
           .then(() => {
+            dispatch(showToast({ type: 'success', message: 'Dossier mis à jour.' }));
             if (typeof onClose === 'function') {
               onClose();
             }
           })
           .catch(err => {
             console.error(`[CreateDossier PARENT - EDIT MODE] Erreur lors de la mise à jour du dossier ID: ${presetDossier._id}:`, err);
+            const message = typeof err === 'string'
+              ? err
+              : (err?.message || 'La mise à jour du dossier a échoué. Réessayez.');
+            setSaveError(message);
+            dispatch(showToast({ type: 'error', message: `Mise à jour impossible : ${message}` }));
           });
       } else {
         console.warn("[CreateDossier PARENT - EDIT MODE] Impossible de mettre à jour le dossier: utilisateur non défini ou ID de dossier manquant.");
@@ -633,6 +658,12 @@ const CreateDossier = React.forwardRef(({
         >
           {renderContent()}
         </div>
+
+        {isEditMode && saveError && (
+          <div className="k-cdd-save-error" role="alert">
+            Mise à jour impossible : {saveError}
+          </div>
+        )}
 
         <HoverToSpeak textToSpeak={isEditMode ? (loadingEdit ? 'Enregistrement en cours' : 'Bouton Mettre a jour le dossier') : 'Bouton Creer le dossier'}>
           <button

@@ -14,6 +14,8 @@ jest.mock('../../../../../../../redux/slices/partieSlice', () => ({
   deleteLinkedContactAllContre: jest.fn().mockReturnValue({ type: 'CREATE/deleteLinkedContactAllContre' }),
   setPartiesLinkAllContre: jest.fn().mockReturnValue({ type: 'CREATE/setPartiesLinkAllContre' }),
   toggleAvocatProperty: jest.fn().mockReturnValue({ type: 'CREATE/toggleAvocatProperty' }),
+  deleteLinkedContact: jest.fn().mockReturnValue({ type: 'CREATE/deleteLinkedContact' }),
+  syncPartieRelations: jest.fn().mockReturnValue({ type: 'CREATE/syncPartieRelations' }),
 }));
 
 jest.mock('../../../../../../../redux/slices/partieEditSlice', () => ({
@@ -28,6 +30,8 @@ jest.mock('../../../../../../../redux/slices/partieEditSlice', () => ({
   deleteLinkedContactAllContre: jest.fn().mockReturnValue({ type: 'EDIT/deleteLinkedContactAllContre' }),
   setPartiesLinkAllContre: jest.fn().mockReturnValue({ type: 'EDIT/setPartiesLinkAllContre' }),
   toggleAvocatProperty: jest.fn().mockReturnValue({ type: 'EDIT/toggleAvocatProperty' }),
+  deleteLinkedContact: jest.fn().mockReturnValue({ type: 'EDIT/deleteLinkedContact' }),
+  syncPartieRelations: jest.fn().mockReturnValue({ type: 'EDIT/syncPartieRelations' }),
 }));
 
 import { usePartieActions } from '../usePartieActions';
@@ -60,6 +64,16 @@ describe('usePartieActions', () => {
     expect(actionNames).toContain('setPartiesLinkAllPour');
     expect(actionNames).toContain('deleteLinkedAvocatAllContre');
     expect(actionNames).toContain('setPartiesLinkAllContre');
+    // Retrait d'une personne liee generique (mode partie unique) et
+    // resynchronisation serveur : absentes auparavant (TypeError au retrait).
+    expect(actionNames).toContain('deleteLinkedContact');
+    expect(actionNames).toContain('syncPartieRelations');
+  });
+
+  it('mode "edit" cable deleteLinkedContact et syncPartieRelations sur le partieEditSlice', () => {
+    const { result } = renderHook(() => usePartieActions('edit'));
+    expect(result.current.deleteLinkedContact).toBe(partieEditSlice.deleteLinkedContact);
+    expect(result.current.syncPartieRelations).toBe(partieEditSlice.syncPartieRelations);
   });
 
   it('mode autre que "edit" retourne les actions create par defaut', () => {

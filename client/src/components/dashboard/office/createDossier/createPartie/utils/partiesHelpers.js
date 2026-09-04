@@ -98,6 +98,35 @@ export const intersectArrays = (arrays = []) => {
  * Les relations sont copiées explicitement afin que le cycle historique
  * suppression/réinsertion ne perde ni les contacts, ni les rôles d'avocat.
  */
+/**
+ * Extrait, depuis la réponse d'une route d'autosauvegarde
+ * (addLinkedContactToParty / removeLinkedContactFromParty), les relations
+ * réellement persistées pour une partie. Retourne null si la réponse ne
+ * contient pas le dossier ou la partie (ancien serveur, erreur réseau).
+ */
+export const extractPartyRelationsFromResponse = (responseData, partyId) => {
+  // Forme privilégiée : relations déjà filtrées par l'accès cabinet côté serveur.
+  const filtered = responseData?.partyRelations;
+  if (filtered && (Array.isArray(filtered.avocats) || Array.isArray(filtered.contacts))) {
+    return {
+      avocats: Array.isArray(filtered.avocats) ? filtered.avocats : [],
+      contacts: Array.isArray(filtered.contacts) ? filtered.contacts : [],
+    };
+  }
+  const parties = responseData?.dossier?.dossier?.parties;
+  if (!parties || !partyId) return null;
+  const all = [
+    ...(Array.isArray(parties.pour) ? parties.pour : []),
+    ...(Array.isArray(parties.contre) ? parties.contre : []),
+  ];
+  const party = all.find((p) => String(p?.idPartie || p?.partieData?._id || '') === String(partyId));
+  if (!party) return null;
+  return {
+    avocats: Array.isArray(party.avocats) ? party.avocats : [],
+    contacts: Array.isArray(party.contacts) ? party.contacts : [],
+  };
+};
+
 export const buildPartieMovePayload = (partie = {}) => {
   const cloneRelations = (items) => (Array.isArray(items)
     ? items.map((item) => (

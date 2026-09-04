@@ -403,9 +403,25 @@ window.__KHEOPS_CONFIG__ = Object.assign(window.__KHEOPS_CONFIG__ || {}, ${seria
 app.use((err, req, res, next) => {
   console.error(`[ERROR HANDLER] ${req.method} ${req.originalUrl} →`, err.message || err);
   if (err.name === 'ValidationError') {
-    return res.status(400).json({ message: "Validation des données échouée.", errors: err.errors });
+    // Seuls les messages par champ sont renvoyes (pas les valeurs saisies ni
+    // la structure interne des erreurs Mongoose).
+    const errors = Object.fromEntries(
+      Object.entries(err.errors || {}).map(([field, detail]) => [field, detail && detail.message ? detail.message : 'Valeur invalide.']),
+    );
+    return res.status(400).json({ message: "Validation des données échouée.", errors });
+  }
+  // Un identifiant mal forme (CastError Mongoose) est une erreur du client, pas
+  // du serveur : reponse 400 generique sans exposer le chemin ni la valeur.
+  if (err.name === 'CastError') {
+    return res.status(400).json({ message: "Identifiant invalide.", error: 'INVALID_ID' });
   }
   const status = err.status || err.statusCode || 500;
+  // Les erreurs 5xx ne doivent jamais renvoyer le message interne (noms de
+  // collections, clefs dupliquees, piles d'appels...). Le detail reste dans
+  // les journaux serveur ci-dessus.
+  if (status >= 500) {
+    return res.status(status).json({ message: "Erreur interne du serveur" });
+  }
   res.status(status).json({
     message: err.message || "Erreur interne du serveur",
     ...(err.code ? { error: err.code } : {}),

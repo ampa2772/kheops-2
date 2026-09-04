@@ -1,5 +1,10 @@
 'use strict';
 
+// Chaque cas recharge le module de routes complet (jest.resetModules + doMock) :
+// sous charge (suite complete en parallele), le delai par defaut de 5 s est
+// depasse alors que la logique est correcte.
+jest.setTimeout(20000);
+
 const IDS = {
   dossier: '64f000000000000000000001',
   party: '64f000000000000000000002',
@@ -48,12 +53,18 @@ function loadRoutes({ dossier, accessibleContactIds = [], accessibleOfficeUserId
   const Dossier = {
     findById: jest.fn().mockResolvedValue(dossier),
     find: jest.fn(),
+    findOneAndUpdate: jest.fn(async (filter, update) => {
+      dossier.dossier.parties = update.$set['dossier.parties'];
+      return dossier;
+    }),
   };
   const Contact = {
     findById: jest.fn((id) => queryWithLean(freshContacts[String(id)] || null)),
+    // Lecture groupee des fiches liees (GET) : ne renvoie que les ids demandes.
+    find: jest.fn((filter) => queryWithLean((filter._id.$in || []).map((id) => freshContacts[String(id)]).filter(Boolean))),
   };
-  const ContactPM = { findById: jest.fn(() => queryWithLean(null)) };
-  const ContactPMPublique = { findById: jest.fn(() => queryWithLean(null)) };
+  const ContactPM = { findById: jest.fn(() => queryWithLean(null)), find: jest.fn(() => queryWithLean([])) };
+  const ContactPMPublique = { findById: jest.fn(() => queryWithLean(null)), find: jest.fn(() => queryWithLean([])) };
 
   jest.doMock('../../middlewares/middleware-auth', () => (req, res, next) => next());
   jest.doMock('../../utils/ownershipHelpers', () => ({
@@ -264,8 +275,11 @@ describe('GET /dossier/:id — hydratation isolee par cabinet', () => {
     expect(ownedParty.avocats.map((lawyer) => String(lawyer._id))).toEqual([IDS.lawyer]);
     expect(foreignParty.partieData).toEqual({});
     expect(routes.Contact.findById).not.toHaveBeenCalledWith(IDS.foreign);
-    expect(routes.ContactPM.findById).not.toHaveBeenCalledWith(IDS.foreign);
-    expect(routes.ContactPMPublique.findById).not.toHaveBeenCalledWith(IDS.foreign);
+    // Les fiches liees sont lues en une requete groupee, sans jamais demander une fiche hors cabinet.
+    const requested = routes.Contact.find.mock.calls.flatMap((call) => call[0]._id.$in);
+    expect(requested).toEqual(expect.arrayContaining([IDS.contact, IDS.lawyer]));
+    expect(requested).not.toContain(IDS.foreign);
+    expect(routes.ContactPM.find.mock.calls.flatMap((call) => call[0]._id.$in)).not.toContain(IDS.foreign);
   });
 });
 
@@ -299,7 +313,7 @@ describe('POST /removeLinkedContactFromParty — identite legacy et roles', () =
     await settleHandler(routes.removeLinked, req, res);
 
     expect(res.statusCode).toBe(200);
-    expect(dossier.save).toHaveBeenCalledTimes(1);
+    expect(routes.Dossier.findOneAndUpdate).toHaveBeenCalledTimes(1);
     expect(dossier.dossier.parties.pour[0].avocats).toHaveLength(1);
     expect(dossier.dossier.parties.pour[0].avocats[0]).toMatchObject({
       _id: IDS.responsible,
@@ -334,6 +348,6 @@ describe('POST /removeLinkedContactFromParty — identite legacy et roles', () =
 
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.payload).toMatchObject({ code: 'LINKED_ENTITY_NOT_FOUND' });
-    expect(dossier.save).not.toHaveBeenCalled();
+    expect(routes.Dossier.findOneAndUpdate).not.toHaveBeenCalled();
   });
 });

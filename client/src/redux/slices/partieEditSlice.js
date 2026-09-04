@@ -21,6 +21,7 @@ export const EDIT_DELETE_LINKED_AVOCAT_ALL_CONTRE = partieEditTypes.DEL_AV_CONTR
 export const EDIT_DELETE_LINKED_CONTACT_ALL_CONTRE = partieEditTypes.DEL_CT_CONTRE;
 export const EDIT_SET_PARTIES_LINK_ALL_CONTRE = partieEditTypes.SET_LINK_CONTRE;
 export const EDIT_UPDATE_LINKED_AVOCATS_FOR_POUR_PARTIES = partieEditTypes.UPDATE_AV_POUR;
+export const EDIT_SYNC_PARTIE_RELATIONS = partieEditTypes.SYNC_RELATIONS;
 export const EDIT_RESET_PARTIES = partieEditTypes.RESET;
 
 /* ------------------------------------------------------------------
@@ -35,6 +36,7 @@ export const deleteLinkedAvocat = partieEditActions.deleteLinkedAvocat;
 export const setShouldPopulateNameFields = partieEditActions.setShouldPopulateNameFields;
 export const updateLinkedAvocatsForPourParties = partieEditActions.updateLinkedAvocatsForPourParties;
 export const toggleAvocatProperty = partieEditActions.toggleAvocatProperty;
+export const syncPartieRelations = partieEditActions.syncPartieRelations;
 export const deleteLinkedAvocatAllPour = partieEditActions.deleteLinkedAvocatAllPour;
 export const deleteLinkedContactAllPour = partieEditActions.deleteLinkedContactAllPour;
 export const setPartiesLinkAllPour = partieEditActions.setPartiesLinkAllPour;

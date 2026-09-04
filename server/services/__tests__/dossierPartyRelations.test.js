@@ -301,6 +301,73 @@ describe('dossierPartyRelations', () => {
     expect(responsables.every((lawyer) => lawyer.isPlaidant)).toBe(true);
   });
 
+  test('refuse explicitement de lier la partie a elle-meme (au lieu de repondre "ajoute" sans rien persister)', () => {
+    expect(() => upsertLinkedEntity(
+      { idPartie: 'party-1', partieData: { _id: 'party-1' }, avocats: [], contacts: [] },
+      { _id: 'party-1', nom: 'Moi-meme' },
+      {},
+    )).toThrow(expect.objectContaining({ code: 'SELF_LINK_FORBIDDEN' }));
+  });
+
+  test('forceRoleUpdate ne peut pas retirer les deux roles d un avocat deja lie', () => {
+    const party = {
+      idPartie: 'party-1',
+      avocats: [{ _id: 'lawyer-1', type: 'Avocat', isPlaidant: true, isPostulant: false }],
+      contacts: [],
+    };
+    expect(() => upsertLinkedEntity(
+      party,
+      { _id: 'lawyer-1', type: 'Avocat' },
+      { isPlaidant: false, isPostulant: false, forceRoleUpdate: true },
+    )).toThrow(expect.objectContaining({ code: 'LAWYER_ROLE_REQUIRED' }));
+    // La fonction est pure : la partie d'origine reste intacte.
+    expect(party.avocats[0]).toMatchObject({ isPlaidant: true, isPostulant: false });
+  });
+
+  test('forceRoleUpdate transfere le role postulant vers le responsable choisi, en conservant l ordre', () => {
+    const party = {
+      idPartie: 'party-1',
+      typePartie: 'Pour',
+      avocats: [
+        { _id: 'r1', type: 'Avocat', fromResponsable: true, isPlaidant: true, isPostulant: true },
+        { _id: 'r2', type: 'Avocat', fromResponsable: true, isPlaidant: true, isPostulant: false },
+        { _id: 'e1', type: 'Avocat', isPlaidant: true, isPostulant: false },
+      ],
+      contacts: [],
+    };
+    const result = upsertLinkedEntity(party, { _id: 'r2', type: 'Avocat', fromResponsable: true }, { isPlaidant: true, isPostulant: true, forceRoleUpdate: true });
+    expect(result.party.avocats.map((a) => a._id)).toEqual(['r1', 'r2', 'e1']);
+    expect(result.party.avocats.find((a) => a._id === 'r1')).toMatchObject({ isPlaidant: true, isPostulant: false });
+    expect(result.party.avocats.find((a) => a._id === 'r2')).toMatchObject({ isPlaidant: true, isPostulant: true });
+    expect(result.linkedEntity).toMatchObject({ isPostulant: true });
+  });
+
+  test('retirer le postulant au seul responsable postulant le lui rend (jamais zero postulant interne) sans changer l ordre', () => {
+    const party = {
+      idPartie: 'party-1',
+      typePartie: 'Pour',
+      avocats: [
+        { _id: 'r1', type: 'Avocat', fromResponsable: true, isPlaidant: true, isPostulant: true },
+        { _id: 'r2', type: 'Avocat', fromResponsable: true, isPlaidant: true, isPostulant: false },
+      ],
+      contacts: [],
+    };
+    const result = upsertLinkedEntity(party, { _id: 'r1', type: 'Avocat', fromResponsable: true }, { isPlaidant: true, isPostulant: false, forceRoleUpdate: true });
+    expect(result.party.avocats.map((a) => a._id)).toEqual(['r1', 'r2']);
+    expect(result.party.avocats.filter((a) => a.isPostulant)).toHaveLength(1);
+    // Le premier responsable (ordre stable) redevient postulant, comme cote client.
+    expect(result.party.avocats[0]).toMatchObject({ _id: 'r1', isPostulant: true });
+  });
+
+  test('un contact generique qui devient avocat est un nouvel avocat : un role est exige', () => {
+    const party = { idPartie: 'party-1', avocats: [], contacts: [{ _id: 'p1', type: 'Particulier', nom: 'Ancien contact' }] };
+    expect(() => upsertLinkedEntity(party, { _id: 'p1', type: 'Avocat', nom: 'Devenu avocat' }, {}))
+      .toThrow(expect.objectContaining({ code: 'LAWYER_ROLE_REQUIRED' }));
+    const result = upsertLinkedEntity(party, { _id: 'p1', type: 'Avocat', nom: 'Devenu avocat' }, { isPostulant: true });
+    expect(result.party.contacts).toHaveLength(0);
+    expect(result.party.avocats[0]).toMatchObject({ _id: 'p1', isPlaidant: false, isPostulant: true });
+  });
+
   test('un non avocat est deduplique et range uniquement dans contacts', () => {
     const result = upsertLinkedEntity(
       {

@@ -28,15 +28,32 @@ export const buildPartieNameFromData = (contactData) => {
 };
 
 /**
- * Recalcule isPostulant pour les avocats responsables (Pour).
+ * Réconcilie les rôles des avocats responsables internes d'une partie POUR,
+ * avec exactement la règle appliquée côté serveur (dossierPartyRelations) :
+ *   - les responsables internes restent plaidants ;
+ *   - si un avocat externe est postulant, aucun responsable ne l'est ;
+ *   - sinon UN SEUL responsable est postulant : celui choisi par l'utilisateur
+ *     (preferredResponsableId), à défaut celui déjà postulant, à défaut le premier.
+ * Avant, tous les responsables devenaient postulants côté client alors que le
+ * serveur n'en gardait qu'un : l'affichage divergeait du persisté.
  */
-const recalcResponsablesForPour = (avocatsList) => {
-  const hasOtherPostulantNonResponsable = avocatsList.some(
-    (av) => !av.fromResponsable && av.isPostulant
+export const reconcileResponsablesForPour = (avocatsList, preferredResponsableId = null) => {
+  const list = Array.isArray(avocatsList) ? avocatsList : [];
+  const hasExternalPostulant = list.some(
+    (av) => !av.fromResponsable && av.isPostulant === true
   );
-  return avocatsList.map((av) =>
+  const responsables = list.filter((av) => av.fromResponsable);
+  let selectedId = null;
+  if (!hasExternalPostulant && responsables.length > 0) {
+    const preferred = preferredResponsableId
+      ? responsables.find((av) => String(av._id) === String(preferredResponsableId))
+      : null;
+    const current = responsables.find((av) => av.isPostulant === true);
+    selectedId = String((preferred || current || responsables[0])._id);
+  }
+  return list.map((av) =>
     av.fromResponsable
-      ? { ...av, isPlaidant: true, isPostulant: !hasOtherPostulantNonResponsable }
+      ? { ...av, isPlaidant: true, isPostulant: selectedId !== null && String(av._id) === selectedId }
       : av
   );
 };
@@ -82,16 +99,9 @@ const addLinkToPartie = (partie, contact) => {
     const newAv = buildAvocatFromContact(contact);
     linkedAvocats.push(newAv);
 
-    if (partie.typePartie === 'Pour' && newAv.isPostulant) {
-      for (let i = 0; i < linkedAvocats.length; i++) {
-        if (linkedAvocats[i].fromResponsable) {
-          linkedAvocats[i].isPlaidant = true;
-          linkedAvocats[i].isPostulant = false;
-        }
-      }
-    }
-
-    partie.linkedAvocats = linkedAvocats;
+    partie.linkedAvocats = partie.typePartie === 'Pour'
+      ? reconcileResponsablesForPour(linkedAvocats)
+      : linkedAvocats;
     return;
   }
 
@@ -101,6 +111,48 @@ const addLinkToPartie = (partie, contact) => {
   partie.linkedAvocats = linkedAvocats;
   if (linkedContacts.some((ct) => getEntityId(ct) === contactId)) return;
   partie.linkedContacts = [...linkedContacts, contact];
+};
+
+/**
+ * Actions marquant la fin de session : le brouillon de parties est purgé
+ * (état ET localStorage) pour ne jamais fuiter vers le compte suivant.
+ * SESSION_USER_CHANGED est émis par loadUser quand un autre compte se
+ * connecte sans déconnexion préalable (retour OAuth Google / Microsoft).
+ */
+const SESSION_END_TYPES = new Set(['LOGOUT', 'AUTH_ERROR', 'ACCOUNT_DELETED', 'auth/logout', 'SESSION_USER_CHANGED']);
+
+/**
+ * Fusionne une collection canonique et son alias historique, sans doublon
+ * (identité par _id ; les entrées sans identifiant sont conservées).
+ */
+const mergeRelationsById = (canonical, legacy) => {
+  const seen = new Set();
+  const merged = [];
+  [...(Array.isArray(canonical) ? canonical : []), ...(Array.isArray(legacy) ? legacy : [])].forEach((entity) => {
+    if (!entity || typeof entity !== 'object') return;
+    const id = entity._id != null ? String(entity._id) : '';
+    if (id) {
+      if (seen.has(id)) return;
+      seen.add(id);
+    }
+    merged.push(entity);
+  });
+  return merged;
+};
+
+/**
+ * Lecture protégée du brouillon persisté : une valeur corrompue ne doit
+ * jamais empêcher le chargement de l'application.
+ */
+const readPersistedState = (localStorageKey, defaultState) => {
+  try {
+    const raw = localStorage.getItem(localStorageKey);
+    if (!raw) return defaultState;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.parties)) return parsed;
+  } catch (_e) { /* brouillon illisible */ }
+  try { localStorage.removeItem(localStorageKey); } catch (_e) { /* noop */ }
+  return defaultState;
 };
 
 /* ====================================================================
@@ -154,13 +206,14 @@ export function createPartieSliceFactory(config) {
   const DEL_CT_CONTRE = `${prefix}DELETE_LINKED_CONTACT_ALL_CONTRE`;
   const SET_LINK_CONTRE = `${prefix}SET_PARTIES_LINK_ALL_CONTRE`;
   const UPDATE_AV_POUR = `${prefix}UPDATE_LINKED_AVOCATS_FOR_POUR_PARTIES`;
+  const SYNC_RELATIONS = `${prefix}SYNC_PARTIE_RELATIONS`;
   const RESET = `${prefix}RESET_PARTIES`;
 
   // Export les constantes pour les re-exports
   const types = {
     SET, DELETE, SET_LINK, DELETE_LINK, DELETE_CONTACT, DELETE_AVOCAT,
     SET_POPULATE, TOGGLE_AV, DEL_AV_POUR, DEL_CT_POUR, SET_LINK_POUR,
-    DEL_AV_CONTRE, DEL_CT_CONTRE, SET_LINK_CONTRE, UPDATE_AV_POUR, RESET,
+    DEL_AV_CONTRE, DEL_CT_CONTRE, SET_LINK_CONTRE, UPDATE_AV_POUR, SYNC_RELATIONS, RESET,
   };
 
   /* ---------------------------------------------------------------
@@ -216,18 +269,31 @@ export function createPartieSliceFactory(config) {
         }
 
         const avocatsFromContacts = currentLinkedAvocats.filter(a => !a.fromResponsable);
-        const hasPostulant = avocatsFromContacts.some(a => a.isPostulant);
-        const adjustedResp = avocatsResponsables.map(a => ({
-          ...a,
-          isPlaidant: true,
-          isPostulant: !hasPostulant,
-        }));
+        // Les rôles déjà choisis pour un responsable d'une partie POUR
+        // existante sont conservés (un retour Contre → Pour repart, lui, des
+        // rôles par défaut puisque les responsables sont retirés côté Contre) ;
+        // la réconciliation garantit ensuite un seul postulant interne, comme
+        // le serveur.
+        const adjustedResp = avocatsResponsables.map(a => {
+          const previous = currentLinkedAvocats.find(
+            (linked) => linked.fromResponsable && String(linked._id) === String(a._id)
+          );
+          return {
+            ...a,
+            isPlaidant: true,
+            isPostulant: previous ? previous.isPostulant === true : false,
+          };
+        });
 
         const map = new Map();
         [...avocatsFromContacts, ...adjustedResp].forEach(a => map.set(a._id, a));
-        currentLinkedAvocats = Array.from(map.values());
+        currentLinkedAvocats = reconcileResponsablesForPour(Array.from(map.values()));
       } else {
-        currentLinkedAvocats = currentLinkedAvocats.map(({ fromResponsable, ...rest }) => rest);
+        // Une partie CONTRE n'est jamais défendue par les avocats responsables
+        // du cabinet : ils sont retirés (et non conservés comme avocats
+        // "externes" de la partie adverse). Ils sont réinjectés si la partie
+        // revient côté POUR.
+        currentLinkedAvocats = currentLinkedAvocats.filter((av) => !av.fromResponsable);
       }
 
       let finalNomPartie = '';
@@ -257,9 +323,8 @@ export function createPartieSliceFactory(config) {
   /* ---------------------------------------------------------------
      Initial state (hydrated from localStorage)
   --------------------------------------------------------------- */
-  const partieDataFromStorage = localStorage.getItem(localStorageKey);
   const defaultState = { parties: [], shouldPopulateNameFields: true };
-  const initialState = partieDataFromStorage ? JSON.parse(partieDataFromStorage) : defaultState;
+  const initialState = readPersistedState(localStorageKey, defaultState);
 
   /* ---------------------------------------------------------------
      Slice
@@ -322,8 +387,20 @@ export function createPartieSliceFactory(config) {
           (av) => av._id !== action.payload.avocatId
         );
         if (partie.typePartie === 'Pour') {
-          partie.linkedAvocats = recalcResponsablesForPour(partie.linkedAvocats);
+          partie.linkedAvocats = reconcileResponsablesForPour(partie.linkedAvocats);
         }
+      });
+
+      // SYNC_PARTIE_RELATIONS — resynchronise les relations d'une partie avec
+      // ce que le serveur vient réellement de persister (réponse des routes
+      // d'autosauvegarde). Garantit Redux === base après chaque autosave, y
+      // compris les rôles des responsables réconciliés côté serveur.
+      builder.addCase(SYNC_RELATIONS, (state, action) => {
+        const { idPartie, avocats, contacts } = action.payload || {};
+        const partie = state.parties.find((p) => p.idPartie === idPartie);
+        if (!partie) return;
+        if (Array.isArray(avocats)) partie.linkedAvocats = avocats;
+        if (Array.isArray(contacts)) partie.linkedContacts = contacts;
       });
 
       // UPDATE_LINKED_AVOCATS_FOR_POUR_PARTIES
@@ -353,7 +430,7 @@ export function createPartieSliceFactory(config) {
           const map = new Map();
           fromContacts.forEach((a) => map.set(a._id, a));
           adjusted.forEach((a) => map.set(a._id, a));
-          p.linkedAvocats = Array.from(map.values());
+          p.linkedAvocats = reconcileResponsablesForPour(Array.from(map.values()));
         });
       });
 
@@ -368,19 +445,16 @@ export function createPartieSliceFactory(config) {
 
         av[action.payload.property] = !av[action.payload.property];
 
-        // Pour partieEdit: recalc responsables quand isPostulant est toggle
-        if (partie.typePartie === 'Pour' && action.payload.property === 'isPostulant') {
-          if (!av.fromResponsable) {
-            const hasOtherPostulantNonResponsable = avocats.some(
-              (a) => a._id !== av._id && !a.fromResponsable && a.isPostulant
-            );
-            avocats.forEach((a) => {
-              if (a.fromResponsable) {
-                a.isPlaidant = true;
-                a.isPostulant = !hasOtherPostulantNonResponsable && !av.isPostulant;
-              }
-            });
-          }
+        // Partie POUR : la règle des responsables internes est réappliquée
+        // après chaque bascule (externe OU responsable). Un responsable que
+        // l'utilisateur vient de rendre postulant est préféré aux autres.
+        if (partie.typePartie === 'Pour') {
+          const preferred = av.fromResponsable
+            && action.payload.property === 'isPostulant'
+            && av.isPostulant === true
+            ? av._id
+            : null;
+          partie.linkedAvocats = reconcileResponsablesForPour(avocats, preferred);
         }
       });
 
@@ -445,7 +519,7 @@ export function createPartieSliceFactory(config) {
               (av) => av._id !== action.payload.avocatId
             );
             if (side === 'Pour') {
-              p.linkedAvocats = recalcResponsablesForPour(p.linkedAvocats);
+              p.linkedAvocats = reconcileResponsablesForPour(p.linkedAvocats);
             }
           });
         }
@@ -502,6 +576,15 @@ export function createPartieSliceFactory(config) {
      Wrapper : persistance localStorage
   --------------------------------------------------------------- */
   const wrappedReducer = (state, action) => {
+    // Déconnexion / session invalide / compte supprimé : le brouillon de
+    // parties est un contenu du cabinet courant et ne doit jamais survivre au
+    // changement de compte sur un même poste. Sans ce garde, le reducer
+    // ré-écrivait le brouillon en localStorage juste après que authSlice
+    // l'avait effacé.
+    if (SESSION_END_TYPES.has(action.type)) {
+      try { localStorage.removeItem(localStorageKey); } catch (_e) { /* noop */ }
+      return { ...defaultState };
+    }
     const nextState = slice.reducer(state, action);
     if (action.type !== skipPersistType) {
       localStorage.setItem(localStorageKey, JSON.stringify(nextState));
@@ -522,6 +605,7 @@ export function createPartieSliceFactory(config) {
     setShouldPopulateNameFields: (bool) => ({ type: SET_POPULATE, payload: bool }),
     updateLinkedAvocatsForPourParties: (linkedAvocats) => ({ type: UPDATE_AV_POUR, payload: linkedAvocats }),
     toggleAvocatProperty: (idPartie, avocatId, property) => ({ type: TOGGLE_AV, payload: { idPartie, avocatId, property } }),
+    syncPartieRelations: (idPartie, { avocats, contacts } = {}) => ({ type: SYNC_RELATIONS, payload: { idPartie, avocats, contacts } }),
     deleteLinkedAvocatAllPour: (avocatId) => ({ type: DEL_AV_POUR, payload: { avocatId } }),
     deleteLinkedContactAllPour: (contactOrId) => ({ type: DEL_CT_POUR, payload: { contactId: contactOrId?._id ?? contactOrId } }),
     setPartiesLinkAllPour: (contactData) => ({ type: SET_LINK_POUR, payload: contactData }),
@@ -570,7 +654,10 @@ const partieEdit = createPartieSliceFactory({
   prefix: 'EDIT_',
   sliceName: 'partieEditData',
   localStorageKey: 'partieEditData',
-  getDossierData: (state) => state.currentDossier?.dossier || {},
+  // En édition, dossierInfos.dossierData est hydraté depuis le dossier ouvert
+  // (responsables inclus) ; « currentDossier.dossier » n'a pas de responsables
+  // à ce niveau et forçait le repli sur l'utilisateur connecté.
+  getDossierData: (state) => state.dossierInfos?.dossierData || {},
   getPartiesState: (state) => state.partieEditData,
   hydrateType: 'HYDRATE_EDIT_PARTIES_FROM_DOSSIER',
   updatePartieType: 'EDIT_UPDATE_PARTIE',
@@ -672,8 +759,11 @@ const partieEdit = createPartieSliceFactory({
         nomPartie: partieSchemaDB.nomPartie || 'Partie sans nom',
         partieData: finalPartieData,
         typePartie: side,
-        linkedAvocats: partieSchemaDB.avocats || [],
-        linkedContacts: partieSchemaDB.contacts || [],
+        // Un ancien snapshot (ouvert depuis une liste non normalisée) peut
+        // encore porter les alias linkedAvocats / linkedContacts : ils sont
+        // fusionnés pour ne jamais être effacés par la sauvegarde suivante.
+        linkedAvocats: mergeRelationsById(partieSchemaDB.avocats, partieSchemaDB.linkedAvocats),
+        linkedContacts: mergeRelationsById(partieSchemaDB.contacts, partieSchemaDB.linkedContacts),
       };
     };
 

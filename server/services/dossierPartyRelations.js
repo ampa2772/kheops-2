@@ -151,7 +151,7 @@ const normalizePartyRelation = (party = {}) => {
  * normalisation soit stable. A defaut, le premier responsable embarque est
  * choisi. Les parties CONTRE ne sont pas modifiees par cette regle metier.
  */
-const reconcileResponsibleLawyerRoles = (party = {}) => {
+const reconcileResponsibleLawyerRoles = (party = {}, preferredResponsibleId = null) => {
   const normalized = normalizePartyRelation(party);
   if (normalizeLabel(normalized.typePartie) !== 'pour') return normalized;
 
@@ -161,9 +161,18 @@ const reconcileResponsibleLawyerRoles = (party = {}) => {
   const hasExternalPostulant = normalized.avocats.some(
     (lawyer) => lawyer?.fromResponsable !== true && lawyer?.isPostulant === true,
   );
+  // Le responsable que l'utilisateur vient explicitement de rendre postulant
+  // (preferredResponsibleId) prime sur celui deja postulant : sans cela, un
+  // transfert du role entre deux responsables etait annule par la
+  // reconciliation tout en repondant "succes". Meme regle cote client.
+  const preferredResponsible = preferredResponsibleId
+    ? responsibleLawyers.find((lawyer) => getEntityId(lawyer) === String(preferredResponsibleId))
+    : null;
   const selectedResponsible = hasExternalPostulant
     ? null
-    : (responsibleLawyers.find((lawyer) => lawyer?.isPostulant === true) || responsibleLawyers[0]);
+    : (preferredResponsible
+      || responsibleLawyers.find((lawyer) => lawyer?.isPostulant === true)
+      || responsibleLawyers[0]);
   const selectedId = getEntityId(selectedResponsible);
 
   return {
@@ -225,9 +234,22 @@ const upsertLinkedEntity = (party = {}, entity, options = {}) => {
     );
   }
 
+  // La partie principale ne peut jamais etre sa propre personne liee. Sans ce
+  // refus explicite, normalizePartyRelation ignorait silencieusement l'entite
+  // et la route repondait "ajoute" sans rien persister.
+  const partyId = String(party.idPartie || getEntityId(party.partieData) || '');
+  if (partyId && getEntityId(plainEntity) === partyId) {
+    throw new PartyRelationError(
+      'Une partie ne peut pas etre sa propre personne liee.',
+      'SELF_LINK_FORBIDDEN',
+    );
+  }
+
   const normalized = normalizePartyRelation(party);
-  const existingLawyer = normalized.avocats.find((item) => sameEntity(item, plainEntity));
-  const existingContact = normalized.contacts.find((item) => sameEntity(item, plainEntity));
+  const lawyerIndex = normalized.avocats.findIndex((item) => sameEntity(item, plainEntity));
+  const contactIndex = normalized.contacts.findIndex((item) => sameEntity(item, plainEntity));
+  const existingLawyer = lawyerIndex >= 0 ? normalized.avocats[lawyerIndex] : undefined;
+  const existingContact = contactIndex >= 0 ? normalized.contacts[contactIndex] : undefined;
   const existing = existingLawyer || existingContact;
   const lawyer = isLawyerEntity(plainEntity);
 
@@ -238,10 +260,13 @@ const upsertLinkedEntity = (party = {}, entity, options = {}) => {
   };
 
   let linkedEntity = mergeLinkedEntity(existing, plainEntity);
+  let preferredResponsible = null;
 
   if (lawyer) {
+    // Une personne deja liee comme simple contact qui devient avocat est un
+    // NOUVEL avocat pour la partie : ses roles doivent etre choisis.
     const newRoleSelected = options.isPlaidant === true || options.isPostulant === true;
-    if (!existing && !newRoleSelected) {
+    if (!existingLawyer && !newRoleSelected) {
       throw new PartyRelationError(
         'Selectionnez au moins un role (plaidant ou postulant) pour ce nouvel avocat.',
         'LAWYER_ROLE_REQUIRED',
@@ -254,26 +279,49 @@ const upsertLinkedEntity = (party = {}, entity, options = {}) => {
     delete linkedEntity.isPlaidant;
     delete linkedEntity.isPostulant;
 
-    if (!existing) {
+    if (!existingLawyer) {
       linkedEntity.isPlaidant = options.isPlaidant === true;
       linkedEntity.isPostulant = options.isPostulant === true;
     } else if (options.forceRoleUpdate === true) {
       ['isPlaidant', 'isPostulant'].forEach((property) => {
         if (hasOwn(options, property)) linkedEntity[property] = options[property];
-        else if (hasOwn(existing, property)) linkedEntity[property] = existing[property];
+        else if (hasOwn(existingLawyer, property)) linkedEntity[property] = existingLawyer[property];
       });
+      // Une modification explicite ne peut pas laisser un avocat sans aucun
+      // role : la regle "au moins plaidant ou postulant" vaut aussi en edition.
+      if (linkedEntity.isPlaidant !== true && linkedEntity.isPostulant !== true) {
+        throw new PartyRelationError(
+          'Un avocat lie doit conserver au moins un role (plaidant ou postulant).',
+          'LAWYER_ROLE_REQUIRED',
+        );
+      }
     } else {
       ['isPlaidant', 'isPostulant'].forEach((property) => {
-        if (hasOwn(existing, property)) linkedEntity[property] = existing[property];
+        if (hasOwn(existingLawyer, property)) linkedEntity[property] = existingLawyer[property];
       });
     }
 
-    withoutEntity.avocats.push(linkedEntity);
+    // Un responsable interne explicitement rendu postulant devient LE
+    // postulant interne (transfert entre deux responsables).
+    if (linkedEntity.fromResponsable === true && linkedEntity.isPostulant === true
+      && (!existingLawyer || options.forceRoleUpdate === true)) {
+      preferredResponsible = getEntityId(linkedEntity);
+    }
+
+    // La position est conservee : la reconciliation (et l'affichage) ne
+    // doivent pas dependre d'un deplacement en fin de tableau.
+    if (lawyerIndex >= 0) {
+      withoutEntity.avocats = normalized.avocats.map((item, index) => (index === lawyerIndex ? linkedEntity : item));
+    } else {
+      withoutEntity.avocats.push(linkedEntity);
+    }
+  } else if (contactIndex >= 0) {
+    withoutEntity.contacts = normalized.contacts.map((item, index) => (index === contactIndex ? linkedEntity : item));
   } else {
     withoutEntity.contacts.push(linkedEntity);
   }
 
-  const updatedParty = reconcileResponsibleLawyerRoles(withoutEntity);
+  const updatedParty = reconcileResponsibleLawyerRoles(withoutEntity, preferredResponsible);
   const collection = lawyer ? updatedParty.avocats : updatedParty.contacts;
   linkedEntity = collection.find((item) => sameEntity(item, plainEntity)) || linkedEntity;
 
@@ -282,7 +330,7 @@ const upsertLinkedEntity = (party = {}, entity, options = {}) => {
     linkedEntity,
     relationType: lawyer ? 'avocat' : 'contact',
     created: !existing,
-    rolesUpdated: lawyer && (Boolean(!existing) || options.forceRoleUpdate === true),
+    rolesUpdated: lawyer && (Boolean(!existingLawyer) || options.forceRoleUpdate === true),
   };
 };
 

@@ -25,10 +25,17 @@ const DossierContact = require("../../models/Folder/modelsLiaisons/DossierContac
 const Contact = require("../../models/Folder/Contact");
 const ContactPM = require("../../models/Folder/ContactPM");
 const ContactPMPublique = require("../../models/Folder/ContactPMPublique");
+const UserContact = require("../../models/Folder/modelsLiaisons/UserContact");
+const UserContactPM = require("../../models/Folder/modelsLiaisons/UserContactPM");
+const UserContactPMPublique = require("../../models/Folder/modelsLiaisons/UserContactPMPublique");
 
 const snapshotService = require("../../services/snapshotService");
 const { getAccessibleUserIds } = require("../../services/cabinetAccess");
-const { ensureDossierOwnership, ensureContactOwnership } = require("../../utils/ownershipHelpers");
+const {
+  ensureDossierOwnership,
+  ensureContactOwnership,
+  getAccessibleRelationEntityIds,
+} = require("../../utils/ownershipHelpers");
 const { materializeMatterFolder } = require("../../services/storage/matterFolderMaterializer");
 const { resolveTenantId } = require("../../services/tenantService");
 const { normalizeDossierParties } = require("../../services/dossierPartyRelations");
@@ -254,7 +261,17 @@ router.post(
     dossierData.parties = normalizeDossierParties(dossierData.parties);
 
     /* 1️⃣ – garantir un _id et réunir tous les contacts */
-    const ensureId = (o) => { if (o && !o._id) o._id = new mongoose.Types.ObjectId(); };
+    // Seuls les identifiants générés ICI par le serveur peuvent donner lieu à
+    // la création d'une fiche : un _id inconnu fourni par le client est refusé
+    // (sinon n'importe quel ObjectId — celui d'un membre d'un autre cabinet —
+    // pouvait devenir une fiche « plantée » dans le carnet).
+    const generatedIds = new Set();
+    const ensureId = (o) => {
+      if (o && !o._id) {
+        o._id = new mongoose.Types.ObjectId();
+        generatedIds.add(String(o._id));
+      }
+    };
     const collected = [];
     const collect = (o) => { if (o) collected.push(o); };
 
@@ -285,34 +302,81 @@ router.post(
     // le master QUE si le contact n'existe pas encore (création) ou s'il appartient
     // déjà au cabinet courant. Un _id référençant un contact d'un AUTRE cabinet est
     // refusé (la requête entière échoue pour éviter tout embarquement illégitime).
-    const accessibleIds = await getAccessibleUserIds(userId);
-    const foreignRefs = [];
-    try {
-      await Promise.all(
-        collected.map(async (c) => {
-          const Model = getModelForContact(c);
-          const existing = await Model.findById(c._id).select('userId').lean();
-          if (existing) {
-            const ownerId = existing.userId ? String(existing.userId) : null;
-            if (ownerId && !accessibleIds.includes(ownerId)) {
-              foreignRefs.push(String(c._id));
-              return; // ne PAS écraser un contact d'un autre cabinet
-            }
-            await Model.updateOne({ _id: c._id }, { ...c, userId });
-          } else {
-            await Model.create({ ...c, _id: c._id, userId });
-          }
-        })
-      );
-    } catch (upsertErr) {
-      console.warn("Upsert contact warning :", upsertErr.message);
+    //
+    // Les schémas Contact / PM / PM publique ne portent AUCUN champ userId :
+    // l'appartenance se lit exclusivement dans les tables de liaison
+    // (UserContact*), comme partout ailleurs. Le contrôle se fait donc AVANT la
+    // moindre écriture, sur tous les identifiants embarqués.
+    const invalidRef = collected.find((c) => !isValidObjectId(c._id));
+    if (invalidRef) {
+      return res.status(400).json({
+        message: "Identifiant de relation invalide dans le dossier.",
+        code: 'INVALID_DOSSIER_RELATION_ID',
+      });
     }
+    const relationIds = Array.from(new Set(collected.map((c) => String(c._id))));
+    const relationAccess = await getAccessibleRelationEntityIds(userId, relationIds);
+    const accessibleContactIds = new Set(relationAccess.contactIds.map(String));
+    const internalLawyerIds = new Set(relationAccess.officeUserIds.map(String));
+    const foreignRefs = [];
+    const unknownRefs = [];
+    const contactsToUpdate = [];
+    const contactsToCreate = [];
+    const seenIds = new Set();
+    await Promise.all(
+      collected.map(async (c) => {
+        const id = String(c._id);
+        if (seenIds.has(id)) return;
+        seenIds.add(id);
+        // Un avocat interne (OfficeUser / utilisateur du cabinet) n'est pas
+        // une fiche du carnet : rien à écrire dans les collections de contacts.
+        if (internalLawyerIds.has(id)) return;
+        if (accessibleContactIds.has(id)) {
+          contactsToUpdate.push(c);
+          return;
+        }
+        const exists = await Contact.exists({ _id: id })
+          || await ContactPM.exists({ _id: id })
+          || await ContactPMPublique.exists({ _id: id });
+        if (exists) foreignRefs.push(id); // fiche d'un AUTRE cabinet : refus
+        else if (generatedIds.has(id)) contactsToCreate.push(c);
+        else unknownRefs.push(id); // _id choisi par le client : jamais honoré
+      })
+    );
 
     if (foreignRefs.length > 0) {
       console.warn(`[createDossier] ACCESS_DENIED : contacts hors cabinet référencés par user ${userId}: ${foreignRefs.join(', ')}`);
       return res.status(403).json({
         message: "Accès refusé : un ou plusieurs contacts référencés n'appartiennent pas à votre cabinet.",
       });
+    }
+    if (unknownRefs.length > 0) {
+      console.warn(`[createDossier] UNKNOWN_RELATION : contacts inconnus référencés par user ${userId}: ${unknownRefs.join(', ')}`);
+      return res.status(400).json({
+        message: "Un ou plusieurs contacts référencés n'existent pas dans votre carnet.",
+        code: 'UNKNOWN_DOSSIER_RELATION',
+      });
+    }
+
+    // Une fiche créée depuis le dossier appartient au cabinet dès sa création
+    // (lien User* comme pour les routes de création de contact) ; sans ce lien
+    // elle était immédiatement « hors cabinet » (masquée à la lecture, PUT 403).
+    const linkForContact = (c) => {
+      const Model = getModelForContact(c);
+      if (Model === ContactPM) return new UserContactPM({ user: userId, contactPM: c._id }).save();
+      if (Model === ContactPMPublique) return new UserContactPMPublique({ user: userId, contactPMPublique: c._id }).save();
+      return new UserContact({ user: userId, contact: c._id }).save();
+    };
+    try {
+      await Promise.all([
+        ...contactsToUpdate.map((c) => getModelForContact(c).updateOne({ _id: c._id }, { ...c, userId })),
+        ...contactsToCreate.map(async (c) => {
+          await getModelForContact(c).create({ ...c, _id: c._id, userId });
+          await linkForContact(c);
+        }),
+      ]);
+    } catch (upsertErr) {
+      console.warn("Upsert contact warning :", upsertErr.message);
     }
 
     // Les identifiants documentaires sont exclusivement générés par MongoDB.

@@ -57,3 +57,31 @@ test('getAccessibleRelationEntityIds resout en lot les trois carnets et les Offi
   });
 });
 
+test('un utilisateur du cabinet est accepte comme avocat interne, un utilisateur etranger non', async () => {
+  jest.resetModules();
+  const cabinetUser = '64f100000000000000000099';
+  const cabinetColleague = '64f100000000000000000098';
+  const foreignUser = '64f100000000000000000042';
+  const emptyQuery = () => query([]);
+  jest.doMock('../../models/Folder/modelsLiaisons/UserContact', () => ({ find: jest.fn(emptyQuery) }));
+  jest.doMock('../../models/Folder/modelsLiaisons/UserContactPM', () => ({ find: jest.fn(emptyQuery) }));
+  jest.doMock('../../models/Folder/modelsLiaisons/UserContactPMPublique', () => ({ find: jest.fn(emptyQuery) }));
+  jest.doMock('../../models/App_Users/modelsLiaisons/UserOfficeUser', () => ({ find: jest.fn(emptyQuery) }));
+  jest.doMock('../../models/Folder/modelsLiaisons/UserDossier', () => ({}));
+  jest.doMock('../../models/Folder/Dossier', () => ({}));
+  jest.doMock('../../services/cabinetAccess', () => ({
+    getAccessibleUserIds: jest.fn().mockResolvedValue([cabinetUser, cabinetColleague]),
+  }));
+  jest.doMock('../securityLogger', () => ({ log: jest.fn(), EVT: { ACCESS_DENIED: 'ACCESS_DENIED' } }));
+  jest.doMock('../../services/tenantService', () => ({ resolveTenantId: jest.fn() }));
+
+  const { getAccessibleRelationEntityIds } = require('../ownershipHelpers');
+  // Le responsable "de repli" est embarque avec l'_id du User connecte : il
+  // doit etre accepte comme relation d'avocat (sinon PUT 403 et disparition
+  // du responsable a la lecture). Un User d'un autre cabinet reste refuse.
+  const result = await getAccessibleRelationEntityIds(cabinetUser, [cabinetUser, cabinetColleague, foreignUser]);
+
+  expect(result.contactIds).toEqual([]);
+  expect(result.officeUserIds).toEqual([cabinetUser, cabinetColleague]);
+});
+

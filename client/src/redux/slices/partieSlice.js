@@ -21,6 +21,7 @@ export const DELETE_LINKED_AVOCAT_ALL_CONTRE = partieCreateTypes.DEL_AV_CONTRE;
 export const DELETE_LINKED_CONTACT_ALL_CONTRE = partieCreateTypes.DEL_CT_CONTRE;
 export const SET_PARTIES_LINK_ALL_CONTRE = partieCreateTypes.SET_LINK_CONTRE;
 export const UPDATE_LINKED_AVOCATS_FOR_POUR_PARTIES = partieCreateTypes.UPDATE_AV_POUR;
+export const SYNC_PARTIE_RELATIONS = partieCreateTypes.SYNC_RELATIONS;
 export const RESET_PARTIES = partieCreateTypes.RESET;
 
 /* ------------------------------------------------------------------
@@ -35,6 +36,7 @@ export const deleteLinkedAvocat = partieCreateActions.deleteLinkedAvocat;
 export const setShouldPopulateNameFields = partieCreateActions.setShouldPopulateNameFields;
 export const updateLinkedAvocatsForPourParties = partieCreateActions.updateLinkedAvocatsForPourParties;
 export const toggleAvocatProperty = partieCreateActions.toggleAvocatProperty;
+export const syncPartieRelations = partieCreateActions.syncPartieRelations;
 export const deleteLinkedAvocatAllPour = partieCreateActions.deleteLinkedAvocatAllPour;
 export const deleteLinkedContactAllPour = partieCreateActions.deleteLinkedContactAllPour;
 export const setPartiesLinkAllPour = partieCreateActions.setPartiesLinkAllPour;
