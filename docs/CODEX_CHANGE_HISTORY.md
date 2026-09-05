@@ -5676,10 +5676,9 @@ numérotation des dossiers isolée par cabinet avec index unique et migration,
 audit et nettoyage des données de recette `ZZTEST`, empreinte des sources
 reproductible et garde « source Git exacte » au déploiement, recette
 authentifiée du stockage et des workers, déploiement.  
-**Statut :** code enregistré (tag `v2.0.18-rc5`) après validation locale complète ;
-les sections « Déploiement », « Recette sur le service en ligne », « Services
-externes » et « Réserves et décisions » sont complétées par le commit de
-documentation qui suit la mise en ligne.  
+**Statut :** déployé et promu à 100 % (`kheops-2-backend-00169-wax`), recette
+en ligne effectuée, code enregistré (commit `b73ec38`, tag `v2.0.18-rc5`),
+sections de déploiement complétées par le commit de documentation suivant.  
 **Version :** `2.0.18-rc5` (`package.json`, `package-lock.json`,
 `client/src/buildInfo.js`).
 
@@ -5897,16 +5896,136 @@ l'empreinte ; un manifeste d'un autre algorithme est signalé comme tel.
 
 ### Déploiement
 
-(complété par le commit de documentation qui suit la mise en ligne)
+Script officiel `scripts/gcp/deploy.ps1` (→ `deploy.sh`), projet `kheops-2`
+sélectionné explicitement, cible verrouillée par le script (compte
+`adja060672@gmail.com`, projet `kheops-2` / `16107185088`, région
+`europe-west1`, service `kheops-2-backend`), aucun garde-fou contourné :
+
+1. Garde « source Git exacte » (nouvelle) : dépôt Git, HEAD
+   `b73ec3803bd8dc8d8e6dfc2da95ec114cd982503`, aucune modification suivie,
+   aucune source non suivie embarquée, aucun fichier masqué.
+2. Précontrôle des sources et des secrets, valeurs jamais affichées.
+3. Suite serveur complète : **174 fichiers, 1 388 tests, 0 échec, 0 ignoré**.
+4. Suite frontend complète : **162 fichiers, 1 884 tests, 0 échec, 0 ignoré**.
+5. Build CRA et manifeste : **`BUILD-MTNSQQTR`**, empreinte des sources serveur
+   `7d56b29da6dd523b` (280 fichiers, `kheops-src-v2`), commit `b73ec38`,
+   arbre propre ; bundle `static/js/main.4efbe8e0.js`. Contrôle du manifeste
+   (commit = HEAD, arbre propre) validé.
+6. Révision candidate **sans trafic** `kheops-2-backend-00169-wax`, smoke-tests
+   sur la candidate isolée (santé, configuration, page et bundle, CORS des deux
+   URL Cloud Run), promotion atomique à 100 %, vérification de production sur
+   les deux adresses, tag temporaire supprimé.
+
+Résultat : révision précédente `kheops-2-backend-00166-san` (2026-09-04
+22:00 UTC) → **`kheops-2-backend-00169-wax`** (2026-09-05 03:06 UTC), 100 % du
+trafic, seule révision servante. Configuration préservée : 52 variables dont
+les 9 références Secret Manager, `NODE_ENV=production`, `KHEOPS_HOSTED=true`,
+`KHEOPS_BYPASS_AUTH=false`, `FRONTEND_URL`, `CORS_ORIGINS`,
+`GOOGLE_CALLBACK_URL` et `MICROSOFT_CALLBACK_URL` inchangés, compte de service
+`kheops-runtime`. Journal de démarrage de la révision :
+`[DB] cible=hosted base=(defaut) empreinte=ba4093d3b777`, `Hash runtime =
+Hash manifeste = 7d56b29da6dd523b (280 fichiers, kheops-src-v2, commit
+b73ec38…)`, « Correspondance : OUI », `[AI] Worker durable démarré`,
+`[DocumentSync] Worker durable démarré`, `[Mail] Worker durable démarré`,
+`[Readiness] GCS prêt (métadonnées et signature validées)`.
+
+Reproductibilité vérifiée après mise en ligne : l'empreinte `7d56b29da6dd523b`
+est obtenue à l'identique depuis `git archive b73ec38 server` (fins de ligne
+LF), depuis l'arbre de travail Windows et depuis une copie convertie en CRLF ;
+c'est aussi la valeur du manifeste et du journal Cloud Run.
+
+Retour arrière :
+`gcloud run services update-traffic kheops-2-backend --project kheops-2 --region europe-west1 --to-revisions kheops-2-backend-00166-san=100 --quiet`.
 
 ### Recette sur le service en ligne
 
-(complété par le commit de documentation qui suit la mise en ligne)
+Sur `kheops-2-backend-00169-wax`, compte de test `zztest.recette.mtn6m7f1@…`
+(connexion par le formulaire réel, jeton de bypass rejeté), second cabinet
+`zztest.cabinet.b.mtn6qupq@…` :
+
+- Santé 200 (build, startup, gcs et les trois workers prêts), `/config.js`
+  200, page 200, sans jeton 401, jeton de développement 401 ; bundle
+  `main.4efbe8e0.js`, 3 609 054 octets, SHA-256
+  `ead2cc6f0ffa7b82ed17953ca4f0eeb97901e3d2689e55efdd7c1c5cc03ca5cf`
+  identique au build local, marqueurs `2.0.18-rc5` et libellés des
+  correctifs précédents présents ; CORS 204 pour une origine autorisée, 403
+  `{message, error: CORS_ORIGIN_FORBIDDEN}` pour une origine inconnue.
+- **Numérotation par cabinet** (9/9) : premier dossier du cabinet A après
+  nettoyage = `202601`, puis `202602`, `202603` ; cabinet B indépendant
+  (`202601`, `202602`), la même référence existe dans les deux cabinets ; six
+  créations simultanées toutes en 201 avec six références distinctes
+  (`202604` à `202609`), aucune 5xx, aucun doublon ; référence inchangée par
+  une modification ; isolation. Les journaux montrent les reprises après
+  conflit d'unicité (avertissements, jusqu'à 3/8 tentatives).
+- **Parties, contacts et avocats** (non-régression) : création d'un dossier
+  avec quatre parties, avocat adverse, contacts multiples, rôles, doublon
+  empêché, avocat sans rôle refusé, nom saisi conservé ; modification
+  complète, persistance après rechargement, aucun appel à la fiche divorce ;
+  sécurité API 32/32 ; cinq formats d'écran sans défaut ; console limitée à
+  la CSP en report-only et à la sonde du compagnon local.
+- **Stockage authentifié** (15/15) : dépôt d'un fichier texte de test dans le
+  dossier de recette → 201, présent dans la liste, téléchargé identique octet
+  pour octet, vérification `synced=true`, URL signée non utilisée par le
+  fournisseur (flux direct), cabinet B ne peut ni lire, ni lister, ni
+  supprimer, fichier absent → 404 sans détail interne, sans jeton → 401,
+  usage lisible, suppression du seul fichier créé → 200 puis 404 et absent de
+  la liste, seconde suppression → 404.
+- **Workers** (9/9) : readiness des trois workers ; document logique ZZTEST
+  créé (201) ; opération de synchronisation enfilée (202, statut `queued`)
+  et reprise par le worker durable en moins de 2 s, close avec une issue
+  journalisée (`conflict` / `policy_blocked`, attendue pour une opération
+  sans emplacement cible : ni file bloquée, ni plantage), horodatages et
+  bail renseignés ; ré-enfilement avec la même clé → 200 idempotent, aucune
+  seconde opération ; cabinet B ne voit ni l'opération ni le document ; liste
+  des opérations consultable.
+- Journaux Cloud Run depuis la promotion : **aucune entrée ERROR, aucune
+  réponse 5xx** ; refus CORS et reprises de référence en avertissement.
 
 ### Services externes
 
-(complété par le commit de documentation qui suit la mise en ligne)
+- Stockage GCS et workers : recette authentifiée réelle ci-dessus (opération
+  fonctionnelle minimale, isolation, suppression du seul fichier créé). Le
+  bucket est partagé entre l'API locale et le service en ligne : la recette du
+  stockage n'est exécutée qu'en ligne.
+- Google et Microsoft : parcours vérifié jusqu'à la limite de l'automatisation.
+  `GET /api/auth/google` → 302 vers `accounts.google.com` avec la
+  `redirect_uri` de production inchangée ; `GET /api/auth/microsoft` → 302 vers
+  `login.microsoftonline.com` (PKCE, `redirect_uri` inchangée) ; retours
+  `callback` avec code invalide, état invalide ou consentement refusé →
+  redirections contrôlées vers `/login?error=…` (`google_invalid_grant`,
+  `google_consent_denied`, `microsoft_invalid_state`,
+  `microsoft_consent_denied`), aucune 5xx. La connexion effective avec un
+  compte Google ou Microsoft, la session, l'opération minimale, la révocation
+  et la déconnexion exigent une authentification humaine interactive :
+  parcours préparé, à réaliser par l'opérateur (voir réserves).
 
 ### Réserves et décisions
 
-(complété par le commit de documentation qui suit la mise en ligne)
+- **Connexions Google et Microsoft** : la partie interactive (consentement
+  sur le fournisseur) n'a pas pu être automatisée ; le démarrage, les
+  redirections et la robustesse des retours sont vérifiés en ligne. Action
+  attendue de l'opérateur : se connecter une fois avec un compte de recette
+  Google puis Microsoft sur l'URL servie, après quoi session, opération
+  minimale et déconnexion pourront être contrôlées.
+- **Résidu de recette conservé volontairement** : le dossier `202601` du
+  cabinet `zztest.recette.mtn6m7f1@…` (« ZZTEST Dossier Recette mtnszese »)
+  et ses 11 fiches sont conservés par l'outil de nettoyage parce que le dossier
+  référence le document de stockage déposé pendant la recette (objet GCS
+  supprimé logiquement) et l'opération de synchronisation ; l'outil ne touche
+  jamais au stockage distant. Nettoyage manuel possible : suppression de
+  l'objet et du document, puis relance de l'outil. Tous les autres objets
+  créés par la recette en ligne (10 dossiers) ont été supprimés, contrôle des
+  orphelins conforme.
+- Deux dossiers historiques sans cabinet (utilisateurs sans cabinet) restent
+  hors des séquences par cabinet, tolérés par l'index unique.
+- Base de préproduction : la base reste la base par défaut du cluster (sans
+  nom) ; la renommer exigerait une migration de données et une rotation du
+  secret `MONGODB_URI`, hors de cette livraison ; la garde l'identifie par
+  empreinte, hôte et base effective.
+- Compte de service Compute par défaut (rôle Editor historique) et catalogue
+  tarifaire IA (`AI_ALLOW_FALLBACK_PRICING=false`) : limites rappelées par le
+  script, inchangées.
+- Incident de procédure tracé : un tag `v2.0.18-rc5` a été posé par erreur sur
+  l'ancien commit `878e2de` pendant une minute puis retiré du dépôt distant
+  avant tout usage ; le tag définitif pointe sur `b73ec38`. Aucun push forcé,
+  aucun commit réécrit.
