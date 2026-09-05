@@ -1,14 +1,15 @@
 /*
  * Migration non destructive StoredDocument + snapshots Dossier vers le
- * registre de documents logiques. DRY-RUN par défaut.
+ * registre de documents logiques. DRY-RUN par défaut. Cible de base
+ * obligatoire : --target=dev|test|preprod (preprod : ajouter --confirm-preprod,
+ * KHEOPS_DB_OVERRIDE=preprod et KHEOPS_DB_OVERRIDE_REASON).
  *
- *   node server/scripts/migrate-logical-documents.js --tenant=<id> --user=<id>
+ *   node server/scripts/migrate-logical-documents.js --target=dev --tenant=<id> --user=<id>
  *   ... --apply --run-id=documents-2026-07
  *   ... --rollback=documents-2026-07
  */
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { connectForScript } = require('./lib/dbTarget');
 const mongoose = require('mongoose');
 
 function option(name) {
@@ -64,8 +65,7 @@ async function main() {
   if (!mongoose.Types.ObjectId.isValid(String(tenantId || '')) || !mongoose.Types.ObjectId.isValid(String(userId || ''))) {
     throw new Error('--tenant=<ObjectId> et --user=<ObjectId> sont obligatoires.');
   }
-  if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI manquant.');
-  await mongoose.connect(process.env.MONGODB_URI);
+  await connectForScript({ argv: process.argv, purpose: 'migrate-logical-documents' });
   const migration = require('../services/sync/legacyDocumentMigration');
   try {
     if (rollbackRunId) {

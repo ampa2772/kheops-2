@@ -3,13 +3,21 @@
  * Garde de lecture seule exécutée par deploy.sh avant toute mutation GCP.
  * Elle empêche l'activation des registres relationnel/documentaire tant que les
  * migrations de production explicites ne sont pas terminées sans erreur.
+ *
+ * Lit toujours MONGODB_URI dans server/.env (fichier de déploiement), jamais
+ * dans process.env ni dans un autre .env. Appelée sans argument par deploy.sh ;
+ * `--target=preprod` est accepté, toute autre cible est refusée.
+ *
+ * main() est exportée pour les tests (argv, chemin du fichier et journal
+ * injectables) ; le script ne s'exécute que lancé directement.
  */
 const fs = require('fs');
 const path = require('path');
-const dotenv = require('dotenv');
 const mongoose = require('mongoose');
+const { readDeploymentMongoUri, describeMongoUri } = require('../config/mongoTarget');
 
 const ROOT = path.join(__dirname, '..', '..');
+const DEPLOYMENT_ENV_PATH = path.join(ROOT, 'server', '.env');
 
 const TENANT_ID = '6a4717e6e32d5a7d3a5ad059';
 const USER_ID = '698941d40c8df05d76c7740e';
@@ -65,13 +73,21 @@ async function assertMailAccountsApplied() {
   if (missing.length) throw new Error(`migrate-mail-accounts: ${missing.length} compte(s) historique(s) non relié(s)`);
 }
 
-async function main() {
+async function main({ argv = process.argv, envPath = DEPLOYMENT_ENV_PATH, logger = console } = {}) {
   // Même source immuable que deploy.sh et predeploy-check.js. Ne charge jamais
   // le .env racine, ni une valeur MONGODB_URI déjà présente dans le processus.
-  const envPath = path.join(ROOT, 'server', '.env');
+  // Garde de deploiement : seule la base de deploiement a un sens ici. Un
+  // --target explicite est accepte s'il vaut preprod (scripts/gcp/deploy.sh
+  // appelle ce script sans argument) ; toute autre cible est refusee.
+  const targets = argv.filter((arg) => String(arg).startsWith('--target='));
+  if (targets.some((arg) => arg !== '--target=preprod')) {
+    throw new Error(`cette garde ne vise que la base de deploiement (${targets.join(' ')} refuse ; seul --target=preprod est accepte).`);
+  }
   if (!fs.existsSync(envPath)) throw new Error(`fichier d'environnement absent: ${envPath}`);
-  const mongoUri = dotenv.parse(fs.readFileSync(envPath, 'utf8')).MONGODB_URI;
+  const mongoUri = readDeploymentMongoUri(envPath);
   if (!mongoUri) throw new Error('MONGODB_URI absent.');
+  const described = describeMongoUri(mongoUri);
+  logger.log(`[DB] script=check-production-migrations cible=preprod base=${described.dbName} empreinte=${described.fingerprint}`);
   mongoose.set('autoIndex', false);
   await mongoose.connect(mongoUri, { autoIndex: false });
   const DataMigrationRun = require('../models/Documents/DataMigrationRun');
@@ -97,14 +113,18 @@ async function main() {
   }
   await assertEditorV2Applied();
   await assertMailAccountsApplied();
-  console.log('[Migrations] Trois run-id stables et les migrations éditeur/messagerie sont validés.');
+  logger.log('[Migrations] Trois run-id stables et les migrations éditeur/messagerie sont validés.');
 }
 
-main()
-  .catch((error) => {
-    console.error(`[Migrations] ERREUR : ${error.message}`);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await mongoose.disconnect().catch(() => {});
-  });
+if (require.main === module) {
+  main()
+    .catch((error) => {
+      console.error(`[Migrations] ERREUR : ${error.message}`);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await mongoose.disconnect().catch(() => {});
+    });
+}
+
+module.exports = { main, DEPLOYMENT_ENV_PATH };

@@ -357,6 +357,62 @@ let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{
 echo "==> [Local 1/4] Précontrôle des sources et secrets, sans affichage des valeurs"
 "$NODE_BIN" scripts/gcp/predeploy-check.js "$ENV_FILE"
 
+# Garde « source Git exacte » : l'image est construite depuis l'arbre de travail,
+# qui doit donc coïncider avec un commit identifiable. Les fichiers non suivis
+# qui n'entrent pas dans l'image (documentation, scripts d'administration,
+# tests) sont sans effet ; ceux qui y entreraient (sources du serveur retenues
+# par l'empreinte, client/src et client/public compilés dans client/build) font
+# échouer la garde, car l'image exécuterait du code absent du commit. Règle
+# unique partagée avec gitDirty du manifeste (scripts/generate-build-manifest.js).
+# Aucune option de contournement.
+echo "==> [Local 1/4 bis] Source Git exacte"
+command -v git >/dev/null || {
+  echo "ERREUR: git est introuvable ; le déploiement exige un dépôt Git."
+  exit 1
+}
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
+  echo "ERREUR: le dossier courant n'est pas un dépôt Git."
+  exit 1
+}
+GIT_HEAD_COMMIT="$(git rev-parse --verify HEAD 2>/dev/null || true)"
+if ! [[ "$GIT_HEAD_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "ERREUR: commit HEAD illisible (dépôt sans commit ?)."
+  exit 1
+fi
+readonly GIT_HEAD_COMMIT
+# Un fichier suivi marqué skip-worktree ou assume-unchanged est tu par
+# `git status` : une modification locale y resterait invisible pour la garde.
+GIT_HIDDEN_FLAGS="$(git ls-files -v | grep -E '^[a-zS] ' || true)"
+if [ -n "$GIT_HIDDEN_FLAGS" ]; then
+  echo "ERREUR: des fichiers suivis sont marqués skip-worktree ou assume-unchanged ; la garde ne peut pas les contrôler."
+  printf '%s\n' "$GIT_HIDDEN_FLAGS"
+  echo "Retirer ces marques (git update-index --no-skip-worktree / --no-assume-unchanged) puis relancer."
+  echo "Aucune mutation Google Cloud n'a été lancée."
+  exit 1
+fi
+GIT_PENDING_CHANGES="$(git status --porcelain --untracked-files=no)"
+if [ -n "$GIT_PENDING_CHANGES" ]; then
+  echo "ERREUR: des modifications suivies ne sont pas commitées ; le déploiement exige un commit exact."
+  printf '%s\n' "$GIT_PENDING_CHANGES"
+  echo "Commiter (ou remiser) ces fichiers puis relancer. Aucune option de contournement."
+  echo "Aucune mutation Google Cloud n'a été lancée."
+  exit 1
+fi
+# Sources non suivies qui entreraient dans l'image : exactement la liste qui
+# rend gitDirty vrai dans le manifeste généré plus bas.
+GIT_UNTRACKED_SOURCES="$("$NODE_BIN" -e '
+const { listUntrackedShippedSources } = require("./scripts/generate-build-manifest");
+process.stdout.write(listUntrackedShippedSources().join("\n"));
+')"
+if [ -n "$GIT_UNTRACKED_SOURCES" ]; then
+  echo "ERREUR: des fichiers non suivis entreraient dans l'image sans appartenir au commit HEAD."
+  printf '%s\n' "$GIT_UNTRACKED_SOURCES"
+  echo "Les ajouter au commit (git add) ou les retirer, puis relancer. Aucune option de contournement."
+  echo "Aucune mutation Google Cloud n'a été lancée."
+  exit 1
+fi
+echo "    Commit HEAD : $GIT_HEAD_COMMIT ($(git log -1 --format=%s HEAD))"
+
 echo "==> [Local 2/4] Suite serveur complète"
 ( cd server && "$NPM_BIN" test -- --runInBand )
 
@@ -374,6 +430,22 @@ echo "==> [Local 4/4] Build frontend et manifeste"
   echo "ERREUR: server/build-manifest.json absent après la génération du manifeste."
   exit 1
 }
+# Le manifeste embarqué doit désigner exactement le commit contrôlé plus haut,
+# depuis un arbre resté propre pendant les tests et le build.
+MANIFEST_GIT_STATE="$("$NODE_BIN" -e '
+const manifest = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+const tree = manifest.gitDirty === false ? "propre" : manifest.gitDirty === true ? "modifié" : "inconnu";
+process.stdout.write([manifest.gitCommit || "", tree, manifest.hashAlgorithm || ""].join("|"));
+' server/build-manifest.json)"
+IFS='|' read -r MANIFEST_GIT_COMMIT MANIFEST_GIT_TREE MANIFEST_HASH_ALGORITHM <<<"$MANIFEST_GIT_STATE"
+if [ "$MANIFEST_GIT_COMMIT" != "$GIT_HEAD_COMMIT" ] || [ "$MANIFEST_GIT_TREE" != "propre" ]; then
+  echo "ERREUR: le manifeste de build ne désigne pas le commit HEAD contrôlé."
+  echo "  HEAD attendu : $GIT_HEAD_COMMIT"
+  echo "  Manifeste    : ${MANIFEST_GIT_COMMIT:-aucun commit} (arbre $MANIFEST_GIT_TREE)"
+  echo "Aucune mutation Google Cloud n'a été lancée."
+  exit 1
+fi
+echo "    Manifeste   : commit $MANIFEST_GIT_COMMIT, empreinte ${MANIFEST_HASH_ALGORITHM:-non renseignée}"
 "$NODE_BIN" server/scripts/check-production-migrations.js
 
 echo "==> Tous les contrôles locaux sont réussis. Aucune mutation Google Cloud n'a encore eu lieu."
@@ -790,6 +862,7 @@ remove_candidate_tag || true
 echo ""
 echo "  Application en ligne : $PRESERVED_FRONTEND_URL"
 echo "  Révision active       : $NEW_REVISION"
+echo "  Commit déployé        : $GIT_HEAD_COMMIT"
 echo "  Smoke-tests           : santé, config, page React, bundle JS et CORS historique validés"
 echo "  Rollback disponible   : gcloud run services update-traffic $SERVICE --project $PROJECT --region $REGION --to-revisions $PREVIOUS_TRAFFIC"
 echo ""

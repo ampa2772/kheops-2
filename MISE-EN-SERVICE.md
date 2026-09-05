@@ -12,6 +12,20 @@
 - [ ] **(Adrien)** `TOKEN_ENCRYPTION_KEY` (64 hex) défini — requis pour la messagerie IMAP/SMTP.
 - [ ] **(Adrien)** `GCS_BUCKET` défini (active le stockage cloud interne `managed_gcs`).
 - [ ] **(Adrien)** Compte de service GCS avec droits sur le bucket.
+- [x] **(Claude, 2026-09-05)** Séparation base locale / base en ligne (`README.md §3`) : `server/.env` reste le
+      fichier de déploiement (lu par `deploy.sh`, jamais chargé en local), `server/.env.development`
+      (base `kheops2_dev`) est obligatoire en local, `server/.env.test` (base `kheops2_test`) facultatif ;
+      garde au démarrage (refus si la base de déploiement est visée sans dérogation
+      `KHEOPS_DB_OVERRIDE=preprod KHEOPS_DB_OVERRIDE_REASON="motif"`), `GET /api/health/db` authentifié,
+      `--target=dev|test|preprod` obligatoire sur tous les scripts (`preprod` : `--confirm-preprod` + dérogation ;
+      `dev`/`test` n'atteignent jamais la préproduction). Nom de base : `kheops2_dev`/`_dev`, `kheops2_test`/`_test`
+      (`test` seul, base absente et cluster + base de `server/.env` refusés) ; les commutateurs de garde
+      (`KHEOPS_HOSTED`, `NODE_ENV`, `KHEOPS_DB_OVERRIDE*`, `KHEOPS_ENV_FILE`) ne sont lus que dans le processus.
+      En hébergement (`KHEOPS_HOSTED=true`) : comportement inchangé, aucun fichier lu.
+- [x] **(Claude, 2026-09-05)** `scripts/gcp/apply-migrations.sh` exporte `KHEOPS_DB_OVERRIDE=preprod` et
+      `KHEOPS_DB_OVERRIDE_REASON="apply-migrations.sh : migrations de deploiement"` après `MONGODB_URI` et appelle
+      chaque `migrate-*.js` avec `--target=preprod --confirm-preprod` (dry-run, apply, rollback CDC4). `deploy.sh`
+      reste compatible (`check-production-migrations.js` accepte l'appel sans argument, testé).
 
 ## 3. Documents (génération)
 - [ ] **(Adrien)** Déposer les **modèles .docx** sous le préfixe `templates/` du bucket GCS.
@@ -27,9 +41,12 @@
 - [x] **(Claude)** **Script de migration `tenantId`** écrit : `server/scripts/backfill-tenant-id.js`
       (dry-run par défaut, `--apply` pour écrire ; remap `StoredDocument`/`MailAccount`/`StorageProviderConfig`,
       idempotent, logique pure testée 14/14).
-- [ ] **(Adrien)** **Exécuter la migration** : d'abord la prévisualisation `node scripts/backfill-tenant-id.js`
-      (aucune écriture), puis `node scripts/backfill-tenant-id.js --apply` **dans le même déploiement** que le
+- [ ] **(Adrien)** **Exécuter la migration** (cible explicite obligatoire, cf. `README.md §3.3`) : d'abord la
+      prévisualisation, depuis `server/`,
+      `KHEOPS_DB_OVERRIDE=preprod KHEOPS_DB_OVERRIDE_REASON="backfill tenantId" node scripts/backfill-tenant-id.js --target=preprod --confirm-preprod`
+      (aucune écriture), puis la même commande suivie de `--apply` **dans le même déploiement** que le
       chaînage ci-dessus (sinon `StoredDocument`/`MailAccount`/`StorageProviderConfig` existants deviennent orphelins).
+      Répétition sur la base de développement : `node scripts/backfill-tenant-id.js --target=dev [--apply]`.
 
 ## 5. Compagnon Word
 - [x] **(Claude, 2026-07-01)** Construire l'installeur (`cd electron-companion && npm install && npm run dist`).

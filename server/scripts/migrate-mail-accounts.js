@@ -1,22 +1,22 @@
 /*
  * Registre OAuth mail — migration non destructive, dry-run par défaut.
+ * Cible de base obligatoire : --target=dev|test|preprod (preprod : ajouter
+ * --confirm-preprod, KHEOPS_DB_OVERRIDE=preprod et KHEOPS_DB_OVERRIDE_REASON).
  *
- *   node server/scripts/migrate-mail-accounts.js
- *   node server/scripts/migrate-mail-accounts.js --apply
- *   node server/scripts/migrate-mail-accounts.js --rollback
+ *   node server/scripts/migrate-mail-accounts.js --target=dev
+ *   node server/scripts/migrate-mail-accounts.js --target=dev --apply
+ *   node server/scripts/migrate-mail-accounts.js --target=dev --rollback
  *
  * Le rollback ne supprime que les lignes-pont créées à partir des champs
  * legacy du User. Les jetons historiques restent dans User : revenir à
  * l'ancienne implémentation reste donc possible.
  */
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { connectForScript } = require('./lib/dbTarget');
 const mongoose = require('mongoose');
 
 async function main() {
-  if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI manquant.');
-  await mongoose.connect(process.env.MONGODB_URI);
+  await connectForScript({ argv: process.argv, purpose: 'migrate-mail-accounts' });
   const User = require('../models/App_Users/User');
   const OAuthMailAccount = require('../models/Mail/OAuthMailAccount');
   const { ensureLegacyAccounts } = require('../services/mail/oauthAccountService');

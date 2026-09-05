@@ -15,9 +15,12 @@
 //                            collisions sur l'index unique {tenantId})
 //
 // SÉCURITÉ : DRY-RUN par défaut (n'écrit RIEN, affiche seulement le plan).
-//   Prévisualiser :  node scripts/backfill-tenant-id.js
-//   Appliquer     :  node scripts/backfill-tenant-id.js --apply
+// Cible de base OBLIGATOIRE : --target=dev|test|preprod (scripts/lib/dbTarget.js).
+//   Prévisualiser :  node scripts/backfill-tenant-id.js --target=dev
+//   Appliquer     :  node scripts/backfill-tenant-id.js --target=dev --apply
 //   Verbeux       :  ... --verbose   (liste chaque _id)
+//   Préproduction :  KHEOPS_DB_OVERRIDE=preprod KHEOPS_DB_OVERRIDE_REASON="motif" \
+//                    node scripts/backfill-tenant-id.js --target=preprod --confirm-preprod [--apply]
 //
 // Idempotent : relançable sans dégât (les enregistrements déjà migrés sont
 // "unchanged" / "skippedAlreadyTenant").
@@ -26,8 +29,8 @@
 //   export PATH="/usr/bin:/bin:/c/Program Files/Git/usr/bin:/c/Program Files/nodejs:$PATH"
 
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { resolveScriptTarget, connectForScript } = require('./lib/dbTarget');
 
 const mongoose = require('mongoose');
 const {
@@ -50,17 +53,14 @@ function isValidId(value) {
 }
 
 async function main() {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    console.error('MONGODB_URI manquant (.env). Abandon.');
-    process.exit(1);
-  }
+  // Cible resolue avant toute sortie : une cible absente ou ambigue arrete ici.
+  resolveScriptTarget({ argv: process.argv });
 
   log('==============================================================');
   log(`  Backfill tenantId — mode ${APPLY ? 'APPLY (écriture réelle)' : 'DRY-RUN (aucune écriture)'}`);
   log('==============================================================\n');
 
-  await mongoose.connect(uri);
+  await connectForScript({ argv: process.argv, purpose: 'backfill-tenant-id' });
 
   const User = require(path.join(__dirname, '..', 'models', 'App_Users', 'User'));
   const Tenant = require(path.join(__dirname, '..', 'models', 'Cabinet', 'Tenant'));

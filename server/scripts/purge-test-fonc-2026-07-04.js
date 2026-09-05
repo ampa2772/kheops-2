@@ -11,9 +11,10 @@
 // test réels, contacts DUPONT/MARTIN/DURAND/EPOUX n°1/EPOUSE, PCH) et le
 // contact tribunal « Tribunal judiciaire De paris » (donnée annuaire légitime).
 //
-// Usage (depuis Kheops_2/server, lit MONGODB_URI dans .env) :
-//   node scripts/purge-test-fonc-2026-07-04.js            -> DRY-RUN (aucune écriture)
-//   node scripts/purge-test-fonc-2026-07-04.js --apply    -> exécute les suppressions
+// Usage (depuis Kheops_2/server ; cible --target=dev|test|preprod obligatoire,
+// preprod : --confirm-preprod + KHEOPS_DB_OVERRIDE=preprod + KHEOPS_DB_OVERRIDE_REASON) :
+//   node scripts/purge-test-fonc-2026-07-04.js --target=dev            -> DRY-RUN (aucune écriture)
+//   node scripts/purge-test-fonc-2026-07-04.js --target=dev --apply    -> exécute les suppressions
 //
 // Le script refuse de supprimer quoi que ce soit d'inattendu : chaque candidat
 // est listé avec la raison, et le doublon contact est abandonné au moindre
@@ -21,7 +22,8 @@
 
 'use strict';
 
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { connectForScript } = require('./lib/dbTarget');
 const mongoose = require('mongoose');
 
 const Dossier = require('../models/Folder/Dossier');
@@ -43,9 +45,7 @@ const KEEP_EPOUX_ID = '6a48bd3184a67480b0dd6daa';
 function log(...args) { console.log(...args); }
 
 async function main() {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error('MONGODB_URI absent (lancer depuis Kheops_2/server, .env requis).');
-  await mongoose.connect(uri);
+  await connectForScript({ argv: process.argv, purpose: 'purge-test-fonc-2026-07-04' });
   log(`Connecté. Mode : ${APPLY ? '*** APPLY (suppressions réelles) ***' : 'DRY-RUN (lecture seule)'}\n`);
 
   // ------------------------------------------------------------------

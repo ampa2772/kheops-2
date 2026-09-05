@@ -4,13 +4,15 @@
 // dans l'annuaire d'un compte, et indique lesquels sont liés à un dossier
 // (à NE PAS supprimer) vs supprimables sans risque.
 //
-//   node scripts/list-junk-contacts.js --email apma2772@gmail.com
+//   node scripts/list-junk-contacts.js --target=dev --email apma2772@gmail.com
+//   (cible --target=dev|test|preprod obligatoire ; preprod : --confirm-preprod
+//   + KHEOPS_DB_OVERRIDE=preprod + KHEOPS_DB_OVERRIDE_REASON="motif")
 //
 // N'écrit RIEN. Sert à valider la liste avant toute suppression.
 
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { connectForScript } = require('./lib/dbTarget');
 const mongoose = require('mongoose');
 
 const argv = process.argv.slice(2);
@@ -32,7 +34,7 @@ function isJunkName(name) {
 }
 
 async function main() {
-  await mongoose.connect(process.env.MONGODB_URI);
+  await connectForScript({ argv: process.argv, purpose: 'list-junk-contacts' });
 
   const User = require(path.join(__dirname, '..', 'models', 'App_Users', 'User'));
   const Contact = require(path.join(__dirname, '..', 'models', 'Folder', 'Contact'));

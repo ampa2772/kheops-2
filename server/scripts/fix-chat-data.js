@@ -10,18 +10,18 @@
 //    à un OfficeUser (= ancien legacy User._id pré-migration).
 //
 // Idempotent : peut être relancé plusieurs fois sans dégât.
+//
+// Usage : node scripts/fix-chat-data.js --target=dev|test|preprod
+// (preprod : --confirm-preprod + KHEOPS_DB_OVERRIDE=preprod + KHEOPS_DB_OVERRIDE_REASON).
 
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { connectForScript } = require('./lib/dbTarget');
 
 const mongoose = require('mongoose');
 
 async function main() {
-    const uri = process.env.MONGODB_URI;
-    if (!uri) { console.error('MONGODB_URI manquant'); process.exit(1); }
-
-    await mongoose.connect(uri);
+    await connectForScript({ argv: process.argv, purpose: 'fix-chat-data' });
     const Message = require(path.join(__dirname, '..', 'models', 'Chat', 'Message'));
     const OfficeUser = require(path.join(__dirname, '..', 'models', 'App_Users', 'OfficeUser'));
     const UserOfficeUser = require(path.join(__dirname, '..', 'models', 'App_Users', 'modelsLiaisons', 'UserOfficeUser'));

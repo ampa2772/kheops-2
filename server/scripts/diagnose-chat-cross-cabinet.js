@@ -3,18 +3,18 @@
 // Identifie les Messages dont sender et recipient appartiennent à DEUX
 // cabinets différents (= deux Users distincts via UserOfficeUser).
 // Ces messages représentent une fuite de données cross-cabinet.
+//
+// Usage : node scripts/diagnose-chat-cross-cabinet.js --target=dev|test|preprod
+// (preprod : --confirm-preprod + KHEOPS_DB_OVERRIDE=preprod + KHEOPS_DB_OVERRIDE_REASON).
 
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { connectForScript } = require('./lib/dbTarget');
 
 const mongoose = require('mongoose');
 
 async function main() {
-    const uri = process.env.MONGODB_URI;
-    if (!uri) { console.error('MONGODB_URI manquant'); process.exit(1); }
-
-    await mongoose.connect(uri);
+    await connectForScript({ argv: process.argv, purpose: 'diagnose-chat-cross-cabinet' });
     const Message = require(path.join(__dirname, '..', 'models', 'Chat', 'Message'));
     const OfficeUser = require(path.join(__dirname, '..', 'models', 'App_Users', 'OfficeUser'));
     const UserOfficeUser = require(path.join(__dirname, '..', 'models', 'App_Users', 'modelsLiaisons', 'UserOfficeUser'));

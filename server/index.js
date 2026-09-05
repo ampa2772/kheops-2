@@ -1,3 +1,14 @@
+// Chargement central de l'environnement AVANT tout autre module : en local,
+// server/.env.development (ou .env.test), jamais server/.env (fichier de
+// deploiement) ; en hebergement, aucun fichier (variables injectees).
+// Un poste sans .env.development s'arrete ici avec un message explicite.
+try {
+    require('./config/env').loadEnv();
+} catch (err) {
+    console.error(`[Config] ${err.message}`);
+    if (require.main === module) process.exit(1);
+    throw err;
+}
 const express = require('express');
 const http = require('http');
 const mongoose = require('mongoose');
@@ -28,12 +39,19 @@ function computeRuntimeHash() {
     return computeRuntimeSourceHash(__dirname);
 }
 
-function verifyRuntimeBuild() {
-    const manifest = loadBuildManifest();
-    const runtime = computeRuntimeHash();
+/**
+ * Compare le manifeste embarque a l'empreinte calculee au demarrage. Un
+ * manifeste produit par un autre algorithme (ancienne revision, manifeste non
+ * regenere) n'est jamais compare : sameAlgorithm=false et match=false, sans
+ * accuser le code. manifest et runtime ne sont injectes que par les tests.
+ */
+function verifyRuntimeBuild({ manifest = loadBuildManifest(), runtime = computeRuntimeHash() } = {}) {
     const required = process.env.NODE_ENV === 'production';
-    const match = manifest ? manifest.serverHash === runtime.hash && manifest.fileCount === runtime.fileCount : !required;
-    global.__buildVerification = { manifest, runtime, required, match };
+    const sameAlgorithm = !manifest || (manifest.hashAlgorithm || null) === runtime.hashAlgorithm;
+    const match = manifest
+        ? sameAlgorithm && manifest.serverHash === runtime.hash && manifest.fileCount === runtime.fileCount
+        : !required;
+    global.__buildVerification = { manifest, runtime, required, match, sameAlgorithm };
     return global.__buildVerification;
 }
 
@@ -46,6 +64,35 @@ function loadBuildManifest() {
         return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     }
     return null;
+}
+
+/**
+ * Commit Git enregistre dans le manifeste par generate-build-manifest.js.
+ * Reste lisible avec un ancien manifeste sans gitCommit ni hashAlgorithm.
+ */
+function describeManifestCommit(manifest) {
+    const commit = typeof manifest?.gitCommit === 'string' && manifest.gitCommit
+        ? manifest.gitCommit
+        : 'inconnu (manifeste sans commit)';
+    return manifest?.gitDirty === true ? `${commit} (arbre de travail modifie au build)` : commit;
+}
+
+/**
+ * Ligne « Hash manifeste » du journal de demarrage : empreinte, nombre de
+ * fichiers, algorithme et commit du manifeste embarque.
+ */
+function describeManifest(manifest) {
+    return `${manifest.serverHash} (${manifest.fileCount} fichiers, ${manifest.hashAlgorithm || 'algorithme non renseigne'}, commit ${describeManifestCommit(manifest)})`;
+}
+
+/**
+ * Ligne « Correspondance » du journal de demarrage, d'apres verifyRuntimeBuild :
+ * un manifeste d'un autre algorithme n'accuse pas le code, il doit etre regenere.
+ */
+function describeBuildVerdict(verification) {
+    if (verification.match) return 'OUI — Serveur a jour';
+    if (verification.sameAlgorithm === false) return 'NON — manifeste calcule avec un autre algorithme, regenerer le manifeste';
+    return 'NON — ATTENTION, code modifie depuis le build !';
 }
 
 
@@ -125,8 +172,11 @@ function checkProductionSafety() {
     }
 }
 
-// Configuration de la base de données
-const db = require('./config/keys').mongoURI;
+// Configuration de la base de données : la cible est resolue dans startServer
+// (journalisee sans URI, refusee hors hebergement si elle vise la base du
+// fichier de deploiement sans derogation — voir config/mongoTarget.js).
+const { resolveMongoTarget, formatMongoTargetLine } = require('./config/mongoTarget');
+let mongoTarget = null;
 
 // =====================================================================
 // === Middlewares de securite (rc37) ==================================
@@ -325,6 +375,20 @@ app.get('/api/health/ping', (req, res) => {
       mailWorkerRunning,
     });
     res.status(health.ok ? 200 : 503).json({ ...health, ts: Date.now() });
+});
+
+// Cible MongoDB effective, sans URI (type, nom de base, empreinte, motif de
+// derogation) : permet de verifier quelle base sert une API. Authentifie,
+// comme /api/health/email ; 503 tant que startServer n'a pas resolu la cible.
+app.get('/api/health/db', auth, (req, res) => {
+    if (!mongoTarget) return res.status(503).json({ ok: false, message: 'Cible MongoDB non resolue.' });
+    res.json({
+        ok: true,
+        kind: mongoTarget.kind,
+        dbName: mongoTarget.dbName,
+        fingerprint: mongoTarget.fingerprint,
+        override: mongoTarget.override ? mongoTarget.override.reason : null,
+    });
 });
 
 // Endpoint de diagnostic de la config email
@@ -532,7 +596,12 @@ async function startServer() {
   // Garde-fou production / hebergement (refuse de demarrer si config dangereuse)
   checkProductionSafety();
 
-  await mongoose.connect(db);
+  // Cible MongoDB : journalisee sans URI et verifiee AVANT toute connexion
+  // (refus explicite hors hebergement si la base de deploiement est visee
+  // sans derogation, ou si la base locale n'est pas nommee dev/test).
+  mongoTarget = resolveMongoTarget({ env: process.env });
+  console.log(formatMongoTargetLine(mongoTarget));
+  await mongoose.connect(mongoTarget.uri);
   console.log('Connecté à MongoDB');
 
   await insertDefaultData();
@@ -592,15 +661,15 @@ async function startServer() {
       // Banner de verification du build
       global.__serverStartedAt = new Date().toISOString();
       const verification = global.__buildVerification || verifyRuntimeBuild();
-      const { manifest, runtime, match: isMatch } = verification;
+      const { manifest, runtime } = verification;
       console.log('[Server] ============================================');
       console.log('[Server] VERIFICATION DU BUILD');
       console.log(`[Server] Hash runtime:   ${runtime.hash} (${runtime.fileCount} fichiers)`);
       if (manifest) {
-          console.log(`[Server] Hash manifeste: ${manifest.serverHash} (${manifest.fileCount} fichiers)`);
+          console.log(`[Server] Hash manifeste: ${describeManifest(manifest)}`);
           console.log(`[Server] Build ID:       ${manifest.buildId}`);
           console.log(`[Server] Build date:     ${manifest.buildTimestamp}`);
-          console.log(`[Server] Correspondance: ${isMatch ? 'OUI — Serveur a jour' : 'NON — ATTENTION, code modifie depuis le build !'}`);
+          console.log(`[Server] Correspondance: ${describeBuildVerdict(verification)}`);
       } else {
           console.log('[Server] Pas de manifeste (mode developpement)');
       }
@@ -625,9 +694,24 @@ if (require.main === module) {
   process.once('SIGTERM', () => { gracefulShutdown('SIGTERM'); });
   process.once('SIGINT', () => { gracefulShutdown('SIGINT'); });
   startServer().catch(err => {
-    console.error('Erreur fatale lors de l\'initialisation du serveur:', err);
+    // Erreur de configuration (cible MongoDB ambigue ou dangereuse) : message
+    // seul, sans pile, puis code de sortie non nul.
+    if (err && err.code === 'KHEOPS_CONFIG') console.error(`[Config] ${err.message}`);
+    else console.error('Erreur fatale lors de l\'initialisation du serveur:', err);
     process.exit(1);
   });
 }
 
-module.exports = { app, startServer, startBackgroundWorkers, stopBackgroundWorkers, gracefulShutdown };
+// verifyRuntimeBuild et les descriptions du manifeste sont exportees pour les
+// tests unitaires (server/__tests__/runtimeBuildVerification.test.js).
+module.exports = {
+  app,
+  startServer,
+  startBackgroundWorkers,
+  stopBackgroundWorkers,
+  gracefulShutdown,
+  verifyRuntimeBuild,
+  describeManifestCommit,
+  describeManifest,
+  describeBuildVerdict,
+};

@@ -1,15 +1,16 @@
 /*
  * Migration non destructive des liaisons historiques vers EntityRelation.
+ * Cible de base obligatoire : --target=dev|test|preprod (preprod : ajouter
+ * --confirm-preprod, KHEOPS_DB_OVERRIDE=preprod et KHEOPS_DB_OVERRIDE_REASON).
  * DRY-RUN par défaut :
- *   node server/scripts/migrate-legacy-relations.js --tenant=<id> --user=<id>
+ *   node server/scripts/migrate-legacy-relations.js --target=dev --tenant=<id> --user=<id>
  * Appliquer (run-id recommandé pour une reprise certaine) :
  *   ... --apply --run-id=relations-2026-07
  * Rollback historisé (aucune suppression) :
  *   ... --rollback=relations-2026-07
  */
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { connectForScript } = require('./lib/dbTarget');
 const mongoose = require('mongoose');
 
 function option(name) {
@@ -86,8 +87,7 @@ async function main() {
   if (!mongoose.Types.ObjectId.isValid(String(tenantId || '')) || !mongoose.Types.ObjectId.isValid(String(userId || ''))) {
     throw new Error('--tenant=<ObjectId> et --user=<ObjectId> sont obligatoires.');
   }
-  if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI manquant.');
-  await mongoose.connect(process.env.MONGODB_URI);
+  await connectForScript({ argv: process.argv, purpose: 'migrate-legacy-relations' });
   const migration = require('../services/relations/legacyRelationMigration');
   try {
     if (rollbackRunId) {

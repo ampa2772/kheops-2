@@ -3,19 +3,19 @@
 // Test direct du Change Stream sur MongoDB Atlas. Démarre un watch,
 // insère un message test, vérifie que le stream reçoit bien l'événement,
 // puis nettoie.
+//
+// Usage : node scripts/test-change-stream.js --target=dev|test|preprod
+// (preprod : --confirm-preprod + KHEOPS_DB_OVERRIDE=preprod + KHEOPS_DB_OVERRIDE_REASON).
 
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { connectForScript } = require('./lib/dbTarget');
 
 const mongoose = require('mongoose');
 
 async function main() {
-    const uri = process.env.MONGODB_URI;
-    if (!uri) { console.error('MONGODB_URI manquant'); process.exit(1); }
-
-    console.log('[test] Connexion à Atlas...');
-    await mongoose.connect(uri);
+    console.log('[test] Connexion...');
+    await connectForScript({ argv: process.argv, purpose: 'test-change-stream' });
     console.log('[test] Connecté');
 
     const Message = require(path.join(__dirname, '..', 'models', 'Chat', 'Message'));

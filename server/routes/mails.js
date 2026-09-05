@@ -2,7 +2,7 @@ const express = require('express');
 // Utilise @googleapis/gmail (léger, ~735 Ko) au lieu de googleapis complet (123 Mo)
 const { gmail: gmailApi } = require('@googleapis/gmail');
 const { OAuth2Client: GmailOAuth2Client } = require('googleapis-common');
-require('dotenv').config();
+require('../config/env').loadEnv();
 const { Buffer } = require('buffer');
 const path = require('path');
 const fs = require('fs');

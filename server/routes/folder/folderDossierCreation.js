@@ -39,7 +39,7 @@ const {
 const { materializeMatterFolder } = require("../../services/storage/matterFolderMaterializer");
 const { resolveTenantId } = require("../../services/tenantService");
 const { normalizeDossierParties } = require("../../services/dossierPartyRelations");
-const { generateDossierReference } = require("../../utils/dossierReference");
+const { generateDossierReference, saveDossierWithReference } = require("../../utils/dossierReference");
 
 const isValidObjectId = (value) => Boolean(
   value && mongoose.Types.ObjectId.isValid(String(value)),
@@ -105,14 +105,24 @@ const ensureRoleExists = async (res, roleId) => {
 // ========================================================================
 
 // ------------------------------------------------------------------------
-// Créer un dossier (entité de base, potentiellement non utilisée)
+// Créer un dossier (entité de base, potentiellement non utilisée : aucun
+// appel dans client/src)
+// La référence est attribuée par le serveur (séquence du cabinet, voir
+// utils/dossierReference) : une `reference` ou un `tenantId` fournis dans le
+// corps sont ignorés. Sinon la numérotation par cabinet était contournée et un
+// doublon remontait en 11000 brut (500 générique) au lieu du 409
+// DOSSIER_REFERENCE_CONFLICT.
 // ------------------------------------------------------------------------
 router.post(
   "/dossier",
   auth,
   asyncHandler(async (req, res) => {
-    const dossier = new Dossier({ ...req.body, tenantId: await resolveTenantId(req.user) });
-    await dossier.save();
+    const tenantId = await resolveTenantId(req.user);
+    const { reference: _ignoredReference, tenantId: _ignoredTenantId, ...body } = req.body || {};
+    const dossier = await saveDossierWithReference({
+      tenantId,
+      buildDossier: (reference) => new Dossier({ ...body, reference, tenantId }),
+    });
     res.json(dossier);
   })
 );
@@ -219,9 +229,10 @@ router.post(
 // Création d'un dossier avec une référence auto-incrémentée
 // ========================================================================
 
-// Référence « <année><rang> » : rang calculé numériquement sur les références
-// de l'année, puis revérifié juste avant l'attribution (utils/dossierReference).
-// La séquence reste globale et sans contrainte d'unicité (décision en attente).
+// Référence « <année><rang> » unique PAR CABINET : rang calculé numériquement
+// sur les références de l'année du cabinet, revérifié juste avant l'attribution,
+// puis garanti par l'index unique { tenantId, reference } ; un conflit 11000 à
+// l'enregistrement déclenche une nouvelle génération (utils/dossierReference).
 
 // ------------------------------------------------------------------------
 // POST /createDossier
@@ -241,7 +252,9 @@ router.post(
     console.log(`[createDossier] ▶ DEBUT | userId (req.user): ${userId}`);
     console.log(`[createDossier] dossierData.dossier?.nom: ${dossierData?.dossier?.nom}`);
     console.log(`[createDossier] Parties pour: ${dossierData?.parties?.pour?.length || 0} | contre: ${dossierData?.parties?.contre?.length || 0}`);
-    const reference = await generateDossierReference();
+    // Générée tôt (échec avant toute écriture de contact si le cabinet n'est
+    // pas résolu) ; régénérée à l'enregistrement en cas de conflit d'unicité.
+    const reference = await generateDossierReference({ tenantId });
 
     // Frontiere canonique : les avocats/contacts et leurs roles restent
     // embarques dans le snapshot, mais sans doublon ni classement ambigu.
@@ -378,12 +391,18 @@ router.post(
     }
 
     /* 3️⃣ – création du dossier principal */
-    const savedDossier = await new Dossier({
-      reference,
+    // Conflit d'unicité { tenantId, reference } (création simultanée dans le
+    // même cabinet) : nouvelle référence puis nouvel enregistrement, borné.
+    const savedDossier = await saveDossierWithReference({
       tenantId,
-      dossier: dossierData,
-      dateCreation: new Date(),
-    }).save();
+      reference,
+      buildDossier: (candidate) => new Dossier({
+        reference: candidate,
+        tenantId,
+        dossier: dossierData,
+        dateCreation: new Date(),
+      }),
+    });
     console.log(`[createDossier] ✅ Dossier créé: _id=${savedDossier._id} | reference=${savedDossier.reference}`);
     console.log(`[createDossier] Dossier.dossier.dossier.nom: ${savedDossier.dossier?.dossier?.nom}`);
 

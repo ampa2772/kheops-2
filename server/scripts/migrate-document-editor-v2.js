@@ -1,19 +1,20 @@
 /*
- * Migration additive de l'Éditeur Kheops v2. DRY-RUN par défaut.
+ * Migration additive de l'Éditeur Kheops v2. DRY-RUN par défaut. Cible de
+ * base obligatoire : --target=dev|test|preprod (preprod : ajouter
+ * --confirm-preprod, KHEOPS_DB_OVERRIDE=preprod et KHEOPS_DB_OVERRIDE_REASON).
  *
- *   node server/scripts/migrate-document-editor-v2.js --tenant=<ObjectId>
- *   node server/scripts/migrate-document-editor-v2.js --tenant=<ObjectId> --apply
- *   node server/scripts/migrate-document-editor-v2.js --tenant=<ObjectId> --rollback
- *   node server/scripts/migrate-document-editor-v2.js --tenant=<ObjectId> --rollback --apply
+ *   node server/scripts/migrate-document-editor-v2.js --target=dev --tenant=<ObjectId>
+ *   node server/scripts/migrate-document-editor-v2.js --target=dev --tenant=<ObjectId> --apply
+ *   node server/scripts/migrate-document-editor-v2.js --target=dev --tenant=<ObjectId> --rollback
+ *   node server/scripts/migrate-document-editor-v2.js --target=dev --tenant=<ObjectId> --rollback --apply
  *
  * La migration ne réécrit jamais les blocs ni les octets DOCX. Elle ajoute les
  * métadonnées de modèle/exceptions et harmonise l'ancien statut `approved` en
  * `validated`. La normalisation complète au schéma v2 est faite lors de la
  * prochaine édition explicite du document.
  */
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { connectForScript } = require('./lib/dbTarget');
 const mongoose = require('mongoose');
 
 function option(name) {
@@ -81,8 +82,7 @@ async function main() {
   const apply = process.argv.includes('--apply');
   const rollback = process.argv.includes('--rollback');
   if (!mongoose.Types.ObjectId.isValid(String(tenantId || ''))) throw new Error('--tenant=<ObjectId> est obligatoire.');
-  if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI manquant.');
-  await mongoose.connect(process.env.MONGODB_URI, { autoIndex: false });
+  await connectForScript({ argv: process.argv, purpose: 'migrate-document-editor-v2', connectOptions: { autoIndex: false } });
 
   const DocumentEditorState = require('../models/DocumentEditor/DocumentEditorState');
   const DocumentEditorRevision = require('../models/DocumentEditor/DocumentEditorRevision');

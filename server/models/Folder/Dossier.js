@@ -314,11 +314,34 @@ const DossierSchema = mongoose.Schema({
   aideJuridictionnelle: AideJuridictionnelleSchema
 });
 
-// Index NON unique sur la référence : l'attribution d'une référence lit les
-// références de l'année (préfixe ancré) puis revérifie le candidat juste avant
-// l'enregistrement (utils/dossierReference). Aucune unicité imposée ici : des
-// doublons historiques peuvent exister, à vérifier avant tout index unique.
-DossierSchema.index({ reference: 1 });
+// Index UNIQUE compose { tenantId, reference } : la reference est unique PAR
+// CABINET et chaque cabinet suit sa propre sequence annuelle (regle canonique
+// en tete de utils/dossierReference.js). Il remplace l'ancien index non unique
+// { reference: 1 } ; l'attribution lit les references de l'annee du cabinet
+// (prefixe ancre, servi par cet index), reverifie le candidat, puis l'index
+// tranche les creations strictement simultanees (erreur 11000 -> nouvelle
+// reference, voir saveDossierWithReference).
+//
+// Donnees historiques : les 12 dossiers sans tenantId (null) sont rattaches a
+// leur cabinet par scripts/migrate-dossier-references.js (l'audit du
+// 2026-09-05 n'a releve aucun doublon, ni par cabinet ni global). Un tenantId
+// null reste tolere par l'index tant que les references des dossiers sans
+// cabinet restent distinctes entre elles : MongoDB indexe la valeur null comme
+// une valeur ordinaire, la paire (null, reference) doit donc etre unique elle
+// aussi.
+//
+// CREATION DE L'INDEX : c'est la migration (--apply, AVANT la mise en ligne de
+// cette version) qui le cree explicitement, puis supprime l'ancien index
+// reference_1. Mongoose (autoIndex) tente aussi de le creer a la connexion,
+// mais un echec a cet endroit (doublon apparu entre-temps) n'est PAS
+// journalise par Mongoose : Model.init() est intercepte des la compilation du
+// modele (model.js : `Model.init().catch(() => {})`, $caught = true), l'erreur
+// n'est plus emise sur 'error' et seul l'evenement 'index' la porte. D'ou
+// l'ecouteur ci-dessous : sans l'index unique, la garantie de concurrence
+// (11000 -> saveDossierWithReference) n'existe plus, ce qui doit se voir dans
+// le journal du serveur. Controle post-deploiement : l'audit
+// (scripts/audit-dossier-references.js) doit rendre composeUniquePresent=true.
+DossierSchema.index({ tenantId: 1, reference: 1 }, { unique: true, name: 'tenantId_1_reference_1' });
 
 // ========================================================================
 // === SECTION INCHANGÉE : Middleware et Export ===========================
@@ -330,4 +353,16 @@ DossierSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Dossier', DossierSchema);
+const Dossier = mongoose.model('Dossier', DossierSchema);
+
+// Trace explicite d'un echec de creation des index au demarrage (voir le
+// commentaire de l'index unique ci-dessus) : Mongoose emet 'index' avec
+// l'erreur du pilote (ex. E11000 sur un doublon (tenantId, reference)) et ne
+// journalise rien d'autre. Le serveur continue de tourner, mais sans la
+// contrainte d'unicite : a corriger avant toute creation de dossier.
+Dossier.on('index', (error) => {
+  if (!error) return;
+  console.error(`[Dossier] Creation des index echouee : l'index unique tenantId_1_reference_1 est possiblement ABSENT (unicite des references par cabinet non garantie). Cause : ${error.message}. Relancer scripts/audit-dossier-references.js puis scripts/migrate-dossier-references.js.`);
+});
+
+module.exports = Dossier;

@@ -35,9 +35,21 @@
 - [ ] **T0.2 — `ELECTRON_MODE` n'est PAS `true`** côté serveur web (sinon les callbacks OAuth partent en
   deep link `kheops2://` au lieu de la redirection web — `auth.js:181,318,670`).
 - [ ] **T0.3 — Migration `tenantId` exécutée** dans le même déploiement que le chaînage `requireTenant`
-  (`node server/scripts/backfill-tenant-id.js --apply` — cf. `MISE-EN-SERVICE.md §4`). Sinon les
+  (`KHEOPS_DB_OVERRIDE=preprod KHEOPS_DB_OVERRIDE_REASON="backfill tenantId" node server/scripts/backfill-tenant-id.js --target=preprod --confirm-preprod --apply`
+  — cf. `MISE-EN-SERVICE.md §4`). Sinon les
   `StoredDocument`/`MailAccount`/`StorageProviderConfig` existants sont orphelins → tests §3/§4/§5 faussés.
 - [ ] **T0.4 — Modèles déposés sous `templates/`** (cf. `DEPOT-TEMPLATES.md`) — requis pour §2 (génération).
+- [ ] **T0.5 — Base ciblée explicite (`README.md §3`).** Trois fichiers : `server/.env` (déploiement, lu par
+  `deploy.sh`, jamais chargé en local), `server/.env.development` (base `kheops2_dev`, obligatoire en local),
+  `server/.env.test` (base `kheops2_test`, facultatif). *Observer :* au démarrage local, la ligne
+  `[DB] cible=dev base=kheops2_dev empreinte=…` ; `GET /api/health/db` (authentifié) renvoie `kind`, `dbName`,
+  `fingerprint` sans URI. Une recette contre la préproduction depuis un poste local exige la dérogation
+  `KHEOPS_DB_OVERRIDE=preprod KHEOPS_DB_OVERRIDE_REASON="recette …"` (avertissement visible, `kind=preprod-override`) ;
+  sans elle, le serveur refuse de démarrer (et `NODE_ENV=test` la refuse toujours). En ligne : `kind=hosted`.
+  Nom de base exigé : `kheops2_dev` (ou `_dev`) en développement, `kheops2_test` (ou `_test`) en test ; `test`
+  seul, une base absente et le cluster + base de `server/.env` sont refusés. Tout script `server/scripts/*.js`
+  exige `--target=dev|test|preprod` (`preprod` : `--confirm-preprod` + dérogation ; `dev`/`test` n'atteignent
+  jamais la préproduction, dérogation ou non).
 
 ---
 
@@ -193,7 +205,7 @@
 
 | Domaine | Tests | Statut |
 |---|---|---|
-| 0. Config critique | T0.1–T0.4 | [ ] |
+| 0. Config critique | T0.1–T0.5 | [ ] |
 | 1. Auth e-mail/reset | T1.1–T1.10 | [ ] |
 | 1. Auth Google | T1.11–T1.14 | [ ] |
 | 1. Auth Microsoft | T1.15–T1.19 | [ ] |

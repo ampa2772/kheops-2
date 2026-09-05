@@ -95,6 +95,11 @@ NODE
 )"
 readonly MIGRATION_MONGODB_URI
 export MONGODB_URI="$MIGRATION_MONGODB_URI"
+# Les scripts migrate-*.js exigent une cible explicite (--target=preprod
+# --confirm-preprod) et la dérogation ci-dessous (server/scripts/lib/dbTarget.js) ;
+# MONGODB_URI, déjà exporté depuis server/.env, correspond à l'empreinte attendue.
+export KHEOPS_DB_OVERRIDE=preprod
+export KHEOPS_DB_OVERRIDE_REASON="apply-migrations.sh : migrations de deploiement"
 
 # Vérification en lecture seule de l'identité MongoDB ciblée. Aucun secret ni
 # contenu métier n'est affiché.
@@ -144,6 +149,7 @@ run_dry_run() {
 
   echo "==> Dry-run $label (aucune écriture)"
   "$NODE_BIN" "$script" \
+    --target=preprod --confirm-preprod \
     --tenant="$EXPECTED_TENANT_ID" \
     --user="$EXPECTED_USER_ID" \
     --run-id="$run_id" | tee "$output_file"
@@ -186,6 +192,7 @@ run_apply() {
   local run_id="$3"
   echo "==> Application $label — run-id stable : $run_id"
   "$NODE_BIN" "$script" \
+    --target=preprod --confirm-preprod \
     --tenant="$EXPECTED_TENANT_ID" \
     --user="$EXPECTED_USER_ID" \
     --apply \
@@ -231,11 +238,12 @@ run_cdc4_dry_runs() {
   local mail_output="$TMP_DIR/mail-accounts.jsonlog"
   echo "==> Dry-run éditeur v2 (aucune écriture)"
   "$NODE_BIN" server/scripts/migrate-document-editor-v2.js \
+    --target=preprod --confirm-preprod \
     --tenant="$EXPECTED_TENANT_ID" | tee "$editor_output"
   extract_json_result "$editor_output" "dry-run"
 
   echo "==> Dry-run registre OAuth mail (aucune écriture)"
-  "$NODE_BIN" server/scripts/migrate-mail-accounts.js | tee "$mail_output"
+  "$NODE_BIN" server/scripts/migrate-mail-accounts.js --target=preprod --confirm-preprod | tee "$mail_output"
   extract_json_result "$mail_output" "dry-run"
 }
 
@@ -244,11 +252,12 @@ run_cdc4_rollback_preview() {
   local mail_output="$TMP_DIR/mail-accounts-rollback.jsonlog"
   echo "==> Prévisualisation rollback éditeur v2 (aucune écriture)"
   "$NODE_BIN" server/scripts/migrate-document-editor-v2.js \
+    --target=preprod --confirm-preprod \
     --tenant="$EXPECTED_TENANT_ID" --rollback | tee "$editor_output"
   extract_json_result "$editor_output" "rollback-dry-run"
 
   echo "==> Prévisualisation rollback registre OAuth mail (aucune écriture)"
-  "$NODE_BIN" server/scripts/migrate-mail-accounts.js --rollback | tee "$mail_output"
+  "$NODE_BIN" server/scripts/migrate-mail-accounts.js --target=preprod --confirm-preprod --rollback | tee "$mail_output"
   extract_json_result "$mail_output" "rollback-dry-run"
 }
 
@@ -269,9 +278,10 @@ if [ "$MODE" = "--rollback-cdc4" ]; then
     exit 1
   fi
   echo "==> Rollback registre OAuth mail"
-  "$NODE_BIN" server/scripts/migrate-mail-accounts.js --rollback --apply
+  "$NODE_BIN" server/scripts/migrate-mail-accounts.js --target=preprod --confirm-preprod --rollback --apply
   echo "==> Rollback éditeur v2"
   "$NODE_BIN" server/scripts/migrate-document-editor-v2.js \
+    --target=preprod --confirm-preprod \
     --tenant="$EXPECTED_TENANT_ID" --rollback --apply
   echo "==> Retour arrière CDC4 terminé ; les sauvegardes non restaurables ont été conservées."
   exit 0
@@ -295,9 +305,10 @@ run_apply "relations" "server/scripts/migrate-legacy-relations.js" "$RELATIONS_R
 run_apply "documents" "server/scripts/migrate-logical-documents.js" "$DOCUMENTS_RUN_ID"
 echo "==> Application éditeur v2"
 "$NODE_BIN" server/scripts/migrate-document-editor-v2.js \
+  --target=preprod --confirm-preprod \
   --tenant="$EXPECTED_TENANT_ID" --apply
 echo "==> Application registre OAuth mail"
-"$NODE_BIN" server/scripts/migrate-mail-accounts.js --apply
+"$NODE_BIN" server/scripts/migrate-mail-accounts.js --target=preprod --confirm-preprod --apply
 
 echo "==> Migrations appliquées avec leurs identifiants stables et leurs sauvegardes CDC4."
 echo "Les migrations historiques acceptent --rollback=<run-id> ; les deux migrations CDC4 utilisent --rollback-cdc4 avec confirmation séparée."

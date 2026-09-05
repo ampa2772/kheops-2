@@ -5665,3 +5665,248 @@ leurs cabinets de test et identifiables au préfixe.
 - Identifiants en français des nouveaux helpers de nommage (`estNomDossierAuto`,
   `buildNomDossierEnTete`) alors que les helpers voisins sont en anglais :
   laissé tel quel, sans blocage.
+
+---
+
+## CODEX-CHANGE-060 — Version 2.0.18-rc5 : bases séparées, numérotation par cabinet, audit et nettoyage des données, empreinte reproductible, recette des services
+
+**Date :** 2026-09-05  
+**Nature :** séparation des bases locale / test / préproduction avec garde-fous,
+numérotation des dossiers isolée par cabinet avec index unique et migration,
+audit et nettoyage des données de recette `ZZTEST`, empreinte des sources
+reproductible et garde « source Git exacte » au déploiement, recette
+authentifiée du stockage et des workers, déploiement.  
+**Statut :** code enregistré (tag `v2.0.18-rc5`) après validation locale complète ;
+les sections « Déploiement », « Recette sur le service en ligne », « Services
+externes » et « Réserves et décisions » sont complétées par le commit de
+documentation qui suit la mise en ligne.  
+**Version :** `2.0.18-rc5` (`package.json`, `package-lock.json`,
+`client/src/buildInfo.js`).
+
+### Entrées relues avant intervention
+
+`CODEX-CHANGE-057`, `058`, `059` (parties et personnes liées, déploiements rc3 et
+rc4, référence numérique, empreinte non reproductible, base partagée entre
+l'API locale et le service en ligne). Invariants conservés : format de
+référence « <année><rang> », aucune renumérotation, contrat des routes de
+dossier, secrets et URL OAuth inchangés, script de déploiement officiel seul
+autorisé à muter Cloud Run.
+
+### Chantier 1 — Séparation des bases
+
+Constat : `server/.env` (fichier de déploiement, lu par `scripts/gcp/deploy.sh`
+pour épingler les secrets) contenait l'URI de préproduction, sans nom de base
+(base par défaut du serveur MongoDB), et tous les points d'entrée locaux
+(`config/keys.js`, `googleConfig.js`, `passport-setup.js`,
+`middlewares/middleware-auth.js`, `routes/mails.js`, `utils/sendEmail.js`,
+chaque script de `server/scripts`) chargeaient ce fichier sans discernement :
+un test local écrivait dans la préproduction.
+
+Correction :
+
+- `server/config/env.js` : chargeur central idempotent. `KHEOPS_ENV_FILE`
+  explicite ; hébergement (`KHEOPS_HOSTED=true` ou `NODE_ENV=production`) →
+  aucun fichier (variables injectées par Cloud Run) ; `NODE_ENV=test` →
+  `.env.test` s'il existe, jamais sous Jest ; sinon développement →
+  `server/.env.development` **obligatoire** (erreur explicite renvoyant à
+  `.env.development.example`). Le fichier de déploiement `server/.env` n'est
+  jamais chargé localement sans dérogation. Les commutateurs de garde
+  (`KHEOPS_HOSTED`, `NODE_ENV`, `KHEOPS_ENV_FILE`, `KHEOPS_DB_OVERRIDE`,
+  `KHEOPS_DB_OVERRIDE_REASON`) ne peuvent venir que de l'environnement du
+  processus, jamais du fichier chargé ; aucune variable déjà présente n'est
+  écrasée.
+- `server/config/mongoTarget.js` : description d'une URI sans l'exposer (nom de
+  base, empreinte SHA-256 tronquée, hôte masqué) ; résolution de la cible
+  (`hosted`, `dev`, `test`, `preprod-override`) ; **garde** : hors hébergement,
+  une URI dont l'empreinte est celle du fichier de déploiement, ou qui vise le
+  même cluster et la même base effective, est refusée ; la base de
+  développement doit s'appeler `kheops2_dev` (marqueur `_dev`), celle de test
+  `kheops2_test` ; les noms réservés (`test`, `admin`, `local`, `config`) et
+  l'absence de nom sont refusés. Dérogation explicite uniquement pour le
+  serveur : `KHEOPS_DB_OVERRIDE=preprod` **et** `KHEOPS_DB_OVERRIDE_REASON`
+  non vide, interdite en mode test, journalisée par une bannière portant le
+  motif. Ligne de journal systématique `[DB] cible=… base=… empreinte=…`.
+- `server/scripts/lib/dbTarget.js` : tout script d'exploitation exige
+  `--target=dev|test|preprod` ; `preprod` exige `--confirm-preprod`, la
+  dérogation et le motif ; `--target=dev|test` n'atteint jamais la
+  préproduction (une dérogation restée dans l'environnement est ignorée avec
+  avertissement) ; refus si l'environnement a déjà été chargé depuis un autre
+  fichier. Les scripts `backfill-tenant-id`, `check-production-migrations`
+  (compatible avec l'appel sans argument de `deploy.sh`), `diagnose-chat-*`,
+  `fix-chat-data`, `list-junk-contacts`, `migrate-*`, `purge-test-fonc`,
+  `run-document-sync-worker`, `seed-fake-contacts`, `test-change-stream` sont
+  convertis ; `scripts/gcp/apply-migrations.sh` passe la cible et la
+  dérogation à chacun de ses appels.
+- `server/index.js` : chargement de l'environnement en tout premier, cible
+  résolue et journalisée avant `mongoose.connect`, arrêt propre (code 1,
+  message sans pile) en cas de configuration ambiguë ; route authentifiée
+  `GET /api/health/db` exposant la cible sans l'URI. Hébergement inchangé.
+- Fichiers d'exemple `server/.env.development.example` et
+  `server/.env.test.example` ; documentation `README.md` (section
+  Configuration), `RECETTE.md`, `MISE-EN-SERVICE.md`, `server/.env.example`.
+- Base de développement dédiée créée : `kheops2_dev` sur le cluster existant
+  (accès en écriture vérifié par une collection sonde créée puis supprimée),
+  fichier `server/.env.development` local ignoré par Git ; base de test
+  `kheops2_test` et `server/.env.test` de même. Aucune URI ni secret commis.
+
+Démonstrations réelles (journaux archivés) : démarrage local sur
+`kheops2_dev` (`[DB] cible=dev base=kheops2_dev`) ; fichier de déploiement
+chargé explicitement sans dérogation → refus, code 1 ; dérogation avec motif →
+bannière d'avertissement puis démarrage ; `.env.development` absent → refus
+explicite ; script `--target=dev` avec une dérogation oubliée dans
+l'environnement → cible `dev`, dérogation ignorée.
+
+### Chantier 2 — Numérotation des dossiers par cabinet
+
+Règle canonique (en tête de `server/utils/dossierReference.js`) : la référence
+« <année><rang> » est unique **par cabinet** (paire `tenantId` + `reference`,
+index unique composé `tenantId_1_reference_1`) ; chaque cabinet suit sa propre
+séquence annuelle (rang = maximum numérique des références de l'année du
+cabinet + 1 ; un cabinet neuf obtient `202601`) ; la même référence peut
+exister dans deux cabinets ; aucune référence historique n'est renumérotée ;
+un cabinet résolu est obligatoire ; concurrence : revérification avant
+attribution puis conflit d'unicité (erreur 11000) → nouvelle référence et
+nouvel enregistrement, borné, sans doublon écrit (`saveDossierWithReference`) ;
+conflit persistant → 409 `DOSSIER_REFERENCE_CONFLICT`. La génération comme
+l'enregistrement disposent de huit tentatives séparées par une courte attente
+aléatoire croissante (sans attente sous Jest) : une rafale de six créations
+simultanées dans un même cabinet aboutit intégralement, alors qu'avec trois
+tentatives sans attente une création sur six échouait (409, puis 500 lorsque
+c'est la génération elle-même qui s'épuisait ; ce dernier cas répond désormais
+409). Le générateur des
+divorces (`DCM-XXXXXX`) reçoit la même reprise après conflit et le dossier de
+divorce porte désormais son `tenantId` à la création. Un échec de création
+d'index au démarrage est journalisé explicitement.
+
+Audit avant migration (lecture seule, préproduction) : 55 dossiers, 12 sans
+`tenantId`, 41 références « 2026NN », 14 hors format (`DCM-*` des divorces,
+`TEST50-*` d'un ancien cabinet de test), **aucun doublon** par cabinet ni
+global, index `reference_1` non unique, verdict « index unique créable ».
+
+Migration `server/scripts/migrate-dossier-references.js` (simulation par
+défaut, `--apply`, `--run-id`, `--rollback`, journal sous
+`server/scripts/journals/` ignoré par Git, logique pure testée dans
+`scripts/lib/dossierReferenceMigration.js`), exécutée le 2026-09-05 sur la
+préproduction avec la dérogation explicite après sauvegarde JSON de la
+collection : run `dossier-references-20260905-01` — 10 dossiers rattachés à
+leur cabinet d'après `UserDossier → User.tenantId`, 2 dossiers laissés sans
+cabinet (utilisateurs historiques sans cabinet, références `202615` et
+`202625` distinctes, tolérées par l'index), index unique créé explicitement,
+ancien index `reference_1` supprimé (recréé par le retour arrière). Audit après
+migration : 0 doublon, index composé unique présent, 2 dossiers sans cabinet.
+
+### Chantier 3 — Nettoyage des données de recette ZZTEST
+
+Outil `server/scripts/cleanup-zztest-data.js` (logique pure dans
+`scripts/lib/zztestCleanup.js`) : comptes passés explicitement (motif d'email
+de test imposé), simulation par défaut, `--apply`, rapport JSON avant / après
+(sans donnée sensible), suppression limitée aux dossiers et fiches des
+cabinets sélectionnés portant le préfixe, liaisons supprimées avant les
+documents, tout objet rattaché à un utilisateur ou un cabinet hors sélection
+conservé et signalé, lecture du snapshot des parties des dossiers conservés
+pour ne pas supprimer une fiche encore référencée, contrôle des orphelins et
+relance à blanc après application, connexion sans `autoIndex` ni `autoCreate`.
+
+Inventaire avant (préproduction, 2026-09-05) : quatre comptes de test
+(`verif.compte.local.20260904@example.com`, `zztest.cabinet.b.mtn4e1cd@…`,
+`zztest.cabinet.b.mtn6qupq@…`, `zztest.recette.mtn6m7f1@…`), 14 dossiers, 211
+fiches physiques et 6 personnes morales `ZZTEST`, 70 liaisons dossier-contact,
+aucun document stocké ni compte de messagerie. Simulation : 14 dossiers et 217
+fiches supprimables, 0 conservé, 0 rejeté, 0 orphelin avant. Application :
+532 enregistrements supprimés sur 7 collections (`UserDossier` 14,
+`UserContact` 211, `UserContactPM` 6, `DossierContact` 70, `Contact` 211,
+`ContactPM` 6, `Dossier` 14), 0 orphelin après, relance à blanc 0 candidat.
+Inventaire après : plus aucune fiche ni dossier `ZZTEST` (543 → 332 fiches au
+total), 17 utilisateurs inchangés ; les comptes de test, leurs cabinets et
+adhésions sont conservés pour les recettes futures. Sauvegarde JSON des
+données supprimées conservée hors dépôt.
+
+### Chantier 5 — Empreinte des sources reproductible
+
+`server/utils/runtimeSourceManifest.js` calcule désormais l'empreinte sur une
+représentation canonique (algorithme `kheops-src-v2`) : chemins relatifs avec
+`/`, tri binaire, contenu UTF-8 sans BOM, fins de ligne normalisées en LF,
+aucune métadonnée ; toute autre différence de contenu change l'empreinte.
+Reproductibilité vérifiée : arbre de travail Windows (fins de ligne mixtes),
+archive `git archive` en LF et copie convertie en CRLF donnent la même valeur
+(référence pour `878e2de` : `06ef09f6c3d82677`, 278 fichiers). Le manifeste
+porte `hashAlgorithm`, `gitCommit` (HEAD, 40 hexadécimaux) et `gitDirty`
+(modifications suivies **ou** sources non suivies qui entreraient dans
+l'image). `scripts/gcp/deploy.sh` ajoute la garde « source Git exacte » :
+dépôt requis, HEAD affiché, aucune modification suivie, aucune source non
+suivie embarquée, aucun fichier `skip-worktree` / `assume-unchanged`, et
+après génération le manifeste doit porter le commit HEAD avec un arbre propre ;
+aucune option de contournement. Le journal de démarrage affiche le commit avec
+l'empreinte ; un manifeste d'un autre algorithme est signalé comme tel.
+
+### Fichiers applicatifs
+
+- Configuration : `server/config/env.js` (nouveau), `server/config/mongoTarget.js`
+  (nouveau), `server/config/keys.js`, `googleConfig.js`, `passport-setup.js`,
+  `server/middlewares/middleware-auth.js`, `server/routes/mails.js`,
+  `server/utils/sendEmail.js`, `server/index.js`, `server/scripts/lib/dbTarget.js`
+  (nouveau), les quatorze scripts de `server/scripts` convertis,
+  `scripts/gcp/apply-migrations.sh`, `server/.env.example`,
+  `server/.env.development.example` et `server/.env.test.example` (nouveaux),
+  `README.md`, `RECETTE.md`, `MISE-EN-SERVICE.md`.
+- Numérotation : `server/utils/dossierReference.js`,
+  `server/routes/folder/folderDossierCreation.js`, `server/models/Folder/Dossier.js`,
+  `server/routes/divorceCM.js`, `server/scripts/audit-dossier-references.js`,
+  `server/scripts/migrate-dossier-references.js`,
+  `server/scripts/lib/dossierReferenceMigration.js` (nouveaux),
+  `server/scripts/journals/.gitignore`.
+- Nettoyage : `server/scripts/cleanup-zztest-data.js`,
+  `server/scripts/lib/zztestCleanup.js` (nouveaux).
+- Empreinte : `server/utils/runtimeSourceManifest.js`,
+  `scripts/generate-build-manifest.js`, `scripts/gcp/deploy.sh`.
+- Version : `package.json`, `package-lock.json`, `client/src/buildInfo.js`.
+
+### Tests et validations locales
+
+- Suite serveur complète : **174 fichiers, 1 385 tests, 0 échec, 0 ignoré**
+  (165 / 1 054 avant). Suite client complète : **162 fichiers, 1 884 tests,
+  0 échec, 0 ignoré** (une première exécution sous forte charge avait vu
+  échouer un test d'éditeur de document sensible au temps ; il passe isolément
+  et la suite complète est repassée verte).
+- Nouveaux tests : configuration (`config/__tests__/env.test.js`,
+  `mongoTarget.test.js`, `keys.test.js`, `__tests__/healthDbTarget.test.js`,
+  `scripts/lib/__tests__/dbTarget.test.js`,
+  `scripts/__tests__/checkProductionMigrations.test.js`), numérotation
+  (`dossierReferenceGeneration`, `dossierReference`,
+  `scripts/lib/__tests__/dossierReferenceMigration.test.js`, tests de la
+  route divorce adaptés), nettoyage (`scripts/lib/__tests__/zztestCleanup.test.js`),
+  empreinte (`runtimeSourceManifest.test.js`, `__tests__/runtimeBuildVerification.test.js`).
+- Chaque chantier a été relu par un agent adversarial indépendant, corrigé,
+  puis relu à nouveau (points repris : commutateurs de garde non fournis par le
+  fichier chargé, `--target=dev|test` imperméable à toute dérogation, base
+  effective par défaut refusée, scripts connectés sans `autoIndex`, garde Git
+  étendue aux sources non suivies, index créé explicitement avec journal).
+- Recette locale en mode strict sur la base de développement `kheops2_dev`
+  (vide au départ) : inscription classique des deux comptes de test,
+  onboarding, fixtures, création d'un dossier avec parties, avocats et
+  contacts → 201 avec la référence **`202601`** (première du cabinet), nom
+  saisi conservé, modification complète et persistance après rechargement,
+  aucun appel à la fiche divorce, sécurité API 32/32, contrat CORS local
+  204 / 403 / 200, cinq formats d'écran, numérotation par cabinet
+  (9/9 contrôles sur deux passes : premier dossier du
+  cabinet = maximum du cabinet + 1, rang suivant numérique, séquence du second
+  cabinet indépendante, même référence présente dans les deux cabinets, six
+  créations simultanées toutes en 201 avec six références distinctes, aucune
+  5xx, aucun doublon après la rafale, référence inchangée par une
+  modification, isolation entre cabinets).
+
+### Déploiement
+
+(complété par le commit de documentation qui suit la mise en ligne)
+
+### Recette sur le service en ligne
+
+(complété par le commit de documentation qui suit la mise en ligne)
+
+### Services externes
+
+(complété par le commit de documentation qui suit la mise en ligne)
+
+### Réserves et décisions
+
+(complété par le commit de documentation qui suit la mise en ligne)

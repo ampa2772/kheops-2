@@ -17,6 +17,13 @@ const mongoose = require('mongoose');
 jest.mock('../../middlewares/middleware-auth', () => (req, res, next) => next());
 jest.mock('../../utils/auditLogger', () => ({ create: jest.fn(), update: jest.fn(), delete: jest.fn() }));
 
+// Cabinet du createur : le Dossier du divorce porte son tenantId des la
+// creation (reference "DCM-XXXXXX" unique PAR CABINET). Le vrai service
+// lirait User/Tenant en base.
+jest.mock('../../services/tenantService', () => ({
+  resolveTenantId: jest.fn(async () => '999999999999999999999999'),
+}));
+
 jest.mock('../../models/Folder/Dossier', () => {
   const { Types } = require('mongoose');
   const ctor = jest.fn(function (data) {
@@ -71,10 +78,12 @@ jest.mock('../../models/Folder/modelsLiaisons/UserContact', () => {
 const Dossier = require('../../models/Folder/Dossier');
 const UserDossier = require('../../models/Folder/modelsLiaisons/UserDossier');
 const DivorceCMData = require('../../models/Divorce/DivorceCMData');
+const { resolveTenantId } = require('../../services/tenantService');
 const router = require('../divorceCM');
 const { sanitizeObjectIdFields } = require('../divorceCM');
 
 const USER_ID = new mongoose.Types.ObjectId().toString();
+const TENANT_ID = '999999999999999999999999';
 
 function extractPostHandler() {
   const layer = router.stack.find(
@@ -146,6 +155,7 @@ describe('POST /api/divorce-cm — création avec ObjectId vides + anti dossier 
     Dossier.saved.length = 0;
     UserDossier.mockClear();
     UserDossier.saved.length = 0;
+    resolveTenantId.mockClear();
     saveSpy = jest.spyOn(DivorceCMData.prototype, 'save').mockResolvedValue(undefined);
   });
 
@@ -170,6 +180,9 @@ describe('POST /api/divorce-cm — création avec ObjectId vides + anti dossier 
     expect(res.statusCode).toBe(201);
     expect(Dossier).toHaveBeenCalledTimes(1); // un seul Dossier construit, après validation de la fiche
     expect(Dossier.saved.length).toBeGreaterThanOrEqual(1); // save création (+ resave par la sync parties)
+    // Le dossier est rattaché au cabinet du créateur dès sa création.
+    expect(resolveTenantId).toHaveBeenCalledWith(USER_ID);
+    expect(Dossier.mock.calls[0][0].tenantId).toBe(TENANT_ID);
     expect(saveSpy).toHaveBeenCalled();
     // le dossierId provisoire a bien été remplacé par celui du Dossier créé
     const divorceInstance = saveSpy.mock.instances[0];
@@ -189,5 +202,6 @@ describe('POST /api/divorce-cm — création avec ObjectId vides + anti dossier 
     expect(Dossier).not.toHaveBeenCalled();   // plus aucune écriture avant validation
     expect(Dossier.saved.length).toBe(0);
     expect(UserDossier.saved.length).toBe(0);
+    expect(resolveTenantId).not.toHaveBeenCalled(); // pas même un cabinet créé à la volée
   });
 });

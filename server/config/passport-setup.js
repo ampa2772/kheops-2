@@ -2,7 +2,7 @@
 const passport = require('passport');
 // Supprimé ou commenté : const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/App_Users/User');
-require('dotenv').config();
+require('./env').loadEnv();
 
 passport.serializeUser((user, done) => {
     // Utilisé si vous activez les sessions Passport (pour d'autres stratégies ?)

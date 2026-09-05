@@ -1,6 +1,6 @@
 {
   "name": "kheops-2",
-  "version": "2.0.18-rc4",
+  "version": "2.0.18-rc5",
   "description": "Kheops 2 — Application desktop de gestion juridique",
   "main": "electron-app/main.js",
   "scripts": {

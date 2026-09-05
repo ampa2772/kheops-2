@@ -8,7 +8,7 @@ const {
   hasAnyStatefulCompanionClaim,
   hasCompleteStatefulCompanionClaims,
 } = require('../utils/companionSessionSecurity');
-require('dotenv').config();
+require('../config/env').loadEnv();
 
 // =====================================================================
 // === DEV BYPASS — Authentification fallback en mode dev ============

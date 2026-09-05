@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-require('dotenv').config();
+require('../config/env').loadEnv();
 
 // =====================================================================
 // Vérification de la configuration Gmail SMTP (envoi d'email serveur).

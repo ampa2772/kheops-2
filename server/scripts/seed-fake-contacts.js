@@ -4,10 +4,12 @@
 // et les rattache à un utilisateur (UserContact) pour qu'ils apparaissent dans
 // son annuaire.
 //
+//   Cible de base OBLIGATOIRE : --target=dev|test|preprod (preprod : ajouter
+//   --confirm-preprod, KHEOPS_DB_OVERRIDE=preprod et KHEOPS_DB_OVERRIDE_REASON).
 //   Dry-run (par défaut, n'écrit RIEN) :
-//     node scripts/seed-fake-contacts.js
+//     node scripts/seed-fake-contacts.js --target=dev
 //   Appliquer :
-//     node scripts/seed-fake-contacts.js --apply
+//     node scripts/seed-fake-contacts.js --target=dev --apply
 //   Options :
 //     --count 200            nombre de contacts (défaut 200)
 //     --first Pierre --last Jalet   cible par prénom/nom (défaut Pierre/Jalet)
@@ -21,8 +23,8 @@
 
 const path = require('path');
 const fs = require('fs');
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { resolveScriptTarget, connectForScript } = require('./lib/dbTarget');
 
 const mongoose = require('mongoose');
 
@@ -106,18 +108,15 @@ function buildContact(i) {
 }
 
 async function main() {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    console.error('MONGODB_URI manquant (.env). Abandon.');
-    process.exit(1);
-  }
+  // Cible resolue avant toute sortie : une cible absente ou ambigue arrete ici.
+  resolveScriptTarget({ argv: process.argv });
 
   console.log('==============================================================');
   console.log(`  Seed contacts fictifs — mode ${APPLY ? 'APPLY (écriture réelle)' : 'DRY-RUN (aucune écriture)'}`);
   console.log(`  Cible : ${TARGET_EMAIL ? `email=${TARGET_EMAIL}` : `${TARGET_FIRST} ${TARGET_LAST}`} | Nombre : ${COUNT}`);
   console.log('==============================================================\n');
 
-  await mongoose.connect(uri);
+  await connectForScript({ argv: process.argv, purpose: 'seed-fake-contacts' });
 
   const User = require(path.join(__dirname, '..', 'models', 'App_Users', 'User'));
   const Contact = require(path.join(__dirname, '..', 'models', 'Folder', 'Contact'));

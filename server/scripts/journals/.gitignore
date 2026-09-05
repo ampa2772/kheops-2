@@ -1,0 +1,4 @@
+# Journaux des migrations (anciennes valeurs par run-id) : donnees propres a
+# une base, jamais versionnees. Seul ce fichier est suivi par git.
+*
+!.gitignore

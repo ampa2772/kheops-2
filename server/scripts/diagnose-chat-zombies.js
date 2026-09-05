@@ -1,23 +1,21 @@
 // scripts/diagnose-chat-zombies.js
 //
-// Connecte à MongoDB Atlas (depuis .env), liste tous les Messages,
-// identifie ceux dont le sender ou le recipient ne correspond à AUCUN
-// OfficeUser. Affiche les détails sans rien supprimer (mode lecture seule).
+// Connecte à MongoDB (cible explicite --target=dev|test|preprod), liste tous
+// les Messages, identifie ceux dont le sender ou le recipient ne correspond
+// à AUCUN OfficeUser. Affiche les détails sans rien supprimer (lecture seule).
+//
+// Usage : node scripts/diagnose-chat-zombies.js --target=dev|test|preprod
+// (preprod : --confirm-preprod + KHEOPS_DB_OVERRIDE=preprod + KHEOPS_DB_OVERRIDE_REASON).
 
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Cible de base explicite (--target=...) : plus aucun .env implicite.
+const { connectForScript } = require('./lib/dbTarget');
 
 const mongoose = require('mongoose');
 
 async function main() {
-    const uri = process.env.MONGODB_URI;
-    if (!uri) {
-        console.error('MONGODB_URI manquant dans .env');
-        process.exit(1);
-    }
-    console.log('[diag] Connexion à MongoDB Atlas...');
-    await mongoose.connect(uri);
+    console.log('[diag] Connexion à MongoDB...');
+    await connectForScript({ argv: process.argv, purpose: 'diagnose-chat-zombies' });
 
     const Message = require(path.join(__dirname, '..', 'models', 'Chat', 'Message'));
     const OfficeUser = require(path.join(__dirname, '..', 'models', 'App_Users', 'OfficeUser'));

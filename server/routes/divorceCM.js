@@ -33,7 +33,9 @@ const User = require('../models/App_Users/User');
 
 const constants = require('../services/divorceCMConstants');
 const audit = require('../utils/auditLogger');
+const { isReferenceConflict } = require('../utils/dossierReference');
 const { getAccessibleUserIds } = require('../services/cabinetAccess');
+const { resolveTenantId } = require('../services/tenantService');
 
 // ============================================================
 // Helpers
@@ -61,10 +63,38 @@ function buildDossierName(epoux1, epoux2) {
   return 'Divorce par consentement mutuel';
 }
 
-// Genere une reference unique pour le dossier
-function buildDossierReference() {
-  const stamp = Date.now().toString(36).toUpperCase().slice(-6);
+// Genere une reference pour le dossier : "DCM-" + 6 derniers caracteres de
+// l'horodatage en base 36 (format inchange, espace distinct des references
+// "<annee><rang>"). La graine est parametrable pour tirer une autre valeur
+// apres un conflit d'unicite.
+function buildDossierReference(seed = Date.now()) {
+  const stamp = seed.toString(36).toUpperCase().slice(-6);
   return `DCM-${stamp}`;
+}
+
+// Enregistrements tentes lorsque l'index unique { tenantId, reference }
+// signale un conflit (erreur MongoDB 11000 : deux creations dans la meme
+// milliseconde AU SEIN DU MEME CABINET, le dossier portant desormais son
+// tenantId). Meme regle que saveDossierWithReference pour les dossiers
+// ordinaires ; toute autre erreur remonte immediatement, aucun doublon ecrit.
+const DOSSIER_REFERENCE_MAX_ATTEMPTS = 4;
+
+async function saveDossierWithFreshReference(buildDossier) {
+  let dossier = null;
+  for (let attempt = 1; attempt <= DOSSIER_REFERENCE_MAX_ATTEMPTS; attempt += 1) {
+    // Premiere tentative : horodatage seul (valeur historique) ; ensuite un
+    // decalage aleatoire evite de retomber sur la meme milliseconde.
+    const seed = attempt === 1 ? Date.now() : Date.now() + Math.floor(Math.random() * (36 ** 4));
+    dossier = buildDossier(buildDossierReference(seed));
+    try {
+      await dossier.save();
+      return dossier;
+    } catch (error) {
+      if (!isReferenceConflict(error) || attempt === DOSSIER_REFERENCE_MAX_ATTEMPTS) throw error;
+      console.warn(`[divorceCM] reference ${dossier.reference} deja attribuee, nouvelle tentative (${attempt}/${DOSSIER_REFERENCE_MAX_ATTEMPTS})`);
+    }
+  }
+  return dossier;
 }
 
 // ============================================================
@@ -431,11 +461,21 @@ router.post('/', auth, asyncHandler(async (req, res) => {
   });
   await divorce.validate();
 
-  // 3) Creer le Dossier minimal (nom calcule, type_dossier discriminant)
+  // 3) Creer le Dossier minimal (nom calcule, type_dossier discriminant),
+  // rattache au cabinet du createur des sa creation : la reference est unique
+  // PAR CABINET (index { tenantId, reference }) et un dossier sans tenantId
+  // alimentait le groupe "sans cabinet" de l'index (rattachement paresseux
+  // ulterieur susceptible d'echouer en 11000). Le cabinet est resolu APRES la
+  // validation de la fiche : aucune ecriture (pas meme un cabinet cree a la
+  // volee) si la fiche est invalide.
   const dossierName = buildDossierName(incoming.epoux1, incoming.epoux2);
+  const tenantId = await resolveTenantId(ownerUserId);
 
-  const dossier = new Dossier({
-    reference: buildDossierReference(),
+  // Conflit d'unicite sur la reference a l'enregistrement : nouvelle
+  // reference "DCM-XXXXXX" puis nouvel essai (voir saveDossierWithFreshReference).
+  const dossier = await saveDossierWithFreshReference((reference) => new Dossier({
+    reference,
+    tenantId,
     dossier: {
       dossier: {
         nom: dossierName,
@@ -449,9 +489,7 @@ router.post('/', auth, asyncHandler(async (req, res) => {
     },
     factures: [],
     subfolders: [],
-  });
-
-  await dossier.save();
+  }));
 
   // 3bis) Lier le dossier au user (sans cela, le dossier n'apparait
   // pas dans /last-25-dossiers ni dans la recherche par UserDossier).
