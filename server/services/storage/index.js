@@ -18,6 +18,7 @@ const providers = {
 // chemin « tenants/... » sans prefixe.
 const KEY_SCHEME_TO_PROVIDER = {
   onedrive: 'onedrive',
+  'onedrive-v2': 'onedrive',
   googledrive: 'google_drive',
   sharepoint: 'sharepoint',
 };
@@ -29,7 +30,10 @@ function providerNameForKey(storageKey) {
     const scheme = s.slice(0, colon);
     if (KEY_SCHEME_TO_PROVIDER[scheme]) return KEY_SCHEME_TO_PROVIDER[scheme];
   }
-  return null; // cle « chemin » (managed_gcs) -> provider du cabinet
+  // Historical unprefixed paths always belong to the internal bucket, even
+  // after the cabinet changes its preferred upload provider.
+  if (s && colon < 0) return 'managed_gcs';
+  return null;
 }
 
 function toTenantObjectId(tenantId) {
@@ -82,7 +86,7 @@ async function getStorageProvider(tenantId) {
 async function getProviderForStorageKey(tenantId, storageKey) {
   const name = providerNameForKey(storageKey);
   if (name && providers[name]) return providers[name];
-  return getStorageProvider(tenantId);
+  throw Object.assign(new Error('Référence de stockage non reconnue.'), { statusCode: 400, code: 'INVALID_STORAGE_KEY' });
 }
 
 // Provider a utiliser pour un UPLOAD par CET utilisateur. Volet B : si
@@ -132,26 +136,23 @@ async function selectStorageProvider(tenantId, providerName) {
 // stockage interne (managed_gcs), l'écriture réussie vaut confirmation → on ne
 // vérifie pas (pas de round-trip inutile).
 //
-// Sémantique volontaire :
-//   - provider.exists() renvoie FALSE explicite  → fichier absent → on LÈVE
-//     (l'appelant fait le rollback) ;
-//   - provider.exists() LÈVE (réseau, jeton...)   → vérification inconclusive →
-//     on NE bloque PAS un upload dont l'écriture a pourtant réussi.
+// Seul un résultat explicitement positif confirme le transfert. Une réponse
+// absente ou une panne garde la source intacte et exige une nouvelle vérification.
 async function assertUploadCompleted(provider, storageKey) {
-  if (!provider || provider.perUser !== true || typeof provider.exists !== 'function') return;
-  if (!storageKey) return;
+  if (!provider || provider.perUser !== true) return;
   let exists;
   try {
-    exists = await provider.exists({ storageKey });
+    if(storageKey && typeof provider.exists==='function') exists = await provider.exists({ storageKey });
   } catch (_err) {
-    return; // inconclusif → ne pas bloquer
+    // An inconclusive probe must not be reported as a successful transfer.
   }
-  if (exists === false) {
+  if (exists !== true) {
     const err = new Error(
-      "La synchronisation n'a pas pu être confirmée : le fichier est introuvable chez le fournisseur cloud.",
+      "La synchronisation n'a pas pu être confirmée ; le fichier source reste conservé.",
     );
     err.statusCode = 502;
     err.code = 'SYNC_NOT_CONFIRMED';
+    err.retryable = true;
     throw err;
   }
 }

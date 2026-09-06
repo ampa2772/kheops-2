@@ -14,6 +14,7 @@
 
 const axios = require('axios');
 const microsoftGraphAuth = require('../../utils/microsoftGraphMail');
+const { immutableGraphUpload } = require('./immutableGraphUpload');
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
@@ -62,7 +63,7 @@ function encodePath(pathStr) {
  * routes). PUT /me/drive/root:/{path}:/content.
  * @returns {Promise<{itemId:string,size:number,webUrl:string,name:string}>}
  */
-async function uploadFile(userId, { path, buffer, mime }) {
+async function uploadFile(userId, { path, buffer, mime, driveId, idempotencyKey }) {
   if (!Buffer.isBuffer(buffer)) {
     const err = new Error('Buffer fichier manquant.');
     err.statusCode = 400;
@@ -70,6 +71,8 @@ async function uploadFile(userId, { path, buffer, mime }) {
     throw err;
   }
   const token = await tokenFor(userId);
+  const driveRoot = `${GRAPH_BASE}${driveId ? '/drives/' + encodeURIComponent(driveId) : '/me/drive'}`;
+  if (idempotencyKey) return immutableGraphUpload({token,driveRoot,path,buffer,idempotencyKey});
   // conflictBehavior=rename (et NON replace) : deux documents DISTINCTS de meme
   // nom deposes dans le meme dossier produisent le meme chemin ; « replace »
   // ecraserait silencieusement le premier (perte de donnees). « rename » fait
@@ -77,7 +80,7 @@ async function uploadFile(userId, { path, buffer, mime }) {
   // dans le storageKey), donc rien n'est ecrase. Les vraies nouvelles versions
   // d'un meme document ne collisionnent pas (suffixe « (vN) » deja applique).
   const url =
-    `${GRAPH_BASE}/me/drive/root:/${encodePath(path)}:/content` +
+    `${driveRoot}/root:/${encodePath(path)}:/content` +
     '?%40microsoft.graph.conflictBehavior=rename';
   const resp = await axios.put(url, buffer, {
     headers: {
@@ -96,6 +99,7 @@ async function uploadFile(userId, { path, buffer, mime }) {
   };
   if (resp.data.lastModifiedDateTime) result.modifiedTime = resp.data.lastModifiedDateTime;
   if (resp.data.eTag) result.etag = resp.data.eTag;
+  if (resp.data.parentReference?.driveId) result.driveId = resp.data.parentReference.driveId;
   return result;
 }
 
@@ -107,15 +111,23 @@ async function uploadFile(userId, { path, buffer, mime }) {
  * soit visible dans OneDrive / l'explorateur Windows meme sans document.
  * @returns {Promise<{itemId:string, webUrl:string}>}
  */
-async function ensureFolderPath(userId, segments) {
+async function getDriveId(userId) {
+  const token=await tokenFor(userId);
+  const response=await axios.get(`${GRAPH_BASE}/me/drive`,{headers:{Authorization:`Bearer ${token}`},params:{$select:'id'},timeout:15000});
+  if(!response.data?.id) throw Object.assign(new Error('Destination OneDrive indisponible.'),{code:'ONEDRIVE_DRIVE_MISSING',statusCode:502});
+  return response.data.id;
+}
+
+async function ensureFolderPath(userId, segments, driveId) {
   const token = await tokenFor(userId);
+  const driveRoot = `${GRAPH_BASE}${driveId ? '/drives/' + encodeURIComponent(driveId) : '/me/drive'}`;
   const headers = { Authorization: `Bearer ${token}` };
   let path = '';
   let item = null;
   for (const seg of segments) {
     const next = path ? `${path}/${seg}` : String(seg);
     // L'item existe-t-il deja a ce chemin ?
-    let resp = await axios.get(`${GRAPH_BASE}/me/drive/root:/${encodePath(next)}`, {
+    let resp = await axios.get(`${driveRoot}/root:/${encodePath(next)}`, {
       headers,
       params: { $select: 'id,webUrl' },
       timeout: 20000,
@@ -125,15 +137,15 @@ async function ensureFolderPath(userId, segments) {
       // Creation sous le parent. conflictBehavior=fail + relecture en cas de 409 :
       // idempotent meme en concurrence (deux creations simultanees du meme dossier).
       const parentUrl = path
-        ? `${GRAPH_BASE}/me/drive/root:/${encodePath(path)}:/children`
-        : `${GRAPH_BASE}/me/drive/root/children`;
+        ? `${driveRoot}/root:/${encodePath(path)}:/children`
+        : `${driveRoot}/root/children`;
       const createResp = await axios.post(
         parentUrl,
         { name: String(seg), folder: {}, '@microsoft.graph.conflictBehavior': 'fail' },
         { headers, timeout: 20000, validateStatus: (s) => (s >= 200 && s < 300) || s === 409 },
       );
       if (createResp.status === 409) {
-        resp = await axios.get(`${GRAPH_BASE}/me/drive/root:/${encodePath(next)}`, {
+        resp = await axios.get(`${driveRoot}/root:/${encodePath(next)}`, {
           headers, params: { $select: 'id,webUrl' }, timeout: 20000,
         });
         item = resp.data;
@@ -149,10 +161,10 @@ async function ensureFolderPath(userId, segments) {
 }
 
 /** Télécharge le contenu d'un item → Buffer. */
-async function downloadFile(userId, itemId) {
+async function downloadFile(userId, itemId, driveId) {
   const token = await tokenFor(userId);
   const resp = await axios.get(
-    `${GRAPH_BASE}/me/drive/items/${encodeURIComponent(itemId)}/content`,
+    `${GRAPH_BASE}${driveId ? '/drives/' + encodeURIComponent(driveId) : '/me/drive'}/items/${encodeURIComponent(itemId)}/content`,
     {
       headers: { Authorization: `Bearer ${token}` },
       responseType: 'arraybuffer',
@@ -168,10 +180,10 @@ async function downloadFile(userId, itemId) {
  * URL de téléchargement pré-authentifiée et éphémère (fournie par Graph via la
  * propriété @microsoft.graph.downloadUrl). Équivalent d'une URL signée GCS.
  */
-async function getDownloadUrl(userId, itemId) {
+async function getDownloadUrl(userId, itemId, driveId) {
   const token = await tokenFor(userId);
   const resp = await axios.get(
-    `${GRAPH_BASE}/me/drive/items/${encodeURIComponent(itemId)}`,
+    `${GRAPH_BASE}${driveId ? '/drives/' + encodeURIComponent(driveId) : '/me/drive'}/items/${encodeURIComponent(itemId)}`,
     {
       headers: { Authorization: `Bearer ${token}` },
       params: { $select: 'id,@microsoft.graph.downloadUrl' },
@@ -189,10 +201,10 @@ async function getDownloadUrl(userId, itemId) {
 }
 
 /** Métadonnées utiles à une session Word pour le web (sans URL de téléchargement). */
-async function getItemMetadata(userId, itemId) {
+async function getItemMetadata(userId, itemId, driveId) {
   const token = await tokenFor(userId);
   const resp = await axios.get(
-    `${GRAPH_BASE}/me/drive/items/${encodeURIComponent(itemId)}`,
+    `${GRAPH_BASE}${driveId ? '/drives/' + encodeURIComponent(driveId) : '/me/drive'}/items/${encodeURIComponent(itemId)}`,
     {
       headers: { Authorization: `Bearer ${token}` },
       params: { $select: 'id,name,size,webUrl,lastModifiedDateTime,eTag,file' },
@@ -210,11 +222,11 @@ async function getItemMetadata(userId, itemId) {
   };
 }
 
-/** Supprime définitivement un item (corbeille OneDrive de l'utilisateur). */
-async function deleteItem(userId, itemId) {
+/** Place un item dans la corbeille OneDrive de l'utilisateur. */
+async function deleteItem(userId, itemId, driveId, etag) {
   const token = await tokenFor(userId);
-  await axios.delete(`${GRAPH_BASE}/me/drive/items/${encodeURIComponent(itemId)}`, {
-    headers: { Authorization: `Bearer ${token}` },
+  await axios.delete(`${GRAPH_BASE}${driveId ? '/drives/' + encodeURIComponent(driveId) : '/me/drive'}/items/${encodeURIComponent(itemId)}`, {
+    headers: { Authorization: `Bearer ${token}`, ...(etag ? { 'If-Match': etag } : {}) },
     timeout: 30000,
     // 404 = déjà supprimé : idempotent, on n'échoue pas.
     validateStatus: (s) => (s >= 200 && s < 300) || s === 404,
@@ -223,10 +235,10 @@ async function deleteItem(userId, itemId) {
 }
 
 /** Teste l'existence d'un item. */
-async function itemExists(userId, itemId) {
+async function itemExists(userId, itemId, driveId) {
   const token = await tokenFor(userId);
   const resp = await axios.get(
-    `${GRAPH_BASE}/me/drive/items/${encodeURIComponent(itemId)}`,
+    `${GRAPH_BASE}${driveId ? '/drives/' + encodeURIComponent(driveId) : '/me/drive'}/items/${encodeURIComponent(itemId)}`,
     {
       headers: { Authorization: `Bearer ${token}` },
       params: { $select: 'id' },
@@ -261,6 +273,7 @@ module.exports = {
   downloadFile,
   getDownloadUrl,
   getItemMetadata,
+  getDriveId,
   deleteItem,
   itemExists,
   isConnected,

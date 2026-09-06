@@ -51,12 +51,12 @@ export const ConfirmProvider = ({ children }) => {
     setOpts(null);
   }, []);
 
-  // Echap = Annuler ; Entrée = Confirmer (quand modale ouverte)
+  // Escape cancels. Enter follows the focused button's native action so that
+  // choosing Cancel with the keyboard cannot accidentally authorize a transfer.
   useEffect(() => {
     if (!opts) return undefined;
     const onKey = (e) => {
       if (e.key === 'Escape') finish(false);
-      else if (e.key === 'Enter' && document.activeElement?.tagName !== 'TEXTAREA') finish(true);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -81,7 +81,7 @@ export const ConfirmProvider = ({ children }) => {
                 type="button"
                 className="k-confirm-btn k-confirm-btn--cancel"
                 onClick={() => finish(false)}
-                autoFocus={!opts.danger}
+                autoFocus
               >
                 {opts.cancelLabel}
               </button>
@@ -89,7 +89,6 @@ export const ConfirmProvider = ({ children }) => {
                 type="button"
                 className={`k-confirm-btn ${opts.danger ? 'k-confirm-btn--danger' : 'k-confirm-btn--primary'}`}
                 onClick={() => finish(true)}
-                autoFocus={opts.danger}
               >
                 {opts.confirmLabel}
               </button>

@@ -14,6 +14,7 @@ function makeDocumentSyncWorkerLoop({
   schedule = setTimeout,
   cancelSchedule = clearTimeout,
   logger = console,
+  projection = null,
 } = {}) {
   const state = {
     running: false,
@@ -36,6 +37,10 @@ function makeDocumentSyncWorkerLoop({
     const concurrency = clamp(options.concurrency, 1, 16, 2);
     const capacity = Math.max(0, concurrency - state.inFlight.size);
     if (!capacity) return [];
+    if(projection && !state.inFlight.has('history-projection')) {
+      state.inFlight.add('history-projection');
+      try { await projection.runOnce(); } finally { state.inFlight.delete('history-projection'); }
+    }
     const candidates = await Journal.find(readyQuery(clock()))
       .sort({ createdAt: 1, _id: 1 })
       .limit(capacity)
@@ -112,7 +117,7 @@ function makeDocumentSyncWorkerLoop({
   return { readyQuery, runOnce, start, status, stop };
 }
 
-const singleton = makeDocumentSyncWorkerLoop();
+const singleton = makeDocumentSyncWorkerLoop({projection:require('./documentHistoryProjection')});
 
 module.exports = {
   makeDocumentSyncWorkerLoop,

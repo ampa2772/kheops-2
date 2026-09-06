@@ -9,8 +9,8 @@ function stringId(value) {
 
 function inferProvider(storageKey) {
   const key = String(storageKey || '').toLowerCase();
-  if (key.startsWith('gdrive:') || key.startsWith('google:')) return 'google_drive';
-  if (key.startsWith('onedrive:')) return 'onedrive';
+  if (key.startsWith('gdrive:') || key.startsWith('google:') || key.startsWith('googledrive:')) return 'google_drive';
+  if (key.startsWith('onedrive:') || key.startsWith('onedrive-v2:')) return 'onedrive';
   if (key.startsWith('sharepoint:')) return 'sharepoint';
   if (key.startsWith('documents/') || key.startsWith('tenants/')) return 'canonical';
   return 'managed_gcs';

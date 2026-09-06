@@ -116,7 +116,7 @@ async function resolveOwnerDriveId(ownerUserId) {
   return driveId;
 }
 
-async function uploadVersion({ tenantId, matterId, documentId, versionId, filename, buffer, mime, ownerUserId, matterLabel, versionOrdinal }) {
+async function uploadVersion({ tenantId, matterId, documentId, versionId, filename, buffer, mime, ownerUserId, matterLabel, versionOrdinal, containerId, idempotencyKey }) {
   if (!ownerUserId) {
     const err = new Error('Proprietaire (ownerUserId) requis pour un upload SharePoint.');
     err.statusCode = 400;
@@ -130,12 +130,13 @@ async function uploadVersion({ tenantId, matterId, documentId, versionId, filena
     throw err;
   }
 
-  const driveId = await resolveOwnerDriveId(ownerUserId);
+  const driveId = containerId || await resolveOwnerDriveId(ownerUserId);
   const path = buildPath({ tenantId, matterId, documentId, versionId, filename, matterLabel, versionOrdinal });
-  const result = await sharePoint.uploadFile(ownerUserId, driveId, { path, buffer, mime });
+  const result = await sharePoint.uploadFile(ownerUserId, driveId, { path, buffer, mime, ...(idempotencyKey ? {idempotencyKey} : {}) });
 
   return {
     provider: 'sharepoint',
+    idempotent: Boolean(result.idempotent),
     storageKey: encodeKey(ownerUserId, driveId, result.itemId),
     size: typeof result.size === 'number' ? result.size : buffer.length,
     mime: mime || 'application/octet-stream',

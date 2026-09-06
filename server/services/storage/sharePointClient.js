@@ -309,7 +309,7 @@ async function ensureFolderPath(userId, driveId, segments) {
 // ── Operations fichiers sur un drive SharePoint donne ───────────────────────
 
 /** Upload simple (PUT .../root:/{path}:/content). */
-async function uploadFile(userId, driveId, { path, buffer, mime }) {
+async function uploadFile(userId, driveId, { path, buffer, mime, idempotencyKey }) {
   if (!driveId) {
     const err = new Error('driveId SharePoint manquant.');
     err.statusCode = 400;
@@ -323,6 +323,9 @@ async function uploadFile(userId, driveId, { path, buffer, mime }) {
     throw err;
   }
   const token = await tokenFor(userId);
+  if (idempotencyKey) return require('./immutableGraphUpload').immutableGraphUpload({
+    token,driveRoot:`${GRAPH_BASE}/drives/${encodeURIComponent(driveId)}`,path,buffer,idempotencyKey,
+  });
   // conflictBehavior=rename (et NON replace) : deux documents DISTINCTS de meme
   // nom dans le meme dossier produisent le meme chemin ; « replace » ecraserait
   // silencieusement le premier (perte de donnees). « rename » fait ajouter un

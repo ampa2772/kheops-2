@@ -79,7 +79,7 @@ function makeDocumentSyncService({
     const actor = objectId(userId, 'userId');
     const idempotencyKey = clean(input.idempotencyKey, 240);
     if (!idempotencyKey) throw Object.assign(new Error('idempotencyKey requis.'), { statusCode: 400, code: 'IDEMPOTENCY_REQUIRED' });
-    const existing = await Journal.findOne({ tenantId: tenant, idempotencyKey }).lean();
+    const existing = await Journal.findOne({ tenantId: tenant, logicalDocumentId:logicalId, idempotencyKey }).lean();
     if (existing) return { operation: existing, created: false, idempotent: true };
     const logical = await Logical.findOne({ _id: logicalId, tenantId: tenant }).lean();
     if (!logical) throw Object.assign(new Error('Document logique introuvable.'), { statusCode: 404, code: 'LOGICAL_DOCUMENT_NOT_FOUND' });
@@ -108,7 +108,7 @@ function makeDocumentSyncService({
       return { operation, created: true, idempotent: false };
     } catch (err) {
       if (err && err.code === 11000) {
-        const winner = await Journal.findOne({ tenantId: tenant, idempotencyKey }).lean();
+        const winner = await Journal.findOne({ tenantId: tenant, logicalDocumentId:logicalId, idempotencyKey }).lean();
         if (winner) return { operation: winner, created: false, idempotent: true };
       }
       throw err;
@@ -165,12 +165,32 @@ function makeDocumentSyncService({
     return operation;
   }
 
+  async function rememberUpload({ tenantId, operationId: id, workerId, uploadedFile }) {
+    const operation = await Journal.findOneAndUpdate({
+      tenantId: objectId(tenantId, 'tenantId'), operationId: clean(id, 180),
+      status: 'running', 'lease.workerId': clean(workerId, 180), 'lease.expiresAt': { $gt: clock() },
+    }, { $set: { uploadedFile: {
+      storageKey: clean(uploadedFile.storageKey, 1200), provider: clean(uploadedFile.provider, 80),
+      checksum: clean(uploadedFile.checksum, 128), size: Math.max(0, Number(uploadedFile.size) || 0),
+      copyId: uploadedFile.copyId, locationId: uploadedFile.locationId,
+    } } }, { new: true });
+    if (!operation) throw Object.assign(new Error('Bail perdu après envoi ; le fichier distant est conservé.'), { statusCode: 409, code: 'SYNC_LEASE_LOST' });
+    return operation;
+  }
+
+  async function settleConflict(operation) {
+    if(operation.conflict?.status!=='resolved') return;
+    const scope={tenantId:operation.tenantId,logicalDocumentId:operation.logicalDocumentId};
+    await Copy.updateMany(scope,{$pull:{syncConflicts:operation.operationId}});
+    await Logical.updateOne({tenantId:operation.tenantId,_id:operation.logicalDocumentId},{$pull:{syncConflicts:operation.operationId}});
+  }
+
   async function complete({ tenantId, operationId: id, workerId, result = {} }) {
     const tenant = objectId(tenantId, 'tenantId');
     const operationKey = clean(id, 180);
     const existing = await Journal.findOne({ tenantId: tenant, operationId: operationKey });
     if (!existing) throw Object.assign(new Error('Opération introuvable.'), { statusCode: 404, code: 'SYNC_NOT_FOUND' });
-    if (existing.status === 'succeeded') return { operation: existing, idempotent: true };
+    if (existing.status === 'succeeded') { await settleConflict(existing); return { operation: existing, idempotent: true }; }
     if (existing.status === 'conflict') throw Object.assign(new Error('Le conflit doit être résolu avant de terminer.'), { statusCode: 409, code: 'SYNC_CONFLICT_OPEN' });
     const resultEndpoint = {
       copyId: objectId(result.copyId, 'result.copyId', { optional: true }),
@@ -186,6 +206,7 @@ function makeDocumentSyncService({
       _id: existing._id,
       status: 'running',
       'lease.workerId': clean(workerId, 180),
+      'lease.expiresAt': { $gt: clock() },
     }, {
       $set: {
         status: 'succeeded',
@@ -204,20 +225,25 @@ function makeDocumentSyncService({
       },
     }, { new: true });
     if (!operation) throw Object.assign(new Error('Bail perdu avant confirmation.'), { statusCode: 409, code: 'SYNC_LEASE_LOST' });
+    await settleConflict(operation);
     return { operation, idempotent: false };
   }
 
-  async function fail({ tenantId, operationId: id, workerId, error = {}, retryable = false }) {
+  async function fail({ tenantId, operationId: id, workerId, error = {}, retryable = false, retryAfterMs = 0 }) {
     const tenant = objectId(tenantId, 'tenantId');
     const current = await Journal.findOne({ tenantId: tenant, operationId: clean(id, 180) });
     if (!current) throw Object.assign(new Error('Opération introuvable.'), { statusCode: 404, code: 'SYNC_NOT_FOUND' });
     if (['failed', 'succeeded', 'cancelled'].includes(current.status)) return { operation: current, idempotent: true };
     const willRetry = Boolean(retryable) && current.attempt < current.maxAttempts;
-    const delayMs = Math.min(3600000, 1000 * (2 ** Math.max(0, current.attempt - 1)));
+    const delayMs = Math.max(
+      Math.min(3600000, 1000 * (2 ** Math.max(0, current.attempt - 1))),
+      Number.isFinite(Number(retryAfterMs)) ? Math.max(0, Number(retryAfterMs)) : 0,
+    );
     const operation = await Journal.findOneAndUpdate({
       _id: current._id,
       status: 'running',
       'lease.workerId': clean(workerId, 180),
+      'lease.expiresAt': { $gt: clock() },
     }, {
       $set: {
         status: willRetry ? 'retry_wait' : 'failed',
@@ -245,6 +271,7 @@ function makeDocumentSyncService({
       operationId: clean(id, 180),
       status: 'running',
       'lease.workerId': clean(workerId, 180),
+      'lease.expiresAt': { $gt: now },
     }, {
       $set: {
         status: 'conflict',
@@ -270,8 +297,10 @@ function makeDocumentSyncService({
       tenantId: tenant,
       logicalDocumentId: operation.logicalDocumentId,
       _id: { $in: copyIds },
-    }, { $set: { state: 'conflict' } });
-    await Logical.updateOne({ tenantId: tenant, _id: operation.logicalDocumentId }, { $set: { status: 'conflict' } });
+    }, { $addToSet: { syncConflicts: operation.operationId } });
+    // Synchronization is separate from the document's legal review/signature
+    // status. A transfer conflict must never erase that business status.
+    await Logical.updateOne({ tenantId: tenant, _id: operation.logicalDocumentId }, { $addToSet: { syncConflicts: operation.operationId } });
     return operation;
   }
 
@@ -300,6 +329,7 @@ function makeDocumentSyncService({
       },
     }, { new: true });
     if (!operation) throw Object.assign(new Error('Conflit introuvable ou déjà résolu.'), { statusCode: 409, code: 'SYNC_CONFLICT_NOT_OPEN' });
+    if(resolution==='cancelled') await settleConflict(operation);
     return operation;
   }
 
@@ -361,6 +391,7 @@ function makeDocumentSyncService({
     fail,
     getOperation,
     listOperations,
+    rememberUpload,
     recordConflict,
     resolveConflict,
     resume,

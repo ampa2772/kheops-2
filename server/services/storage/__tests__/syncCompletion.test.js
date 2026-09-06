@@ -21,18 +21,18 @@ describe('assertUploadCompleted', () => {
       .rejects.toMatchObject({ statusCode: 502, code: 'SYNC_NOT_CONFIRMED' });
   });
 
-  test('per-user + vérification qui LÈVE (réseau/jeton) → inconclusif, ne bloque PAS', async () => {
+  test('une panne de vérification exige une reprise et ne confirme jamais le transfert', async () => {
     await expect(assertUploadCompleted({ perUser: true, exists: async () => { throw new Error('net'); } }, 'k'))
-      .resolves.toBeUndefined();
+      .rejects.toMatchObject({code:'SYNC_NOT_CONFIRMED',retryable:true});
   });
 
-  test('per-user sans méthode exists → no-op', async () => {
-    await expect(assertUploadCompleted({ perUser: true }, 'k')).resolves.toBeUndefined();
+  test('un fournisseur sans méthode de confirmation ne peut annoncer un succès', async () => {
+    await expect(assertUploadCompleted({ perUser: true }, 'k')).rejects.toMatchObject({code:'SYNC_NOT_CONFIRMED'});
   });
 
-  test('storageKey vide → no-op', async () => {
+  test('une référence absente ne peut annoncer un succès', async () => {
     const exists = jest.fn();
-    await assertUploadCompleted({ perUser: true, exists }, '');
+    await expect(assertUploadCompleted({ perUser: true, exists }, '')).rejects.toMatchObject({code:'SYNC_NOT_CONFIRMED'});
     expect(exists).not.toHaveBeenCalled();
   });
 });

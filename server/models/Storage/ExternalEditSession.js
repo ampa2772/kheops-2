@@ -8,6 +8,8 @@ const ExternalEditSessionSchema = new mongoose.Schema({
   provider: { type: String, enum: ['onedrive', 'google_drive'], required: true },
   editor: { type: String, enum: ['word_web', 'google_docs'], required: true },
   remoteId: { type: String, required: true },
+  remoteDriveId: { type: String, default: '' },
+  remoteRevision: { type: String, default: '' },
   remoteName: { type: String, default: '' },
   openUrl: { type: String, required: true },
   remoteMime: { type: String, default: null },
@@ -24,6 +26,12 @@ const ExternalEditSessionSchema = new mongoose.Schema({
   lastSyncedAt: { type: Date, default: null },
   keepRemoteCopy: { type: Boolean, default: true },
   convertedToNative: { type: Boolean, default: false },
+  autoSyncEnabled: { type: Boolean, default: false },
+  nextSyncAt: { type: Date, default: null },
+  syncLease: { token: {type:String,default:null}, expiresAt: {type:Date,default:null} },
+  syncAttempts: { type:Number, default:0 },
+  lastSyncError: { type:String, default:'' },
+  cleanupPending: { type:Boolean, default:false },
   state: {
     type: String,
     enum: ['open', 'synced', 'conflict', 'closed', 'remote_missing'],
@@ -33,5 +41,6 @@ const ExternalEditSessionSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 ExternalEditSessionSchema.index({ tenantId: 1, documentId: 1, userId: 1, state: 1 });
+ExternalEditSessionSchema.index({ autoSyncEnabled:1, state:1, nextSyncAt:1, 'syncLease.expiresAt':1 });
 
 module.exports = mongoose.model('ExternalEditSession', ExternalEditSessionSchema);

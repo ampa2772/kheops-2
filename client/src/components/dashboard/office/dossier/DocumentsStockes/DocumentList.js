@@ -52,6 +52,7 @@ import SendEmailModal from './SendEmailModal';
 import HoverToSpeak from '../../../../common/HoverToSpeak';
 import { stopSpeaking } from '../../../../../services/speechService';
 import { useToast } from '../../../../common/notifications/useToast';
+import { useConfirm } from '../../../../common/notifications/ConfirmProvider';
 import ExternalEditingSessionModal from './ExternalEditingSessionModal';
 import DocumentHistoryModal from './DocumentHistoryModal';
 import DocumentSyncDetailsModal from '../../../../documentSync/DocumentSyncDetailsModal';
@@ -531,6 +532,7 @@ const DocumentList = ({
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const toast = useToast();
+  const confirm = useConfirm();
   const [showSendModal, setShowSendModal] = useState(false);
   const [emailData, setEmailData] = useState({ to: '', docs: [], displayName: '', isLocalAttachment: false });
   const [emailChoiceData, setEmailChoiceData] = useState(null); // Modale intermédiaire PM privée
@@ -1397,10 +1399,9 @@ const DocumentList = ({
       const consents = openingController.availability?.preference?.externalTransferConsents || {};
       let consent = consents[consentKey] === true;
       if (!consent) {
-        consent = window.confirm(
-          `Une copie de travail de ce document va être placée dans ${providerLabel}.\n\n`
-          + 'Kheops 2 conservera le document original et son historique. Continuer ?',
-        );
+        consent = await confirm({ title:'Ouvrir une copie externe', confirmLabel:'Continuer',
+          message:`Une copie de travail de ce document va être placée dans ${providerLabel}.\n\n`
+          + 'Kheops 2 conservera le document original et son historique. Continuer ?' });
         if (consent) {
           updateDocumentOpeningPreferences({
             externalTransferConsents: { [consentKey]: true },
@@ -1414,24 +1415,18 @@ const DocumentList = ({
       if (mode === 'google_docs'
         && openingController.availability?.policy?.allowGoogleConversion === true) {
         if (getDocumentFileExtension(doc) === 'txt') {
-          const confirmedTextImport = window.confirm(
-            'Google Docs va importer une copie de ce fichier texte. Le fichier .txt original restera inchangé dans Kheops 2. Continuer ?',
-          );
+          const confirmedTextImport = await confirm({title:'Importer dans Google Docs',confirmLabel:'Importer',
+            message:'Google Docs va importer une copie de ce fichier texte. Le fichier .txt original restera inchangé dans Kheops 2. Continuer ?'});
           if (!confirmedTextImport) return null;
           convertToGoogle = true;
         } else {
-          convertToGoogle = window.confirm(
-            'Voulez-vous convertir cette copie en document Google natif ?\n\n'
-            + 'OK : convertir (la mise en page peut légèrement changer).\n'
-            + 'Annuler : conserver le format Word .docx — recommandé.',
-          );
+          convertToGoogle = await confirm({title:'Format de la copie Google',confirmLabel:'Convertir en Google Docs',cancelLabel:'Conserver le format DOCX',
+            message:'La conversion en document Google natif peut légèrement modifier la mise en page. Vous pouvez conserver le format Word .docx — recommandé.'});
         }
       }
 
-      // Cet appel est volontairement placé AVANT le premier await : après un
-      // clic dans la modale, Chrome autorise encore l'onglet. En mode
-      // automatique (après la vérification réseau), il peut rester bloqué ; le
-      // lien explicite de la modale de session prend alors le relais.
+      // Le clic de consentement peut permettre l'ouverture ; si le navigateur
+      // bloque cet onglet, le lien explicite de la session reste disponible.
       const externalTab = window.open('about:blank', '_blank');
       if (!(await acquireAlternativeLock(doc))) {
         try { externalTab?.close(); } catch (_) {}
@@ -1440,11 +1435,10 @@ const DocumentList = ({
       try {
         const compatibility = await getDocumentCompatibility(doc._id).catch(() => null);
         if (mode === 'google_docs' && compatibility?.level === 'complex') {
-          const continueInGoogle = window.confirm(
-            'Ce document contient des éléments Word complexes. Microsoft Word est recommandé pour mieux préserver sa mise en page.\n\n'
+          const continueInGoogle = await confirm({title:'Vérifier la mise en page',confirmLabel:'Continuer dans Google Docs',
+            message:'Ce document contient des éléments Word complexes. Microsoft Word est recommandé pour mieux préserver sa mise en page.\n\n'
             + `${(compatibility.warnings || []).slice(0, 3).join('\n')}\n\n`
-            + 'Continuer quand même dans Google Docs ?',
-          );
+            + 'Continuer quand même dans Google Docs ?'});
           if (!continueInGoogle) {
             try { externalTab?.close(); } catch (_) {}
             return null;
@@ -1894,7 +1888,10 @@ const DocumentList = ({
       {externalSession && (
         <ExternalEditingSessionModal
           session={externalSession}
-          onSynced={() => toast.success('Nouvelle version enregistrée.', { title: 'Synchronisation' })}
+          onSynced={() => {
+            if(currentDossier?._id) dispatch(fetchAllDocumentsInDossier(currentDossier._id, token));
+            toast.success('Nouvelle version enregistrée.', { title: 'Synchronisation' });
+          }}
           onClose={(result) => {
             if (result?.closed) {
               try { localStorage.removeItem('kheopsExternalEditingSession'); } catch (_) {}

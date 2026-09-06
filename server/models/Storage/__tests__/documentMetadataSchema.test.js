@@ -5,6 +5,9 @@ const Dossier = require('../../Folder/Dossier');
 const mongoose = require('mongoose');
 
 describe('schémas des préférences et versions documentaires', () => {
+  test('les sauvegardes concurrentes de l’historique exigent la même révision Mongo',()=>{
+    expect(require('../DocumentHistory').schema.options.optimisticConcurrency).toBe(true);
+  });
   test('le modèle User accepte uniquement les six modes d’ouverture prévus', () => {
     const path = User.schema.path('documentOpening.mode');
     expect(path.enumValues).toEqual([

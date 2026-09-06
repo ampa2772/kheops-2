@@ -30,6 +30,7 @@ const DocumentHistoryVersionSchema = new mongoose.Schema({
   structuredDocument: { type: mongoose.Schema.Types.Mixed, default: null },
   restoredFromVersionId: { type: String, default: null },
   operationKey: { type: String, default: null, maxlength: 180 },
+  syncProjectionPending: { type:Boolean, default:false },
 }, { _id: false });
 
 const DocumentHistorySchema = new mongoose.Schema({
@@ -39,8 +40,12 @@ const DocumentHistorySchema = new mongoose.Schema({
   originalVersionId: { type: String, default: null },
   currentVersionId: { type: String, default: null },
   versions: { type: [DocumentHistoryVersionSchema], default: [] },
-}, { timestamps: true });
+  syncProjectionLease: { token:{type:String,default:null},expiresAt:{type:Date,default:null} },
+  syncProjectionNextAt: { type:Date,default:null },
+  syncProjectionError: { type:String,default:'' },
+}, { timestamps: true, optimisticConcurrency: true });
 
 DocumentHistorySchema.index({ tenantId: 1, documentId: 1 }, { unique: true });
+DocumentHistorySchema.index({'versions.syncProjectionPending':1,syncProjectionNextAt:1});
 
 module.exports = mongoose.model('DocumentHistory', DocumentHistorySchema);

@@ -359,7 +359,8 @@ app.get('/api/health/ping', (req, res) => {
       aiWorkerRunning = require('./services/ai/taskService').workerStatus().running === true;
     } catch (_) {}
     try {
-      syncWorkerRunning = require('./services/sync/documentSyncWorkerLoop').status().running === true;
+      syncWorkerRunning = require('./services/sync/documentSyncWorkerLoop').status().running === true
+        && require('./services/externalSessionSyncLoop').status().running === true;
     } catch (_) {}
     try {
       mailWorkerRunning = require('./services/mail/mailWorkerLoop').status().running === true;
@@ -528,6 +529,7 @@ function startBackgroundWorkers() {
   }
   if (process.env.DOCUMENT_SYNC_WORKER_ENABLED === 'true' && enabled('documentSyncV2')) {
     require('./services/sync/documentSyncWorkerLoop').start();
+    require('./services/externalSessionSyncLoop').start();
     console.log('[DocumentSync] Worker durable démarré.');
   }
   if (process.env.MAIL_WORKER_ENABLED === 'true') {
@@ -541,6 +543,7 @@ async function stopBackgroundWorkers({ drainMs = 7000 } = {}) {
   require('./services/ai/taskService').stopWorkerLoop();
   await Promise.all([
     require('./services/sync/documentSyncWorkerLoop').stop({ drainMs }),
+    require('./services/externalSessionSyncLoop').stop({ drainMs }),
     require('./services/mail/mailWorkerLoop').stop({ drainMs }),
   ]);
   backgroundWorkersStarted = false;

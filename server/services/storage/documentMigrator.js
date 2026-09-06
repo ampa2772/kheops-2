@@ -97,7 +97,9 @@ async function migrateOneDocument({ ownerUserId, doc, targetProvider, tenantId, 
 
   const oldKey = version.storageKey;
   // Deja sur un cloud PAR UTILISATEUR -> rien a faire (idempotent).
-  if (providerNameForKey(oldKey)) return { ok: false, reason: 'deja-sur-cloud-perso' };
+  const sourceName=providerNameForKey(oldKey);
+  if(!sourceName) return {ok:false,reason:'reference-inconnue'};
+  if (sourceName!=='managed_gcs') return { ok: false, reason: 'deja-sur-cloud-perso' };
   // Cible sans espace utilisateur -> rien a faire.
   if (targetProvider.name === 'managed_gcs') return { ok: false, reason: 'cible-managed_gcs' };
 
@@ -252,7 +254,7 @@ async function backfillUserDocuments(ownerUserId, { limit = MAX_BACKFILL_DOCS } 
     // Ne garder que ceux encore sur stockage interne (cle sans prefixe).
     const pending = docs.filter((d) => {
       const v = currentVersion(d);
-      return v && v.storageKey && !providerNameForKey(v.storageKey);
+      return v && v.storageKey && providerNameForKey(v.storageKey)==='managed_gcs';
     });
     if (pending.length === 0) return { total: 0, migrated: 0, skipped: 0, reasons: {} };
     return await migrateDocuments(ownerUserId, pending);
@@ -281,7 +283,7 @@ async function syncDossierDocuments(ownerUserId, dossierId) {
       .lean();
     const pending = docs.filter((d) => {
       const v = currentVersion(d);
-      return v && v.storageKey && !providerNameForKey(v.storageKey);
+      return v && v.storageKey && providerNameForKey(v.storageKey)==='managed_gcs';
     });
     if (pending.length === 0) return { total: 0, migrated: 0, skipped: 0, reasons: {} };
     return await migrateDocuments(ownerUserId, pending);

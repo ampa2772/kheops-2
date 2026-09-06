@@ -15,15 +15,16 @@ const mockDossierFind = jest.fn();
 
 jest.mock('../index', () => ({
   providers: { managed_gcs: { name: 'managed_gcs', downloadVersion: (...a) => mockManagedGcsDownload(...a) } },
-  // Reproduit la vraie logique : prefixe « scheme: » -> nom de provider, sinon null.
+  // Reproduit le routage : chemin sans schéma = stockage interne.
   providerNameForKey: (key) => {
     const s = String(key || '');
     const i = s.indexOf(':');
     if (i > 0) {
       const scheme = s.slice(0, i);
-      return ({ onedrive: 'onedrive', googledrive: 'google_drive', sharepoint: 'sharepoint' })[scheme] || null;
+      return ({ onedrive: 'onedrive', 'onedrive-v2':'onedrive', googledrive: 'google_drive', sharepoint: 'sharepoint' })[scheme]
+        || null;
     }
-    return null;
+    return s && i<0 ? 'managed_gcs' : null;
   },
   getUploadProvider: (...a) => mockGetUploadProvider(...a),
   assertUploadCompleted: (...a) => mockAssertUploadCompleted(...a),

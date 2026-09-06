@@ -106,8 +106,8 @@ describe('documentSyncService', () => {
     expect(result.status).toBe('conflict');
     expect(Copy.updateMany).toHaveBeenCalledWith({
       tenantId, logicalDocumentId, _id: { $in: [sourceCopy] },
-    }, { $set: { state: 'conflict' } });
-    expect(Logical.updateOne).toHaveBeenCalledWith({ tenantId, _id: logicalDocumentId }, { $set: { status: 'conflict' } });
+    }, { $addToSet: { syncConflicts: operation.operationId } });
+    expect(Logical.updateOne).toHaveBeenCalledWith({ tenantId, _id: logicalDocumentId }, { $addToSet: { syncConflicts: operation.operationId } });
   });
 
   test('nettoie les métadonnées de checkpoint', () => {

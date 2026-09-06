@@ -32,6 +32,8 @@ const LogicalDocumentSchema = new mongoose.Schema({
     index: true,
   },
   aliases: { type: [AliasSchema], default: [] },
+  syncConflicts: { type:[String], default:[] },
+  projectedHistoryVersionId: { type:String,default:null },
   provenance: { type: ProvenanceSchema, default: () => ({ source: 'user' }) },
   currentVersionId: { type: String, default: null, maxlength: 180 },
   canonicalCopyId: { type: mongoose.Schema.Types.ObjectId, ref: 'DocumentCopy', default: null },

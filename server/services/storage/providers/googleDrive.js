@@ -95,6 +95,7 @@ async function uploadVersion({
   matterLabel,
   versionOrdinal,
   idempotencyKey,
+  containerId,
 }) {
   if (!ownerUserId) {
     const err = new Error("Propriétaire (ownerUserId) requis pour un upload Google Drive.");
@@ -126,6 +127,7 @@ async function uploadVersion({
     mime,
     folderSegments,
     idempotencyKey,
+    ...(containerId ? {parentFolderId:containerId} : {}),
   });
   return {
     provider: 'google_drive',

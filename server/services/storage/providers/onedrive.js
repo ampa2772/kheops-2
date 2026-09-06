@@ -69,12 +69,19 @@ function buildStorageKey({ tenantId, matterId, documentId, versionId, filename, 
 }
 
 // storageKey persisté = onedrive:<ownerUserId>:<itemId>
-function encodeKey(ownerUserId, itemId) {
+function encodeKey(ownerUserId, itemId, driveId) {
+  if (driveId) return `onedrive-v2:${ownerUserId}:${driveId}:${itemId}`;
   return `onedrive:${ownerUserId}:${itemId}`;
 }
 
 function parseKey(storageKey) {
   const s = String(storageKey || '');
+  if (s.startsWith('onedrive-v2:')) {
+    const [, ownerUserId, driveId, ...itemParts] = s.split(':');
+    const itemId = itemParts.join(':');
+    if (!ownerUserId || !driveId || !itemId) throw Object.assign(new Error('Référence OneDrive incomplète.'), {statusCode:400,code:'INVALID_ONEDRIVE_KEY'});
+    return {ownerUserId, driveId, itemId};
+  }
   if (!s.startsWith('onedrive:')) {
     const err = new Error('storageKey OneDrive invalide.');
     err.statusCode = 400;
@@ -102,7 +109,7 @@ function parseKey(storageKey) {
   return { ownerUserId, itemId };
 }
 
-async function uploadVersion({ tenantId, matterId, documentId, versionId, filename, buffer, mime, ownerUserId, matterLabel, versionOrdinal }) {
+async function uploadVersion({ tenantId, matterId, documentId, versionId, filename, buffer, mime, ownerUserId, matterLabel, versionOrdinal, containerId, idempotencyKey }) {
   if (!ownerUserId) {
     // Sans propriétaire identifié, on ne sait pas dans quel OneDrive écrire.
     const err = new Error("Propriétaire (ownerUserId) requis pour un upload OneDrive.");
@@ -118,11 +125,14 @@ async function uploadVersion({ tenantId, matterId, documentId, versionId, filena
   }
 
   const path = buildStorageKey({ tenantId, matterId, documentId, versionId, filename, matterLabel, versionOrdinal });
-  const result = await oneDrive.uploadFile(ownerUserId, { path, buffer, mime });
+  const result = await oneDrive.uploadFile(ownerUserId, { path, buffer, mime,
+    ...(containerId ? {driveId:containerId} : {}), ...(idempotencyKey ? {idempotencyKey} : {}),
+  });
 
   return {
     provider: 'onedrive',
-    storageKey: encodeKey(ownerUserId, result.itemId),
+    storageKey: encodeKey(ownerUserId, result.itemId, containerId),
+    idempotent: Boolean(result.idempotent),
     size: typeof result.size === 'number' ? result.size : buffer.length,
     mime: mime || 'application/octet-stream',
     filename: safeFilename(filename),
@@ -130,23 +140,23 @@ async function uploadVersion({ tenantId, matterId, documentId, versionId, filena
 }
 
 async function downloadVersion({ storageKey }) {
-  const { ownerUserId, itemId } = parseKey(storageKey);
-  return oneDrive.downloadFile(ownerUserId, itemId);
+  const { ownerUserId, itemId, driveId } = parseKey(storageKey);
+  return oneDrive.downloadFile(ownerUserId, itemId, ...(driveId ? [driveId] : []));
 }
 
 async function getDownloadUrl({ storageKey }) {
-  const { ownerUserId, itemId } = parseKey(storageKey);
-  return oneDrive.getDownloadUrl(ownerUserId, itemId);
+  const { ownerUserId, itemId, driveId } = parseKey(storageKey);
+  return oneDrive.getDownloadUrl(ownerUserId, itemId, ...(driveId ? [driveId] : []));
 }
 
 async function deleteVersion({ storageKey }) {
-  const { ownerUserId, itemId } = parseKey(storageKey);
-  return oneDrive.deleteItem(ownerUserId, itemId);
+  const { ownerUserId, itemId, driveId } = parseKey(storageKey);
+  return oneDrive.deleteItem(ownerUserId, itemId, ...(driveId ? [driveId] : []));
 }
 
 async function exists({ storageKey }) {
-  const { ownerUserId, itemId } = parseKey(storageKey);
-  return oneDrive.itemExists(ownerUserId, itemId);
+  const { ownerUserId, itemId, driveId } = parseKey(storageKey);
+  return oneDrive.itemExists(ownerUserId, itemId, ...(driveId ? [driveId] : []));
 }
 
 // Métadonnées : identiques à managed_gcs (elles vivent dans Mongo, pas OneDrive).

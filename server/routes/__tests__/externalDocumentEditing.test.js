@@ -72,6 +72,7 @@ function loadRoute({
     dossierId: 'dossier-1',
   })));
   const Dossier = {
+    exists: jest.fn().mockResolvedValue(true),
     findById: jest.fn().mockResolvedValue({
       _id: 'dossier-1',
       dossier: { documents: [{ _id: DOC_ID, nomDocument: documentName }] },
@@ -81,6 +82,7 @@ function loadRoute({
   const User = { findById: jest.fn(() => queryResult(account)) };
 
   const oneDrive = {
+    getDriveId: jest.fn().mockResolvedValue('pinned-drive'),
     ensureFolderPath: jest.fn().mockResolvedValue('folder-id'),
     uploadFile: jest.fn().mockResolvedValue({
       itemId: 'remote-1',
@@ -88,10 +90,11 @@ function loadRoute({
       webUrl: 'https://onedrive.example/edit',
     }),
     deleteItem: jest.fn().mockResolvedValue(undefined),
-    getItemMetadata: jest.fn().mockResolvedValue({ name: 'contrat.docx', size: content.buffer.length }),
+    getItemMetadata: jest.fn().mockResolvedValue({ name: 'contrat.docx', size: content.buffer.length,etag:'revision-1' }),
     downloadFile: jest.fn().mockResolvedValue(content.buffer),
   };
   const googleDrive = {
+    trashItem: jest.fn().mockResolvedValue({ok:true}),
     uploadFile: jest.fn().mockResolvedValue(googleUpload || {
       fileId: 'google-file-1',
       name: documentName,
@@ -116,6 +119,8 @@ function loadRoute({
     }),
   };
   const ExternalEditSession = {
+    findOneAndUpdate: jest.fn(async(_query,update)=>Object.assign(session,update.$set)),
+    updateOne: jest.fn().mockResolvedValue({matchedCount:1}),
     create: jest.fn(createSession || (async (data) => makeSession(data))),
     findOne: jest.fn().mockResolvedValue(session),
     find: jest.fn(),
@@ -131,6 +136,7 @@ function loadRoute({
 
   jest.doMock('../../middlewares/middleware-auth', () => (req, res, next) => next());
   jest.doMock('../../utils/ownershipHelpers', () => ({ ensureDocOwnership }));
+  jest.doMock('../../services/sync/documentSyncAccess', () => ({assertDossierAccess:jest.fn().mockResolvedValue(true)}));
   jest.doMock('../../models/Folder/Dossier', () => Dossier);
   jest.doMock('../../models/Cabinet/Tenant', () => Tenant);
   jest.doMock('../../models/App_Users/User', () => User);
@@ -164,6 +170,8 @@ function loadRoute({
       open: handler('/:docId/open', 'post'),
       status: handler('/sessions/:sessionId/status', 'get'),
       sync: handler('/sessions/:sessionId/sync', 'post'),
+      close: handler('/sessions/:sessionId', 'delete'),
+      automatic: handler('/sessions/:sessionId/automatic','patch'),
     },
     ensureDocOwnership,
     oneDrive,
@@ -197,6 +205,11 @@ function sessionRequest(sessionId = SESSION_ID) {
 }
 
 describe('externalDocumentEditing — politique et isolation', () => {
+  test('l’absence de politique historique applique les mêmes valeurs par défaut que l’écran',async()=>{
+    const {handlers,googleDrive}=loadRoute({policy:null,account:{googleDriveAccount:{accountType:'personal'}}});
+    const res=response();await handlers.open(openRequest({method:'google_docs'}),res);
+    expect(res.statusCode).toBe(201);expect(googleDrive.uploadFile).toHaveBeenCalledTimes(1);
+  });
   test('une politique interdisant les clouds personnels bloque le transfert avant tout upload', async () => {
     const { handlers, oneDrive, saveVersion } = loadRoute({
       policy: { allowPersonalClouds: false, allowedProviders: ['onedrive'] },
@@ -243,6 +256,27 @@ describe('externalDocumentEditing — politique et isolation', () => {
   });
 });
 
+describe('externalDocumentEditing — fermeture et reprise',()=>{
+  test('une fermeture avec retrait sauvegarde d’abord et utilise le drive et la révision observés',async()=>{
+    const {handlers,saveVersion,oneDrive}=loadRoute({session:makeSession({remoteDriveId:'pinned-drive'})});
+    const res=response();await handlers.close({...sessionRequest(),query:{deleteRemote:'true'}},res);
+    expect(res.statusCode).toBe(200);expect(res.payload.session.state).toBe('closed');
+    expect(saveVersion.mock.invocationCallOrder[0]).toBeLessThan(oneDrive.deleteItem.mock.invocationCallOrder[0]);
+    expect(oneDrive.deleteItem).toHaveBeenCalledWith('user-1','remote-1','pinned-drive','revision-1');
+  });
+  test('la fermeture conserve la copie si la sauvegarde produit un conflit',async()=>{
+    const {handlers,oneDrive}=loadRoute({saveVersionResult:{version:{versionId:'conflict'},history:{currentVersionId:'other'},conflict:true}});
+    const res=response();await handlers.close({...sessionRequest(),query:{deleteRemote:'true'}},res);
+    expect(res.statusCode).toBe(409);expect(res.payload.error).toBe('DOCUMENT_VERSION_CONFLICT');
+    expect(oneDrive.deleteItem).not.toHaveBeenCalled();
+  });
+  test('le rafraîchissement périodique de l’écran lit la session sans multiplier les appels cloud',async()=>{
+    const {handlers,oneDrive}=loadRoute();const res=response();
+    await handlers.status({...sessionRequest(),query:{localOnly:'true'}},res);
+    expect(res.payload.localOnly).toBe(true);expect(oneDrive.getItemMetadata).not.toHaveBeenCalled();
+  });
+});
+
 describe('externalDocumentEditing — création et compensation OneDrive', () => {
   test('crée le dossier Kheops dédié avant de déposer la copie Word pour le web', async () => {
     const { handlers, oneDrive, ExternalEditSession } = loadRoute();
@@ -254,6 +288,7 @@ describe('externalDocumentEditing — création et compensation OneDrive', () =>
     expect(oneDrive.ensureFolderPath).toHaveBeenCalledWith(
       'user-1',
       ['Kheops2', 'Modifications Kheops', DOC_ID],
+      'pinned-drive',
     );
     expect(oneDrive.ensureFolderPath.mock.invocationCallOrder[0])
       .toBeLessThan(oneDrive.uploadFile.mock.invocationCallOrder[0]);
@@ -279,7 +314,7 @@ describe('externalDocumentEditing — création et compensation OneDrive', () =>
 
     expect(res.statusCode).toBe(500);
     expect(oneDrive.uploadFile).toHaveBeenCalledTimes(1);
-    expect(oneDrive.deleteItem).toHaveBeenCalledWith('user-1', 'remote-1');
+    expect(oneDrive.deleteItem).toHaveBeenCalledWith('user-1', 'remote-1', 'pinned-drive');
   });
 });
 

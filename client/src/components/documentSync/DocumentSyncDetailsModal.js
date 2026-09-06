@@ -85,6 +85,7 @@ export default function DocumentSyncDetailsModal({ document, dossierId, onClose 
             <dl className="document-sync-summary">
               <div><dt>Identité</dt><dd>{logical.identityKey}</dd></div>
               <div><dt>État</dt><dd>{logical.status || 'draft'}</dd></div>
+              {!!logical.syncConflicts?.length && <div><dt>Synchronisation</dt><dd>Conflit à résoudre</dd></div>}
               <div><dt>Version courante</dt><dd>{logical.currentVersionId || 'Aucune version normalisée'}</dd></div>
               <div><dt>Révision du registre</dt><dd>{logical.revision || 0}</dd></div>
             </dl>
@@ -98,6 +99,7 @@ export default function DocumentSyncDetailsModal({ document, dossierId, onClose 
                     <article key={copy._id}>
                       <strong>{copy.format?.toUpperCase() || 'Document'} · {copy.purpose || 'copie'}</strong>
                       <span>{copy.state || 'non vérifié'} · version {copy.basedOnVersionId || 'inconnue'}</span>
+                      {!!copy.syncConflicts?.length && <span>Conflit de synchronisation</span>}
                       {copyLocations.map((location) => <small key={location._id}>{providerLabel(location.provider)} — {location.state || 'non vérifié'}</small>)}
                     </article>
                   );

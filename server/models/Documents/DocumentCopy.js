@@ -12,6 +12,7 @@ const DocumentCopySchema = new mongoose.Schema({
     default: 'working',
   },
   checksum: { type: String, trim: true, lowercase: true, maxlength: 128, default: null },
+  syncConflicts: { type:[String], default:[] },
   size: { type: Number, min: 0, default: 0 },
   state: {
     type: String,

@@ -18,6 +18,13 @@ const provider = require('../providers/onedrive');
 afterEach(() => jest.clearAllMocks());
 
 describe('storageKey encode/parse', () => {
+  test('une clé v2 conserve la destination au téléchargement après un changement de drive par défaut',async()=>{
+    const key=provider._encodeKey('owner','item','pinned-drive');
+    expect(provider._parseKey(key)).toEqual({ownerUserId:'owner',itemId:'item',driveId:'pinned-drive'});
+    oneDrive.downloadFile.mockResolvedValue(Buffer.from('content'));
+    await provider.downloadVersion({storageKey:key});
+    expect(oneDrive.downloadFile).toHaveBeenCalledWith('owner','item','pinned-drive');
+  });
   test('round-trip owner + itemId', () => {
     const key = provider._encodeKey('userA', 'ITEM123');
     expect(key).toBe('onedrive:userA:ITEM123');

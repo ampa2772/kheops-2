@@ -4,6 +4,7 @@ const LogicalDocument = require('../../models/Documents/LogicalDocument');
 const DocumentVersion = require('../../models/Documents/DocumentVersion');
 const DocumentCopy = require('../../models/Documents/DocumentCopy');
 const DocumentLocation = require('../../models/Documents/DocumentLocation');
+const storageAuthorization = require('./documentSyncAuthorization');
 
 function objectId(value, label) {
   if (!mongoose.Types.ObjectId.isValid(String(value || ''))) {
@@ -32,6 +33,7 @@ function makeLogicalDocumentService({
   Version = DocumentVersion,
   Copy = DocumentCopy,
   Location = DocumentLocation,
+  authorization = storageAuthorization,
 } = {}) {
   async function registerDocument({ tenantId, dossierId, userId, input = {} }) {
     const tenant = objectId(tenantId, 'tenantId');
@@ -46,7 +48,7 @@ function makeLogicalDocumentService({
       : deterministicKey('doc', [dossier, aliases[0]?.system, aliases[0]?.externalId, input.title]);
     const idempotencyKey = input.idempotencyKey ? token(input.idempotencyKey, 'idempotencyKey', 240) : null;
     if (idempotencyKey) {
-      const retried = await Logical.findOne({ tenantId: tenant, idempotencyKey }).lean();
+      const retried = await Logical.findOne({ tenantId: tenant, dossierId: dossier, idempotencyKey }).lean();
       if (retried) return { document: retried, created: false, idempotent: true };
     }
     const existing = await Logical.findOne({ tenantId: tenant, dossierId: dossier, identityKey }).lean();
@@ -90,11 +92,14 @@ function makeLogicalDocumentService({
     const actor = objectId(userId, 'userId');
     const idempotencyKey = input.idempotencyKey ? token(input.idempotencyKey, 'idempotencyKey', 240) : null;
     if (idempotencyKey) {
-      const retried = await Version.findOne({ tenantId: tenant, idempotencyKey }).lean();
+      const retried = await Version.findOne({ tenantId: tenant, logicalDocumentId: logicalId, idempotencyKey }).lean();
       if (retried) return { version: retried, created: false, idempotent: true, conflict: retried.status === 'conflict' };
     }
     const logical = await Logical.findOne({ _id: logicalId, tenantId: tenant });
     if (!logical) throw Object.assign(new Error('Document logique introuvable.'), { statusCode: 404, code: 'LOGICAL_DOCUMENT_NOT_FOUND' });
+    if (input.storageRef?.storageKey) await authorization.assertStorageReference({
+      tenantId: tenant, logicalDocumentId: logicalId, userId: actor, storageKey: input.storageRef.storageKey,
+    });
     const checksum = token(input.checksum, 'checksum', 128).toLowerCase();
     const currentDuplicate = logical.currentVersionId
       ? await Version.findOne({ tenantId: tenant, logicalDocumentId: logicalId, versionId: logical.currentVersionId, checksum }).lean()
@@ -132,7 +137,7 @@ function makeLogicalDocumentService({
           tenantId: tenant,
           $or: [
             { logicalDocumentId: logicalId, versionId: token(versionId, 'versionId', 180) },
-            ...(idempotencyKey ? [{ idempotencyKey }] : []),
+            ...(idempotencyKey ? [{ logicalDocumentId: logicalId, idempotencyKey }] : []),
           ],
         }).lean();
         if (winner) return { version: winner, created: false, idempotent: true, conflict: winner.status === 'conflict' };
@@ -205,6 +210,10 @@ function makeLogicalDocumentService({
     const copy = await Copy.findOne({ _id: copyObjectId, tenantId: tenant }).lean();
     if (!copy) throw Object.assign(new Error('Copie documentaire introuvable.'), { statusCode: 404, code: 'DOCUMENT_COPY_NOT_FOUND' });
     const provider = token(input.provider, 'provider', 80).toLowerCase();
+    await authorization.assertDestination({ tenantId: tenant, logicalDocumentId: copy.logicalDocumentId,
+      userId: actor, location: { ...input, provider, createdBy: actor } });
+    if (input.storageKey) await authorization.assertStorageReference({ tenantId: tenant,
+      logicalDocumentId: copy.logicalDocumentId, userId: actor, storageKey: input.storageKey });
     const locationKey = input.locationKey || deterministicKey('loc', [copyObjectId, provider, input.accountRef, input.externalFileId, input.storageKey]);
     const existing = await Location.findOne({ tenantId: tenant, copyId: copyObjectId, locationKey }).lean();
     if (existing) return { location: existing, created: false };

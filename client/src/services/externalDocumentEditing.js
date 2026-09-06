@@ -15,8 +15,15 @@ export async function listExternalSessions(docId) {
   return data.sessions || [];
 }
 
-export async function getExternalSessionStatus(sessionId) {
-  const { data } = await apiClient.get(`/api/external-edit/sessions/${encodeURIComponent(sessionId)}/status`);
+export async function getExternalSessionStatus(sessionId, { localOnly = false } = {}) {
+  const { data } = await apiClient.get(`/api/external-edit/sessions/${encodeURIComponent(sessionId)}/status`, {
+    params: { localOnly },
+  });
+  return data;
+}
+
+export async function setExternalAutomaticSync(sessionId, enabled) {
+  const {data}=await apiClient.patch(`/api/external-edit/sessions/${encodeURIComponent(sessionId)}/automatic`,{enabled});
   return data;
 }
 

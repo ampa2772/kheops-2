@@ -14,6 +14,9 @@ const DocumentLocationSchema = new mongoose.Schema({
   containerId: { type: String, trim: true, maxlength: 500, default: '' },
   externalFileId: { type: String, trim: true, maxlength: 500, default: '' },
   storageKey: { type: String, trim: true, maxlength: 1200, default: '' },
+  // Server-only attestation; public registration never copies these input fields.
+  verifiedStorageKey: { type: String, maxlength: 1200, default: '' },
+  storageVerifiedAt: { type: Date, default: null },
   webUrl: { type: String, trim: true, maxlength: 2000, default: '' },
   remoteRevision: { type: String, trim: true, maxlength: 500, default: '' },
   remoteChecksum: { type: String, trim: true, lowercase: true, maxlength: 128, default: '' },

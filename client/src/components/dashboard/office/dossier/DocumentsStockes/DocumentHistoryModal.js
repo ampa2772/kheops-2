@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import BaseModal from '../../../../common/BaseModal';
+import { useConfirm } from '../../../../common/notifications/ConfirmProvider';
 import {
   downloadDocumentHistoryVersion,
   getDocumentHistory,
@@ -21,6 +22,7 @@ const DocumentHistoryModal = ({ document, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const confirm=useConfirm();
 
   useEffect(() => {
     let active = true;
@@ -33,7 +35,7 @@ const DocumentHistoryModal = ({ document, onClose }) => {
   }, [document._id]);
 
   const restore = async (version) => {
-    if (!window.confirm('Restaurer le contenu de cette version dans une nouvelle version ? Toutes les versions existantes resteront intactes.')) return;
+    if (!await confirm({title:'Restaurer une version',confirmLabel:'Restaurer',message:'Restaurer le contenu de cette version dans une nouvelle version ? Toutes les versions existantes resteront intactes.'})) return;
     setBusyId(version.versionId);
     try {
       const result = await restoreDocumentVersion(document._id, version.versionId);
@@ -61,6 +63,8 @@ const DocumentHistoryModal = ({ document, onClose }) => {
         <div className="document-history-modal__body">
           {loading && <p>Chargement de l’historique…</p>}
           {error && <div className="document-history-modal__error" role="alert">{error}</div>}
+          {history?.registryError && <p role="status">{history.registryError}</p>}
+          {history?.registryPending && !history.registryError && <p role="status">Versions sauvegardées. Vérification du registre de synchronisation en cours.</p>}
           {history?.versions?.length > 0 && (
             <ol className="document-history-list">
               {[...history.versions].reverse().map((version) => {

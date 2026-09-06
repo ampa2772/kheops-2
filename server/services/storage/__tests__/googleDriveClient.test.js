@@ -1,7 +1,8 @@
 // Tests A3 — client Google Drive : jeton par utilisateur (refresh direct),
 // dossier applicatif, upload multipart, mapping « non connecté ».
 
-jest.mock('axios', () => ({ post: jest.fn(), get: jest.fn(), delete: jest.fn() }));
+jest.mock('axios', () => ({ post: jest.fn(), get: jest.fn(), delete: jest.fn(),patch:jest.fn() }));
+jest.mock('../cloudUploadReservation',()=>({reserve:jest.fn()}));
 jest.mock('../../../models/App_Users/User', () => ({ findById: jest.fn(), findByIdAndUpdate: jest.fn() }));
 jest.mock('../../../utils/tokenCrypto', () => ({
   decryptIfNeeded: (v) => v,
@@ -144,4 +145,23 @@ describe('isConnected', () => {
     User.findById.mockReturnValue({ select: () => Promise.resolve({ googleRefreshToken: null }) });
     expect(await gdrive.isConnected('userA')).toBe(false);
   });
+});
+
+test('a pinned Drive upload reuses its reserved identity after an ambiguous commit',async()=>{
+  gdrive._tokenCache.set('userA',{accessToken:'AT',expiresAt:Date.now()+60000});
+  const reserve=require('../cloudUploadReservation').reserve;reserve.mockResolvedValue('reserved-file');
+  axios.get.mockResolvedValueOnce({data:{files:[]}}).mockResolvedValueOnce({data:{id:'reserved-file',name:'test.txt',size:3,trashed:false}});
+  axios.post.mockRejectedValue({response:{status:409}});
+  const result=await gdrive.uploadFile('userA',{name:'test.txt',buffer:Buffer.from('abc'),mime:'text/plain',idempotencyKey:'operation',parentFolderId:'pinned-folder'});
+  expect(result.fileId).toBe('reserved-file');
+  expect(reserve).toHaveBeenCalledWith(expect.objectContaining({containerId:'pinned-folder',idempotencyKey:'operation'}));
+  expect(axios.post.mock.calls[0][1].toString()).toContain('"id":"reserved-file"');
+  expect(axios.post.mock.calls[0][1].toString()).toContain('"parents":["pinned-folder"]');
+});
+
+test('session cleanup is a reversible trash operation guarded by the observed etag',async()=>{
+  gdrive._tokenCache.set('userA',{accessToken:'AT',expiresAt:Date.now()+60000});axios.patch.mockResolvedValue({});
+  await gdrive.trashItem('userA','file','observed');
+  expect(axios.delete).not.toHaveBeenCalled();
+  expect(axios.patch).toHaveBeenCalledWith(expect.stringContaining('/files/file'),{trashed:true},expect.objectContaining({headers:expect.objectContaining({'If-Match':'observed'})}));
 });

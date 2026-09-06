@@ -195,6 +195,7 @@ async function uploadFile(userId, {
   folderSegments,
   convertToGoogle = false,
   idempotencyKey = null,
+  parentFolderId = null,
 }) {
   if (!Buffer.isBuffer(buffer)) {
     const err = new Error('Buffer fichier manquant.');
@@ -203,9 +204,10 @@ async function uploadFile(userId, {
     throw err;
   }
   const token = await getAccessTokenForUser(userId);
-  const folderId = Array.isArray(folderSegments) && folderSegments.length
+  if (parentFolderId && !/^[\w-]+$/.test(parentFolderId)) throw Object.assign(new Error('Dossier Drive invalide.'), {statusCode:400,code:'INVALID_DRIVE_FOLDER'});
+  const folderId = parentFolderId || (Array.isArray(folderSegments) && folderSegments.length
     ? await ensureFolderPath(userId, token, folderSegments)
-    : await ensureAppFolder(userId, token);
+    : await ensureAppFolder(userId, token));
 
   // Google Drive autorise plusieurs fichiers du même nom. Une propriété privée
   // à l'application ferme donc la fenêtre de duplication lors de la reprise
@@ -239,12 +241,21 @@ async function uploadFile(userId, {
     }
   }
 
+  const reservedId = syncKey && !convertToGoogle
+    ? await require('./cloudUploadReservation').reserve({provider:'google_drive',accountRef:userId,
+      containerId:folderId,idempotencyKey,checksum:crypto.createHash('sha256').update(buffer).digest('hex'),
+      allocate:async()=>{
+        const generated=await axios.get(`${DRIVE_API}/files/generateIds`,{headers:{Authorization:`Bearer ${token}`},params:{count:1,space:'drive',type:'files'},timeout:15000});
+        return generated.data.ids?.[0];
+      },
+    }) : null;
   const boundary = 'kheops2boundary' + Buffer.from(String(name || 'f')).toString('hex').slice(0, 16) + 'x';
   const uploadName = convertToGoogle
     ? String(name || 'document').replace(/\.(?:docx|txt)$/i, '')
     : (name || 'document');
   const meta = JSON.stringify({
     name: uploadName,
+    ...(reservedId ? {id:reservedId} : {}),
     parents: [folderId],
     ...(syncKey ? { appProperties: { kheopsSyncKey: syncKey } } : {}),
     ...(convertToGoogle ? { mimeType: 'application/vnd.google-apps.document' } : {}),
@@ -256,7 +267,8 @@ async function uploadFile(userId, {
     Buffer.from(`\r\n--${boundary}--\r\n`, 'utf8'),
   ]);
 
-  const resp = await axios.post(DRIVE_UPLOAD, body, {
+  let resp;
+  try { resp = await axios.post(DRIVE_UPLOAD, body, {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': `multipart/related; boundary=${boundary}`,
@@ -265,7 +277,16 @@ async function uploadFile(userId, {
     timeout: 60000,
     maxBodyLength: Infinity,
     maxContentLength: Infinity,
-  });
+  }); } catch(error) {
+    if (!reservedId || Number(error?.response?.status)!==409) throw error;
+    // The provider may have accepted the previous attempt before the response
+    // was lost. Reuse the reserved file identity; the worker verifies bytes.
+    const existing=await axios.get(`${DRIVE_API}/files/${encodeURIComponent(reservedId)}`,{
+      headers:{Authorization:`Bearer ${token}`},params:{fields:'id,size,name,mimeType,webViewLink,modifiedTime,trashed'},timeout:15000,
+    });
+    if(existing.data.trashed) throw Object.assign(new Error('La copie de reprise a été mise à la corbeille.'),{statusCode:409,code:'SYNC_REMOTE_DELETED',conflictKind:'remote_deleted'});
+    resp=existing;
+  }
   const result = {
     fileId: resp.data.id,
     size: Number(resp.data.size) || buffer.length,
@@ -343,10 +364,21 @@ async function getItemMetadata(userId, fileId) {
   const token = await getAccessTokenForUser(userId);
   const resp = await axios.get(`${DRIVE_API}/files/${encodeURIComponent(fileId)}`, {
     headers: { Authorization: `Bearer ${token}` },
-    params: { fields: 'id,name,mimeType,size,webViewLink,modifiedTime,md5Checksum,trashed' },
+    params: { fields: 'id,name,mimeType,size,webViewLink,modifiedTime,md5Checksum,trashed,version,parents' },
     timeout: 30000,
   });
-  return resp.data;
+  return { ...resp.data, etag: resp.headers?.etag || null };
+}
+
+// Reversible removal for an editing session. Permanent deletion remains reserved
+// for storage lifecycle operations, never for closing a user's working copy.
+async function trashItem(userId, fileId, etag) {
+  const token = await getAccessTokenForUser(userId);
+  await axios.patch(`${DRIVE_API}/files/${encodeURIComponent(fileId)}`, { trashed: true }, {
+    headers: { Authorization: `Bearer ${token}`, ...(etag ? { 'If-Match': etag } : {}) },
+    timeout: 30000,
+  });
+  return { ok: true };
 }
 
 async function deleteItem(userId, fileId) {
@@ -495,6 +527,7 @@ module.exports = {
   downloadFile,
   downloadEditableFile,
   getItemMetadata,
+  trashItem,
   deleteItem,
   itemExists,
   isConnected,

@@ -58,6 +58,15 @@ const DocumentSyncJournalSchema = new mongoose.Schema({
     metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
     updatedAt: { type: Date, default: null },
   },
+  // Written by the transfer executor only, never by the public checkpoint API.
+  uploadedFile: {
+    storageKey: { type: String, maxlength: 1200, default: '' },
+    provider: { type: String, maxlength: 80, default: '' },
+    checksum: { type: String, maxlength: 128, default: '' },
+    size: { type: Number, default: 0 },
+    copyId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    locationId: { type: mongoose.Schema.Types.ObjectId, default: null },
+  },
   result: {
     versionId: { type: String, maxlength: 180, default: null },
     copyId: { type: mongoose.Schema.Types.ObjectId, ref: 'DocumentCopy', default: null },

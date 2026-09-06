@@ -6514,3 +6514,89 @@ absence d'écrasement, destination explicite, idempotence et secrets privés.
   d’édition. Retour rc6 possible vers `kheops-2-backend-00172-muc`, avec son
   comportement Collabora antérieur. Préserver toutes les versions de documents ;
   ne pas restaurer globalement une ancienne base.
+
+## CODEX-CHANGE-068 — Synchronisation rc8 : corrections et reprise durable
+
+Date : 6 septembre 2026. Demande explicite : tester, corriger et déployer la
+synchronisation documentaire. Historique relu ; références 001/002/004/006/007,
+015, 051 à 055, 060 à 067, particulièrement l’audit 063. Invariants conservés :
+autorisation par dossier/cabinet, originaux et versions conservés, destination
+explicite, aucune suppression globale, aucun secret dans Git.
+
+### Corrections applicatives
+
+- A1/A2 : validation de la propriété physique d’une référence à partir des
+  historiques autorisés ou d’une attestation serveur ; cette attestation ne peut
+  pas être fournie par le client. Compte propriétaire et conteneur utilisés pour
+  l’envoi, droits revérifiés ; clés internes toujours lues sur le stockage
+  interne. Nouvelle clé OneDrive avec drive fixé, anciennes clés toujours lues.
+- A3/A4/A5 : lecture réelle de la cible avant déduplication ; « garder la cible »
+  conserve son empreinte et sa base propre ; « conserver les deux » crée une
+  copie distincte sans remplacer l’ancienne. Contrôles de bail et de concurrence
+  avant mise à jour. Les conflits de transfert ne détruisent plus le statut
+  métier de validation/signature du document.
+- A6/A7/A8 : reprise des erreurs réseau, 429 et 5xx, respect de Retry-After ;
+  reçu d’envoi durable avant relecture du fichier. Upload Graph par session avec
+  nom stable et refus de collision ; vérification du fichier de reprise.
+  Réservation Mongo d’un identifiant Google préalloué pour les fichiers binaires,
+  protégée par un identifiant primaire déterministe. Une confirmation distante
+  inconclusive n’est plus absorbée comme un succès, y compris dans le stockage
+  historique. Pas de jeton OAuth envoyé à l’URL Graph préauthentifiée.
+- A9 : les nouvelles versions d’historique portent atomiquement un indicateur
+  de travail restant. Le worker les enregistre dans le registre logique et
+  journalise leur vérification physique, sans transfert externe implicite ni
+  duplication du fichier interne. Reprises idempotentes, bail et conservation
+  des branches indépendantes ; aucun remplissage global des anciennes données.
+- Retour externe commun manuel/automatique : comparaison de la révision distante
+  avant/après téléchargement, base obligatoire, clé d’opération stable,
+  conservation des conflits. Retour automatique des nouvelles sessions gardant
+  leur copie, pause explicite, reprise après panne et réexamen des accès.
+  L’historique Mongo emploie désormais la concurrence optimiste. Une réponse de
+  sauvegarde perdue ne déclenche plus la suppression d’un fichier potentiellement
+  référencé ; les états incertains conservent le fichier pour vérification.
+- Fermeture avec retrait : sauvegarde préalable, conflit bloquant, révision
+  fraîche, puis corbeille récupérable. OneDrive utilise une précondition ETag ;
+  Google emploie l’ETag HTTP lorsqu’il est disponible et conserve le document
+  natif dans la corbeille. Un retrait non confirmé reste signalé à reprendre.
+- Politique documentaire normalisée commune à l’écran et au transfert. La
+  lecture directe de recette a trouvé une politique absente, et non une
+  interdiction explicite : rc7 présentait le cloud disponible mais refusait
+  ensuite la valeur par défaut. Aucune politique cabinet n’a été modifiée.
+- Interface : état automatique, dernière version reçue, conflits, erreurs et
+  fermeture en attente ; actualisation locale sans multiplier les appels aux
+  fournisseurs, rafraîchissement de la liste. Confirmations intégrées pour
+  transfert, format et restauration ; Entrée sur Annuler reste une annulation.
+  Mise en page responsive et sombre ; corrections de l’éditeur rc7 préservées.
+
+### Validations avant déploiement
+
+- Première passe complète : serveur 181 suites / 1 444 tests, client 167 suites /
+  1 906 tests réussis. Les ajouts suivants ont été vérifiés par passages ciblés :
+  stockage et synchronisation 25 suites / 159 tests, projection et historique
+  10 suites / 60 tests, derniers parcours de fermeture/politique/projection
+  2 suites / 24 tests réussis. Ces ensembles se recoupent et ne s’additionnent pas.
+- Diff examiné et contrôlé. Le déploiement officiel doit réexécuter les suites
+  complètes et compiler l’état final ; ses résultats et la recette effective
+  seront consignés dans une entrée complémentaire après vérification en ligne.
+- Les tests de panne et de concurrence précités emploient des dépendances
+  contrôlées. Ils ne sont pas une recette réelle Google Docs ou OneDrive.
+
+### Portée et retour arrière
+
+- La nouvelle version n’est pas encore déclarée déployée par cette entrée.
+  La dernière version vérifiée reste rc7, révision `kheops-2-backend-00181-hud`.
+- Le retour automatique concerne la copie externe explicitement ouverte.
+  Il ne constitue pas un miroir intégral de tous les répertoires Drive/OneDrive,
+  ni un remplacement silencieux d’un document externe par des modifications
+  ultérieures faites dans Kheops. La création Google native conserve une limite
+  d’idempotence d’ouverture distincte des transferts binaires journalisés.
+- La recette restera limitée aux documents fictifs identifiés et sauvegardés.
+  OneDrive attend encore l’authentification personnelle dans son onglet.
+  Pas d’appel IA facturé ; catalogue tarifaire et renommage de préproduction
+  restent hors de ce lot. Aucun ancien fichier de livraison n’est supprimé.
+- Retour logiciel vers rc7 en réattribuant son trafic, puis contrôle santé,
+  frontend et CORS. Les champs/collections ajoutés sont conservés ; rc7 les
+  ignore. Désactiver le retour automatique avant un retour logiciel si des
+  sessions ont été ouvertes. Restaurer un document depuis son historique en
+  créant une nouvelle version ; récupérer une copie externe dans la corbeille
+  du fournisseur. Ne pas restaurer globalement la base.

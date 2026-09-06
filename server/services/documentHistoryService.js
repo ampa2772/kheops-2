@@ -91,7 +91,8 @@ async function saveVersion({
   const normalizedOperationKey = operationKey ? String(operationKey).slice(0, 180) : null;
   if (normalizedOperationKey && history) {
     const completed = history.versions.find((version) => String(version.operationKey || '') === normalizedOperationKey);
-    if (completed) return { history, version: completed, deduplicated: true, conflict: false, idempotent: true };
+    if (completed) return { history, version: completed, deduplicated: true,
+      conflict: completed.status === 'conflict' || Boolean(completed.conflictWithVersionId), idempotent: true };
   }
   const previousCurrent = history?.currentVersionId || null;
   const latest = history?.versions?.find((v) => String(v.versionId) === String(previousCurrent));
@@ -160,6 +161,9 @@ async function saveVersion({
     structuredDocument: null,
     restoredFromVersionId: restoredFromVersionId ? String(restoredFromVersionId) : null,
     operationKey: normalizedOperationKey,
+    // The outbox flag commits atomically with the immutable history version.
+    // A process crash cannot lose the registration/verification work.
+    syncProjectionPending: true,
   };
 
   if (!history) {
@@ -181,10 +185,18 @@ async function saveVersion({
   try {
     await history.save();
   } catch (err) {
-    // Si la métadonnée échoue, ne laisse pas un blob orphelin.
-    try { await getFileStorage().delete(storageKey); } catch (_) {}
-    if (structuredKey) {
-      try { await getFileStorage().delete(structuredKey); } catch (_) {}
+    // A lost Mongo acknowledgement is not evidence that the write failed.
+    // Read the committed version first; uncertainty keeps the blob intact.
+    let observed;
+    try { observed=await DocumentHistory.findOne({tenantId,documentId}); } catch(_) {}
+    const committed=observed?.versions?.find(row=>String(row.versionId)===versionId);
+    if(committed) return {history:observed,version:committed,deduplicated:true,idempotent:true,
+      conflict:committed.status==='conflict'||Boolean(committed.conflictWithVersionId)};
+    if(observed!==undefined && (err?.name==='VersionError' || err?.name==='ValidationError' || err?.code===11000)) {
+      try { await getFileStorage().delete(storageKey); } catch (_) {}
+      if (structuredKey) {
+        try { await getFileStorage().delete(structuredKey); } catch (_) {}
+      }
     }
     if (_attempt < 2 && (err?.name === 'VersionError' || err?.code === 11000)) {
       return saveVersion({
@@ -260,6 +272,7 @@ async function promoteVersion({ history, versionId }) {
   history.currentVersionId = selected.versionId;
   if (selected.status === 'conflict') selected.status = 'draft';
   selected.conflictWithVersionId = null;
+  selected.syncProjectionPending = true;
   await history.save();
   return selected;
 }
@@ -272,6 +285,8 @@ function toClient(history) {
     dossierId: String(history.dossierId),
     originalVersionId: history.originalVersionId,
     currentVersionId: history.currentVersionId,
+    registryPending: history.versions.some(version=>version.syncProjectionPending===true),
+    registryError: history.syncProjectionError || '',
     versions: history.versions.map((v) => ({
       versionId: v.versionId,
       size: v.size,

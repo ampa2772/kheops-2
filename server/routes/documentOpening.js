@@ -179,36 +179,8 @@ function buildPreferenceUpdate(body) {
   return set;
 }
 
-function defaultPolicy() {
-  return {
-    allowPersonalClouds: true,
-    requireProfessionalMicrosoftAccount: false,
-    allowedProviders: [...STORAGE_PROVIDERS],
-    forceMethod: null,
-    allowGoogleConversion: false,
-    requireKheopsVersion: true,
-    deleteExternalCopyAfterSync: false,
-    updatedAt: null,
-  };
-}
-
-function toClientPolicy(raw) {
-  if (!raw) return defaultPolicy();
-  const plain = typeof raw.toObject === 'function' ? raw.toObject() : raw;
-  const allowedProviders = Array.isArray(plain.allowedProviders)
-    ? [...new Set(plain.allowedProviders.filter((value) => STORAGE_PROVIDERS.includes(value)))]
-    : [...STORAGE_PROVIDERS];
-  return {
-    allowPersonalClouds: plain.allowPersonalClouds !== false,
-    requireProfessionalMicrosoftAccount: plain.requireProfessionalMicrosoftAccount === true,
-    allowedProviders,
-    forceMethod: EDITOR_MODES.includes(plain.forceMethod) ? plain.forceMethod : null,
-    allowGoogleConversion: plain.allowGoogleConversion === true,
-    requireKheopsVersion: plain.requireKheopsVersion !== false,
-    deleteExternalCopyAfterSync: plain.deleteExternalCopyAfterSync === true,
-    updatedAt: plain.updatedAt || null,
-  };
-}
+const { normalizeDocumentPolicy: toClientPolicy } = require('../services/documentPolicy');
+function defaultPolicy() { return toClientPolicy(null); }
 
 function buildPolicyUpdate(body, userId) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
