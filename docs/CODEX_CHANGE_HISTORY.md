@@ -6450,3 +6450,67 @@ absence d'écrasement, destination explicite, idempotence et secrets privés.
 - Retour arrière applicatif disponible vers rc6 `kheops-2-backend-00172-muc`,
   avec réactivation de son comportement Collabora ; conserver les versions
   documentaires actuelles et ne pas restaurer globalement la base.
+
+## CODEX-CHANGE-067 — Livraison de l’éditeur rc7 vérifiée en ligne (6 septembre 2026)
+
+### Périmètre et traçabilité
+
+- Validation des changements 064 à 066, dont la demande de page noire en mode
+  sombre. Aucune ancienne entrée n’est remplacée. La fiche
+  `docs/LIVRAISON_2.0.18_RC7.md` détaille les preuves et les réserves.
+- Commit applicatif poussé : `b9dec954a5f157f67b2f3e13d10ac50f38b473d3`.
+  Tag annoté `v2.0.18-rc7` créé et poussé après la recette finale.
+- Déploiement officiel terminé sans erreur. Cloud Build
+  `1d224d09-754e-4992-aa74-d4b80c655cf2` réussi ; révision
+  `kheops-2-backend-00181-hud` à 100 % du trafic, tag candidat supprimé.
+  Build `BUILD-MTP7BEKP`, empreinte serveur `0c577e083a458765`.
+- Bundle `/static/js/main.65296d88.js`, local et servi identiques, SHA-256
+  `c98f0f6dae0f8620fc06f2cf00a5587b0fc37c01de3897ac950e31e0b43b0607`.
+  Le présent commit documentaire complète le commit applicatif sans modifier
+  le code servi ; aucun nouveau déploiement de code n’est requis.
+
+### Résultats
+
+- Déploiement : serveur 175 suites / 1 397 tests ; client 166 suites /
+  1 902 tests ; compilation et contrôles préalables réussis. Ciblés finaux :
+  15 suites / 108 tests ; navigateur Chrome : 9 tests, cinq largeurs.
+- Santé, configuration, frontend, bundle et CORS vérifiés sur la candidate
+  puis les deux adresses publiques. Vérification indépendante du manifeste,
+  de la base et du bundle ; Collabora désactivé. Contrôle technique authentifié
+  distinct de la connexion Google humaine.
+- Recette dans cette session Google sur la révision finale : page noire et
+  texte clair, retour au papier blanc, HTML inchangé lors du basculement.
+  Taille 14/16, centrage, deux annulations et deux rétablissements validés sans
+  fusion ; sauvegarde puis réouverture en Georgia 14 justifié avec trois
+  paragraphes, 23 mots, 141 caractères et ancres uniques. Thème sombre mémorisé.
+- Après restauration d’une version antérieure, la protection de concurrence
+  a exigé de recharger la version centrale ; le rechargement a réussi, sans
+  écrasement. Le document fictif compte désormais huit versions conservées.
+- Téléchargement DOCX final vérifié par deux lectures : 3 517 octets,
+  texte et Georgia 14 présents, SHA-256
+  `fe132fb66ca68f81e8555dffb2dcc3576064e1abc5b02e1fdf953acb4fb3e104`.
+- Aucune entrée ERROR ou supérieure pour la nouvelle révision du démarrage
+  au contrôle à 04 h 46 (Europe/Berlin). Portée limitée à cette fenêtre ;
+  l’ancienne erreur Gmail visible en paramètres reste distincte.
+
+### Données, rapport et suites ouvertes
+
+- Le document fictif de 065 reste conservé, de même que les deux documents
+  préexistants. La restauration observée à 04 h 35 a créé la cinquième version
+  depuis la troisième ; les cinq ont été sauvegardées par téléchargements
+  vérifiés, source et restauration identiques. La recette finale a ajouté
+  des versions. Aucune suppression ou migration de données dans ce lot.
+- PDF `../Livraison-Kheops-2.0.18-rc7.pdf`, quatre pages rendues et inspectées,
+  SHA-256 `385a7f4695153caac88d36b68844a2e57ce870e5d834e63a532f6aa349bc8247`.
+  Preuves et sauvegardes hors Git dans `../operations-rc7` ; journal officiel
+  `../editor-rc7-night-deploy.log`. Les documents rc5/rc6 sont conservés.
+- Les défauts de synchronisation de 063 ne sont pas clos par cette livraison.
+  Google Drive connecté après consentement, mais copie/retour d’édition encore
+  à recetter ; OneDrive attend l’authentification Microsoft. Base préproduction
+  toujours nommée `test` ; catalogue IA à valider, aucun appel IA facturé ici.
+  Les travaux réalisables restants ne sont pas présentés comme impossibles.
+- Retour immédiat : réattribuer le trafic à `kheops-2-backend-00178-yux`, puis
+  contrôler santé/frontend/CORS ; cette révision perd les dernières corrections
+  d’édition. Retour rc6 possible vers `kheops-2-backend-00172-muc`, avec son
+  comportement Collabora antérieur. Préserver toutes les versions de documents ;
+  ne pas restaurer globalement une ancienne base.
