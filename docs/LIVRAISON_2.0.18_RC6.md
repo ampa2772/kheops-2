@@ -1,8 +1,11 @@
 # Kheops 2 - Livraison 2.0.18-rc6
 
-Date : 6 septembre 2026. Ce document décrit les corrections de la version.
-Les identifiants de déploiement et les résultats de la recette finale seront
-consignés dans l'entrée de vérification de l'historique et le PDF de livraison.
+Date : 6 septembre 2026. Version déployée et vérifiée sur la révision servie.
+Commit applicatif : `d5fc5846b5fb03ed48c0f5f98a67eec45f62bf36` ;
+tag : `v2.0.18-rc6`. Cloud Run : `kheops-2-backend-00172-muc`, trafic 100 %.
+Build : `BUILD-MTP2HNCM`, empreinte serveur `90e8f96542b2e1cd`.
+L'entrée `CODEX-CHANGE-062` consigne la vérification après déploiement.
+Le PDF final de six pages est livré dans le répertoire parent du projet.
 
 ## Corrections
 
@@ -55,7 +58,8 @@ consignés dans l'entrée de vérification de l'historique et le PDF de livraiso
   sauvegarde de la politique ; attribution préalable de `roles/run.builder`.
   Le compte sert aux constructions Cloud Build et au service Office.
   L'API garde son compte dédié. Après réduction : santé API HTTP 200,
-  découverte Office HTTP 200. Le déploiement rc6 doit confirmer la construction.
+  découverte Office HTTP 200. La construction Cloud Build rc6
+  `05b75ca8-3899-4b2a-bc28-d4ada04078af` a réussi avec les droits réduits.
 
 ## Base de préproduction : décision motivée
 
@@ -97,8 +101,52 @@ dans la devise et pour le modèle réellement choisi.
   absents des logs, audit de déconnexion et panne serveur, vérifications
   fournisseur exclusivement GET, modèle inaccessible, tâche ancienne sans
   prix arrêtée avant génération, plus toutes les suites existantes.
-- Le script officiel relance les suites et construit avant toute nouvelle
-  révision. Ses résultats effectifs complètent l'entrée de vérification.
+- Le déploiement officiel a relancé les suites complètes : serveur
+  175 suites / 1 397 tests réussis (120,721 s), client
+  162 suites / 1 886 tests réussis (52,489 s), puis compilation réussie.
+
+## Recette finale en ligne
+
+- Candidate vérifiée avant promotion, puis santé, page React, bundle et CORS
+  vérifiés sur les deux URL du service après promotion. Révision prête,
+  trafic 100 %, tag de candidate retiré.
+- Manifeste servi : commit applicatif ci-dessus, arbre propre à la construction,
+  empreinte serveur identique à la source locale. Bundle
+  `/static/js/main.2c27b068.js`, SHA-256 local et distant identique :
+  `a59e50dd0081052064bd2f8c3880d271774b086db5af5df75a46eea67cb13671`.
+- Google : connexion réelle le 6 septembre à 00:27:54 UTC avec
+  `apma2772@gmail.com`, compte affiché dans Paramètres/Comptes ; consultation
+  d'un dossier existant et de sa liste de deux documents. Déconnexion à
+  00:29:41 UTC ; accès direct au dashboard redirigé vers le login.
+- Microsoft : connexion réelle à 00:30:35 UTC avec
+  `AdrienJalet@NovaForge127.onmicrosoft.com`, compte affiché ; consultation
+  complète des contacts, liste vide pour ce compte. Déconnexion à
+  00:31:34 UTC ; accès direct aux contacts redirigé vers le login.
+  Le premier compte proposé avait échoué ; le compte Azure correct a permis
+  de terminer la recette. Aucun document ni courrier réel modifié ou envoyé.
+- Pour les deux fournisseurs, retour OAuth effacé de l'URL et événements
+  `AUTH_LOGIN_SUCCESS` / `AUTH_LOGOUT` vérifiés sur la révision rc6.
+  Jusqu'à 00:34 UTC : zéro journal de sévérité ERROR, zéro réponse 5xx et
+  zéro occurrence du motif de JWT en query recherché dans les logs applicatifs.
+  Ce contrôle ne purge pas les anciens journaux et ne prouve pas une
+  synchronisation documentaire Drive/OneDrive de bout en bout.
+- Contrôles API distincts avec un jeton technique éphémère : profil attendu,
+  connexions IA accessibles, santé base 200 authentifié / 401 sans session,
+  logout 204, accès protégé sans authentification 401. Ils ne remplacent
+  pas les connexions OAuth humaines ci-dessus.
+- Après recette : compteurs et invariants de données inchangés ; restauration
+  ciblée des 38 lignes et retour des quatre rattachements testés dans des
+  transactions ensuite annulées, sans altérer l'état final.
+
+## Registre privé des connexions
+
+À la demande de l'utilisateur, `Identifiants.md` se trouve à la racine locale.
+Le mot de passe Azure est conservé dans un fichier associé chiffré avec
+Windows DPAPI, lisible par le même compte Windows sur cette machine.
+Les autres entrées indiquent les comptes et emplacements de configuration,
+sans recopier leurs secrets. Le motif `/Identifiants*` est exclu de Git et
+des fichiers envoyés à Cloud Build ; ces deux exclusions ont été vérifiées.
+Le registre et le fichier chiffré ne font pas partie de la publication.
 
 ## Rectification explicite du rapport rc5
 

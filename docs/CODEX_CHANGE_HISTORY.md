@@ -6118,3 +6118,103 @@ des deux objets et 38 documents sans écrasement, retour des quatre champs
 de rattachement avec conservation prudente des cabinets créés, restauration
 des seules liaisons IAM retirées. Scripts et journaux privés conservés dans
 `operations-rc6`. Ni suppression globale ni restauration globale de la base.
+
+## CODEX-CHANGE-062 - rc6 déployée : recette réelle, preuves et registre privé
+
+Date : 2026-09-06. Complète l'entrée 061 après déploiement, sans modifier
+les constats historiques des entrées 057 à 061.
+
+### Livraison réellement servie
+
+- Commit applicatif : `d5fc5846b5fb03ed48c0f5f98a67eec45f62bf36` ; tag
+  annoté `v2.0.18-rc6`, poussés sur le dépôt distant.
+- Déploiement par `scripts/gcp/deploy.ps1` / `deploy.sh` : Cloud Build
+  `05b75ca8-3899-4b2a-bc28-d4ada04078af` réussi. Manifeste
+  `BUILD-MTP2HNCM`, source propre à la construction, empreinte serveur
+  `90e8f96542b2e1cd` (280 fichiers, `kheops-src-v2`).
+- Révision `kheops-2-backend-00172-muc`, prête, 100 % du trafic, tag de
+  candidate retiré. Santé, configuration, frontend, bundle et CORS validés
+  avant et après promotion, sur les URL publique et canonique du service.
+- Bundle `/static/js/main.2c27b068.js` : 3 609 294 octets ; SHA-256
+  local et distant identique :
+  `a59e50dd0081052064bd2f8c3880d271774b086db5af5df75a46eea67cb13671`.
+- Le déploiement officiel a relancé toutes les suites : serveur
+  **175 suites / 1 397 tests réussis** (120,721 s), client
+  **162 suites / 1 886 tests réussis** (52,489 s), puis compilation réussie.
+  Les avertissements historiques restent consignés dans les preuves privées.
+
+### Connexions humaines sur la révision rc6
+
+- Google, compte `apma2772@gmail.com` : connexion à 00:27:54 UTC,
+  compte connecté vérifié dans Paramètres/Comptes, lecture d'un dossier
+  existant et de sa liste de deux documents ; déconnexion à 00:29:41 UTC.
+  Accès direct au dashboard après déconnexion redirigé vers le login.
+- Microsoft, compte `AdrienJalet@NovaForge127.onmicrosoft.com` : connexion
+  à 00:30:35 UTC, compte connecté vérifié, lecture complète de la liste des
+  contacts (vide pour ce compte) ; déconnexion à 00:31:34 UTC. Accès direct
+  aux contacts après déconnexion redirigé vers le login. Le premier compte
+  proposé échouait chez Microsoft ; le compte Azure correct fourni ensuite
+  par l'utilisateur a permis de terminer la recette.
+- Pour les deux : URL de retour débarrassée du jeton ; événements de login
+  et logout avec les comptes attendus vérifiés sur `00172-muc`.
+  Jusqu'au contrôle de 00:34:11 UTC : 0 ERROR, 0 réponse 5xx, 0 occurrence
+  du motif JWT en query recherché dans les journaux applicatifs. Les anciens
+  journaux ne sont pas purgés. Aucun document ni courrier réel modifié ou envoyé.
+- Les vérifications API par jeton technique éphémère sont distinctes :
+  profil attendu, accès à la liste IA, métadonnées de base protégées
+  (200 authentifié / 401 sans session), logout 204 puis accès sans session
+  refusé. Elles ne se substituent pas aux deux connexions humaines.
+- Limites inchangées : la fermeture locale ne révoque pas les JWT stateless
+  déjà émis ni les sessions du fournisseur. Disponibilité des workers et
+  connexion OAuth ne démontrent pas un aller-retour documentaire Drive/OneDrive.
+
+### Données, droits et réserves contrôlés après recette
+
+- Compteurs finaux : 41 dossiers, 332 contacts physiques, 18 personnes
+  morales, 15 cabinets, 17 utilisateurs ; zéro dossier/fiche ZZTEST,
+  zéro dossier sans cabinet, zéro doublon `(tenantId, reference)`.
+  Aucune ligne ciblée supprimée ne subsiste ; aucun autre champ historique
+  modifié. Les comptes et cabinets de recette sont conservés.
+- Retour arrière des données : réinsertion des 38 lignes et retour des
+  quatre champs de rattachement exécutés dans des transactions ensuite
+  annulées ; contrôles réussis, état final préservé. Les sauvegardes et
+  procédures détaillées restent dans `operations-rc6`, hors dépôt.
+- IAM Compute relu après déploiement : seul `roles/run.builder` au niveau
+  projet. Cloud Build réussi avec les droits réduits, API et découverte
+  Office HTTP 200 ; compte dédié de l'API inchangé.
+- Renommage de la base `test` non appliqué : écritures actives, absence de
+  gel/rattrapage coordonné. Les préconditions d'une migration sans perte
+  et d'un retour après reprise sont documentées ; aucune bascule de secret.
+- Catalogue, connexions, tâches et usages IA vides. Contrôle réel sans tarif :
+  `AI_MODEL_PRICING_NOT_CONFIGURED` (409), zéro appel fournisseur. Aucun
+  tarif commercial déclaré validé ; première génération subordonnée à la
+  configuration et à la validation du catalogue du modèle choisi.
+
+### Documents finaux et identifiants locaux
+
+- `docs/LIVRAISON_2.0.18_RC6.md` actualisé avec les résultats effectifs.
+  Le message final du script de déploiement qui affirmait à tort que le
+  rôle Editor subsistait est remplacé par un renvoi au dernier audit IAM.
+  Syntaxe du script vérifiée ; ce changement de message ne modifie pas
+  l'application ni les opérations de déploiement.
+- À la demande explicite de l'utilisateur : registre local racine
+  `Identifiants.md` ; mot de passe Azure dans un fichier associé chiffré
+  Windows DPAPI, lié au compte Windows et à cette machine. Les autres
+  comptes/emplacements sont référencés sans recopier de secrets.
+  `/Identifiants*` ajouté à `.gitignore` et `.gcloudignore` avant création
+  à la racine : exclusions Git et liste réelle d'envoi Cloud Build vérifiées.
+  Aucun registre privé, secret ou sauvegarde ajouté au dépôt.
+- PDF final : `../Livraison-Kheops-2.0.18-rc6.pdf`, six pages rendues et
+  inspectées visuellement ; SHA-256
+  `e7a719fea3dc23d5a51f1948279327864d37e727ff80148d74f3c547d38d11e6`.
+  Corrections, tests, commit/tag, révision/trafic, recette réelle, données,
+  réserves et retour arrière y figurent. L'ancien PDF rc5 est conservé.
+- Ce complément après livraison concerne les documents, exclusions des
+  fichiers privés et un message de procédure. Les sources applicatives
+  restent celles du commit/tag rc6 réellement servi ; pas de reconstruction
+  ni de nouveau passage des suites pour ces seuls compléments sans effet
+  sur le code exécuté. Diff final et exclusions contrôlés avant commit.
+- Retour applicatif de secours : réallouer 100 % du trafic à
+  `kheops-2-backend-00169-wax`, puis contrôler santé, frontend et CORS.
+  Les retours ciblés des données et des deux liaisons IAM sont décrits dans
+  le dossier de livraison ; aucune restauration globale de la base active.

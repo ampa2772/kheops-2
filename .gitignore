@@ -82,3 +82,6 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+
+# Registre local des identifiants et fichiers chiffres Windows (jamais publier)
+/Identifiants*

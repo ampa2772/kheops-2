@@ -867,6 +867,6 @@ echo "  Smoke-tests           : santé, config, page React, bundle JS et CORS hi
 echo "  Rollback disponible   : gcloud run services update-traffic $SERVICE --project $PROJECT --region $REGION --to-revisions $PREVIOUS_TRAFFIC"
 echo ""
 echo "  Limites restantes :"
-echo "  - le rôle Editor historique du compte Compute par défaut n'a pas été retiré ;"
+echo "  - ce script ne modifie pas l'IAM Compute ; consulter le dernier audit IAM de livraison ;"
 echo "  - une recette authentifiée GCS/OAuth/workers reste nécessaire ;"
 echo "  - AI_ALLOW_FALLBACK_PRICING=false exige un catalogue tarifaire vérifié avant le premier appel IA."

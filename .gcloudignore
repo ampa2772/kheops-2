@@ -58,6 +58,7 @@ _create_shortcut.ps1
 .deps-install-marker
 
 # Secrets et logs : NE JAMAIS envoyer (les secrets passent par Secret Manager)
+/Identifiants*
 .env*
 **/.env*
 .gcloud-kheops2/
