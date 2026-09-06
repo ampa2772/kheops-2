@@ -6671,3 +6671,88 @@ rapport final consignera leur résultat. Aucun secret, aucune suppression global
 ni migration de base. Retour logiciel de référence : révision rc7
 `kheops-2-backend-00181-hud`, avec conservation de toutes les versions et des
 champs ajoutés. Désactiver les sessions automatiques avant ce retour.
+
+## CODEX-CHANGE-071 — Clôture rc8 : synchronisation déployée et recette réelle
+
+Date : 6 septembre 2026. Références 068 à 070, sans modification de leurs
+invariants. Cette entrée clôt la livraison de synchronisation ; elle ne prétend
+pas lever les réserves historiques des autres lots (notamment IA et base).
+
+### Version finale et vérifications
+
+Commit applicatif `4c23a64dcea01e6547d15475ea69a773cdaeaf49`, tag annoté poussé
+`v2.0.18-rc8`, révision `kheops-2-backend-00187-xel`, 100 % du trafic.
+Cloud Build `8d4d46be-6298-4c75-a138-cf95863e3541` réussi. Manifeste
+`BUILD-MTPBS02I`, empreinte serveur `7c4d36bca65217e3`, code exécuté conforme.
+Bundle public `main.cc2d99d7.js` identique à la compilation locale.
+
+Exécution officielle complète réussie : serveur 183 suites / 1 465 tests ;
+client 167 suites / 1 908 tests. Compilation, manifeste, contrôles de migration,
+santé et frontend de la candidate isolée, puis santé/frontend/CORS des deux
+adresses publiques après promotion réussis. Contrôle indépendant du build,
+de la base et de la protection des informations de build réussi. Collabora
+reste désactivé ; page noire à texte clair et retour à la page blanche revus
+dans l'éditeur maison, sans sauvegarde d'une modification de contenu.
+
+### Recette sur les fournisseurs réels
+
+- Google : ouverture et édition dans Google Docs, retour automatique, pause et
+  reprise, deux synchronisations identiques sans version supplémentaire.
+  Copie manquante détectée après mise à la corbeille ciblée et sauvegardée ;
+  restauration réelle par l'API Drive, empreinte vérifiée, état utilisable
+  retrouvé sans réactivation automatique implicite.
+- Microsoft : connexion professionnelle dédiée et édition dans Word pour le
+  web. Retour automatique puis conflit réel avec une version Kheops plus
+  récente : les deux contenus restent conservés, la version courante reste
+  intacte. Le retrait demandé dans ce conflit est refusé (409 attendu).
+- Sur la révision finale, nouveaux parcours lancés dans l'interface Kheops
+  pour chaque fournisseur, nouveau texte saisi dans chaque éditeur, réception
+  automatique puis fermeture avec retrait après sauvegarde réussies. Google
+  confirme la corbeille ; Microsoft confirme l'absence du fichier actif (404).
+  Le nom visible du document est conservé, préfixé d'un identifiant temporel
+  pour la copie OneDrive. Confirmation visible ; Annuler reste l'action par
+  défaut, y compris avec Entrée ; la fenêtre parente reste ouverte.
+- 89 requêtes externes examinées sur la révision finale dans la fenêtre de
+  recette : aucune réponse 5xx, un 409 attendu. Quinze journaux de projection
+  réussis. L'erreur d'autorisation Gmail du courrier, distincte de Drive,
+  reste hors de ce lot ; démarrage du worker ne signifie pas courrier sain.
+
+### État final exact des données
+
+Seul `RECETTE EDITEUR RC7.docx` du dossier fictif a été modifié. Contenu initial
+restauré par création d'une nouvelle version :
+`1788671158769-fdada0586862`, 3 517 octets, SHA-256
+`fe132fb66ca68f81e8555dffb2dcc3576064e1abc5b02e1fdf953acb4fb3e104`.
+Les 23 versions sont conservées et sauvegardées hors Git : 114 412 octets,
+double lecture et empreintes vérifiées. La branche conflictuelle reste dans
+l'historique. Les 15 nouvelles versions figurent au registre avec la même
+version courante que l'historique, aucune projection en attente ; les huit
+anciennes versions ne font l'objet d'aucune migration globale.
+
+Les quatre sessions d'édition externe de recette sont fermées, automatisme
+désactivé, aucun nettoyage en attente. Les deux copies Google sont à la
+corbeille. La dernière copie Word a été retirée de l'espace actif ; la première
+copie Word du conflit est volontairement conservée et sauvegardée. Les deux
+autres documents du dossier restent préservés. Aucun nettoyage général ZZTEST,
+suppression globale, migration de base, changement IAM ou appel IA facturé.
+
+### Rapport et retour arrière
+
+Note détaillée : `docs/LIVRAISON_2.0.18_RC8.md`. Nouveau PDF conservé à côté du
+dossier de l'application : `../Livraison-Kheops-2.0.18-rc8.pdf`, cinq pages
+rendues et examinées visuellement. Preuves et sauvegardes ciblées dans
+`../operations-rc8`, hors Git. Aucun secret ajouté au dépôt.
+
+Le tag désigne le code réellement servi. Le commit de clôture documentaire
+qui le suit ne modifie aucune source applicative déployée. Retour logiciel :
+suspendre les sessions automatiques puis réaffecter le trafic à la révision
+rc7 `kheops-2-backend-00181-hud`, contrôler santé et ouverture. Conserver les
+champs ajoutés et les historiques. Restaurer un contenu par une nouvelle
+version, jamais par écrasement global de base. Restauration Google réellement
+vérifiée ; restauration depuis la corbeille OneDrive non rejouée, sauvegarde
+DOCX disponible pour réimportation ciblée. Commande précise dans la note.
+
+La recette valide des copies ouvertes depuis Kheops et leur retour ; aucun
+miroir universel Drive/OneDrive ni écrasement automatique d'une copie externe
+par une modification ultérieure Kheops n'est revendiqué. Les délais dépendent
+du fournisseur et les pannes réseau sont testées avec dépendances contrôlées.
