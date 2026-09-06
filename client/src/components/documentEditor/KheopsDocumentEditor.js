@@ -42,6 +42,8 @@ import { isFeatureEnabled } from '../../utils/featureFlags';
 import useElementWidth from './useElementWidth';
 import useEditorTheme from './useEditorTheme';
 import { readSelectionFormatting } from './selectionFormatting';
+import { createDomUndoHistory } from './domUndoHistory';
+import { applyParagraphStyle, selectedParagraphs } from './paragraphFormatting';
 import { applyExactFontSize, finishExactFontSize } from './exactFontSize';
 import EmailComposeModal from '../contactActions/EmailComposeModal';
 import './KheopsDocumentEditor.css';
@@ -131,6 +133,8 @@ export default function KheopsDocumentEditor({
   const pendingAIProvenanceRef = useRef([]);
   const publicationKeyRef = useRef('');
   const plainTextRef = useRef('');
+  const domHistoryRef = useRef(createDomUndoHistory());
+  const historyCommandRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
   const [loadBlocked, setLoadBlocked] = useState(false);
@@ -246,6 +250,7 @@ export default function KheopsDocumentEditor({
         headerRef.current.innerHTML = blocksToEditableHtml(visibleHeader?.blocks);
       }
       if (footerRef.current) footerRef.current.innerHTML = blocksToEditableHtml(nextPage.footer?.blocks);
+      domHistoryRef.current.reset([editorRef.current, headerRef.current, footerRef.current]);
     });
   }, [title]);
 
@@ -313,6 +318,14 @@ export default function KheopsDocumentEditor({
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (event) => {
+      const key = event.key.toLowerCase();
+      const richRoot = [editorRef.current, headerRef.current, footerRef.current]
+        .find(root => root?.isContentEditable && root.contains(event.target));
+      if (richRoot && (event.ctrlKey || event.metaKey) && ['z', 'y'].includes(key)) {
+        event.preventDefault();
+        historyCommandRef.current?.(key === 'y' || event.shiftKey ? 'redo' : 'undo');
+        return;
+      }
       if (event.key === 'Escape') {
         if (activePanel) {
           event.preventDefault();
@@ -340,8 +353,19 @@ export default function KheopsDocumentEditor({
         setShowSearch(true);
       }
     };
+    const onBeforeInput = event => {
+      if (!['historyUndo', 'historyRedo'].includes(event.inputType)) return;
+      if (![editorRef.current, headerRef.current, footerRef.current]
+        .some(root => root?.isContentEditable && root.contains(event.target))) return;
+      event.preventDefault();
+      historyCommandRef.current?.(event.inputType === 'historyRedo' ? 'redo' : 'undo');
+    };
     document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    document.addEventListener('beforeinput', onBeforeInput);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('beforeinput', onBeforeInput);
+    };
   }, [activePanel, open, showAI, showCompatibility, showLayout, showSearch]);
 
   const collectNow = useCallback(() => {
@@ -365,8 +389,9 @@ export default function KheopsDocumentEditor({
     return next;
   }, [documentTitle, fileFormat.kind]);
 
-  const markChanged = useCallback(() => {
+  const markChanged = useCallback((group = null) => {
     const next = collectNow();
+    if (fileFormat.kind !== 'text' && group !== 'history') domHistoryRef.current.record([editorRef.current, headerRef.current, footerRef.current], group);
     changeCounterRef.current += 1;
     setCounts(fileFormat.kind === 'text' ? countPlainText(plainTextRef.current) : countDocument(next));
     setDirty(true);
@@ -509,6 +534,7 @@ export default function KheopsDocumentEditor({
       ? range.commonAncestorContainer
       : range.commonAncestorContainer.parentElement;
     if ([editorRef.current, headerRef.current, footerRef.current].some((container) => container && container.contains(root))) {
+      domHistoryRef.current.rememberSelection([editorRef.current, headerRef.current, footerRef.current]);
       savedRangeRef.current = range.cloneRange();
       setSelectionFormatting(readSelectionFormatting(root));
       setSelectedText(selection.toString());
@@ -574,11 +600,30 @@ export default function KheopsDocumentEditor({
       }
       return;
     }
+    if (command === 'undo' || command === 'redo') {
+      const roots = [editorRef.current, headerRef.current, footerRef.current];
+      if (domHistoryRef.current.move(roots, command === 'undo' ? -1 : 1)) {
+        savedRangeRef.current = null;
+        rememberSelection();
+        markChanged('history');
+      }
+      return;
+    }
+    const selectionRoot = [editorRef.current, headerRef.current, footerRef.current]
+      .find(root => root?.contains(window.getSelection()?.anchorNode));
+    const alignment = { justifyLeft: 'left', justifyCenter: 'center', justifyRight: 'right', justifyFull: 'justify' }[command];
+    if (selectionRoot && (command === 'formatBlock' || alignment)) {
+      if (alignment) selectedParagraphs(selectionRoot).forEach(block => { block.style.textAlign = alignment; });
+      else applyParagraphStyle(selectionRoot, value);
+      rememberSelection(); markChanged(); return;
+    }
     try { document.execCommand('styleWithCSS', false, true); } catch (_error) { /* navigateur ancien */ }
     document.execCommand(command, false, value);
     rememberSelection();
     markChanged();
   }, [fileFormat.kind, markChanged, rememberSelection, restoreSelection]);
+
+  historyCommandRef.current = runCommand;
 
   const changeFontSize = (value) => {
     if (fileFormat.kind === 'text' || loadBlocked || loading) return;
@@ -600,7 +645,7 @@ export default function KheopsDocumentEditor({
       finishExactFontSize(event.currentTarget, exactFontSizeRef.current);
     }
     rememberSelection();
-    markChanged();
+    markChanged(['insertText', 'insertCompositionText'].includes(event?.nativeEvent?.inputType) ? 'typing' : null);
   };
 
   const applyParagraphLayout = useCallback((kind, value) => {

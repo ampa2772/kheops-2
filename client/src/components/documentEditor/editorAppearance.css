@@ -76,3 +76,17 @@
   .is-organized .kheops-command-button { min-height: 38px; }
   .is-organized .kheops-editor-ribbon { padding: 5px; }
 }
+
+/* Display-only night paper. Document colors and exports stay unchanged. */
+@media screen {
+  .kheops-editor-overlay[data-editor-theme="dark"] .kheops-editor-sheet {
+    filter: invert(1) hue-rotate(180deg);
+  }
+  .kheops-editor-overlay[data-editor-theme="dark"] .kheops-editor-sheet img {
+    filter: invert(1) hue-rotate(180deg);
+    background: white;
+  }
+}
+@media print {
+  .kheops-editor-sheet, .kheops-editor-sheet img { filter: none !important; }
+}

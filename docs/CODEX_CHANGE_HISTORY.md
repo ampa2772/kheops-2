@@ -6394,3 +6394,59 @@ absence d'écrasement, destination explicite, idempotence et secrets privés.
 - Retour arrière applicatif possible vers `kheops-2-backend-00172-muc`.
   Aucune suppression ni migration de données ; les versions de recette
   demeurent conservées. Ne pas supprimer ce document sans sauvegarde ciblée.
+
+## CODEX-CHANGE-066 — Page sombre et stabilité des paragraphes (6 septembre 2026)
+
+### Demande et diagnostic
+
+- Complément explicite de l’utilisateur : la page doit afficher un texte clair
+  sur fond noir en thème sombre, puis revenir à l’affichage normal en thème clair.
+  Les entrées 064 et 065 sont conservées et complétées par cette demande.
+- La révision `kheops-2-backend-00178-yux` (commit `75cd60c`) a bien été déployée
+  avec 100 % du trafic ; bundle local/servi identique, version rc7 présente,
+  manifeste cohérent, santé/base et CORS validés. La recette supplémentaire
+  a révélé un autre défaut avant la pose du tag final.
+- Le remplacement HTML natif utilisé pour une taille exacte pouvait faire
+  hériter le type du premier titre aux paragraphes suivants. La commande native
+  de style pouvait ensuite fusionner des paragraphes non adjacents. Ces deux
+  cas ont été reproduits avec un vrai composant dans Chrome. La première
+  interprétation orale de « défaut plus ancien » ne suffisait pas : la commande
+  de taille introduite dans 064 participait bien au premier défaut.
+
+### Corrections
+
+- La taille modifie uniquement les caractères sélectionnés dans une copie du
+  DOM, puis restitue les blocs et la sélection sans insertion HTML native.
+  Styles de paragraphe et alignements s’appliquent aux blocs sélectionnés
+  individuellement, en conservant texte, ordre, attributs et ancres.
+- Historique riche en mémoire, commun aux boutons et raccourcis Annuler/Rétablir,
+  couvrant corps/en-tête/pied avec restauration de la sélection. Frappe continue
+  regroupée sur 750 ms ; historique borné à 100 états et 8 millions de caractères
+  HTML, avec au moins les deux derniers états. Les commandes natives de retour
+  via beforeinput sont interceptées. Le parcours TXT conserve son mécanisme.
+- Page sombre par filtre d’affichage, images compensées ; les couleurs du
+  document et les exports restent inchangés. Le filtre est absent en impression.
+  Le thème clair remet la page dans ses couleurs originales. Cela remplace
+  explicitement le papier blanc en mode sombre décrit dans 064 et 065.
+
+### Vérifications et données
+
+- Éditeur ciblé : 15 suites / 108 tests réussis ; modèle, sélection, historique,
+  conservation des ancres, cellules, curseur et regroupement de frappe couverts.
+- Chrome réel : 9 tests réussis (12,3 s), cinq largeurs 320 à 1440 px,
+  page sombre/claire, tailles, couleurs, styles sans fusion ni changement
+  intempestif de type, annulations successives, sauvegarde et plan. Capture
+  de la page noire inspectée. Les changements ultérieurs mineurs sur le retour
+  d’historique sont couverts par le passage ciblé ; les suites complètes seront
+  à nouveau exécutées par le déploiement officiel.
+- Le document fictif de 065 conserve ses versions de recette, y compris l’essai
+  ayant révélé la fusion. Il faudra restaurer une version antérieure en créant
+  une nouvelle version, puis poursuivre la recette sur la révision finale.
+  Aucune suppression, migration globale ou changement de secret.
+- Google Drive a été connecté réellement après consentement de l’utilisateur.
+  OneDrive reste à authentifier ; une confirmation de copie Google dans le
+  navigateur attend une intervention, l’outil de navigation étant bloqué dessus.
+  Aucune synchronisation complète ni recette externe réussie n’est affirmée.
+- Retour arrière applicatif disponible vers rc6 `kheops-2-backend-00172-muc`,
+  avec réactivation de son comportement Collabora ; conserver les versions
+  documentaires actuelles et ne pas restaurer globalement la base.

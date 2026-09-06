@@ -66,11 +66,13 @@ for (const width of [1440, 1024, 768, 390, 320]) {
       const controls = Array.from(element.querySelectorAll('.kheops-ribbon-group-commands button,.kheops-ribbon-group-commands select,.kheops-ribbon-group-commands input'));
       return { width: element.clientWidth, scroll: element.scrollWidth,
         clipped: controls.filter(control => { const r = control.getBoundingClientRect(); return r.width > 0 && (r.left < 0 || r.right > innerWidth + 1); }).map(control => control.getAttribute('aria-label')),
-        paper: getComputedStyle(element.querySelector('.kheops-editor-sheet')).backgroundColor };
+        paper: getComputedStyle(element.querySelector('.kheops-editor-sheet')).backgroundColor,
+        paperFilter: getComputedStyle(element.querySelector('.kheops-editor-sheet')).filter };
     });
     expect(geometry.scroll).toBeLessThanOrEqual(geometry.width + 1);
     expect(geometry.clipped).toEqual([]);
-    expect(geometry.paper).toBe('rgb(255, 255, 255)');
+    expect(geometry.paper).toBe('rgb(255, 255, 255)'); // Stored paper remains white.
+    expect(geometry.paperFilter).toBe('invert(1) hue-rotate(180deg)');
     await page.screenshot({ path: testInfo.outputPath(`editor-${width}-dark.png`) });
     if (width < 1024) await page.getByRole('button', { name: 'Paragraphe', exact: true }).click();
     for (const name of ['Aligner à gauche', 'Centrer', 'Aligner à droite', 'Justifier', 'Liste numérotée']) {
@@ -79,6 +81,7 @@ for (const width of [1440, 1024, 768, 390, 320]) {
     await page.getByLabel('Thème de l’éditeur', { exact: true }).selectOption('light');
     await page.screenshot({ path: testInfo.outputPath(`editor-${width}-light.png`) });
     await expect(page.getByRole('dialog', { name: 'Éditeur Kheops', exact: true })).toHaveAttribute('data-editor-theme', 'light');
+    expect(await page.locator('.kheops-editor-sheet').evaluate(el=>getComputedStyle(el).filter)).toBe('none');
     expect(errors).toEqual([]);
   });
 }
@@ -142,4 +145,51 @@ test('sélection de plusieurs paragraphes : ruban exact et ancres uniques après
   const blocks = await page.evaluate(() => window.lastEditorSave.document.blocks);
   expect(new Set(blocks.map(block => block.id)).size).toBe(blocks.length);
   expect(blocks.flatMap(block => block.runs || []).filter(run => run.text.trim()).every(run => run.marks.size === 14)).toBe(true);
+});
+
+test('les styles de paragraphe conservent les blocs et la sélection clavier', async ({ page }) => {
+  await page.goto(baseUrl);
+  const content = page.getByLabel('Contenu du document', { exact: true });
+  await expect(content).toContainText('Les demandes');
+  await content.click(); await page.keyboard.press('Control+a');
+  await page.getByRole('combobox', {name:'Police',exact:true}).selectOption('Georgia');
+  await page.getByLabel('Taille de police',{exact:true}).selectOption('14');
+  await page.getByRole('button',{name:'Enregistrer',exact:true}).click();
+  expect(await content.locator(':scope > *').evaluateAll(nodes=>nodes.map(node=>node.tagName))).toEqual(['H1','P','H1','P']);
+  const before = await content.locator(':scope > *').count();
+  await content.click(); await page.keyboard.press('Control+a');
+  await page.getByLabel('Style de paragraphe',{exact:true}).selectOption('h1');
+  expect(await content.locator(':scope > *').count()).toBe(before);
+  await page.getByRole('button',{name:'Enregistrer',exact:true}).click();
+  expect(await page.evaluate(()=>window.lastEditorSave.document.blocks.length)).toBe(before);
+  await content.locator('h1').first().click();
+  await page.keyboard.press('Home'); await page.keyboard.press('Shift+End');
+  await page.getByLabel('Style de paragraphe',{exact:true}).selectOption('h2');
+  expect(await content.locator('h2').count()).toBe(1);
+  expect(await content.locator(':scope > *').count()).toBe(before);
+});
+
+
+test('couleur, annulations successives et thèmes préservent le document', async ({ page }) => {
+  await page.goto(baseUrl);
+  const content = page.getByLabel('Contenu du document', {exact:true});
+  await expect(content).toContainText('Les demandes');
+  const types = () => content.locator(':scope > *').evaluateAll(nodes=>nodes.map(node=>node.tagName));
+  await content.click(); await page.keyboard.press('Control+a');
+  await page.getByLabel('Taille de police',{exact:true}).selectOption('16');
+  await page.getByLabel('Style de paragraphe',{exact:true}).selectOption('h2');
+  expect(await types()).toEqual(['H2','H2','H2','H2']);
+  await content.press('Control+z');
+  expect(await types()).toEqual(['H1','P','H1','P']);
+  await content.press('Control+z');
+  await content.press('Control+y'); await content.press('Control+y');
+  expect(await types()).toEqual(['H2','H2','H2','H2']);
+  await content.press('Control+a');
+  await page.getByLabel('Couleur du texte',{exact:true}).fill('#1d4ed8');
+  await page.getByRole('button',{name:'Enregistrer',exact:true}).click();
+  const beforeTheme = await page.evaluate(()=>window.lastEditorSave.document);
+  expect(beforeTheme.blocks.flatMap(block=>block.runs||[]).filter(run=>run.text.trim()).every(run=>run.marks.color === 'rgb(29, 78, 216)')).toBe(true);
+  await page.getByLabel('Thème de l’éditeur',{exact:true}).selectOption('dark');
+  await page.getByRole('button',{name:'Enregistrer',exact:true}).click();
+  expect(await page.evaluate(()=>window.lastEditorSave.document)).toEqual(beforeTheme);
 });

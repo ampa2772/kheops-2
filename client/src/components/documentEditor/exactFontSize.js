@@ -12,7 +12,7 @@ export function finishExactFontSize(root, size) {
   }
 }
 
-/** La commande native conserve la sélection et l'historique Annuler/Rétablir.
+/** Les modifications explicites sont couvertes par l'historique de l'éditeur.
  * Le marqueur sert aussi pour la prochaine frappe lorsque le curseur est seul.
  * Les anciens marqueurs sont d'abord normalisés, sans changer leur apparence,
  * afin de ne jamais redimensionner du texte extérieur à la sélection. */
@@ -28,21 +28,29 @@ export function applyExactFontSize(root, size) {
     const start = prefix.toString().length;
     const length = range.toString().length;
     if (!length) return false;
-    const fragment = range.cloneContents();
-    const walker = document.createTreeWalker(fragment, NodeFilter.SHOW_TEXT);
+    // Preserve complete blocks, formatting only selected characters in a clone.
+    const container = root.cloneNode(true);
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
     const texts = [];
     while (walker.nextNode()) texts.push(walker.currentNode);
+    let position = 0;
     for (const text of texts) {
+      const from = Math.max(0, start - position);
+      const to = Math.min(text.length, start + length - position);
+      position += text.length;
+      if (to <= from) continue;
+      const replacement = document.createDocumentFragment();
+      if (from) replacement.appendChild(document.createTextNode(text.nodeValue.slice(0, from)));
       const span = document.createElement('span');
       span.style.fontSize = `${points}pt`;
-      text.replaceWith(span);
-      span.appendChild(text);
+      span.textContent = text.nodeValue.slice(from, to);
+      replacement.appendChild(span);
+      if (to < text.length) replacement.appendChild(document.createTextNode(text.nodeValue.slice(to)));
+      text.replaceWith(replacement);
     }
-    const container = document.createElement('div');
-    container.appendChild(fragment);
-    // Une seule modification native : le rétablissement garde la taille exacte,
-    // y compris lorsqu'un span importé possédait déjà sa propre taille.
-    document.execCommand('insertHTML', false, container.innerHTML);
+    // Native insertHTML inherits the first heading across unrelated blocks.
+    // Replace the equivalent DOM directly; the editor's snapshots own undo.
+    root.replaceChildren(...Array.from(container.childNodes));
     const result = document.createRange();
     const content = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let offset = 0;
