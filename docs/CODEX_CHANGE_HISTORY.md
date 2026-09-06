@@ -6779,3 +6779,46 @@ Diff examiné. Les suites complètes, le build et la recette sur la révision
 servie seront exécutés par la livraison officielle ; leurs résultats ne sont
 pas anticipés. Retour logiciel possible vers kheops-2-backend-00187-xel,
 révision rc8, sans restauration de données.
+
+## CODEX-CHANGE-073 — Livraison rc9 vérifiée en ligne
+
+Date : 6 septembre 2026. Complément de 072, invariants 064 à 067 et 071
+préservés. Commit applicatif 45bca75cbb88736f120d331c776ec74e16e85f38,
+tag annoté v2.0.18-rc9 poussé. Cloud Run : kheops-2-backend-00190-say,
+100 % du trafic. Cloud Build 8590b08d-eaf5-4c32-b1e3-429a5f0b90d3 réussi.
+Manifeste BUILD-MTPNCIIY, empreinte serveur inchangée 7c4d36bca65217e3.
+
+Validation officielle : serveur 183 suites / 1 465 tests ; client 167 suites /
+1 908 tests réussis. Neuf contrôles existants de l'éditeur dans Chrome réussis.
+Compilation, manifeste, garde-fous, santé/configuration/frontend/bundle/CORS
+sur la candidate puis les deux adresses publiques validés. Contrôle indépendant
+du build protégé, santé, base et identité technique réussi ; il ne constitue
+pas une nouvelle recette humaine OAuth Google/OneDrive.
+
+Recette Chrome dans un nouvel onglet, sans recharger ni modifier l'onglet de
+travail existant de l'utilisateur. Avant correction, le corps actif présentait
+un box-shadow bleu de 2 px. Sur la révision finale, en sombre et clair : focus
+sur le corps, outline none, box-shadow none, couleur du curseur conservée.
+Captures examinées ; texte et curseur utilisables, page noire/blanche selon le
+thème. La navigation Tab vers Compatibilité complète conserve son contour doré.
+Le thème système initial a été rétabli. Aucune frappe ni sauvegarde de document
+pendant cette recette ; les paragraphes et modifications préexistants sont
+conservés. Le parcours TXT n'a pas fait l'objet d'une nouvelle recette en ligne.
+
+Bundle public main.0e1ba1c0.js identique à la compilation locale, SHA-256
+b3d8de1602cdcb843a5da283aac7762f81f5aa77e4d793d8740147c8ab15774d.
+Rapport ../Livraison-Kheops-2.0.18-rc9.pdf : une page rendue et vérifiée.
+Preuves et journaux dans ../operations-rc9, hors Git. Aucun secret commité.
+Le commit de clôture documentaire suit le tag sans changement de code livré.
+
+Retour arrière logiciel, non exécuté :
+
+```powershell
+gcloud run services update-traffic kheops-2-backend --project kheops-2 --region europe-west1 --to-revisions kheops-2-backend-00187-xel=100
+```
+
+Recontrôler santé et ouverture. Aucune restauration de données nécessaire.
+Les garanties et réserves rc8 sur la synchronisation et les lots antérieurs
+restent applicables ; aucune nouvelle recette externe ni opération IA facturée.
+
+SHA-256 du rapport rc9 : e1b89d2f13e9edc88a82b69d16a4c3440c11a7ab8aa895604ce113ad6a91103f.
