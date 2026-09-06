@@ -6346,3 +6346,51 @@ absence d'écrasement, destination explicite, idempotence et secrets privés.
   servant rc6 avec 100 % du trafic. Aucun retour arrière de données requis.
   Pour réactiver Collabora ultérieurement : décision explicite, remise du
   drapeau officiel à true puis build/déploiement/recette ; le code est conservé.
+
+## CODEX-CHANGE-065 — Corrections issues de la recette réelle de l’éditeur (6 septembre 2026)
+
+### Constat et corrections
+
+- Suite de 064, sur le même périmètre et les invariants documentaires des
+  entrées 001, 002, 004, 006, 007, 015 et 051 à 055, et de livraison 060 à 064.
+- La première révision rc7 (source `31ceccc`, révision
+  `kheops-2-backend-00175-vop`) a été déployée avec 100 % du trafic. Ses suites
+  complètes ont réussi : serveur 175 suites / 1 397 tests, client 163 / 1 893.
+  Sa recette réelle a cependant révélé l’étiquette visible restée en rc6 :
+  `client/src/buildInfo.js` est corrigé. Le précontrôle officiel refuse désormais
+  toute divergence entre cette étiquette, le manifeste et le verrou npm.
+- Une sélection de plusieurs paragraphes affichait la taille du conteneur
+  (11 pt) au lieu de celle du texte (14 pt). Lecture du premier caractère
+  sélectionné, y compris sa police, sa couleur et l’alignement du paragraphe.
+  Pour une sélection hétérogène, les valeurs décrivent ce premier caractère.
+- Les opérations natives peuvent cloner les attributs des paragraphes.
+  La collecte préserve la première ancre et attribue des identifiants distincts
+  aux clones, y compris dans les cellules et les en-têtes/pieds de page affichés.
+  Les nouvelles ancres sont conservées dans le DOM pour les sauvegardes suivantes.
+  Le contenu textuel n’est pas modifié par cette normalisation.
+
+### Vérifications avant nouveau déploiement
+
+- Tests ciblés de modèle et sélection : 2 suites, 17 tests réussis (4,934 s).
+- Chrome réel, composant applicatif : 7 tests réussis (19,5 s), incluant les
+  cinq largeurs 320 à 1440 px, thèmes, tailles, annuler/rétablir, frappe,
+  navigation du plan et sélection de plusieurs paragraphes avec ruban exact
+  et ancres uniques à la sauvegarde.
+- Contrôle de version exercé dans un dossier temporaire sans secrets :
+  étiquette rc6 rejetée face au manifeste rc7 ; rc7 accepté par ce contrôle.
+- Le déploiement officiel doit encore relancer toutes les suites puis la
+  recette doit être poursuivie sur sa nouvelle révision réellement servie.
+  Aucun tag final rc7 n’est posé avant ces vérifications.
+
+### Données et réserves
+
+- La recette Google a créé un document fictif, identifié
+  `6a9cc69131a015e2b6b9a643`, dans le dossier de test de synchronisation Gmail.
+  Son titre structuré est `RECETTE EDITEUR RC7.docx`. Il est conservé pour
+  poursuivre la recette. Les deux documents préexistants sont conservés.
+- Le parcours réel confirme que les destinations d’édition Word/OneDrive
+  et Google Docs ne sont pas connectées pour ce compte. L’audit 063 reste
+  applicable ; aucune synchronisation automatique fiable n’est affirmée.
+- Retour arrière applicatif possible vers `kheops-2-backend-00172-muc`.
+  Aucune suppression ni migration de données ; les versions de recette
+  demeurent conservées. Ne pas supprimer ce document sans sauvegarde ciblée.

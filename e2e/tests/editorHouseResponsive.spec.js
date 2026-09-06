@@ -124,3 +124,22 @@ test('taille exacte, annuler/rétablir, frappe au curseur et navigation du plan'
     return (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement).closest('h1')?.textContent;
   })).toBe('II. Discussion');
 });
+
+
+test('sélection de plusieurs paragraphes : ruban exact et ancres uniques après sauvegarde', async ({ page }) => {
+  await page.goto(baseUrl);
+  const content = page.getByLabel('Contenu du document', { exact: true });
+  await expect(content).toContainText('Les demandes');
+  await content.click();
+  await page.keyboard.press('Control+a');
+  await page.getByRole('combobox', { name: 'Police', exact: true }).selectOption('Georgia');
+  await page.getByLabel('Taille de police', { exact: true }).selectOption('14');
+  await page.getByRole('button', { name: 'Justifier', exact: true }).click();
+  await expect(page.getByLabel('Taille de police', { exact: true })).toHaveValue('14');
+  await expect(page.getByRole('combobox', { name: 'Police', exact: true })).toHaveValue('Georgia');
+  await expect(page.getByRole('button', { name: 'Justifier', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+  const blocks = await page.evaluate(() => window.lastEditorSave.document.blocks);
+  expect(new Set(blocks.map(block => block.id)).size).toBe(blocks.length);
+  expect(blocks.flatMap(block => block.runs || []).filter(run => run.text.trim()).every(run => run.marks.size === 14)).toBe(true);
+});

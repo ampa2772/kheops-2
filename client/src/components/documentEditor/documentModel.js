@@ -265,11 +265,19 @@ function elementSpacing(element) {
   };
 }
 
-function domTextBlock(element, overrides = {}) {
+function domTextBlock(element, overrides = {}, seenIds = new Set()) {
+  // Native editing may clone a paragraph's attributes when splitting it.
+  // Retain the first anchor; allocate and persist distinct IDs for its clones.
+  let id = element.dataset.kheopsBlock;
+  if (!id || seenIds.has(id)) {
+    id = makeBlockId(overrides.type || 'p');
+    element.dataset.kheopsBlock = id;
+  }
+  seenIds.add(id);
   const margin = parseFloat(element.style && element.style.marginLeft) || 0;
   const marginMm = element.style && element.style.marginLeft.includes('px') ? margin * 0.264583 : margin;
   return {
-    id: element.dataset.kheopsBlock || makeBlockId(overrides.type || 'p'),
+    id,
     type: overrides.type || 'paragraph',
     ...(overrides.level ? { level: overrides.level } : {}),
     ...(overrides.type === 'list-item' ? { ordered: Boolean(overrides.ordered), level: 0 } : {}),
@@ -280,14 +288,14 @@ function domTextBlock(element, overrides = {}) {
   };
 }
 
-function tableFromDom(table) {
+function tableFromDom(table, seenIds) {
   const rows = Array.from(table.rows || []).slice(0, 100).map((row) => ({
     cells: Array.from(row.cells || []).slice(0, 20).map((cell) => {
       const rawWidth = parseFloat(cell.style.width);
       const colSpan = normalizeTableSpan(cell.getAttribute('colspan'), MAX_TABLE_COL_SPAN);
       const rowSpan = normalizeTableSpan(cell.getAttribute('rowspan'), MAX_TABLE_ROW_SPAN);
       return {
-        blocks: domToBlocks(cell).filter((block) => ['paragraph', 'heading', 'list-item'].includes(block.type)),
+        blocks: domToBlocks(cell, seenIds).filter((block) => ['paragraph', 'heading', 'list-item'].includes(block.type)),
         ...(Number.isFinite(rawWidth) ? { width: Math.max(5, Math.min(90, rawWidth)) } : {}),
         ...(colSpan > 1 ? { colSpan } : {}),
         ...(rowSpan > 1 ? { rowSpan } : {}),
@@ -299,7 +307,7 @@ function tableFromDom(table) {
   return rows.length ? { id: makeBlockId('table'), type: 'table', rows } : null;
 }
 
-export function domToBlocks(root) {
+export function domToBlocks(root, seenIds = new Set()) {
   if (!root) return [emptyParagraph()];
   const blocks = [];
   for (const node of Array.from(root.childNodes)) {
@@ -328,7 +336,7 @@ export function domToBlocks(root) {
     } else if (tag === 'hr' && node.dataset.kheopsSectionBreak) {
       blocks.push({ id: makeBlockId('section'), type: 'section-break', breakType: node.dataset.kheopsSectionBreak });
     } else if (tag === 'table') {
-      const table = tableFromDom(node);
+      const table = tableFromDom(node, seenIds);
       if (table) blocks.push(table);
     } else if (tag === 'figure' || tag === 'img') {
       const image = tag === 'img' ? node : node.querySelector('img');
@@ -342,16 +350,16 @@ export function domToBlocks(root) {
       });
     } else if (tag === 'ul' || tag === 'ol') {
       Array.from(node.children).filter((child) => child.tagName === 'LI').forEach((li) => {
-        blocks.push(domTextBlock(li, { type: 'list-item', ordered: tag === 'ol' }));
+        blocks.push(domTextBlock(li, { type: 'list-item', ordered: tag === 'ol' }, seenIds));
       });
     } else if (/^h[1-6]$/.test(tag)) {
-      blocks.push(domTextBlock(node, { type: 'heading', level: Number(tag.slice(1)) }));
+      blocks.push(domTextBlock(node, { type: 'heading', level: Number(tag.slice(1)) }, seenIds));
     } else if (tag === 'li') {
-      blocks.push(domTextBlock(node, { type: 'list-item', ordered: false }));
+      blocks.push(domTextBlock(node, { type: 'list-item', ordered: false }, seenIds));
     } else if (['p', 'div', 'blockquote'].includes(tag)) {
-      blocks.push(domTextBlock(node));
+      blocks.push(domTextBlock(node, {}, seenIds));
     } else {
-      blocks.push(domTextBlock(node));
+      blocks.push(domTextBlock(node, {}, seenIds));
     }
   }
   return blocks.length ? blocks : [emptyParagraph()];
@@ -359,7 +367,8 @@ export function domToBlocks(root) {
 
 export function collectStructuredDocument({ editor, header, footer, title, page, baseDocument = null }) {
   const base = baseDocument && typeof baseDocument === 'object' ? baseDocument : createEmptyDocument(title);
-  const headerBlocks = domToBlocks(header);
+  const seenIds = new Set();
+  const headerBlocks = domToBlocks(header, seenIds);
   const editsFirstPageHeader = Boolean(page.firstPageDifferent);
   return {
     ...base,
@@ -379,7 +388,7 @@ export function collectStructuredDocument({ editor, header, footer, title, page,
         ? (base.page?.header || { blocks: [emptyParagraph('header')] })
         : { blocks: headerBlocks },
       ...(editsFirstPageHeader ? { firstPageHeader: { blocks: headerBlocks } } : {}),
-      footer: { blocks: domToBlocks(footer) },
+      footer: { blocks: domToBlocks(footer, seenIds) },
       showPageNumbers: page.showPageNumbers !== false,
       columns: Math.max(1, Math.min(3, Number(page.columns) || 1)),
       firstPageDifferent: Boolean(page.firstPageDifferent),
@@ -390,7 +399,7 @@ export function collectStructuredDocument({ editor, header, footer, title, page,
       border: page.border || { style: 'none', color: '#000000', width: 1 },
       watermark: String(page.watermark || '').slice(0, 120),
     },
-    blocks: domToBlocks(editor),
+    blocks: domToBlocks(editor, seenIds),
   };
 }
 

@@ -6,6 +6,14 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..', '..');
 const envFile = path.resolve(ROOT, process.argv[2] || 'server/.env');
 
+const releaseVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+const visibleVersion = fs.readFileSync(path.join(ROOT, 'client/src/buildInfo.js'), 'utf8')
+  .match(/export\s+const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/)?.[1];
+const lock = JSON.parse(fs.readFileSync(path.join(ROOT, 'package-lock.json'), 'utf8'));
+if (visibleVersion !== releaseVersion || lock.version !== releaseVersion || lock.packages?.['']?.version !== releaseVersion) {
+  fail('Les versions du manifeste, du verrou npm et de l’interface doivent être identiques.');
+}
+
 function fail(message) {
   console.error(`[Pré-déploiement] ERREUR : ${message}`);
   process.exitCode = 1;

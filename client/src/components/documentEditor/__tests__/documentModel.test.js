@@ -222,3 +222,22 @@ describe('modèle structuré de l’Éditeur Kheops', () => {
     expect(result.blocks[0]).toMatchObject({ type: 'reference', referenceId: 'ref-1', targetVersionId: 'v1' });
   });
 });
+
+
+test('répare les ancres clonées sans modifier le texte et les conserve à la collecte suivante', () => {
+  const editor = document.createElement('div');
+  editor.innerHTML = '<p data-kheops-block="original">Premier</p><p data-kheops-block="original">Second</p><table><tr><td><p data-kheops-block="original">Cellule</p></td></tr></table>';
+  const header = document.createElement('div');
+  const footer = document.createElement('div');
+  header.innerHTML = '<p data-kheops-block="entete">Cabinet</p>';
+  footer.innerHTML = '<p data-kheops-block="entete">Page</p>';
+  const collect = () => collectStructuredDocument({ editor, header, footer, title: 'Test', page: {} });
+  const anchors = result => [result.page.header.blocks[0].id, result.page.footer.blocks[0].id,
+    result.blocks[0].id, result.blocks[1].id, result.blocks[2].rows[0].cells[0].blocks[0].id];
+  const first = collect();
+  expect(new Set(anchors(first)).size).toBe(5);
+  expect(first.blocks[0].id).toBe('original');
+  expect(first.page.header.blocks[0].id).toBe('entete');
+  expect(anchors(collect())).toEqual(anchors(first));
+  expect(editor.textContent).toBe('PremierSecondCellule');
+});

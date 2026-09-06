@@ -6,8 +6,26 @@ function hexColor(value, fallback) {
 }
 
 export function readSelectionFormatting(element, doc = document) {
+  // A selection spanning paragraphs has the editable root as its common
+  // ancestor. Read its first selected character, not that root's defaults.
+  const selection = doc.getSelection?.();
+  const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+  if (range && element.contains(range.startContainer)) {
+    if (range.startContainer.nodeType === 3) {
+      element = range.startContainer.parentElement;
+    } else {
+      const walker = doc.createTreeWalker(element, 4);
+      let text;
+      while ((text = walker.nextNode())) {
+        if (text.length && range.intersectsNode(text)) {
+          element = text.parentElement;
+          break;
+        }
+      }
+    }
+  }
   const style = window.getComputedStyle(element);
-  const paragraph = element.closest('p,h1,h2,h3,h4,li,td,th,div');
+  const paragraph = element.closest('p,h1,h2,h3,h4,h5,h6,li,td,th,div');
   const blockStyle = paragraph ? window.getComputedStyle(paragraph) : style;
   const state = name => {
     try { return doc.queryCommandState?.(name) === true; } catch (_) { return false; }
