@@ -6218,3 +6218,68 @@ les constats historiques des entrées 057 à 061.
   `kheops-2-backend-00169-wax`, puis contrôler santé, frontend et CORS.
   Les retours ciblés des données et des deux liaisons IAM sont décrits dans
   le dossier de livraison ; aucune restauration globale de la base active.
+
+## CODEX-CHANGE-063 - Audit de la synchronisation documentaire après rc6
+
+Date : 2026-09-06. Demande utilisateur d'auditer la synchronisation après
+clarification de la limite de recette rc6. Références : 001/002/004, 007,
+060/061/062. Invariants examinés : autorisations, versions conservées,
+absence d'écrasement, destination explicite, idempotence et secrets privés.
+
+### Livrable et portée
+
+- Rapport : `docs/AUDIT_SYNCHRONISATION_DOCUMENTS_RC6.md`.
+- Audit du code applicatif `d5fc584`, tag `v2.0.18-rc6`, révision
+  `kheops-2-backend-00172-muc`. Source applicative inchangée pendant l'audit.
+- Revue des trois parcours distincts : stockage/transfert v2, édition
+  externe avec retour manuel, compagnon Word avec surveillance du fichier.
+- Lecture agrégée de préproduction avec gardes de cible, index et création
+  de collections désactivés. Aucun contenu documentaire ni jeton exporté.
+  Aucun transfert, suppression, migration ou changement de configuration.
+
+### Conclusions
+
+- La synchronisation complète n'est pas validée. Le retour Google Docs/Word
+  web est manuel ; les sauvegardes usuelles ne produisent pas automatiquement
+  les opérations du journal v2. Le montage des routeurs et du worker est
+  réel, contrairement à la documentation initiale des fondations devenue
+  périmée sur ce point.
+- Huit constats reproduits avec données fictives et dépendances injectées :
+  référence physique acceptée sans vérification de propriété physique,
+  compte/conteneur de destination ignorés, cible non relue avant succès
+  dédupliqué, version de base incohérente en gardant la cible, conservation
+  des deux systématiquement bloquée, erreurs Axios 429/503 définitives,
+  confirmation d'existence inconclusive absorbée, reprise OneDrive sans
+  déduplication du précédent upload. Le risque analogue SharePoint est
+  identifié par revue, sans reproduction HTTP spécifique.
+- Les contrôles de périmètre logique restent présents, mais ne suffisent
+  pas à autoriser la clé physique. Priorité aux autorisations et destinations
+  avant d'élargir les essais réels. Aucun accès à un fichier réel extérieur,
+  aucune fuite effective ni perte de données en production n'est affirmé.
+- État agrégé : 118 documents logiques, 3 versions normalisées, 3 copies et
+  3 emplacements canoniques ; 115 documents sans version courante normalisée ;
+  0 journal v2 ; 1 session externe OneDrive fermée ; 13 documents stockés et
+  28 historiques. Le journal vide suit le nettoyage connu de rc6 ; ce n'est
+  pas une preuve d'absence passée d'incident.
+- Jetons dédiés de stockage absents, trois anciens jetons Microsoft présents,
+  aucun ancien jeton Google et une sélection SharePoint active. Présence
+  seulement : validité, scopes et licences non établis par ce contrôle.
+  Les connexions OAuth à Kheops ne prouvent pas l'autorisation du stockage.
+
+### Validations et réserves
+
+- Serveur : 19 suites ciblées, 100 tests réussis (15,278 s).
+- Client : 2 suites ciblées, 8 tests réussis (2,344 s).
+- Huit reproductions locales : assertions confirmant les défauts réussies ;
+  aucun fournisseur réel appelé par ces scripts. Ce ne sont pas des correctifs.
+- Fonctionnalité v2 et worker activés sur la révision servie. Les suites
+  complètes n'ont pas été relancées pour cet audit sans changement applicatif ;
+  leurs derniers résultats sont dans 062. Aucun nouveau parcours réel
+  d'édition/synchronisation Drive, OneDrive ou Word Desktop exécuté.
+- Preuves et scripts locaux : répertoire voisin `audit-synchronisation-rc6`,
+  hors dépôt. Rapport relu contre code, reproductions et état agrégé ; diff
+  documentaire vérifié. Pas de nouveau build, tag ou déploiement pour ce
+  rapport. Retour arrière applicatif/données sans objet : aucun changement
+  de l'application servie ni des données pendant l'audit.
+- Le rapport rc6 reste conservé ; cet addendum précise les réserves de
+  synchronisation à la lumière de l'audit demandé après livraison.
