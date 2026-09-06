@@ -1,0 +1,78 @@
+/* Les préférences de lecture restent séparées du contenu et des exports. */
+@media screen {
+  .kheops-editor-overlay :is(.kheops-editor-modal, .kheops-responsive-ribbon, .kheops-editor-ribbon, .kheops-document-panel, .kheops-editor-layout-panel, .kheops-overflow-menu, .kheops-command-palette) {
+    color: var(--editor-ink);
+    background: var(--editor-surface);
+    border-color: var(--editor-border);
+  }
+  .kheops-editor-overlay :is(.kheops-ribbon-tabs-row, .kheops-editor-statusbar, .kheops-editor-search) {
+    color: var(--editor-muted);
+    background: var(--editor-subtle);
+    border-color: var(--editor-border);
+  }
+  .kheops-editor-overlay .kheops-editor-workspace { background: var(--editor-workspace); }
+  .kheops-editor-overlay :is(.kheops-ribbon-tabs button, .kheops-ribbon-collapse, .kheops-command-button, .kheops-command-color, .kheops-command-number, .kheops-palette-trigger, .kheops-overflow-trigger, .group-label) { color: var(--editor-ink); }
+  .kheops-editor-overlay :is(.kheops-document-panel, .kheops-editor-layout-panel, .kheops-editor-search, .kheops-responsive-ribbon, .kheops-command-palette) :is(input, select, textarea) {
+    color: var(--editor-ink);
+    background: var(--editor-surface);
+    border-color: var(--editor-border);
+  }
+  .kheops-editor-overlay :is(.kheops-document-panel, .kheops-editor-layout-panel) :is(button, .document-panel-note, small, label) { color: var(--editor-ink); }
+  .kheops-editor-overlay :is(.kheops-document-panel, .kheops-editor-layout-panel) button { background: var(--editor-subtle); border-color: var(--editor-border); }
+  .kheops-editor-overlay :is(.kheops-ribbon-tabs button[aria-selected="true"], .kheops-command-button.is-active, .kheops-command-button:hover, .kheops-ribbon-sections button[aria-pressed="true"]) {
+    color: var(--editor-accent);
+    background: var(--editor-active);
+    border-color: var(--editor-accent);
+  }
+  .kheops-editor-overlay :is(.kheops-editor-sheet, .kheops-editor-plain-text-input) { color-scheme: light; color: #17223b; }
+}
+
+.kheops-editor-theme-select { max-width: 128px; min-width: 0; padding: 7px; color: #fff; background: #1c3f68; border: 1px solid #6c88a5; border-radius: 6px; font-size: 12px; }
+.kheops-editor-theme-select:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.is-organized .kheops-ribbon-tabs { overflow-x: auto; scrollbar-width: thin; }
+.is-organized .kheops-ribbon-tabs button { flex-shrink: 0; min-height: 38px; font-size: 13px; }
+.is-organized .kheops-editor-ribbon { padding: 8px; max-height: min(240px, 35vh); overflow-y: auto; }
+.is-organized .kheops-ribbon-groups { gap: 6px; flex-wrap: wrap; overflow: visible; }
+.is-organized .kheops-editor-ribbon-group { flex: 0 1 auto; max-width: 300px; padding: 4px 10px 22px; border-color: var(--editor-border); }
+.is-organized .kheops-ribbon-group-commands { flex-wrap: wrap; gap: 5px; overflow: visible; }
+.is-organized :is(.kheops-command-button, .kheops-command-select select, .kheops-command-color, .kheops-command-number) { min-height: 34px; height: auto; font-size: 12px; }
+.is-organized .kheops-command-button .command-label { display: inline; }
+.kheops-color-caption { display: none; }
+.is-organized .kheops-color-caption { display: inline; }
+.is-organized .kheops-command-color { width: auto; padding: 4px; gap: 4px; }
+.is-organized .kheops-command-color input { position: static; width: 20px; height: 20px; min-width: 20px; }
+.is-organized .kheops-command-number { background: var(--editor-surface); border-color: var(--editor-border); }
+.is-organized .kheops-command-number-unit { color: var(--editor-muted); }
+.is-organized .kheops-command-select { max-width: 100%; }
+.is-organized .kheops-command-select select { max-width: 180px; border: 1px solid var(--editor-border); }
+.is-organized .kheops-editor-ribbon-group .group-label { font-size: 11px; letter-spacing: .02em; }
+.kheops-ribbon-sections { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px; background: var(--editor-subtle); border-bottom: 1px solid var(--editor-border); }
+.kheops-ribbon-sections button { margin: 0; padding: 6px 9px; min-height: 32px; color: var(--editor-muted); background: var(--editor-surface); border: 1px solid var(--editor-border); border-radius: 6px; font-size: 12px; cursor: pointer; }
+.kheops-ribbon-sections button:focus-visible { outline: 2px solid var(--editor-accent); outline-offset: 2px; }
+.kheops-document-outline { list-style: none; padding: 0; margin: 12px 0; }
+.kheops-document-outline li { margin-bottom: 5px; }
+.kheops-document-outline button { width: 100%; text-align: left; white-space: normal; overflow-wrap: anywhere; padding: 10px; border-radius: 6px; }
+@container kheops-editor (min-width: 1024px) {
+  .is-organized [data-tab-id="home"] .kheops-ribbon-groups { display: grid; grid-template-columns: 86px minmax(235px, 1.3fr) minmax(250px, 1.3fr) minmax(115px, .65fr) minmax(115px, .65fr); gap: 4px; }
+  .is-organized [data-tab-id="home"] .kheops-editor-ribbon-group { max-width: none; padding-inline: 5px; }
+  .is-organized [data-group-id="home-Marges"] { order: 0; }
+  .is-organized [data-group-id="home-Police"] { order: 1; }
+  .is-organized [data-group-id="home-Paragraphe"] { order: 2; }
+  .is-organized [data-group-id="home-Styles"] { order: 3; }
+  .is-organized [data-group-id="home-Édition"] { order: 4; }
+}
+@container kheops-editor (max-width: 1023px) {
+  .kheops-editor-topbar { gap: 6px; flex-wrap: wrap; }
+  .kheops-editor-top-actions { flex-wrap: wrap; gap: 5px; }
+  .kheops-editor-theme-select { max-width: 118px; }
+  .is-organized .kheops-editor-ribbon-group { max-width: 100%; flex: 1 1 auto; }
+  .is-organized .kheops-editor-ribbon { max-height: min(190px, 30vh); }
+}
+@container kheops-editor (max-width: 479px) {
+  .kheops-editor-brand { flex: 1 1 100%; }
+  .kheops-editor-top-actions { width: 100%; justify-content: flex-end; }
+  .kheops-editor-theme-select { margin-right: auto; }
+  .is-organized .kheops-ribbon-tabs-row { padding-left: 8px; }
+  .is-organized .kheops-command-button { min-height: 38px; }
+  .is-organized .kheops-editor-ribbon { padding: 5px; }
+}

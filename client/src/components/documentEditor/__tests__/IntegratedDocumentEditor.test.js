@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import IntegratedDocumentEditor from '../IntegratedDocumentEditor';
 import { createOfficeEngineSession } from '../officeEngineApi';
+import { isFeatureEnabled } from '../../../utils/featureFlags';
 
 jest.mock('../officeEngineApi', () => ({ createOfficeEngineSession: jest.fn() }));
 jest.mock('../KheopsDocumentEditor', () => function LegacyEditor({ onOpenAdvancedEditor, advancedEditorLoading }) {
@@ -19,10 +20,18 @@ jest.mock('../KheopsDocumentEditor', () => function LegacyEditor({ onOpenAdvance
 jest.mock('../OfficeEngineEditor', () => function AdvancedEditor({ onFallback }) {
   return <div>éditeur avancé<button type="button" onClick={onFallback}>Éditeur classique</button></div>;
 });
-jest.mock('../../../utils/featureFlags', () => ({ isFeatureEnabled: () => true }));
+jest.mock('../../../utils/featureFlags', () => ({ isFeatureEnabled: jest.fn(() => true) }));
 
 describe('IntegratedDocumentEditor', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); isFeatureEnabled.mockReturnValue(true); });
+
+  test('Collabora désactivé : ouvre directement l’éditeur maison sans session ni action avancée', async () => {
+    isFeatureEnabled.mockReturnValue(false);
+    render(<IntegratedDocumentEditor open documentId="doc-1" title="Conclusions.docx" />);
+    expect(await screen.findByText('éditeur classique')).toBeInTheDocument();
+    expect(createOfficeEngineSession).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Éditeur avancé' })).not.toBeInTheDocument();
+  });
 
   test('utilise le moteur avancé lorsque la session est disponible', async () => {
     createOfficeEngineSession.mockResolvedValue({ available: true, actionUrl: 'https://office.example/edit?', accessToken: 'token' });

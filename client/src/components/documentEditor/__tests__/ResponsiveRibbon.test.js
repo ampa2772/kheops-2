@@ -29,6 +29,26 @@ function renderRibbon({ activeTab = 'ai', onActiveTabChange = jest.fn(), respons
 }
 
 describe('ResponsiveRibbon', () => {
+  test('ruban organisé : toutes les commandes de police restent directes sur mobile et les paragraphes sont accessibles par groupe', () => {
+    renderRibbon({ activeTab: 'home', context: { organizedRibbon: true } });
+    act(() => resizeCallback([{ contentRect: { width: 320 } }]));
+    expect(screen.getByRole('combobox', { name: 'Police' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Couleur du texte')).toBeInTheDocument();
+    expect(screen.getByLabelText('Surlignage')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Plus/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Paragraphe' }));
+    for (const name of ['Aligner à gauche', 'Centrer', 'Aligner à droite', 'Justifier', 'Liste numérotée']) {
+      expect(screen.getByRole('button', { name })).toBeInTheDocument();
+    }
+  });
+
+  test('le ruban reflète la sélection courante, y compris une police importée et une taille intermédiaire', () => {
+    renderRibbon({ activeTab: 'home', context: { organizedRibbon: true, selectionFormatting: { fontFamily: 'Garamond', fontSize: 13, bold: true, textAlign: 'justify' } } });
+    expect(screen.getByRole('combobox', { name: 'Police' })).toHaveValue('Garamond');
+    expect(screen.getByRole('combobox', { name: 'Taille de police' })).toHaveValue('13');
+    expect(screen.getByRole('button', { name: /Gras/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Justifier' })).toHaveAttribute('aria-pressed', 'true');
+  });
   beforeEach(() => {
     resizeCallback = null;
     global.ResizeObserver = ResizeObserverMock;

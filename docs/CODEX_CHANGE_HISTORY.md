@@ -6283,3 +6283,66 @@ absence d'écrasement, destination explicite, idempotence et secrets privés.
   de l'application servie ni des données pendant l'audit.
 - Le rapport rc6 reste conservé ; cet addendum précise les réserves de
   synchronisation à la lumière de l'audit demandé après livraison.
+
+## CODEX-CHANGE-064 — Éditeur maison, ruban organisé et thèmes (6 septembre 2026)
+
+### Demande et périmètre
+
+- À la demande explicite de l'utilisateur, désactiver Collabora en conservant
+  son intégration réactivable et privilégier l'éditeur maison. Présenter les
+  commandes courantes de traitement de texte, adapter le ruban aux petits
+  écrans, ajouter clair/sombre/système et quelques outils utiles au cabinet.
+- Historique intégral lu avant intervention ; invariants documentaires et
+  d'édition des entrées 001, 002, 004, 006, 007, 015, 051 à 055 conservés,
+  ainsi que les garanties de livraison 060 à 062 et les réserves de l'audit 063.
+  Pas d'affirmation nouvelle sur une licence Collabora.
+
+### Changements
+
+- `officeEngine=false` dans les valeurs par défaut serveur/client, la
+  configuration publique et le déploiement officiel. Aucun appel de session
+  avancée ni bouton de bascule lorsque désactivé ; code et service Collabora
+  conservés. Les parcours externes Word/OneDrive et Google restent séparés.
+- Ruban : groupes complets sur ordinateur, navigation par groupes sous
+  1024 px ; polices, tailles, couleurs et alignements accessibles directement.
+  Les marges précises et l'impression dans Accueil restent disponibles.
+  La sélection actualise les contrôles et l'état des boutons de mise en forme.
+- Thèmes clair/sombre/système mémorisés localement, sans changer le document,
+  sa couleur de page, son état d'enregistrement ou ses exports.
+- Correction de la conversion points/pixels : les tailles en points ne sont
+  plus multipliées par 0,75 à chaque réenregistrement. Application de tailles
+  exactes avec conservation de l'annulation/rétablissement et de la frappe.
+- Plan cliquable des titres, espace insécable et effacement de la mise en
+  forme sélectionnée. Références aux pièces, commentaires, versions, modèles,
+  signatures et listes existants conservés. Masquage des commandes IA si
+  l'éditeur a reçu `aiEnabled=false` ; aucun nouvel appel IA facturé.
+- Version applicative préparée : `2.0.18-rc7`. Aucun changement de base, de
+  fichier utilisateur, d'identifiant ou de secret dans cette intervention.
+
+### Vérification avant livraison
+
+- Serveur complet : 175 suites, 1 397 tests réussis (206,066 s).
+- Éditeur ciblé : 12 suites, 99 tests réussis (17,792 s). Le premier passage
+  client complet a signalé le raccourci Imprimer dans Accueil ; il a été
+  rétabli avant ce nouveau passage ciblé. Nouveau passage client complet :
+  163 suites et 1 893 tests réussis (81,567 s).
+- Navigateur Chrome réel, composant applicatif monté avec document fictif
+  local : 6 tests réussis (15,4 s), aux largeurs 1440, 1024, 768, 390 et 320 px ;
+  thèmes, contrôles sans débordement horizontal, papier blanc, taille exacte,
+  annuler/rétablir, frappe, enregistrement des tailles et navigation du plan.
+  Captures ordinateur et téléphone inspectées. Les intégrations e-mail/IA
+  sont neutralisées uniquement dans cette fixture de test autonome.
+- Le déploiement officiel relancera ses suites complètes et son build depuis
+  le commit propre. Ses résultats et la révision effectivement servie seront
+  consignés dans l'entrée de livraison suivante ; ils ne sont pas anticipés ici.
+
+### Réserves et retour arrière
+
+- Les défauts de synchronisation de 063 ne sont pas corrigés par ce lot UI.
+  Le contrat de conception est ajouté à l'architecture documentaire ; le
+  brouillon de contrôle physique, non raccordé et non testé, est conservé
+  hors des sources livrables pour poursuivre ce chantier distinct.
+- Révision de repli observée avant livraison : `kheops-2-backend-00172-muc`,
+  servant rc6 avec 100 % du trafic. Aucun retour arrière de données requis.
+  Pour réactiver Collabora ultérieurement : décision explicite, remise du
+  drapeau officiel à true puis build/déploiement/recette ; le code est conservé.

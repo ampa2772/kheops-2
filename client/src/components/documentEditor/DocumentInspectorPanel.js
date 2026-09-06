@@ -15,6 +15,7 @@ import {
 } from './documentEditorApi';
 
 const PANEL_LABELS = {
+  outline: 'Plan du document',
   template: 'Modèles, en-têtes et signatures',
   references: 'Références aux pièces',
   review: 'Statut et révisions',
@@ -298,6 +299,7 @@ export default function DocumentInspectorPanel({
   panel, onClose, documentId, document: structuredDocument, revision, documentStatus, revisions,
   selectedText, matterId, matterTitle, onApplyTemplate, onInsertReference,
   onChangeStatus, onUpdateDocument, onRestored, onMessage,
+  outline = [], onNavigateHeading,
 }) {
   const closeRef = useRef(null);
   useEffect(() => { requestAnimationFrame(() => closeRef.current?.focus()); }, [panel]);
@@ -310,6 +312,10 @@ export default function DocumentInspectorPanel({
     <aside className="kheops-document-panel" aria-label={PANEL_LABELS[panel] || 'Outils du document'}>
       <div className="layout-heading"><strong>{PANEL_LABELS[panel] || 'Document'}</strong><button ref={closeRef} type="button" onClick={onClose} aria-label={`Fermer ${PANEL_LABELS[panel] || 'le panneau'}`}>×</button></div>
       <div className="kheops-document-panel__body">
+        {panel === 'outline' && <>
+          <p className="document-panel-note">Utilisez les styles Titre 1, Titre 2 et Titre 3 pour structurer votre acte. Cliquez sur un titre pour le retrouver.</p>
+          {outline.length ? <nav aria-label="Navigation dans le document"><ol className="kheops-document-outline">{outline.map((heading) => <li key={heading.index} style={{ paddingLeft: `${(heading.level - 1) * 12}px` }}><button type="button" onClick={() => onNavigateHeading?.(heading.index)}>{heading.title}</button></li>)}</ol></nav> : <p>Aucun titre structuré pour le moment.</p>}
+        </>}
         {panel === 'template' && <TemplatesPanel document={structuredDocument} documentId={documentId} revision={revision} onApplyTemplate={onApplyTemplate} onUpdateDocument={onUpdateDocument} onMessage={onMessage} />}
         {panel === 'references' && <ReferencesPanel documentId={documentId} onInsertReference={onInsertReference} onMessage={onMessage} />}
         {panel === 'comments' && <CommentsPanel documentId={documentId} selectedText={selectedText} onMessage={onMessage} />}

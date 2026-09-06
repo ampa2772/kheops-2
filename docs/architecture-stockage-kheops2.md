@@ -3,6 +3,33 @@
 > Dernière mise à jour : 2026-07-06. Ce document est LA référence de la logique
 > documentaire. Toute modification du stockage doit commencer par sa mise à jour.
 
+## Addendum de conception - synchronisation fiable (6 septembre 2026)
+
+Les corrections de l'audit 063 sont en cours ; cet addendum décrit le contrat
+à vérifier avant livraison, sans présumer sa validation en ligne.
+
+- Le choix d'éditeur reste indépendant de la connexion à Kheops ; Drive ou
+  OneDrive exige son autorisation dédiée. L'éditeur interne reste disponible.
+- L'historique central courant est la source de vérité pour les ouvertures
+  et les retours. Les copies canoniques sont des caches dérivés ; elles ne
+  doivent jamais faire revenir une ancienne version devant l'historique.
+- Une référence physique doit être liée par le serveur à un document du
+  dossier autorisé. Une clé ou un compte saisi par le client ne constitue
+  jamais une preuve d'appartenance. Les droits sont revalidés à l'exécution.
+- Le compte et le conteneur cibles sont explicites et stables ; aucune
+  destination n'est déduite du dernier auteur d'une copie.
+- La confirmation compare le contenu réellement reçu ou sa révision distante.
+  Une vérification inconclusive reste en attente ; une reprise réutilise
+  l'objet déjà téléversé, sans écrasement d'un homonyme.
+- Les modifications concurrentes restent des versions distinctes. Conserver
+  la cible préserve sa version ; conserver les deux crée une seconde copie.
+- Le retour des sessions d'édition ouvertes doit être repris automatiquement
+  et de façon bornée, avec un secours manuel et un état visible. Un défaut
+  de connexion ou une révocation arrête les transferts sans supprimer d'octets.
+
+Les paragraphes historiques ci-dessous sont conservés. Le présent contrat
+remplace notamment leur ancienne priorité donnée au cache Word sur l'historique.
+
 ## 0. La convention unique
 
 Quel que soit le compte de l'utilisateur, un seul rangement visible :

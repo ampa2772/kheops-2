@@ -3,7 +3,7 @@ const DEFAULT_FLAGS = Object.freeze({
   responsiveEditor: true,
   relationGraph: true,
   documentSyncV2: true,
-  officeEngine: true,
+  officeEngine: false,
 });
 
 function runtimeFlags() {

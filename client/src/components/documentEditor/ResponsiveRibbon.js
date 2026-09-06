@@ -25,10 +25,12 @@ export function CommandControl({ command, compact = false, onRememberSelection, 
   const title = `${accessibleDescription}${command.shortcut ? ` (${command.shortcut})` : ''}`;
   const compactRibbonClass = command.ribbonCompact && !menu ? ' is-ribbon-compact' : '';
   const [numberDraft, setNumberDraft] = useState(String(command.value ?? ''));
+  const [choice, setChoice] = useState(String(command.value ?? ''));
   const skipNumberCommitRef = useRef(false);
 
   useEffect(() => {
     setNumberDraft(String(command.value ?? ''));
+    setChoice(String(command.value ?? ''));
   }, [command.id, command.value]);
 
   const commitNumber = () => {
@@ -69,10 +71,10 @@ export function CommandControl({ command, compact = false, onRememberSelection, 
         {menu && <span>{command.label}</span>}
         <select
           aria-label={command.label}
-          defaultValue={String(command.value ?? '')}
+          value={choice}
           disabled={!command.enabled}
           onMouseDown={onRememberSelection}
-          onChange={(event) => executeCommand(command, event.target.value, onExecuted)}
+          onChange={(event) => { setChoice(event.target.value); executeCommand(command, event.target.value, onExecuted); }}
         >
           {(command.options || []).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
@@ -84,14 +86,15 @@ export function CommandControl({ command, compact = false, onRememberSelection, 
     return (
       <label className={`kheops-command-color${menu ? ' is-menu' : ''}`} title={title} data-command-id={command.id}>
         <span aria-hidden="true">{command.icon || 'A'}</span>
+        {!menu && <span className="kheops-color-caption">{command.shortLabel}</span>}
         {menu && <span>{command.label}</span>}
         <input
           type="color"
           aria-label={command.label}
-          defaultValue={command.value}
+          value={choice}
           disabled={!command.enabled}
           onMouseDown={onRememberSelection}
-          onChange={(event) => executeCommand(command, event.target.value, onExecuted)}
+          onChange={(event) => { setChoice(event.target.value); executeCommand(command, event.target.value, onExecuted); }}
         />
       </label>
     );
@@ -149,7 +152,7 @@ export function CommandControl({ command, compact = false, onRememberSelection, 
       className={`kheops-command-button${command.active ? ' is-active' : ''}${menu ? ' is-menu' : ''}`}
       title={title}
       aria-label={title}
-      aria-pressed={command.active || undefined}
+      aria-pressed={typeof command.active === 'boolean' ? command.active : undefined}
       disabled={!command.enabled}
       data-command-id={command.id}
       onMouseDown={(event) => {
@@ -410,6 +413,7 @@ export default function ResponsiveRibbon({
   const tier = responsive ? getRibbonTier(width) : getRibbonTier(Number.POSITIVE_INFINITY);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState('Police');
   const tabs = useMemo(() => getVisibleEditorTabs(context), [context]);
 
   useEffect(() => {
@@ -435,6 +439,11 @@ export default function ResponsiveRibbon({
   }, [commands]);
 
   const activeCommands = commands.filter((command) => command.visible && command.tab === activeTab);
+  const organized = Boolean(context.organizedRibbon);
+  const groupedNavigation = organized && width < 1024 && activeCommands.length > 8;
+  const availableGroups = groupCommands(activeCommands);
+  const currentGroup = availableGroups.some((group) => group.label === selectedGroup)
+    ? selectedGroup : availableGroups[0]?.label;
   const capacity = !responsive
     ? Number.POSITIVE_INFINITY
     : tier.id === 'wide'
@@ -454,15 +463,20 @@ export default function ResponsiveRibbon({
     .map((command, index) => ({ command, index }))
     .filter(({ command }) => command.priority <= tier.maxPriority && !compactControl(command))
     .sort((left, right) => left.command.priority - right.command.priority || left.index - right.index);
-  const mainIds = new Set(ranked.slice(0, capacity).map(({ command }) => command.id));
+  const mainIds = new Set(organized
+    ? activeCommands.filter((command) => !groupedNavigation || command.group === currentGroup).map((command) => command.id)
+    : ranked.slice(0, capacity).map(({ command }) => command.id));
   const mainCommands = activeCommands.filter((command) => mainIds.has(command.id));
-  const overflowCommands = activeCommands.filter((command) => !mainIds.has(command.id));
+  const overflowCommands = organized ? [] : activeCommands.filter((command) => !mainIds.has(command.id));
   const groups = groupCommands(mainCommands);
   const setOverflow = useCallback((value) => setOverflowOpen(value), []);
 
   return (
-    <div ref={rootRef} className={`kheops-responsive-ribbon is-${tier.id}${responsive ? '' : ' is-fixed-layout'}${collapsed ? ' is-collapsed' : ''}`} data-ribbon-width={width} data-testid="responsive-ribbon">
+    <div ref={rootRef} className={`kheops-responsive-ribbon is-${tier.id}${organized ? ' is-organized' : ''}${responsive ? '' : ' is-fixed-layout'}${collapsed ? ' is-collapsed' : ''}`} data-ribbon-width={width} data-testid="responsive-ribbon">
       <RibbonTabs tabs={tabs} activeTab={activeTab} onChange={(tab) => { onActiveTabChange(tab); setOverflowOpen(false); }} tier={tier} />
+      {!collapsed && groupedNavigation && <div className="kheops-ribbon-sections" role="group" aria-label="Groupes de commandes">
+        {availableGroups.map((group) => <button type="button" key={group.id} aria-pressed={group.label === currentGroup} onClick={() => setSelectedGroup(group.label)}>{group.label}</button>)}
+      </div>}
       <button
         type="button"
         className="kheops-ribbon-collapse"
@@ -491,7 +505,7 @@ export default function ResponsiveRibbon({
               >
                 <div className="kheops-ribbon-group-commands">
                   {group.commands.map((command) => (
-                    <CommandControl key={command.id} command={command} compact={!tier.labels} onRememberSelection={onRememberSelection} />
+                    <CommandControl key={command.id} command={command} compact={organized || !tier.labels} onRememberSelection={onRememberSelection} />
                   ))}
                 </div>
                 <span className="group-label">{group.label}</span>

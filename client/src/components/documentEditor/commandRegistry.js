@@ -28,7 +28,7 @@ const PLAIN_TEXT_COMMANDS = new Set([
   'insert.date-time',
   'review.compatibility', 'review.comments', 'review.status', 'review.versions', 'review.compare-ai',
   'view.fit-width', 'view.actual-size', 'view.zoom-in', 'view.zoom-out', 'view.collapse-ribbon', 'view.focus',
-  'view.print-preview', 'view.comments', 'view.versions', 'view.fullscreen',
+  'view.print-preview', 'view.comments', 'view.versions', 'view.fullscreen', 'view.theme',
   'matter.metadata', 'matter.reference', 'matter.parties', 'matter.lawyer', 'matter.court', 'matter.history',
   'ai.open', 'ai.summarize', 'ai.rewrite', 'ai.correct', 'ai.timeline', 'ai.plan', 'ai.legal-strategy',
   'ai.draft', 'ai.analysis-document', 'ai.sources', 'ai.budget',
@@ -65,6 +65,11 @@ function action(actions, name, ...presetArgs) {
  */
 export function createEditorCommandRegistry(actions = {}, context = {}) {
   const commands = [
+    createCommand({ id: 'home.outline', tab: 'home', group: 'Styles', label: 'Afficher le plan du document', shortLabel: 'Plan', icon: '☷', priority: 1, execute: action(actions, 'openPanel', 'outline') }),
+    createCommand({ id: 'home.clear-format', tab: 'home', group: 'Édition', label: 'Effacer la mise en forme du texte sélectionné', shortLabel: 'Effacer le format', icon: 'Tx', priority: 2, execute: action(actions, 'exec', 'removeFormat') }),
+    createCommand({ id: 'insert.nonbreaking-space', tab: 'insert', group: 'Texte', label: 'Insérer une espace insécable', shortLabel: 'Espace insécable', icon: '␣', priority: 1, execute: action(actions, 'exec', 'insertText', '\u00a0') }),
+    createCommand({ id: 'view.outline', tab: 'view', group: 'Navigation', label: 'Afficher le plan du document', shortLabel: 'Plan', icon: '☷', priority: 0, execute: action(actions, 'openPanel', 'outline') }),
+    createCommand({ id: 'view.theme', tab: 'view', group: 'Apparence', label: 'Choisir le thème', type: 'select', value: context.theme || 'system', options: [option('system', 'Système'), option('light', 'Clair'), option('dark', 'Sombre')], execute: action(actions, 'chooseTheme') }),
     createCommand({ id: 'file.save', tab: 'file', group: 'Enregistrement', label: 'Enregistrer', shortLabel: 'Enregistrer', icon: '✓', shortcut: 'Ctrl+S', priority: 0, execute: action(actions, 'save') }),
     createCommand({ id: 'file.version', tab: 'file', group: 'Enregistrement', label: 'Créer une version', shortLabel: 'Version', icon: 'V+', priority: 1, execute: action(actions, 'createVersion') }),
     createCommand({ id: 'file.import-docx', tab: 'file', group: 'Importer', label: 'Importer un document Word', shortLabel: 'Importer', icon: '⇧', priority: 1, execute: action(actions, 'importDocx'), isEnabled: (ctx) => Boolean(ctx.documentId) }),
@@ -78,7 +83,7 @@ export function createEditorCommandRegistry(actions = {}, context = {}) {
 
     createCommand({ id: 'home.undo', tab: 'home', group: 'Accès rapide', label: 'Annuler', shortLabel: 'Annuler', icon: '↶', shortcut: 'Ctrl+Z', priority: 0, execute: action(actions, 'exec', 'undo') }),
     createCommand({ id: 'home.redo', tab: 'home', group: 'Accès rapide', label: 'Rétablir', shortLabel: 'Rétablir', icon: '↷', shortcut: 'Ctrl+Y', priority: 0, execute: action(actions, 'exec', 'redo') }),
-    createCommand({ id: 'home.print', tab: 'home', group: 'Accès rapide', label: 'Imprimer', shortLabel: 'Imprimer', icon: '🖨', priority: 0, execute: action(actions, 'printPdf') }),
+    createCommand({ id: 'home.print', tab: 'home', group: context.organizedRibbon ? 'Édition' : 'Accès rapide', label: 'Imprimer', shortLabel: 'Imprimer', icon: '🖨', priority: 0, execute: action(actions, 'printPdf') }),
     createCommand({ id: 'home.margin-left', tab: 'home', group: 'Marges', label: 'Marge gauche', shortLabel: 'Gauche', ribbonLabel: 'G.', ribbonCompact: true, priority: 0, type: 'number', value: context.marginLeftPx ?? 5, min: context.minHorizontalMarginPx ?? 5, max: context.maxHorizontalMarginPx ?? 227, step: 1, unit: 'px', execute: action(actions, 'horizontalMargin', 'left') }),
     createCommand({ id: 'home.margin-right', tab: 'home', group: 'Marges', label: 'Marge droite', shortLabel: 'Droite', ribbonLabel: 'D.', ribbonCompact: true, priority: 0, type: 'number', value: context.marginRightPx ?? 5, min: context.minHorizontalMarginPx ?? 5, max: context.maxHorizontalMarginPx ?? 227, step: 1, unit: 'px', execute: action(actions, 'horizontalMargin', 'right') }),
     createCommand({ id: 'home.font-size', tab: 'home', group: 'Police', label: 'Taille de police', shortLabel: 'Taille', ribbonCompact: true, priority: 0, type: 'select', value: '11', options: FONT_SIZES.map((size) => option(size)), execute: action(actions, 'fontSize') }),
@@ -176,9 +181,24 @@ export function createEditorCommandRegistry(actions = {}, context = {}) {
     createCommand({ id: 'signature.manage', tab: 'signature-tools', group: 'Signature', label: 'Modifier la signature de ce document', shortLabel: 'Modifier', icon: '✍', priority: 0, execute: action(actions, 'openPanel', 'template'), isVisible: (ctx) => ctx.selectionType === 'signature' }),
   ];
 
+  const formatting = context.selectionFormatting || {};
+  const values = { 'home.font': formatting.fontFamily, 'home.font-size': formatting.fontSize,
+    'home.style': formatting.paragraphStyle, 'home.fore-color': formatting.foreground, 'home.highlight': formatting.highlight };
+  const active = { 'home.bold': formatting.bold, 'home.italic': formatting.italic, 'home.underline': formatting.underline,
+    'home.strike': formatting.strikeThrough, 'home.align-left': formatting.textAlign === 'left',
+    'home.align-center': formatting.textAlign === 'center', 'home.align-right': formatting.textAlign === 'right',
+    'home.justify': formatting.textAlign === 'justify' };
   return commands.map((command) => ({
     ...command,
+    ...(values[command.id] != null ? {
+      value: String(values[command.id]),
+      ...(command.options && !command.options.some(item => item.value === String(values[command.id]))
+        ? { options: [...command.options, option(values[command.id])] } : {}),
+    } : {}),
+    ...(active[command.id] != null ? { active: active[command.id] } : {}),
     visible: (!context.isPlainText || PLAIN_TEXT_COMMANDS.has(command.id))
+      && !(context.aiEnabled === false && (command.tab === 'ai' || command.id === 'review.compare-ai'))
+      && !(context.organizedRibbon && !context.isPlainText && ['home.undo', 'home.redo'].includes(command.id))
       && (command.isVisible ? Boolean(command.isVisible(context)) : true),
     enabled: (command.isEnabled ? Boolean(command.isEnabled(context)) : true)
       && (!command.requiredRight || (context.rights || []).includes(command.requiredRight)),
@@ -188,6 +208,7 @@ export function createEditorCommandRegistry(actions = {}, context = {}) {
 export function getVisibleEditorTabs(context = {}) {
   return EDITOR_TABS.filter((tab) => (
     (!context.isPlainText || PLAIN_TEXT_TABS.has(tab.id))
+      && !(tab.id === 'ai' && context.aiEnabled === false)
       && (!tab.isVisible || tab.isVisible(context))
   ));
 }

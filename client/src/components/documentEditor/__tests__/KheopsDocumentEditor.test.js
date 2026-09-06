@@ -28,6 +28,20 @@ jest.mock('../../contactActions/EmailComposeModal', () => ({ open, attachments =
 ));
 
 describe('KheopsDocumentEditor', () => {
+  test('changer le thème ne modifie ni le document ni son état d’enregistrement', async () => {
+    const source = createEmptyDocument('Conclusions');
+    source.blocks[0].runs = [{ text: 'Données conservées', marks: { size: 11, color: '#123456' } }];
+    render(<KheopsDocumentEditor open initialDocument={source} onClose={jest.fn()} aiEnabled={false} />);
+    const editor = await screen.findByLabelText('Contenu du document');
+    await waitFor(() => expect(editor).toHaveTextContent('Données conservées'));
+    const original = editor.innerHTML;
+    fireEvent.change(screen.getByRole('combobox', { name: 'Thème de l’éditeur' }), { target: { value: 'dark' } });
+    expect(screen.getByRole('dialog', { name: 'Éditeur Kheops' })).toHaveAttribute('data-editor-theme', 'dark');
+    expect(editor.innerHTML).toBe(original);
+    expect(screen.queryByText(/● Modifié/)).not.toBeInTheDocument();
+    expect(saveEditorDocument).not.toHaveBeenCalled();
+    localStorage.removeItem('kheops.editor.theme');
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     window.requestAnimationFrame = (callback) => setTimeout(callback, 0);

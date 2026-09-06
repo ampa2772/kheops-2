@@ -15,6 +15,7 @@ describe('featureFlags', () => {
       responsiveEditor: true,
       relationGraph: true,
       documentSyncV2: true,
+      officeEngine: false,
     }));
   });
 

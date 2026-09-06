@@ -15,6 +15,18 @@ import {
 } from '../documentModel';
 
 describe('modèle structuré de l’Éditeur Kheops', () => {
+  test('conserve les tailles en points après plusieurs ouvertures et réenregistrements', () => {
+    let blocks = [{ id: 'size-test', type: 'paragraph', runs: [{ text: 'Acte', marks: { size: 11, font: 'Georgia' } }] }];
+    for (let round = 0; round < 5; round += 1) {
+      const root = document.createElement('div');
+      root.innerHTML = blocksToEditableHtml(blocks);
+      blocks = domToBlocks(root);
+      expect(blocks[0].runs[0].marks).toMatchObject({ size: 11, font: 'Georgia' });
+    }
+    const root = document.createElement('div');
+    root.innerHTML = '<p><span style="font-size:16px">Pixels</span></p>';
+    expect(domToBlocks(root)[0].runs[0].marks.size).toBe(12);
+  });
   test('crée un document A4 éditable', () => {
     const document = createEmptyDocument('Conclusions');
     expect(document.title).toBe('Conclusions');

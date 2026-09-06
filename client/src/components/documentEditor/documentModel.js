@@ -228,8 +228,11 @@ function marksForElement(element, inherited) {
   if (style.textDecorationLine && style.textDecorationLine.includes('line-through')) marks.strike = true;
   if (style.fontFamily) marks.font = style.fontFamily.replace(/["']/g, '').slice(0, 80);
   if (style.fontSize) {
-    const px = parseFloat(style.fontSize);
-    if (Number.isFinite(px)) marks.size = Math.round(px * 0.75 * 10) / 10;
+    const size = parseFloat(style.fontSize);
+    // Le modèle produit des points ; seule une taille en pixels est convertie.
+    if (Number.isFinite(size) && /(?:pt|px)$/i.test(style.fontSize)) {
+      marks.size = Math.round(size * (style.fontSize.endsWith('px') ? 0.75 : 1) * 10) / 10;
+    }
   }
   if (style.color) marks.color = colorFromStyle(style.color);
   if (style.backgroundColor && style.backgroundColor !== 'transparent') marks.highlight = colorFromStyle(style.backgroundColor);

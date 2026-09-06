@@ -7,7 +7,7 @@ describe('featureFlags', () => {
       responsiveEditor: true,
       relationGraph: true,
       documentSyncV2: true,
-      officeEngine: true,
+      officeEngine: false,
     });
   });
 
@@ -17,5 +17,6 @@ describe('featureFlags', () => {
     expect(enabled('aiAssistant', { KHEOPS_FEATURE_AI_ASSISTANT: '1' })).toBe(true);
     expect(envName('officeEngine')).toBe('KHEOPS_FEATURE_OFFICE_ENGINE');
     expect(enabled('officeEngine', { KHEOPS_FEATURE_OFFICE_ENGINE: 'false' })).toBe(false);
+    expect(enabled('officeEngine', { KHEOPS_FEATURE_OFFICE_ENGINE: 'true' })).toBe(true);
   });
 });

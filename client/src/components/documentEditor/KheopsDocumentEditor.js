@@ -40,8 +40,12 @@ import DocumentInspectorPanel from './DocumentInspectorPanel';
 import ResponsiveRibbon from './ResponsiveRibbon';
 import { isFeatureEnabled } from '../../utils/featureFlags';
 import useElementWidth from './useElementWidth';
+import useEditorTheme from './useEditorTheme';
+import { readSelectionFormatting } from './selectionFormatting';
+import { applyExactFontSize, finishExactFontSize } from './exactFontSize';
 import EmailComposeModal from '../contactActions/EmailComposeModal';
 import './KheopsDocumentEditor.css';
+import './editorAppearance.css';
 
 const PAGE_DEFAULTS = createEmptyDocument().page;
 const MAX_HORIZONTAL_MARGIN_PX = Math.round(mmToPx(MAX_PAGE_MARGIN_MM));
@@ -52,16 +56,6 @@ const PAGE_SIZES_MM = Object.freeze({
   Legal: [215.9, 355.6],
 });
 const LazyAIAssistantPanel = React.lazy(() => import('../ai/AIAssistantPanel'));
-
-function browserFontSize(pt) {
-  if (pt <= 8) return 1;
-  if (pt <= 10) return 2;
-  if (pt <= 12) return 3;
-  if (pt <= 14) return 4;
-  if (pt <= 18) return 5;
-  if (pt <= 24) return 6;
-  return 7;
-}
 
 function apiMessage(error, fallback) {
   return error?.response?.data?.message || error?.message || fallback;
@@ -112,6 +106,8 @@ export default function KheopsDocumentEditor({
   onClose,
   onSaved,
 }) {
+  const { theme, chooseTheme, resolvedTheme } = useEditorTheme();
+  const [selectionFormatting, setSelectionFormatting] = useState({});
   const editorRef = useRef(null);
   const headerRef = useRef(null);
   const footerRef = useRef(null);
@@ -121,6 +117,7 @@ export default function KheopsDocumentEditor({
   const aiButtonRef = useRef(null);
   const panelTriggerRef = useRef(null);
   const savedRangeRef = useRef(null);
+  const exactFontSizeRef = useRef(null);
   const selectedReferenceRef = useRef(null);
   const searchCursorRef = useRef({ node: 0, offset: 0 });
   const documentRef = useRef(createEmptyDocument(title));
@@ -513,6 +510,7 @@ export default function KheopsDocumentEditor({
       : range.commonAncestorContainer.parentElement;
     if ([editorRef.current, headerRef.current, footerRef.current].some((container) => container && container.contains(root))) {
       savedRangeRef.current = range.cloneRange();
+      setSelectionFormatting(readSelectionFormatting(root));
       setSelectedText(selection.toString());
       setInTable(Boolean(root?.closest?.('table')));
       const reference = root?.closest?.('[data-kheops-reference]');
@@ -581,6 +579,29 @@ export default function KheopsDocumentEditor({
     rememberSelection();
     markChanged();
   }, [fileFormat.kind, markChanged, rememberSelection, restoreSelection]);
+
+  const changeFontSize = (value) => {
+    if (fileFormat.kind === 'text' || loadBlocked || loading) return;
+    restoreSelection();
+    const selection = window.getSelection();
+    const node = selection?.anchorNode;
+    const root = [editorRef.current, headerRef.current, footerRef.current].find(element => element?.contains(node));
+    if (!root) return;
+    if (applyExactFontSize(root, value)) {
+      exactFontSizeRef.current = Number(value);
+      rememberSelection();
+      setSelectionFormatting(current => ({ ...current, fontSize: Number(value) }));
+      if (!selection.isCollapsed) markChanged();
+    }
+  };
+
+  const handleRichTextInput = (event) => {
+    if (exactFontSizeRef.current && ['insertText', 'insertCompositionText'].includes(event.nativeEvent?.inputType)) {
+      finishExactFontSize(event.currentTarget, exactFontSizeRef.current);
+    }
+    rememberSelection();
+    markChanged();
+  };
 
   const applyParagraphLayout = useCallback((kind, value) => {
     restoreSelection();
@@ -1313,6 +1334,10 @@ export default function KheopsDocumentEditor({
   };
 
   const commandContext = {
+    selectionFormatting,
+    organizedRibbon: true,
+    theme,
+    aiEnabled,
     documentId,
     matterId,
     originalAvailable,
@@ -1331,7 +1356,7 @@ export default function KheopsDocumentEditor({
     save: () => saveNow(false),
     createVersion: () => saveNow(true),
     exec: runCommand,
-    fontSize: (value) => runCommand('fontSize', browserFontSize(Number(value))),
+    fontSize: changeFontSize,
     paragraphLayout: applyParagraphLayout,
     horizontalMargin: updateHorizontalMargin,
     insertLink,
@@ -1362,12 +1387,14 @@ export default function KheopsDocumentEditor({
     toggleFocus: () => setFocusMode((value) => !value),
     toggleGuides: () => setShowGuides((value) => !value),
     toggleFullscreen,
+    chooseTheme,
   }, commandContext);
 
   const stopPortalPropagation = (event) => event.stopPropagation();
   const content = (
     <div
       className="kheops-editor-overlay"
+      data-editor-theme={resolvedTheme}
       role="dialog"
       aria-modal="true"
       aria-label="Éditeur Kheops"
@@ -1389,6 +1416,11 @@ export default function KheopsDocumentEditor({
             </div>
           </div>
           <div className="kheops-editor-top-actions">
+            <select className="kheops-editor-theme-select" aria-label="Thème de l’éditeur" value={theme} onChange={(event) => chooseTheme(event.target.value)}>
+              <option value="system">Thème système</option>
+              <option value="light">Thème clair</option>
+              <option value="dark">Thème sombre</option>
+            </select>
             <CompatibilityBadge compatibility={compatibility} onClick={() => { setShowAI(false); setShowLayout(false); setShowCompatibility(true); }} />
             <button type="button" className="quick-action" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand('undo')} aria-label="Annuler (Ctrl+Z)" title="Annuler (Ctrl+Z)">↶</button>
             <button type="button" className="quick-action" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand('redo')} aria-label="Rétablir (Ctrl+Y)" title="Rétablir (Ctrl+Y)">↷</button>
@@ -1500,7 +1532,7 @@ export default function KheopsDocumentEditor({
                   contentEditable
                   suppressContentEditableWarning
                   data-placeholder="En-tête — cliquez pour modifier"
-                  onInput={markChanged}
+                  onInput={handleRichTextInput}
                   onKeyDown={handleEditorKeyDown}
                   onKeyUp={rememberSelection}
                   onMouseUp={rememberSelection}
@@ -1513,7 +1545,7 @@ export default function KheopsDocumentEditor({
                   suppressContentEditableWarning
                   spellCheck="true"
                   data-placeholder="Commencez à rédiger votre document…"
-                  onInput={markChanged}
+                  onInput={handleRichTextInput}
                   onKeyUp={rememberSelection}
                   onMouseUp={rememberSelection}
                   aria-label="Contenu du document"
@@ -1540,7 +1572,7 @@ export default function KheopsDocumentEditor({
                     contentEditable
                     suppressContentEditableWarning
                     data-placeholder="Pied de page — cliquez pour modifier"
-                    onInput={markChanged}
+                    onInput={handleRichTextInput}
                     onKeyUp={rememberSelection}
                     onMouseUp={rememberSelection}
                     aria-label="Pied de page du document"
@@ -1675,6 +1707,19 @@ export default function KheopsDocumentEditor({
               onUpdateDocument={updateStructuredDocument}
               onRestored={reloadAfterRestore}
               onMessage={showMessage}
+              outline={Array.from(editorRef.current?.querySelectorAll?.('h1,h2,h3,h4,h5,h6') || []).map((element, index) => ({ index, level: Number(element.tagName.slice(1)), title: element.textContent || 'Titre sans texte' }))}
+              onNavigateHeading={(index) => {
+                const heading = editorRef.current?.querySelectorAll('h1,h2,h3,h4,h5,h6')[index];
+                if (!heading) return;
+                heading.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                editorRef.current.focus({ preventScroll: true });
+                const range = document.createRange();
+                range.selectNodeContents(heading);
+                range.collapse(true);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                rememberSelection();
+              }}
             />
           )}
         </div>

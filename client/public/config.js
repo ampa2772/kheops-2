@@ -23,7 +23,7 @@
 //     propose jamais l'ancien .exe Windows.
 //   - features : drapeaux d'activation réversibles. Exemple :
 //       { aiAssistant: true, responsiveEditor: true,
-//         relationGraph: true, documentSyncV2: true, officeEngine: true }
+//         relationGraph: true, documentSyncV2: true, officeEngine: false }
 // =============================================================================
 window.__KHEOPS_CONFIG__ = window.__KHEOPS_CONFIG__ || {};
 (function () {
@@ -32,7 +32,7 @@ window.__KHEOPS_CONFIG__ = window.__KHEOPS_CONFIG__ || {};
     responsiveEditor: true,
     relationGraph: true,
     documentSyncV2: true,
-    officeEngine: true,
+    officeEngine: false,
   };
 })();
 (function () {

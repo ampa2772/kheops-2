@@ -1,4 +1,12 @@
 .kheops-editor-overlay {
+  --editor-surface: #ffffff;
+  --editor-subtle: #f3f6fa;
+  --editor-workspace: #e7ecf3;
+  --editor-ink: #24354d;
+  --editor-muted: #52647b;
+  --editor-border: #ccd6e3;
+  --editor-active: #e4effb;
+  --editor-accent: #205f96;
   position: fixed;
   inset: 0;
   z-index: 19000;
@@ -6,6 +14,18 @@
   background: rgba(13, 23, 42, 0.72);
   color: #17223b;
   font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.kheops-editor-overlay[data-editor-theme="dark"] {
+  color-scheme: dark;
+  --editor-surface: #202c3c;
+  --editor-subtle: #182331;
+  --editor-workspace: #101924;
+  --editor-ink: #e3eaf3;
+  --editor-muted: #aebed2;
+  --editor-border: #415167;
+  --editor-active: #304b68;
+  --editor-accent: #91c8fa;
 }
 
 /* Les fichiers TXT utilisent volontairement une surface dédiée : aucun HTML
