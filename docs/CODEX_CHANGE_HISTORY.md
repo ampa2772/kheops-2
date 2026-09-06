@@ -6756,3 +6756,26 @@ La recette valide des copies ouvertes depuis Kheops et leur retour ; aucun
 miroir universel Drive/OneDrive ni écrasement automatique d'une copie externe
 par une modification ultérieure Kheops n'est revendiqué. Les délais dépendent
 du fournisseur et les pannes réseau sont testées avec dépendances contrôlées.
+
+## CODEX-CHANGE-072 — Retrait du contour de la zone de rédaction (rc9)
+
+Date : 6 septembre 2026. Demande explicite : enlever le contour bleu-gris
+qui apparaît quand le corps du document reçoit le curseur. Références 064 à
+067 pour l'éditeur et les thèmes, 071 pour la version de repli rc8. Historique
+intégral déjà lu au cours de cette intervention continue ; entrées liées et
+styles globaux/éditeur réexaminés avant modification.
+
+Le contour provenait du box-shadow global de :focus-visible. La règle locale
+neutralise outline et box-shadow uniquement sur le corps éditable du document
+et la zone de rédaction TXT. Elle retire également l'accentuation bleue du
+cadre TXT au focus. Curseur, focus clavier des boutons, bord de page, contenu,
+exports, thèmes et synchronisation sont préservés. Aucun changement serveur,
+aucune écriture ou suppression de données utilisateur.
+
+Version préparée : 2.0.18-rc9 (package, verrou npm et étiquette client).
+Vérification existante de l'éditeur dans Chrome : 9 tests réussis, de 320 à
+1440 px, thèmes, sélection, mise en forme, frappe, annulation et sauvegarde.
+Diff examiné. Les suites complètes, le build et la recette sur la révision
+servie seront exécutés par la livraison officielle ; leurs résultats ne sont
+pas anticipés. Retour logiciel possible vers kheops-2-backend-00187-xel,
+révision rc8, sans restauration de données.

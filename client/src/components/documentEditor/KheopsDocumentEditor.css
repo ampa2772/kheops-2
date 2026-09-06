@@ -81,9 +81,11 @@
   tab-size: 4;
 }
 
-.kheops-editor-plain-text-input:focus {
-  outline: 3px solid rgb(14 165 233 / 35%);
-  border-color: #0ea5e9;
+.kheops-editor-overlay .kheops-editor-plain-text-input:focus,
+.kheops-editor-overlay .kheops-editor-content:focus {
+  /* The caret marks the writing position; keep the global focus ring off the page. */
+  outline: none;
+  box-shadow: none;
 }
 
 @media (max-width: 720px) {
