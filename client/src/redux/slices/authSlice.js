@@ -509,6 +509,12 @@ export const performLogout = ({ navigate } = {}) => async (dispatch, getState) =
   // la deconnexion locale si le serveur est indisponible.
   if (kheopsToken) {
     try {
+      await apiClient.post('/api/auth/logout', {}, {
+        headers: { Authorization: `Bearer ${kheopsToken}` },
+        timeout: 3000,
+      });
+    } catch (_e) { /* La fermeture locale doit rester possible hors ligne. */ }
+    try {
       await apiClient.post('/api/word/companion/revoke-all', {}, {
         headers: { Authorization: `Bearer ${kheopsToken}` },
         timeout: 3000,

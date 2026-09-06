@@ -6029,3 +6029,92 @@ Sur `kheops-2-backend-00169-wax`, compte de test `zztest.recette.mtn6m7f1@…`
   l'ancien commit `878e2de` pendant une minute puis retiré du dépôt distant
   avant tout usage ; le tag définitif pointe sur `b73ec38`. Aucun push forcé,
   aucun commit réécrit.
+
+## CODEX-CHANGE-061 - Finalisation rc6 : secrets OAuth, contrôle IA, données et IAM
+
+Date : 2026-09-06. Références : 057 à 060, et invariants des entrées 002/004
+(stockage et relations), 005 (IA), 007 (déploiement). Historique relu avant
+modifications ; aucune ancienne entrée ni rapport rc5 supprimé.
+
+### Problèmes et corrections
+
+- Les redirections web Google/Microsoft journalisaient le JWT Kheops et le
+  transmettaient dans une query HTTP. Elles utilisent maintenant un fragment
+  temporaire, sans journaliser le jeton, avec interdiction de cache et de
+  transmission du référent. Le client efface le retour et conserve la lecture
+  des anciennes query strings. Les routes des événements de sécurité ne
+  contiennent plus les paramètres OAuth ; les erreurs brutes des fournisseurs
+  sont remplacées par des messages bornés. Le second chargement dotenv de
+  `auth.js` est retiré : seule la configuration centrale choisit la cible.
+- Une fermeture locale authentifiée produit désormais `AUTH_LOGOUT`.
+  Déconnexion possible hors ligne et révocation du compagnon conservées.
+  Limite explicite : ce journal n'invalide pas les JWT stateless déjà émis,
+  ni la session Google/Microsoft chez le fournisseur.
+- Les tests de connexion IA (dont rotation de clé) faisaient une génération
+  sans passer par le catalogue : remplacés par GET des métadonnées du modèle.
+  Messages de l'assistant de connexion rectifiés. Une tâche ancienne sans
+  instantané tarifaire vérifie le prix avant l'appel fournisseur.
+- Version visible et paquet racine : `2.0.18-rc6`, date 2026-09-06.
+
+### Opérations sauvegardées et contrôles
+
+- Sauvegarde Mongo cohérente intégrale BSON/EJSON, options et index :
+  281 120 553 octets, SHA-256
+  `034b39e7f00bcebd442b623af3ade8357148df2efb260892734a37a60c37fe68`.
+  Sauvegardes privées hors Git dans le répertoire voisin `operations-rc6`.
+- Nettoyage transactionnel de 38 lignes identifiées : un dossier ZZTEST,
+  onze fiches, vingt-six dépendances. Plan relu contre la base avant écriture.
+  Deux objets GCS de 65 octets, original et historique, sauvegardés et
+  empreintes vérifiées, supprimés sous condition de génération exacte ;
+  absence courante vérifiée par 404. Aucun compte/cabinet de recette effacé.
+- Dossiers historiques 202615 et 202625 : propriétaire unique vérifié pour
+  chacun ; création de son cabinet personnel et affectation des quatre
+  `tenantId` utilisateur/dossier dans une transaction. Simulation annulée
+  et sauvegarde préalable ; aucun autre champ modifié.
+- État final de ce contrôle : 41 dossiers, 332 contacts physiques,
+  18 personnes morales, 15 cabinets, 17 utilisateurs ; zéro dossier/fiche
+  ZZTEST, zéro dossier sans cabinet, zéro doublon par cabinet ; index unique
+  `(tenantId, reference)` inchangé. Aucun orphelin dans la simulation du
+  périmètre nettoyé, aucune référence externe aux lignes supprimées dans
+  l'inventaire intégral sauvegardé.
+- Compute par défaut : audit des constructions Cloud Build et d'Office,
+  sauvegarde IAM, ajout `roles/run.builder`, retrait de `roles/editor` et
+  `roles/secretmanager.secretAccessor` globaux. API dédiée inchangée ; santé
+  API et découverte Office HTTP 200 après réduction. Le déploiement rc6
+  confirmera le fonctionnement des constructions avec ce rôle réduit.
+- Base effective `test`, et non « sans nom » : étude de renommage documentée
+  dans `docs/LIVRAISON_2.0.18_RC6.md`. Pas de migration de nom appliquée : les
+  écritures des workers restent actives et aucun gel/rattrapage coordonné
+  n'est en place. Une copie puis bascule non synchronisée perdrait des données.
+- Catalogue IA et connexions vides ; `AI_ALLOW_FALLBACK_PRICING=false` en
+  ligne. Consultation réelle sans tarif : erreur 409
+  `AI_MODEL_PRICING_NOT_CONFIGURED`. Aucun appel fournisseur facturable.
+
+### Recette et validation avant livraison
+
+- Google rc5 : connexion humaine réelle le 2026-09-05 à 23:53:14 UTC,
+  compte de recette attendu affiché dans Paramètres/Comptes, consultation
+  d'un dossier existant avec deux documents, déconnexion et retour au login.
+  Événement `AUTH_LOGIN_SUCCESS / google-oauth` vérifié sur la révision
+  `kheops-2-backend-00169-wax`, sans exporter les secrets des journaux.
+- Microsoft : page fournisseur ouverte ; saisie/validation humaine encore
+  attendue à cette étape. La recette de la nouvelle révision sera consignée
+  séparément après déploiement ; aucune qualification « bout en bout ».
+- Suites complètes : serveur **175 suites / 1 397 tests réussis** (148,57 s),
+  client **162 suites / 1 886 tests réussis** (64,731 s). Nouveaux tests :
+  fragment OAuth et compatibilité, journaux sans paramètres, audit logout
+  et panne réseau, GET modèle sans génération, modèle absent, blocage tarif
+  avant génération d'une tâche ancienne. Diff applicatif revu, diff-check OK.
+- Rectification explicite du PDF rc5 : son tableau zéro ZZTEST était erroné,
+  la formule « recettée de bout en bout » excessive ; la suppression était
+  logique et l'opération worker se terminait en conflit de politique sans
+  destination. Les faits et limites figurent dans le nouveau dossier de
+  livraison sans réécriture silencieuse de l'ancien historique.
+
+### Retour arrière
+
+Voir `docs/LIVRAISON_2.0.18_RC6.md` : retour trafic rc5, restauration ciblée
+des deux objets et 38 documents sans écrasement, retour des quatre champs
+de rattachement avec conservation prudente des cabinets créés, restauration
+des seules liaisons IAM retirées. Scripts et journaux privés conservés dans
+`operations-rc6`. Ni suppression globale ni restauration globale de la base.

@@ -410,7 +410,7 @@ export default function AIProviderSettingsSection() {
         force: true,
         requiredCapabilities: ['text'],
       }).catch(() => null);
-      setNotice('Connexion créée, secret protégé et appel minimal validé.');
+      setNotice('Connexion créée, secret protégé et accès au modèle vérifié. Aucune génération effectuée.');
       closeWizard();
       await load();
     } catch (connectError) {
@@ -435,7 +435,7 @@ export default function AIProviderSettingsSection() {
         setNotice('Connexion supprimée dans Kheops. Révoquez également la clé chez le fournisseur.');
       } else {
         await apiClient.post(`/api/ai/connections/${id}/${action}`);
-        setNotice(action === 'test' ? 'Connexion testée avec succès.' : 'État de la connexion mis à jour.');
+        setNotice(action === 'test' ? 'Accès au modèle vérifié. Aucune génération effectuée.' : 'État de la connexion mis à jour.');
       }
       await load();
     } catch (actionError) {
@@ -851,7 +851,7 @@ export default function AIProviderSettingsSection() {
                     <div><dt>Plafonds</dt><dd>{wizard.perTaskLimit} {wizard.budgetCurrency} par tâche · {wizard.periodLimit} {wizard.budgetCurrency} par {PERIOD_LABELS[wizard.periodType]}{wizard.periodType === 'custom' ? ` (${wizard.customPeriodDays} jours)` : ''}</dd></div>
                     <div><dt>Clé</dt><dd>Elle sera masquée et protégée côté serveur.</dd></div>
                   </dl>
-                  <p>Le test effectue un appel minimal sans document de dossier. Il peut être facturé par votre fournisseur.</p>
+                  <p>Le test vérifie l’accès aux informations du modèle, sans génération ni document de dossier. La tarification doit être validée avant la première génération.</p>
                   <div className="ai-wizard__cost-notice" role="note">
                     <strong>Notice de transparence {costNotice.version || 'à charger'}</strong>
                     <p>{costNotice.text || 'Les montants Kheops sont calculés ou estimés ; la facture du fournisseur reste la référence officielle.'}</p>

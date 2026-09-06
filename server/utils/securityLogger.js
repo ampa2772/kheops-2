@@ -71,7 +71,8 @@ function extractUA(req) {
 
 function extractRoute(req) {
   if (!req) return null;
-  return `${req.method || '?'} ${req.originalUrl || req.url || '?'}`;
+  // Les callbacks OAuth portent des codes/state dans la query string.
+  return `${req.method || '?'} ${String(req.originalUrl || req.url || '?').split(/[?#]/)[0]}`;
 }
 
 /**

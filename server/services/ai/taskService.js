@@ -290,6 +290,8 @@ async function runClaimedTask(task, { secretProvider = createSecretProvider(), g
     if (await cancellationRequested(task._id)) return finishCancelled(task);
     const prompt = await getPrompt(task.taskType, task.tenantId);
     const userContent = renderPrompt(prompt, { context: context.contextText, instruction: task.userInstruction });
+    // Contrôler aussi les anciennes tâches dépourvues d'instantané tarifaire.
+    const pricingEntry = await pricingEntryForTask(task);
     await AITask.updateOne(
       { _id: task._id, status: 'preparing' },
       { $set: { status: 'running', sourceAnchors: context.anchors, leaseUntil: new Date(Date.now() + leaseDuration) } },
@@ -308,7 +310,6 @@ async function runClaimedTask(task, { secretProvider = createSecretProvider(), g
     });
     providerCallSucceeded = true;
     await recordConnectionSuccess({ tenantId: task.tenantId, connectionId: task.connectionId }).catch(() => {});
-    const pricingEntry = await pricingEntryForTask(task);
     const hasOfficialCost = Number.isFinite(Number(providerResult.usage?.officialCost))
       && Number(providerResult.usage.officialCost) >= 0;
     const actualCostNature = hasOfficialCost ? 'official' : 'calculated';

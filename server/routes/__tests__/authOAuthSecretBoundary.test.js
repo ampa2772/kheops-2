@@ -5,7 +5,7 @@ jest.mock('../../models/App_Users/User', () => ({
 
 jest.mock('../../utils/securityLogger', () => ({
   log: jest.fn(),
-  EVT: { AUTH_REFRESH_TOKEN_GET: 'AUTH_REFRESH_TOKEN_GET' },
+  EVT: { AUTH_REFRESH_TOKEN_GET: 'AUTH_REFRESH_TOKEN_GET', AUTH_LOGOUT: 'AUTH_LOGOUT' },
 }));
 
 const User = require('../../models/App_Users/User');
@@ -34,6 +34,19 @@ function responseRecorder() {
 
 describe('frontière serveur des secrets OAuth', () => {
   beforeEach(() => jest.clearAllMocks());
+
+  test('la déconnexion exige une authentification et journalise uniquement la fermeture locale', async () => {
+    const layer = router.stack.find((entry) => entry.route?.path === '/logout');
+    expect(layer.route.stack).toHaveLength(2);
+    const req = { user: 'user-1' };
+    const res = { set: jest.fn(), status: jest.fn().mockReturnThis(), end: jest.fn() };
+    await routeHandler('/logout')(req, res);
+    expect(require('../../utils/securityLogger').log).toHaveBeenCalledWith('AUTH_LOGOUT', {
+      userId: 'user-1', source: 'kheops', reason: 'client-session-closed',
+    }, req);
+    expect(res.status).toHaveBeenCalledWith(204);
+    expect(res.end).toHaveBeenCalled();
+  });
 
   test.each([
     ['/google/get-refresh-token', 'googleRefreshToken', 'google'],

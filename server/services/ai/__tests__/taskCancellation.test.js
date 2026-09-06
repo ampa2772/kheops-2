@@ -45,6 +45,22 @@ jest.mock('../tenantRoleService', () => ({ getTenantRole: jest.fn(async () => 'o
 const { runClaimedTask } = require('../taskService');
 
 describe('durable AI task cancellation', () => {
+  test('une tâche ancienne sans tarif est bloquée avant tout appel fournisseur', async () => {
+    const { getCatalogueEntry } = require('../catalogueService');
+    const { AIError } = require('../errors');
+    getCatalogueEntry.mockRejectedValueOnce(new AIError('AI_MODEL_PRICING_NOT_CONFIGURED', 'Tarif absent.', { statusCode: 409 }));
+    const gateway = { generate: jest.fn() };
+    await expect(runClaimedTask({
+      _id: 'task', tenantId: 'tenant', userId: 'user', connectionId: 'connection', matterId: 'matter',
+      provider: 'openai', model: 'model', taskType: 'summary', status: 'preparing',
+      contextManifest: {}, userInstruction: '', estimatedUsage: { outputTokens: 100 },
+      budgetReservationId: 'reservation', attempts: 1, maxAttempts: 3,
+    }, { secretProvider: { access: jest.fn(async () => 'secret') }, gateway })).rejects.toMatchObject({ code: 'AI_MODEL_PRICING_NOT_CONFIGURED' });
+    expect(getCatalogueEntry).toHaveBeenCalled();
+    expect(gateway.generate).not.toHaveBeenCalled();
+    expect(mockRelease).toHaveBeenCalled();
+    expect(mockTaskUpdateOne.mock.calls.some((call) => call[1]?.$set?.errorCode === 'AI_MODEL_PRICING_NOT_CONFIGURED')).toBe(true);
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     let sequence = 0;

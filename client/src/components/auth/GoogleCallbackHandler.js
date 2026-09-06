@@ -18,7 +18,11 @@ const GoogleCallbackHandler = () => {
             console.log("[GoogleCallbackHandler] Route:", window.location.pathname);
 
             const queryParams = new URLSearchParams(location.search);
-            const token = queryParams.get('token');
+            const fragmentParams = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+            // Le fragment n'est pas transmis au serveur HTTP. Garder la query
+            // uniquement pour les anciens clients Electron déjà distribués.
+            const token = fragmentParams.get('token') || queryParams.get('token');
+            window.history.replaceState(window.history.state, '', location.pathname);
 
             if (!token) {
                 console.error("[GoogleCallbackHandler] Aucun token reçu dans l'URL.");
@@ -89,7 +93,7 @@ const GoogleCallbackHandler = () => {
                         animation: 'spin 1s linear infinite', marginBottom: '20px'
                     }} />
                     <p style={{ fontSize: '16px', fontWeight: '500' }}>Connexion en cours...</p>
-                    <p style={{ color: '#888', fontSize: '13px', marginTop: '8px' }}>Traitement de l'authentification Google</p>
+                    <p style={{ color: '#888', fontSize: '13px', marginTop: '8px' }}>Vérification de votre connexion</p>
                     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                 </>
             )}

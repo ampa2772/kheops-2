@@ -55,10 +55,14 @@ class GeminiAdapter {
   }
 
   async testConnection({ apiKey, model }) {
-    const result = await this.generate({
-      apiKey, model, systemInstruction: 'Test technique de connexion.', userContent: 'Réponds uniquement OK.', maxOutputTokens: 8, temperature: 0,
-    });
-    return { ok: true, model, capabilities: this.describeCapabilities(), providerRequestId: result.providerRequestId };
+    // Vérification de métadonnées uniquement : aucune génération facturable.
+    const { payload } = await requestJson(this.fetch, this.provider, `${this.baseUrl}/models/${encodeURIComponent(model)}`, {
+      method: 'GET', headers: { 'x-goog-api-key': apiKey, Accept: 'application/json' },
+    }, 15000);
+    if (!payload.name) {
+      throw new AIError('AI_PROVIDER_MODEL_NOT_AVAILABLE', 'Le modèle demandé n’est pas disponible pour cette connexion.', { statusCode: 400, retryable: false });
+    }
+    return { ok: true, model, capabilities: this.describeCapabilities(), verification: 'model_access', generationTested: false };
   }
 }
 

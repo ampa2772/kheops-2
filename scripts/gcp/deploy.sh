@@ -21,9 +21,9 @@
 #     diffère de la dernière version active, il s'arrête avant toute mutation.
 #     La rotation doit faire l'objet d'une opération séparée et autorisée ;
 #   - l'ancien compte Compute par défaut n'est pas modifié automatiquement. Il
-#     possède actuellement des droits historiques (notamment Editor) qui peuvent
-#     être utilisés par d'autres charges. Leur retrait exige un audit distinct,
-#     après expiration de la fenêtre de rollback de l'ancienne révision ;
+#     peut servir à d'autres charges. L'audit rc6 a remplacé Editor et l'accès
+#     global aux secrets par run.builder ; tout changement ultérieur exige
+#     une vérification distincte des charges et du retour arrière ;
 #   - les smoke-tests vérifient HTTP, le frontend et la configuration publique.
 #     Ils ne remplacent pas une recette authentifiée de GCS, OAuth et des workers.
 # =============================================================================

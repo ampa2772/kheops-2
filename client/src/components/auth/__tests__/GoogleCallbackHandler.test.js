@@ -92,7 +92,7 @@ describe('GoogleCallbackHandler', () => {
   it('affiche le message de traitement Google', () => {
     mockLoadUser.mockReturnValue(jest.fn(() => Promise.resolve()));
     renderWithRoute();
-    expect(screen.getByText("Traitement de l'authentification Google")).toBeInTheDocument();
+    expect(screen.getByText('Vérification de votre connexion')).toBeInTheDocument();
   });
 
   it('clear localStorage et set token quand token present dans URL', async () => {
@@ -118,6 +118,16 @@ describe('GoogleCallbackHandler', () => {
         })
       );
     });
+  });
+
+  it('lit le fragment sans transmettre le jeton dans une URL HTTP et efface le retour', async () => {
+    const replace = jest.spyOn(window.history, 'replaceState');
+    mockLoadUser.mockReturnValue(jest.fn(() => Promise.resolve()));
+    renderWithRoute('?token=legacy-secret#token=fragment-secret&source=microsoft');
+    await waitFor(() => expect(mockLoadUser).toHaveBeenCalledWith(expect.objectContaining({ token: 'fragment-secret' })));
+    expect(replace.mock.calls.at(-1).slice(1)).toEqual(['', '/auth/google/callback']);
+    expect(JSON.stringify(console.log.mock.calls)).not.toContain('fragment-secret');
+    replace.mockRestore();
   });
 
   it('appelle window.electron.authReady apres loadUser reussi', async () => {

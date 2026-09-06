@@ -13,6 +13,26 @@ function response(payload, status = 200, headers = {}) {
 }
 
 describe('native fetch provider adapters', () => {
+  test.each([OpenAIAdapter, AnthropicAdapter, GeminiAdapter])('%p vérifie les métadonnées sans génération ni contenu utilisateur', async (Adapter) => {
+    const fetchImpl = jest.fn(async () => response({ id: 'model-a', name: 'models/model-a' }));
+    const adapter = new Adapter({ fetchImpl });
+    const generate = jest.spyOn(adapter, 'generate');
+    await expect(adapter.testConnection({ apiKey: 'secret', model: 'model-a' }))
+      .resolves.toMatchObject({ ok: true, verification: 'model_access', generationTested: false });
+    expect(generate).not.toHaveBeenCalled();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0][0]).toMatch(/\/models\/model-a$/);
+    expect(fetchImpl.mock.calls[0][1]).toMatchObject({ method: 'GET' });
+    expect(fetchImpl.mock.calls[0][1]).not.toHaveProperty('body');
+  });
+
+  test.each([OpenAIAdapter, AnthropicAdapter, GeminiAdapter])('%p échoue sans appel facturé lorsque le modèle manque', async (Adapter) => {
+    const fetchImpl = jest.fn(async () => response({ error: { code: 'model_not_found' } }, 404));
+    await expect(new Adapter({ fetchImpl }).testConnection({ apiKey: 'secret', model: 'missing' }))
+      .rejects.toMatchObject({ code: 'AI_PROVIDER_MODEL_NOT_AVAILABLE' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0][1].method).toBe('GET');
+  });
   test('normalizes OpenAI Responses output and usage', async () => {
     const fetchImpl = jest.fn(async (_url, options) => response({ id: 'resp-1', output_text: 'Bonjour [S1]', usage: { input_tokens: 12, output_tokens: 4, input_tokens_details: { cached_tokens: 2 } } }));
     const result = await new OpenAIAdapter({ fetchImpl }).generate({ apiKey: 'secret-openai', model: 'model-a', systemInstruction: 'system', userContent: 'question' });

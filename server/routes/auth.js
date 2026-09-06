@@ -3,7 +3,6 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const dotenv = require("dotenv");
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const rateLimit = require("express-rate-limit");
@@ -55,7 +54,14 @@ const {
 } = require('../validation/authSchemas');
 
 const router = express.Router();
-dotenv.config();
+
+// Trace la fermeture de la session locale ; les JWT déjà émis restent soumis
+// à leur expiration. Ce point ne déconnecte pas le compte du fournisseur.
+router.post('/logout', auth, (req, res) => {
+    secLog(EVT.AUTH_LOGOUT, { userId: String(req.user), source: 'kheops', reason: 'client-session-closed' }, req);
+    res.set('Cache-Control', 'no-store');
+    return res.status(204).end();
+});
 
 // Recherche exacte et insensible à la casse, avec neutralisation des
 // métacaractères regex présents dans les adresses e-mail.
@@ -548,13 +554,16 @@ router.get('/google/callback', async (req, res) => {
             `);
         } else {
             // Mode web classique (inchangé)
-            const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${kheopsToken}`;
-            console.log(`[AUTH.JS /google/callback] Redirection finale vers le frontend : ${redirectUrl}`);
+            const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback#token=${kheopsToken}`;
+            res.set('Cache-Control', 'no-store');
+            res.set('Referrer-Policy', 'no-referrer');
+            console.log('[AUTH.JS /google/callback] Redirection vers le frontend (jeton masqué).');
             res.redirect(redirectUrl);
         }
 
     } catch (error) {
-        console.error("[AUTH.JS /google/callback] ERREUR lors de l'échange du code ou de la vérification/login:", error.response?.data || error.message || error);
+        console.error('[AUTH.JS /google/callback] Échec de connexion.', { status: Number(error.response?.status) || null });
+        secLog(EVT.AUTH_LOGIN_FAILURE, { source: 'google-oauth', reason: 'callback-exception' }, req);
 
         if (error.response?.data?.error === 'invalid_grant') {
             console.error("[AUTH.JS /google/callback] Erreur 'invalid_grant': Le code d'autorisation est peut-être expiré ou invalide.");
@@ -823,7 +832,7 @@ router.post('/microsoft/sharepoint-connect-url', auth, async (req, res) => {
 
 // Route de callback Microsoft
 router.get('/microsoft/callback', async (req, res) => {
-    const { code, state, error: errorParam, error_description } = req.query;
+    const { code, state, error: errorParam } = req.query;
     let stored = null;
     if (state) {
         try { stored = readMicrosoftOAuthState(state); } catch (_) { stored = null; }
@@ -833,8 +842,8 @@ router.get('/microsoft/callback', async (req, res) => {
     console.log("[AUTH.JS /microsoft/callback] Callback Microsoft reçu.");
 
     if (errorParam) {
-        console.error("[AUTH.JS /microsoft/callback] Erreur Microsoft:", errorParam, error_description);
-        secLog(EVT.AUTH_LOGIN_FAILURE, { source: 'microsoft-oauth', reason: `consent-denied: ${errorParam} - ${error_description}` }, req);
+        console.error('[AUTH.JS /microsoft/callback] Consentement refusé ou interrompu.');
+        secLog(EVT.AUTH_LOGIN_FAILURE, { source: 'microsoft-oauth', reason: 'consent-denied' }, req);
         if (stored?.connectUserId) {
             return microsoftStorageRedirect(res, stored.flow, 'microsoft_consent_denied');
         }
@@ -1040,14 +1049,15 @@ router.get('/microsoft/callback', async (req, res) => {
             console.log(`[AUTH.JS /microsoft/callback] Mode Electron — Deep link généré (source=microsoft).`);
             return res.send(renderElectronCallbackPage(deepLink));
         }
-        const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${kheopsToken}&source=microsoft`;
-        console.log(`[AUTH.JS /microsoft/callback] Redirection vers le frontend : ${redirectUrl}`);
+        const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback#token=${kheopsToken}&source=microsoft`;
+        res.set('Cache-Control', 'no-store');
+        res.set('Referrer-Policy', 'no-referrer');
+        console.log('[AUTH.JS /microsoft/callback] Redirection vers le frontend (jeton masqué).');
         return res.redirect(redirectUrl);
 
     } catch (error) {
-        const detail = error.response?.data || error.message || error;
-        console.error("[AUTH.JS /microsoft/callback] ERREUR:", detail);
-        secLog(EVT.AUTH_LOGIN_FAILURE, { source: 'microsoft-oauth', reason: `callback-exception: ${error.message}` }, req);
+        console.error('[AUTH.JS /microsoft/callback] Échec de connexion.', { status: Number(error.response?.status) || null });
+        secLog(EVT.AUTH_LOGIN_FAILURE, { source: 'microsoft-oauth', reason: 'callback-exception' }, req);
         if (stored?.connectUserId) {
             return microsoftStorageRedirect(res, stored.flow, 'microsoft_callback_failed');
         }

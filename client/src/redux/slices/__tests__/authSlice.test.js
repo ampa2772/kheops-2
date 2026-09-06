@@ -627,6 +627,16 @@ describe('authSlice performLogout', () => {
 
     expect(dispatch).toHaveBeenCalledWith(logout());
   });
+
+  test('journalise la fermeture sans bloquer le nettoyage local si le serveur échoue', async () => {
+    apiClient.post.mockRejectedValue(new Error('hors ligne'));
+    await performLogout()(dispatch, getState);
+    expect(apiClient.post).toHaveBeenCalledWith('/api/auth/logout', {}, {
+      headers: { Authorization: 'Bearer jwt-kheops-user' }, timeout: 3000,
+    });
+    expect(dispatch).toHaveBeenCalledWith(logout());
+    apiClient.post.mockReset();
+  });
 });
 
 // --- Classic thunks updatePassword ---
