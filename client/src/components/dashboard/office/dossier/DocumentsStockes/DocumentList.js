@@ -1530,7 +1530,7 @@ const DocumentList = ({
     setMiniModalItemId(null);
     try {
       const sessions = await listExternalSessions(doc._id);
-      const active = sessions.find((session) => ['open', 'synced', 'conflict'].includes(session.state));
+      const active = sessions.find((session) => ['open', 'synced', 'conflict', 'remote_missing'].includes(session.state));
       if (!active) {
         toast.info('Aucune session Word pour le web ou Google Docs à reprendre pour ce document.');
         return null;
@@ -1551,7 +1551,7 @@ const DocumentList = ({
       .then((sessions) => {
         if (!active) return;
         const session = sessions.find((item) => String(item.id) === String(marker.sessionId))
-          || sessions.find((item) => ['open', 'synced', 'conflict'].includes(item.state));
+          || sessions.find((item) => ['open', 'synced', 'conflict', 'remote_missing'].includes(item.state));
         if (session) setExternalSession(session);
         else {
           try { localStorage.removeItem('kheopsExternalEditingSession'); } catch (_) {}

@@ -29,6 +29,7 @@ const BaseModal = ({
     if (!isOpen || !onClose) return;
 
     const handleClickOutside = (e) => {
+      if (document.querySelector('.k-confirm-overlay')) return;
       if (contentRef.current && !contentRef.current.contains(e.target)) {
         onClose();
       }
@@ -38,6 +39,7 @@ const BaseModal = ({
     // Capture phase + stopPropagation pour passer avant les autres listeners
     // globaux (raccourcis clavier, etc.) qui pourraient interpréter Échap.
     const handleEscape = (e) => {
+      if (document.querySelector('.k-confirm-overlay')) return;
       if (e.key === 'Escape') {
         e.stopPropagation();
         onClose();

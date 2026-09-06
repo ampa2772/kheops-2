@@ -205,6 +205,12 @@ function sessionRequest(sessionId = SESSION_ID) {
 }
 
 describe('externalDocumentEditing — politique et isolation', () => {
+  test('la copie externe utilise le nom visible plutôt qu’un ancien nom technique',async()=>{
+    const {handlers,googleDrive}=loadRoute({content:{buffer:Buffer.from('PK\x03\x04docx'),mime:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',source:'history',filename:DOC_ID+'.docx'}});
+    const res=response();await handlers.open(openRequest({method:'google_docs'}),res);
+    expect(res.statusCode).toBe(201);
+    expect(googleDrive.uploadFile).toHaveBeenCalledWith(expect.anything(),expect.objectContaining({name:'contrat.docx'}));
+  });
   test('l’absence de politique historique applique les mêmes valeurs par défaut que l’écran',async()=>{
     const {handlers,googleDrive}=loadRoute({policy:null,account:{googleDriveAccount:{accountType:'personal'}}});
     const res=response();await handlers.open(openRequest({method:'google_docs'}),res);
@@ -257,6 +263,13 @@ describe('externalDocumentEditing — politique et isolation', () => {
 });
 
 describe('externalDocumentEditing — fermeture et reprise',()=>{
+  test('une copie restaurée peut être reprise sans réactiver implicitement le retour automatique',async()=>{
+    const session=makeSession({state:'remote_missing',autoSyncEnabled:false});
+    const {handlers}=loadRoute({session});const res=response();
+    await handlers.status({user:'user-1',params:{sessionId:SESSION_ID},query:{}},res);
+    expect(res.statusCode).toBe(200);expect(res.payload.session.state).toBe('open');
+    expect(res.payload.session.autoSyncEnabled).toBe(false);
+  });
   test('une fermeture avec retrait sauvegarde d’abord et utilise le drive et la révision observés',async()=>{
     const {handlers,saveVersion,oneDrive}=loadRoute({session:makeSession({remoteDriveId:'pinned-drive'})});
     const res=response();await handlers.close({...sessionRequest(),query:{deleteRemote:'true'}},res);

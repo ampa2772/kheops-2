@@ -5,7 +5,8 @@
 .k-confirm-overlay {
   position: fixed;
   inset: 0;
-  z-index: 7000;
+  /* Above editors, nested dialogs and document action menus. */
+  z-index: 200000;
   background: rgba(4, 14, 24, 0.6);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);

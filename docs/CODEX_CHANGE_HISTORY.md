@@ -6615,3 +6615,59 @@ de cette suite réussissent. La consultation seule continue à indiquer un état
 inconnu lorsque le fournisseur ne répond pas. Aucun comportement applicatif,
 document de recette ou paramètre de production modifié dans ce complément.
 Une nouvelle exécution officielle complète reste requise avant livraison.
+
+## CODEX-CHANGE-070 — Recette rc8 réelle : confirmations et reprise corrigées
+
+Date : 6 septembre 2026. Références 063, 068 et 069 ; leurs invariants restent
+applicables. Première candidate rc8 déployée et vérifiée : commit
+`16b8aa3a3cd05793950226bcb0babb095e5c58d4`, révision
+`kheops-2-backend-00184-yib`, 100 % du trafic. Contrôles officiels : serveur
+183 suites / 1 462 tests, client 167 suites / 1 906 tests, compilation, manifeste,
+santé, frontend et CORS des deux adresses réussis. Bundle servi identique au local.
+
+### Résultats réels et défaut découvert
+
+- Connexion dédiée OneDrive réussie dans Chrome avec le compte professionnel
+  précédemment autorisé ; espace OneDrive accessible. Google Drive déjà connecté.
+- Document fictif uniquement, huit versions sauvegardées et leurs empreintes
+  vérifiées avant toute recette. Ouverture dans Google Docs et Word pour le web,
+  saisie effective dans chaque interface, enregistrement et retour automatique
+  dans l'historique Kheops constatés sur cette candidate. Registre et journal
+  physique réussis pour les nouvelles versions examinées.
+- Pause Google vérifiée sur plus d'une minute, puis reprise automatique réussie.
+  Deux synchronisations identiques n'ajoutent aucune version. Le délai de mise
+  à disposition du DOCX par Google dépasse parfois une minute ; aucune garantie
+  de retour instantané n'est donnée.
+- La fermeture Google a révélé une confirmation située sous la fenêtre externe,
+  donc invisible et non cliquable. Aucune fermeture ni suppression réussie n'est
+  revendiquée pour cet essai. Les copies de recette sont conservées, en pause,
+  pendant la préparation de cette correction.
+
+### Corrections complémentaires
+
+- Confirmation placée dans un portail au-dessus des fenêtres. Le clic et Échap
+  dans cette confirmation ne ferment pas la fenêtre parente ; Annuler reste
+  sélectionné par défaut et Entrée ne vaut jamais autorisation implicite.
+- Copie introuvable : état explicite, reprise accessible depuis la liste, retour
+  à un état utilisable après restauration distante sans réactiver implicitement
+  l'automatisme. Le message ne prétend plus que cette copie est accessible.
+- Nom visible du document conservé à l'ouverture externe lorsque le format est
+  compatible, même si l'historique porte un ancien nom technique.
+- Rejouer un ancien import déjà enregistré ne réécrit pas le cache canonique
+  lorsqu'une version Kheops plus récente est courante. Historique préservé.
+- Texte de l'écran précisé : le délai dépend aussi du fournisseur cloud.
+
+### Validation et suite de livraison
+
+Deux suites serveur ciblées / 31 tests réussis ; deux suites client ciblées /
+10 tests réussis, dont clic et Échap dans une confirmation imbriquée. Diff
+examiné. Les premiers essais des nouveaux tests ont signalé une fixture DOCX
+invalide et un identifiant de fixture absent ; fixtures corrigées et tests
+relancés. Ces erreurs de test n'ont pas affecté les données servies.
+
+Ce complément doit être compilé, déployé et recetté à son tour. La fermeture
+récupérable, le conflit réel et les derniers contrôles restent à finaliser ; le
+rapport final consignera leur résultat. Aucun secret, aucune suppression globale
+ni migration de base. Retour logiciel de référence : révision rc7
+`kheops-2-backend-00181-hud`, avec conservation de toutes les versions et des
+champs ajoutés. Désactiver les sessions automatiques avant ce retour.

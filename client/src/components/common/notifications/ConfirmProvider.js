@@ -9,6 +9,7 @@
 //   true  → l'utilisateur a cliqué le bouton de confirmation
 //   false → l'utilisateur a cliqué Annuler / Échap / clic en dehors
 import React, { createContext, useCallback, useContext, useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import './ConfirmModal.css';
 
 const ConfirmContext = createContext(null);
@@ -56,16 +57,20 @@ export const ConfirmProvider = ({ children }) => {
   useEffect(() => {
     if (!opts) return undefined;
     const onKey = (e) => {
-      if (e.key === 'Escape') finish(false);
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        finish(false);
+      }
     };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
   }, [opts, finish]);
 
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      {opts && (
+      {opts && createPortal(
         <div
           className="k-confirm-overlay"
           onClick={(e) => { if (e.target === e.currentTarget) finish(false); }}
@@ -94,7 +99,7 @@ export const ConfirmProvider = ({ children }) => {
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body
       )}
     </ConfirmContext.Provider>
   );

@@ -139,9 +139,12 @@ router.post('/:docId/open', auth, async (req, res) => {
       });
     }
     if (!format) assertEditableDocx({ filename: content.filename || context.embedded.nomDocument, buffer: content.buffer });
+    const displayFilename = embeddedFormat === format
+      ? context.embedded.nomDocument
+      : content.filename || context.embedded.nomDocument;
     const filename = format === 'txt'
-      ? safeTextFilename(content.filename || context.embedded.nomDocument, req.params.docId)
-      : safeFilename(content.filename || context.embedded.nomDocument, req.params.docId);
+      ? safeTextFilename(displayFilename, req.params.docId)
+      : safeFilename(displayFilename, req.params.docId);
     const transferBuffer = format === 'txt'
       ? assertEditableText({ filename, mime: content.mime, buffer: content.buffer })
       : content.buffer;
@@ -293,7 +296,7 @@ async function ownedSession(req, res) {
 
 router.get('/sessions/:sessionId/status', auth, async (req, res) => {
   try {
-    const session = await ownedSession(req, res);
+    let session = await ownedSession(req, res);
     if (!session) return;
     if(req.query?.localOnly==='true') return res.json({session:toSession(session),localOnly:true});
     let meta;
@@ -312,6 +315,12 @@ router.get('/sessions/:sessionId/status', auth, async (req, res) => {
       session.state = 'remote_missing';
       await session.save();
       return res.json({ session: toSession(session), remoteExists: false, changed: false });
+    }
+    if(session.state==='remote_missing') {
+      const restored=await ExternalEditSession.findOneAndUpdate({_id:session._id,userId:req.user,state:'remote_missing',
+        $or:[{'syncLease.expiresAt':null},{'syncLease.expiresAt':{$lte:new Date()}}]},
+      {$set:{state:session.lastSyncedAt?'synced':'open',autoSyncEnabled:false,nextSyncAt:null,lastSyncError:''}},{new:true});
+      if(restored) session=restored;
     }
     const modifiedTime = meta.modifiedTime || meta.lastModifiedDateTime || null;
     const revision = require('../services/externalSessionSync').stamp(meta);

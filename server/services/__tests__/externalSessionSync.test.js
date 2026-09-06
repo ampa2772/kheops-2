@@ -73,3 +73,14 @@ test('never removes a conflicting copy, including an explicit close request',asy
   const result=await makeExternalSessionSync(f).synchronize({session:f.session,userId:'user',removeRemote:true});
   expect(result.conflict).toBe(true);expect(f.google.trashItem).not.toHaveBeenCalled();
 });
+
+test('replaying an old successful import never overwrites a newer canonical document',async()=>{
+  const f=fixture();f.session.sourceFormat='docx';f.session.sourceFilename='Essai.docx';
+  f.google.getItemMetadata.mockResolvedValue({version:'revision-2',name:'Essai.docx'});
+  const zip=new(require('pizzip'))();zip.file('[Content_Types].xml','<Types/>');zip.file('word/document.xml','<w:document/>');
+  f.google.downloadEditableFile.mockResolvedValue({buffer:zip.generate({type:'nodebuffer'}),name:'Essai.docx'});
+  f.history.saveVersion.mockResolvedValue({version:{versionId:'old-import'},history:{currentVersionId:'newer-kheops-edit'},conflict:false,idempotent:true});
+  const result=await makeExternalSessionSync(f).synchronize({session:f.session,userId:'user'});
+  expect(result.ok).toBe(true);expect(result.canonicalSynced).toBe(false);
+  expect(f.content.saveCanonicalDocument).not.toHaveBeenCalled();
+});

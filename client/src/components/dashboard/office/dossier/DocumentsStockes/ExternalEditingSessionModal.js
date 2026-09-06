@@ -63,7 +63,9 @@ const ExternalEditingSessionModal = ({ session, onClose, onSynced }) => {
       const next = await getExternalSessionStatus(currentSession.id);
       setStatus(next);
       if(next.session) setCurrentSession(next.session);
-      setMessage({ type: 'info', text: next.changed ? 'Des modifications sont prêtes à être synchronisées.' : 'La copie externe est accessible.' });
+      setMessage(next.remoteExists === false
+        ? {type:'warning',text:'La copie externe est introuvable. Restaurez-la dans le service cloud, puis vérifiez à nouveau.'}
+        : { type: 'info', text: next.changed ? 'Des modifications sont prêtes à être synchronisées.' : 'La copie externe est accessible.' });
     } catch (err) {
       setMessage({ type: 'error', text: err?.response?.data?.message || 'Impossible de vérifier la copie externe.' });
     } finally {
@@ -140,7 +142,7 @@ const ExternalEditingSessionModal = ({ session, onClose, onSynced }) => {
         <div className="external-edit-session__body">
           <p>
             {currentSession.autoSyncEnabled
-              ? `Les modifications enregistrées dans ${editorName} reviennent automatiquement dans Kheops, généralement sous une minute. Un conflit interrompt ce retour sans écraser les versions.`
+              ? `Les modifications disponibles dans ${editorName} sont vérifiées régulièrement et reviennent automatiquement dans Kheops. Le délai dépend aussi du service cloud. Un conflit interrompt ce retour sans écraser les versions.`
               : `Travaillez dans ${editorName}, puis cliquez sur « Synchroniser les modifications » pour enregistrer une version dans Kheops.`}
           </p>
           <p>La copie externe correspond à la version envoyée à son ouverture. Une modification faite ensuite dans Kheops ne remplace pas silencieusement cette copie.</p>

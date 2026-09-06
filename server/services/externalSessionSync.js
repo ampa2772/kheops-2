@@ -83,8 +83,11 @@ function makeExternalSessionSync({Model=Session,history=historyService,content=c
       if(!result.conflict) updates.baseVersionId=result.version.versionId;
       await store(updates);
       if(result.conflict) return {ok:false,conflict:true,session,history:result.history};
-      let canonicalSynced=true;
-      try {if(format!=='txt') await content.saveCanonicalDocument(session.documentId,remote.buffer,DOCX_MIME,{tenantId:session.tenantId,dossierId:session.dossierId});}
+      const stillCurrent=String(result.history.currentVersionId)===String(result.version.versionId);
+      let canonicalSynced=format==='txt'||stillCurrent;
+      // Replaying an acknowledged import must not replace the canonical cache
+      // after a newer Kheops version has become current.
+      try {if(format!=='txt' && stillCurrent) await content.saveCanonicalDocument(session.documentId,remote.buffer,DOCX_MIME,{tenantId:session.tenantId,dossierId:session.dossierId});}
       catch(_) {canonicalSynced=false;}
       // Keep the native file recoverable in the provider's recycle bin. A fresh
       // revision check prevents closing over an edit detected after the backup.
