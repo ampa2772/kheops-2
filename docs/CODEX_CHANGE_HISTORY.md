@@ -6600,3 +6600,18 @@ explicite, aucune suppression globale, aucun secret dans Git.
   sessions ont été ouvertes. Restaurer un document depuis son historique en
   créant une nouvelle version ; récupérer une copie externe dans la corbeille
   du fournisseur. Ne pas restaurer globalement la base.
+
+## CODEX-CHANGE-069 — Contrôle complet rc8 : attente historique corrigée
+
+Date : 6 septembre 2026. Suite à 068, le premier contrôle officiel a arrêté
+la livraison avant compilation et déploiement : 182 suites réussies sur 183,
+1 461 tests réussis sur 1 462. Le seul échec attendait encore un succès lorsque
+le fournisseur ne pouvait confirmer le fichier. Cette ancienne attente
+contredisait volontairement la correction A8 et masquait un transfert incertain.
+
+Le test de route exige désormais le refus 502, l'absence de publication des
+métadonnées et le retour arrière du quota et du nouveau fichier. Les sept tests
+de cette suite réussissent. La consultation seule continue à indiquer un état
+inconnu lorsque le fournisseur ne répond pas. Aucun comportement applicatif,
+document de recette ou paramètre de production modifié dans ce complément.
+Une nouvelle exécution officielle complète reste requise avant livraison.

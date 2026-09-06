@@ -44,7 +44,7 @@ function load({ providerExists, findOneDoc } = {}) {
     const layer = router.stack.find((l) => l.route?.path === path && l.route.methods[method]);
     return layer.route.stack[layer.route.stack.length - 1].handle;
   };
-  return { uploadHandler: findRoute('/documents/upload', 'post'), verifyHandler: findRoute('/documents/:id/verify', 'get'), uploadVersion, deleteVersion, releaseQuota, exists };
+  return { uploadHandler: findRoute('/documents/upload', 'post'), verifyHandler: findRoute('/documents/:id/verify', 'get'), uploadVersion, deleteVersion, releaseQuota, exists, save };
 }
 
 function res() {
@@ -71,11 +71,14 @@ describe('upload — validation de complétion', () => {
     expect(deleteVersion).not.toHaveBeenCalled();
   });
 
-  test('vérification inconclusive (exists lève) → ne bloque pas → commit', async () => {
-    const { uploadHandler } = load({ providerExists: async () => { throw new Error('net'); } });
+  test('vérification inconclusive → refus, rollback et aucune métadonnée publiée', async () => {
+    const { uploadHandler, deleteVersion, releaseQuota, save } = load({ providerExists: async () => { throw new Error('net'); } });
     const r = res();
     await uploadHandler(uploadReq(), r);
-    expect(r.status).toHaveBeenCalledWith(201);
+    expect(r.status).toHaveBeenCalledWith(502);
+    expect(save).not.toHaveBeenCalled();
+    expect(deleteVersion).toHaveBeenCalledWith({ storageKey: 'onedrive:userA:IT1' });
+    expect(releaseQuota).toHaveBeenCalledWith('TENANT1', 10);
   });
 });
 
